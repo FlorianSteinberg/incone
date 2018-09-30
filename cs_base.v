@@ -1,6 +1,5 @@
 From mathcomp Require Import all_ssreflect.
 Require Import all_core.
-Import FunctionalExtensionality ClassicalFacts ClassicalChoice Psatz.
 Import Morphisms.
 
 Set Implicit Arguments.

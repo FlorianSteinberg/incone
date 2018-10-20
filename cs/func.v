@@ -24,8 +24,8 @@ Definition is_fun_name (X Y: cs):=
 Lemma is_fun_name_sur (X Y : cs):
 	(@is_fun_name X Y) \is_cototal.
 Proof.
-(*
 case (classic (exists y: Y, true)) => [[somey _] | nex];last first.
+(*
 	split => [_ [f  fhcr] g _ _ | f].
 		apply /eq_sub/functional_extensionality => x.
 		by exfalso; apply nex; exists (f (x)).

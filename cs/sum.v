@@ -50,7 +50,7 @@ Definition sum_rep X Y :=
 
 Lemma sum_rep_sur (X Y: cs): (@sum_rep X Y) \is_cototal.
 Proof.
-rewrite cotot_spec => [][xy | xy]; have [phi phin]:= get_name xy.
+move => [xy | xy]; have [phi phin]:= get_name xy.
 	by exists (linc phi); split; first by exists (phi (someq X)).
 by exists (rinc phi); split; first by exists (phi (someq Y)).
 Qed.
@@ -291,21 +291,6 @@ rewrite frlzr_rlzr mfssFG_frlzr_rlzr mfss_fun_mfss.
 by apply mfssFG_rlzr_spec; rewrite -frlzr_rlzr.
 Qed.
 
-Lemma sum_rec_fun (X Y X' Y': rep_space) (f: X -> Y) (g: X' -> Y'):
-	f \is_recursive_function -> g \is_recursive_function -> (f +s+_f g) \is_recursive_function.
-Proof.
-move => [M /= Mrf] [N /= Nrg].
-exists (mfssFG_frlzr M N).
-exact/ mfssFG_frlzr_spec.
-Defined.
-
-Lemma sum_rec (X Y X' Y': rep_space) (f: X ->> Y) (g: X' ->> Y'):
-	f \is_recursive -> g \is_recursive -> (f +s+ g) \is_recursive.
-Proof.
-move => [M Mrf] [N Nrg].
-exists (mfssFG_frlzr M N).
-abstract by rewrite rrlzr_rlzr mfssFG_frlzr_rlzr; apply mfssFG_rlzr_spec; rewrite -rrlzr_rlzr.
-Defined.
 *)
 
 Lemma sum_uprp_fun (X Y Z: cs) (f: X -> Z) (g: Y -> Z):
@@ -317,20 +302,4 @@ Proof.
 exists (fun xy => paib (fsum f g xy)); rewrite /paib.
 by split => // F [eq eq']; apply functional_extensionality => [[x | y]].
 Qed.
-
-(*
-Lemma sum_uprp_rec_fun (X Y Z: cs) (f: X -> Z) (g: Y -> Z):
-	f \is_recursive_function -> g \is_recursive_function ->
-	exists! (fg: X + Y -> Z), exists (P: fg \is_recursive_function),
-		(forall x, fg (inl x) = f x)
-		/\
-		(forall y, fg (inr y) = g y).
-Proof.
-intros.
-exists (fun xy => paib (mfss_fun f g xy)); split; last rewrite /paib.
-	split; last	by split => // F [eq eq']; apply functional_extensionality => [[x | y]].
-	by apply/ rec_fun_comp; [ apply: sum_rec_fun X0 X1 | apply paib_rec_fun | ] => /=.
-move => fg [fgrec [lfg rfg]].
-by apply functional_extensionality; case => /= x; [rewrite -lfg | rewrite -rfg].
-Qed.*)
 End SUMLEMMAS.

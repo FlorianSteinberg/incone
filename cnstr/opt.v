@@ -17,11 +17,9 @@ end).
 Lemma rep_opt_sur X:
 	(@rep_opt X) \is_cototal.
 Proof.
-rewrite cotot_spec => x.
-case x => [a | ].
-	have [phi phinx]:= get_name a.
-	by exists (fun q => (Some star, if q is inr q' then phi q' else somea X)).
-by exists (fun q => (None, somea X)).
+move => [a | ]; last by exists (fun q => (None, somea X)).
+have [phi phinx]:= get_name a.
+by exists (fun q => (Some star, if q is inr q' then phi q' else somea X)).
 Qed.
 
 Definition cs_opt_assembly_mixin (X: cs):

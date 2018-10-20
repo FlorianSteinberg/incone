@@ -1,6 +1,6 @@
 (* This file provides an abstract envelope for computability theoretical considerations *)
 From mathcomp Require Import all_ssreflect.
-From mpf Require Import all_mf.
+From mpf Require Import all_mpf.
 Require Import inseg.
 Import FunctionalExtensionality ClassicalChoice.
 
@@ -101,7 +101,6 @@ Qed.
 
 Lemma use_first_crct N psi: N \evaluates_to psi -> (use_first N) \evaluates_to psi.
 Proof.
-rewrite !tight_char.
 move => comp q qfd; split; last first.
 	move => a [c Nqa]; apply (comp q qfd).2.
 	have [c' rc]:= @p_search N c q.
@@ -139,7 +138,6 @@ Notation "M '\oracle_evaluates_to' F" := ((is_oval M) \tightens F) (at level 2).
 Lemma rec_F2MF_op (F: B -> B'):
 	(fun n phi q => Some(F phi q)) \oracle_evaluates_to (F2MF F).
 Proof.
-rewrite !tight_char.
 move => phi _.
 split => [ | Fphi ev].
 	by exists (F phi) => q'; exists zero.
@@ -186,7 +184,6 @@ Notation "M '\monotone_computes' F" := (mon_cmpt M F) (at level 2).
 Lemma cmpt_mon_sing_op M F: M \is_monotone -> F \is_singlevalued ->
 	(M \monotone_computes F <-> M \oracle_evaluates_to F).
 Proof.
-rewrite !tight_char.
 split => [comp phi [] | comp phi]; intros; first (split; first by exists x; apply/ comp).
 	by move => y val; have <-: x = y by apply/ mon_sing_op => //; last by apply/ comp.
 have [ | [Mphi MphiMphi] prop] := (comp phi _); first by exists Fphi.
@@ -199,7 +196,6 @@ Proof.
 split => [comp phi q' | prop]; last first.
 	apply cmpt_mon_sing_op => //; first exact: F2MF_sing; move => phi Fphi eq q'.
 	by have [c val]:= (prop phi q'); exists c; rewrite -eq.
-move: comp; rewrite tight_char => comp.
 have [ | [Mphi evl] prop]:= (comp phi _); first by exists (F phi).
 have [c val] := (evl q'); exists c; rewrite val.
 by have ->: Mphi = (F phi) by rewrite (prop Mphi).
@@ -208,7 +204,6 @@ Qed.
 Lemma sing_cmpt_elt M F c phi Fphi q' a':	M \oracle_evaluates_to F -> F \is_singlevalued ->
 	F phi Fphi -> M c phi q' = Some a' -> a' = Fphi q'.
 Proof.
-rewrite !tight_char.
 move => comp sing FphiFphi ev.
 have [ | [Mphi MphiFphi] prop]:= (comp phi _); first by exists Fphi.
 have eq: Mphi = Fphi by rewrite -(sing phi Fphi Mphi); last apply prop.
@@ -285,7 +280,6 @@ move => comp sing.
 pose r (c: fuel) phi q':= search (op M c phi q') (pickle c).
 rewrite -cmpt_mon_sing_op => // phi Fphi FphiFphi q'; last exact: oracle_use_first_mon.
 have phifd: phi \from dom F by exists Fphi.
-move: comp; rewrite !tight_char => comp.
 have [[Mphi MphiMphi] prop]:= comp phi phifd.
 have [c val]:= MphiMphi q'.
 have pqrc: op M c phi q' (r c phi q').
@@ -297,7 +291,6 @@ case E: (pickle c' < pickle c)%N pqrc.
 	rewrite pickleK_inv.
 	case E': (M c' phi q') => // _.
 	exists c; rewrite /oracle_use_first -uprcq pickleK_inv.
-	move: comp; rewrite -tight_char => comp.
 	by rewrite -(sing_cmpt_elt comp sing FphiFphi E').
 move => _.
 have eq: c' = c.
@@ -355,9 +348,9 @@ pose N c q' := oracle_use_first M c f q'; exists N.
 have Nmon: N \does_not_revise by rewrite /N => c c' q a; apply/oracle_use_first_mon.
 apply/ra_cmpt_cmpt => //.
 	by move => q a a' [Ff [H <-]] [Ff' [H0 <-]]; rewrite (sing f Ff Ff').
-have /tight_char comp := oracle_use_first_crct comp' sing.
+have comp := oracle_use_first_crct comp' sing.
 have [[Mf MfMf] prop]:= (comp f fd) => q' a' []Ff[]; have [c val]:= (MfMf q').
-by exists c; rewrite /N -b val; f_equal; apply/sing_cmpt_elt; [apply /tight_char /comp | | | apply val].
+by exists c; rewrite /N -b val; f_equal; apply/sing_cmpt_elt; [apply /comp | | | apply val].
 Qed.
 
 End oracle_computation.

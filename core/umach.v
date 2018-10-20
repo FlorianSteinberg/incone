@@ -6,7 +6,7 @@ handwritten type of strings I use more generaly a space of the form Q -> A for s
 Q and A as substitute for B. The assumptions needed about Q and A are that they are
 countable and that A is inhabited. *)
 From mathcomp Require Import all_ssreflect.
-From mpf Require Import all_mf choice_mf.
+From mpf Require Import all_mpf choice_mf.
 Require Import baire cont inseg exec count.
 Require Import ClassicalChoice Psatz FunctionalExtensionality.
 
@@ -101,7 +101,7 @@ Qed.
 Lemma icf_flst L:
 	phi \is_choice_for (L2MF (flst L)).
 Proof.
-rewrite icf_F2MF_tight tight_char => q [a listin] .
+rewrite icf_F2MF_tight => q [a listin] .
 split => [ |a' <-]; first by exists a; apply: flst_cons_elts listin.
 by apply /lstn_flst/(flst_lstn listin).
 Qed.
@@ -298,7 +298,6 @@ Lemma U_psiF_cmpt_F
 	(cmpt: compat F cnt mf listf):
 		(U psiF) \oracle_evaluates_to F.
 Proof.
-rewrite !tight_char.
 move => phi phifd.
 pose phin m := listf (L phi m).
 have phinprop m:= (phi'prop cnt m lstprp phifd).

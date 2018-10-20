@@ -12,7 +12,7 @@ Inductive one := star.
 Definition id_rep S := make_mf (fun phi (s: S) => phi star = s).
 
 Lemma id_rep_sur S: (@id_rep S) \is_cototal.
-Proof. by rewrite cotot_spec => s; exists (fun str => s). Qed.
+Proof. by move => s; exists (fun str => s). Qed.
 
 Definition cs_id_assembly_mixin S: interview_mixin.type (one -> S) (S).
 Proof. exists (@id_rep S); exact /id_rep_sur. Defined.

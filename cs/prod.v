@@ -24,7 +24,7 @@ Definition prod_rep X Y :=
 Lemma prod_rep_sur (X Y: cs):
 	(@prod_rep X Y) \is_cototal.
 Proof.
-rewrite cotot_spec => x.
+move => x.
 have [phi phinx1]:= (get_name x.1).
 have [psi psinx2]:= (get_name x.2).
 by exists (name_pair phi psi).

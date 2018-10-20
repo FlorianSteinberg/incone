@@ -12,11 +12,10 @@ Definition rep_usig_prod (X: cs) := make_mf
 
 Lemma rep_usig_prod_sur (X: cs): (@rep_usig_prod X) \is_cototal.
 Proof.
-rewrite cotot_spec => xn.
+move => xn.
 pose R n phi:= phi \is_name_of (xn n).
-have [ | phi phiprp]:= choice R.
-	by move => n; have [phi phinx]:= (get_name (xn n)); exists phi.
-by exists (fun p => phi p.1 p.2).
+have [ | phi phiprp]:= choice R; last by exists (fun p => phi p.1 p.2).
+by move => n; have [phi phinx]:= (get_name (xn n)); exists phi.
 Qed.
 
 Definition cs_usig_assembly_mixin (X: cs):

@@ -1,7 +1,7 @@
 (* This file provides a definition of continuity of functions between spaces of the form
 Q -> A for some arbitrary types Q and A. It also proves some basic Lemmas about this notion.*)
 From mathcomp Require Import all_ssreflect.
-From mpf Require Import all_mf choice_mf.
+From mpf Require Import all_mpf choice_mf.
 Require Import baire.
 Require Import FunctionalExtensionality ClassicalChoice.
 
@@ -60,15 +60,14 @@ Definition eligible phi q' a' := exists Fphi, F phi Fphi /\ a' = Fphi q'.
 Lemma dom_elig:
 	F \is_total -> forall phi q', exists a', eligible phi q' a'.
 Proof.
-move => /tot_spec tot phi q'; have [Fphi FphiFphi]:= tot phi.
+move => tot phi q'; have [Fphi FphiFphi]:= tot phi.
 by exists (Fphi q'); exists Fphi.
 Qed.
 
 Lemma elig_dom:
 	inhabited Q' -> F \is_total <-> forall phi q', exists a', eligible phi q' a'.
 Proof.
-move => [q']; split; first exact dom_elig; move => eligall.
-rewrite tot_spec => phi.
+move => [q']; split; first exact dom_elig; move => eligall phi.
 by have [_ [Fphi [FphiFphi _]]]:= eligall phi q'; exists Fphi.
 Qed.
 

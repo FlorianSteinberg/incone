@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-From mpf Require Import all_mf.
+From mpf Require Import all_mpf.
 Require Import inseg.
 Require Import ClassicalChoice.
 

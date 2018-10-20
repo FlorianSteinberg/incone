@@ -41,7 +41,7 @@ Definition determines phi q' a' := forall Fphi, F phi Fphi -> a' = Fphi q'.
 
 (* determines is closely connected to being single valued. *)
 Lemma det_sing:
-	(forall phi, phi \from_dom F -> forall q', exists a', determines phi q' a') <-> F \is_singlevalued.
+	(forall phi, phi \from dom F -> forall q', exists a', determines phi q' a') <-> F \is_singlevalued.
 Proof.
 split => [detall | sing].
 	move => phi Fphi Fphi' FphiFphi FphiFphi'.
@@ -95,12 +95,12 @@ by apply (coin_trans coin coin').
 Qed.
 
 (* We define a multivalued modulus function that makes sense even if F is not continuous. *)
-Definition mf_mod := make_mf (fun phiq L => phiq.1 \from_dom F /\ forall Fphi, F phiq.1 Fphi -> cert L phiq.1 phiq.2 (Fphi phiq.2)).
+Definition mf_mod := make_mf (fun phiq L => phiq.1 \from dom F /\ forall Fphi, F phiq.1 Fphi -> cert L phiq.1 phiq.2 (Fphi phiq.2)).
 (* The following Lemma gives a good specification for mf_mod: L is a value if whenever there
 exists an eligible return value, then L is a certificate for that value. *)
 
 Lemma mod_elig_cert phiq L:
-	mf_mod phiq L <-> phiq.1 \from_dom F /\ forall a', eligible phiq.1 phiq.2 a' -> cert L phiq.1 phiq.2 a'.
+	mf_mod phiq L <-> phiq.1 \from dom F /\ forall a', eligible phiq.1 phiq.2 a' -> cert L phiq.1 phiq.2 a'.
 Proof.
 split => [[phifd mod] | ]; first by split => // a' [Fphi [FphiFphi ->]]; apply/ mod.
 by move => [phifd eligcert]; split => // Fphi FphiFphi; apply eligcert; exists Fphi.
@@ -113,12 +113,12 @@ Proof. by move => sl [phifd mod]; split => //; intros; apply/(cert_mon sl)/mod. 
 (* since we don't want to require a continuous operator to have a closed
 Graph, we need to be a little careful with the definition and carry the
 domain around most of the time. *)
-Definition cont_xtndbl_to phi := forall q', (phi, q') \from_dom mf_mod.
-Definition is_cont_in phi := phi \from_dom F /\ cont_xtndbl_to phi.
-Definition is_cont := forall phi, phi \from_dom F -> cont_xtndbl_to phi.
+Definition cont_xtndbl_to phi := forall q', (phi, q') \from dom mf_mod.
+Definition is_cont_in phi := phi \from dom F /\ cont_xtndbl_to phi.
+Definition is_cont := forall phi, phi \from dom F -> cont_xtndbl_to phi.
 
 Lemma cont_cont_in:
-	is_cont <-> (forall phi, phi \from_dom F -> is_cont_in phi).
+	is_cont <-> (forall phi, phi \from dom F -> is_cont_in phi).
 Proof.
 split => [cont | cntn].
 	by move => phi phifd; split => // q'; exact/ cont.
@@ -159,7 +159,7 @@ Qed.
 Definition c_dom (F: B ->> B') phi := closure (dom F) phi.
 
 Lemma dom_cdom (F: B ->> B') phi:
-	phi \from_dom F -> c_dom F phi.
+	phi \from dom F -> c_dom F phi.
 Proof. exact: subs_clos. Qed.
 
 (* The following is the reason why the phi \from_dom F is part of many definitions *)
@@ -167,7 +167,7 @@ Lemma cert_cdom (F: B ->> B') phi q' a':
 	~ c_dom F phi -> exists L, cert F L phi q' a'.
 Proof.
 move => neg.
-have [L Lprop]: exists L, forall psi, ~ (phi \and psi \coincide_on L /\ psi \from_dom F).
+have [L Lprop]: exists L, forall psi, ~ (phi \and psi \coincide_on L /\ psi \from dom F).
 	apply NNPP => ex; apply neg => L; apply NNPP => negi.
 	exfalso; apply ex; exists L => psi [] coin val.
 	by apply negi; exists psi.
@@ -176,14 +176,14 @@ exfalso; apply (Lprop psi).
 by split; last by exists Fpsi.
 Qed.
 
-Definition is_mod (F: B ->> B') mf:= forall phi q', phi \from_dom F -> mf_mod F (phi, q') (mf phi q').
+Definition is_mod (F: B ->> B') mf:= forall phi q', phi \from dom F -> mf_mod F (phi, q') (mf phi q').
 Notation "mf '\is_modulus_of' F" := (is_mod F mf) (at level 2).
 
 Lemma mod_cont F mf:
 	is_mod F mf <-> forall phi Fphi, F phi Fphi -> forall q', cert F (mf phi q') phi q' (Fphi q').
 Proof.
 split => [mod phi Fphi FphiFphi q' | ]; last by move => prop; split => //=; intros; apply prop.
-by have phifd: phi \from_dom F; [exists Fphi | have [/=_ prop]:= (mod phi q' phifd); apply prop].
+by have phifd: phi \from dom F; [exists Fphi | have [/=_ prop]:= (mod phi q' phifd); apply prop].
 Qed.
 
 Lemma cont_mod (F: B ->> B'):
@@ -215,14 +215,14 @@ by move => prop Fphi [] Pphi; apply: (prop Pphi).
 Qed.
 
 Definition dom_cont (F: B ->> B') :=
-	make_subset (fun phi => (forall q', (phi, q') \from_dom (mf_mod F))).
+	make_subset (fun phi => (forall q', (phi, q') \from dom (mf_mod F))).
 
 Lemma dom_domc (F: B ->> B'):
-	F \is_continuous -> forall phi, phi \from_dom F -> dom_cont F phi.
+	F \is_continuous -> forall phi, phi \from dom F -> dom_cont F phi.
 Proof. move => cont phi fd q'; by apply cont. Qed.
 
 Lemma domc_cont (F: B ->> B'):
-	(forall phi, phi \from_dom F -> dom_cont F phi ) <-> F \is_continuous.
+	(forall phi, phi \from dom F -> dom_cont F phi ) <-> F \is_continuous.
 Proof. by split => ass phi phifd; apply ass. Qed.
 
 Lemma cont_domc (F: B ->> B'):

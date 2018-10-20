@@ -142,7 +142,7 @@ Section MINIMAL_MODULI.
 Context (F: B ->> B').
 
 Definition listfprop listf :=
-	listf \is_choice_for (make_mf (fun L phi => phi \from_dom F /\ phi \is_choice_for (L2MF L))).
+	listf \is_choice_for (make_mf (fun L phi => phi \from dom F /\ phi \is_choice_for (L2MF L))).
 
 Lemma exists_lstf (a : A) :
 	exists listf, listfprop listf.
@@ -152,13 +152,13 @@ Context (cnt: nat -> Q).
 Notation init_seg := (in_seg cnt).
 
 Lemma phi'prop listf phi n:
-	listfprop listf -> phi \from_dom F ->
-	(listf (flst phi (init_seg n))) \from_dom F
+	listfprop listf -> phi \from dom F ->
+	(listf (flst phi (init_seg n))) \from dom F
 	/\
 	(listf (flst phi (init_seg n))) \is_choice_for (L2MF (flst phi (init_seg n))).
 Proof.
 move => listfprop phifd.
-have prop: phi \from_dom F/\ phi \is_choice_for (L2MF (flst phi (init_seg n))).
+have prop: phi \from dom F/\ phi \is_choice_for (L2MF (flst phi (init_seg n))).
 	by split; last exact: icf_flst.
 by apply: (listfprop (flst phi (init_seg n)) phi).
 Qed.
@@ -170,7 +170,7 @@ Notation size := (max_elt sec).
 Definition is_min_mod mf :=
 	(fun phi q' => init_seg (mf phi q')) \is_modulus_of F
 	/\
-	forall phi q' K, phi \from_dom F -> mf_mod F (phi, q') K -> mf phi q' <= size K.
+	forall phi q' K, phi \from dom F -> mf_mod F (phi, q') K -> mf phi q' <= size K.
 
 Context (ims: sec \is_minimal_section_of cnt).
 
@@ -179,13 +179,13 @@ Lemma exists_minmod: cnt \is_surjective_function -> F \is_continuous ->
 Proof.
 move => sur cont.
 pose P := make_mf (fun phiq n => mf_mod F phiq (init_seg n)).
-have Pdom: forall phi, phi \from_dom F -> forall q', (phi, q') \from_dom P.
+have Pdom: forall phi, phi \from dom F -> forall q', (phi, q') \from dom P.
 	move => phi fd q'; have [L [/=_ Lprop]]:= (cont phi fd q').
 	exists (size L); split => // Fphi FphiFphi.
 	apply: cert_mon; first exact: inseg_melt.
 	by apply/ Lprop; first by apply FphiFphi.
 pose R := make_mf (fun phiq n => P phiq n /\ (forall K, P phiq (size K) ->  n <= size K)).
-have Rdom: forall phi, phi \from_dom F -> forall q', (phi, q') \from_dom R.
+have Rdom: forall phi, phi \from dom F -> forall q', (phi, q') \from dom R.
 	move => phi fd q'.
   have [n [p nprop]] := well_order_nat (Pdom phi fd q').
   by exists n; split => // K p'; apply/nprop.
@@ -198,7 +198,7 @@ apply: (mfprop (phi, q') n Rn).2; split => // Fphi FphiFphi.
 by apply/ cert_mon; [apply: inseg_melt | apply Xprop].
 Qed.
 
-Definition compat mf listf:= forall phi, phi \from_dom F ->
+Definition compat mf listf:= forall phi, phi \from dom F ->
 	forall (q': Q') m, mf phi q' <= m -> mf (listf (flst phi (init_seg m))) q' <= m.
 
 Lemma minmod_compat mf listf:
@@ -270,7 +270,7 @@ Lemma Ffprop
 	(icf: Ff \is_choice_for F)
 	(mod: mf \is_modulus_for F)
 	(lstprp: listfprop F listf):
-		forall phi q', phi \from_dom F -> Ff_mod phi q'.
+		forall phi q', phi \from dom F -> Ff_mod phi q'.
 Proof.
 move => phi q' phifd m.
 have phinprop:= (phi'prop cnt m lstprp phifd).
@@ -282,7 +282,7 @@ by apply/coin_mon; [apply/inseg_mon | apply coin].
 Qed.
 
 Lemma U_step_compat phi q' (cmpt: compat F cnt mf listf):
-	phi \from_dom F -> Ff_mod phi q' -> U_step psiF phi q' (L phi (mf phi q')) = inl (Ff phi q').
+	phi \from dom F -> Ff_mod phi q' -> U_step psiF phi q' (L phi (mf phi q')) = inl (Ff phi q').
 Proof.
 move => phifd Ffprop.
 rewrite /U_step/psiF/=length_flst_in_seg; case: ifP => [|/negP eq].

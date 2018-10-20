@@ -284,7 +284,7 @@ Proof.
 move => comp sing.
 pose r (c: fuel) phi q':= search (op M c phi q') (pickle c).
 rewrite -cmpt_mon_sing_op => // phi Fphi FphiFphi q'; last exact: oracle_use_first_mon.
-have phifd: phi \from_dom F by exists Fphi.
+have phifd: phi \from dom F by exists Fphi.
 move: comp; rewrite !tight_char => comp.
 have [[Mphi MphiMphi] prop]:= comp phi phifd.
 have [c val]:= MphiMphi q'.
@@ -346,7 +346,7 @@ admit.
 Qed. *)
 
 Lemma cmpt_op_rec_fun f (F: B ->> B') M:
-	f \from_dom F -> M \oracle_evaluates_to F -> F \is_singlevalued
+	f \from dom F -> M \oracle_evaluates_to F -> F \is_singlevalued
 	-> exists (N: fuel -> Q' -> option A'),
 		N \evaluates_to (make_mf (fun q' a' => exists Ff, F f Ff /\ (Ff q') = a')).
 Proof.

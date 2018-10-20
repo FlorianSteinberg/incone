@@ -2,7 +2,7 @@
 Q -> A for some arbitrary types Q and A. It also proves some basic Lemmas about this notion.*)
 From mathcomp Require Import all_ssreflect.
 From mpf Require Import all_mf choice_mf.
-Require Import core_bs.
+Require Import baire.
 Require Import FunctionalExtensionality ClassicalChoice.
 
 Set Implicit Arguments.

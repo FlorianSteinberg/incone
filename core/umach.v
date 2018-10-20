@@ -7,7 +7,7 @@ Q and A as substitute for B. The assumptions needed about Q and A are that they 
 countable and that A is inhabited. *)
 From mathcomp Require Import all_ssreflect.
 From mpf Require Import all_mf choice_mf.
-Require Import core_bs core_cont core_inseg core_exec core_count.
+Require Import baire cont inseg exec count.
 Require Import ClassicalChoice Psatz FunctionalExtensionality.
 
 Set Implicit Arguments.

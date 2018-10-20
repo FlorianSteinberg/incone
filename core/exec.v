@@ -1,7 +1,7 @@
 (* This file provides an abstract envelope for computability theoretical considerations *)
 From mathcomp Require Import all_ssreflect.
 From mpf Require Import all_mf.
-Require Import core_inseg.
+Require Import inseg.
 Import FunctionalExtensionality ClassicalChoice.
 
 Set Implicit Arguments.

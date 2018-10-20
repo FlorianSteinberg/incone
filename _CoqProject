@@ -1,10 +1,10 @@
 -R . incone
-core_bs.v
-core_cont.v
-core_inseg.v
-core_count.v
-core_exec.v
-core_umach.v
+core/baire.v
+core/cont.v
+core/inseg.v
+core/count.v
+core/exec.v
+core/umach.v
 all_core.v
 
 cs_base.v

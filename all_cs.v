@@ -1,1 +1,1 @@
-Require Export cs_one.
+Require Export cs_one cs_nat.

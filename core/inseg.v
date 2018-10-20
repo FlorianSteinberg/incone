@@ -1,6 +1,6 @@
 From mathcomp Require Import all_ssreflect.
 From mpf Require Import all_mf.
-Require Import core_bs core_cont.
+Require Import baire cont.
 Require Import Psatz ClassicalChoice.
 
 Set Implicit Arguments.

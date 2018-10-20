@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_core cs_base cs_base_prod.
+Require Import all_core cs prod.
 Require Import FunctionalExtensionality ClassicalFacts ClassicalChoice Psatz.
 Require Import Morphisms.
 

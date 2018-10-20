@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_core cs_base.
+Require Import all_core cs.
 Require Import ProofIrrelevance.
 
 Set Implicit Arguments.

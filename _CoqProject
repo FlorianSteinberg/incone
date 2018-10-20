@@ -7,17 +7,17 @@ core/exec.v
 core/umach.v
 all_core.v
 
-cs_base.v
-cs_base_facts.v
-cs_base_fun.v
-cs_base_iso.v
-cs_base_prod.v
-cs_base_sub.v
-cs_base_sum.v
+cs/cs.v
+cs/prod.v
+cs/facts.v
+cs/sub.v
+cs/func.v
+cs/iso.v
+cs/sum.v
 all_cs_base.v
 
-cs_nat.v
-cs_one.v
-cs_opt.v
-cs_usig.v
+cnstr/cs_nat.v
+cnstr/cs_one.v
+cnstr/opt.v
+cnstr/usig.v
 all_cs.v

@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_core cs_base cs_base_sub cs_base_prod cs_base_facts.
+Require Import all_core cs prod facts sub.
 Require Import FunctionalExtensionality ClassicalFacts ClassicalChoice Psatz.
 
 Set Implicit Arguments.

@@ -1,6 +1,5 @@
 From mathcomp Require Import all_ssreflect.
 Require Import all_core.
-From cocomp Require Import all_ccmp.
 Import Morphisms.
 
 Set Implicit Arguments.

@@ -175,7 +175,7 @@ Defined.
 *)
 
 Lemma linc_cont X Y:
-	(F2MF (@linc X Y)) \is_continuous.
+	(F2MF (@linc X Y)) \is_pointwise_continuous.
 Proof.
 move => phi phifd q; exists ([:: q.1]); split => //.
 by move => Fphi/= <- psi [eq _] Fpsi <-; rewrite /linc eq.
@@ -189,7 +189,7 @@ by rewrite F2MF_rlzr_F2MF; split; first by exists (q (someq X)).
 Qed.
 
 Lemma rinc_cont X Y:
-	(F2MF (@rinc X Y)) \is_continuous.
+	(F2MF (@rinc X Y)) \is_pointwise_continuous.
 Proof.
 move => phi phifd q; exists ([::q.2]);split => //.
 by move => Fphi/= <- psi [eq _] Fpsi <-; rewrite /rinc eq.

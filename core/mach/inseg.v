@@ -129,7 +129,7 @@ Proof. by elim: n => // n {2}<-. Qed.
 Lemma length_inseg n : length (in_seg n) = n.
 Proof. exact: size_inseg. Qed.
 
-Lemma inseg_mon n m:
+Lemma inseg_subl n m:
 	  n <= m -> (in_seg n) \is_sublist_of (in_seg m).
 Proof.
 elim: m => [l0|m ih /=ass]; first by rewrite (_ : n = 0) //; apply /eqP; rewrite -leqn0.
@@ -201,7 +201,7 @@ elim: K a => // a K ih a'/=.
 by case => [<- | lstn]; apply/leq_trans; [|exact: leq_maxl|apply ih|exact: leq_maxr].
 Qed.
 
-Lemma melt_mon L K:
+Lemma melt_subl L K:
 	L \is_sublist_of K -> max_elt L <= max_elt K.
 Proof.
 elim: L => // a L ih /= sl; rewrite geq_max; apply/andP.
@@ -211,7 +211,7 @@ Qed.
 Lemma inseg_melt K: cnt \is_surjective_function -> is_min_sec cnt sec ->
 	K \is_sublist_of (in_seg (max_elt K)).
 Proof.
-intros; apply/ (@inseg_mon (S (sec q)) (max_elt K)); last exact: inseg_sec.
+intros; apply/ (@inseg_subl (S (sec q)) (max_elt K)); last exact: inseg_sec.
 move: H1; elim K => //=; intros; case: H2 => [-> | lstn]; first by apply leq_maxl.
 by apply /leq_trans; [apply H1 | apply leq_maxr].
 Qed.

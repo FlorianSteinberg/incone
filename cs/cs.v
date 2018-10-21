@@ -1,4 +1,5 @@
 From mathcomp Require Import all_ssreflect.
+From rlzrs Require Export all_dict.
 Require Import all_core.
 Import Morphisms.
 
@@ -28,13 +29,13 @@ Notation delta := (rep _).
 Notation rep_sing := answer_unique.
 Notation rep_sur := only_respond.
 Notation get_name x:= (get_question x).
-Notation "phi '\is_name_of' x" := (delta phi x) (at level 2).
+Notation "phi '\is_name_of' x" := (x \is_response_to phi) (at level 2).
 Notation cs:= cs.type.
 Coercion cs.X: cs.type >-> dictionary.type.
 
 Section continuity.
 Definition hcr (X Y : cs) (f : X ->> Y) :=
-	exists F, F \realizes f /\ F \is_continuous.
+	exists F, F \realizes f /\ F \is_pointwise_continuous.
 Notation "f '\has_continuous_realizer'":= (hcr f) (at level 2).
 
 Global Instance hcr_prpr (X Y: cs):
@@ -48,7 +49,8 @@ Lemma comp_hcr (X Y Z: cs) (f: X ->> Y) (g: Y ->> Z):
 Proof.
 move => [F [Frf Fcont]] [G [Grg Gcont]].
 exists (G o F); split; first by apply rlzr_comp.
-by apply/ cont_comp.
+apply/ ptw_cont_comp => //.
+exact/choice_ptw_cont_cont.
 Qed.
 
 Lemma comp_hcr_fun (X Y Z: cs) (f: X -> Y) (g: Y -> Z):

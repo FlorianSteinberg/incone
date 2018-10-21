@@ -66,6 +66,10 @@ Notation "f '\is_recursive_function'" := (@is_rec_fun _ _ (prog f)) (at level 2)
 Notation "f '\is_computable_function'" := (@is_cmpt_fun _ _ (prog f)) (at level 2).
 *)
 Section products.
+Lemma name_split X Y phi (x: cs_prod X Y):
+	phi \is_name_of x <-> (lprj phi) \is_name_of (x.1) /\ (rprj phi) \is_name_of (x.2).
+Proof. done. Qed.
+
 Lemma lprj_rlzr_fst (X Y: cs):
 	(F2MF lprj) \realizes (@mf_fst X Y: _ \*_cs _ ->> _).
 Proof. by rewrite F2MF_rlzr_F2MF => phi x [phinx _]. Qed.
@@ -86,8 +90,7 @@ Lemma rprj_pair (X Y: cs) (phi: names X) (psi: names Y):
 	rprj (name_pair phi psi) =  psi.
 Proof. by trivial. Qed.
 
-Lemma lprj_cont X Y:
-	(F2MF (@lprj X Y)) \is_continuous.
+Lemma lprj_cont X Y: (F2MF (@lprj X Y)) \is_pointwise_continuous.
 Proof.
 move => phi phifd q; exists ([::inl q]).
 by split => // Fphi /= <- psi [eq _] Fpsi <-; rewrite /lprj eq.
@@ -102,7 +105,7 @@ by rewrite F2MF_rlzr_F2MF => phi x [].
 Qed.
 
 Lemma rprj_cont X Y:
-	(F2MF (@rprj X Y)) \is_continuous.
+	(F2MF (@rprj X Y)) \is_pointwise_continuous.
 Proof.
 move => phi phifd q; exists ([::inr q]).
 by split => // Fphi/= <- psi [eq _] Fpsi <-; rewrite /rprj eq.
@@ -135,42 +138,22 @@ Qed.
 Lemma fprd_rlzr_spec (X Y X' Y': cs) (f: X ->> Y) (g: X' ->> Y') F G:
 	F \realizes f -> G \realizes g -> (fprd_rlzr F G) \realizes (f ** g: _ \*_cs _ ->> (_ \*_cs _)).
 Proof.
-(*
-move => Frf Grg phipsi [[y y']] [[[x x' [[/=phinx psinx'] [/= fxy gx'y']]]prop]].
-have lprjfd: ((lprj phipsi) \from_dom (f o (delta (r:=X)))).
-	exists y; split => [ | z phinz]; first by exists x.
-	by rewrite (rep_sing X (lprj phipsi) z x); first exists y.
-have [[z [[Fphi [FphiFphi Fphinz]]] propl]condl]:= Frf (lprj phipsi) lprjfd.
-have rprjfd: ((rprj phipsi) \from_dom (g o (delta (r:=X')))).
-	exists y'; split => [ | z' phinz']; first by exists x'.
-	by rewrite (rep_sing X' (rprj phipsi) z' x'); first exists y'.
-have [[z' [[Gpsi [GpsiGpsi Gpsinz']]] propr]condr]:= Grg (rprj phipsi) rprjfd.
-split.
-	exists (z, z'); split; first by exists (name_pair Fphi Gpsi).
-	move => FphiGpsi [/= np [/=FphiFphi' GpsiGpsi']].
-	have [l nl]:= (propl (lprj FphiGpsi) FphiFphi').
-	have [k nk]:= (propr (rprj FphiGpsi) GpsiGpsi').
-	by exists (l,k); split.
-move => [l k] [[FphiGpsi [[ np [/=FphiFphi' GphiGphi']][/= Fphinl Gpsink]]] proplk].
-have phipsil: ((delta (r:=Y)) o F (lprj phipsi) l).
-	by split => //; exists (lprj FphiGpsi).
-have [[x'' [phinx'' fx''l]] prpl]:= (condl l phipsil).
-have phipsir: ((delta (r:=Y')) o G (rprj phipsi) k).
-	by split => //; exists (rprj FphiGpsi).
-have [[y'' [phiny'' gy''l]] prpr]:= (condr k phipsir).
-split.
-	exists (x, x'); split => //; split => /=.
-		by rewrite (rep_sing X (lprj phipsi) x x'').
-	by rewrite (rep_sing X' (rprj phipsi) x' y'').
-move => [a b] [/=phina psinb].
-have [this stuff]:= prpl a phina.
-have [this' stuff']:= prpr b psinb.
-by exists (this, this').
-Qed. *)
-Admitted.
+move => rlzr rlzr'; apply split_rlzr => phi x.
+	rewrite name_split => [[phinx1 phinx2]].
+	rewrite fprd_dom => [[fd1 fd2]].
+	have [Fphi1 FphiFphi1]:= rlzr_dom rlzr phinx1 fd1.
+	have [Fphi2 FphiFphi2]:= rlzr_dom rlzr' phinx2 fd2.
+	exists (name_pair Fphi1 Fphi2).
+	by rewrite /= lprj_pair rprj_pair.
+move => FGphi; rewrite name_split => [[phinx1 phinx2]].
+rewrite fprd_dom => [[fd1 fd2]] [eq [/= FphiFGphi GphiFGphi]].
+have [y []]:= rlzr_val rlzr phinx1 fd1 FphiFGphi.
+have [y' []]:= rlzr_val rlzr' phinx2 fd2 GphiFGphi.
+by exists (y, y').
+Qed.
 
 Lemma fprd_rlzr_val_cont (X Y X' Y': cs) (F: (names X) ->> (names Y)) (G: (names X') ->> (names Y')):
-	F \is_continuous -> G \is_continuous -> (fprd_rlzr F G) \is_continuous.
+	F \is_pointwise_continuous -> G \is_pointwise_continuous -> (fprd_rlzr F G) \is_pointwise_continuous.
 Proof.
 have mapl: forall K (q:questions X), List.In q K -> List.In ((@inl _ (questions X')) q) (map inl K).
 	elim => // q K ih q' /=listin; by case: listin => ass; [left; rewrite -ass | right; apply ih].
@@ -184,7 +167,7 @@ case: q => q.
 	split; first by exists FGphi; split.
 	move => FGphi' [np' [/=vall valr]] psi coin Fpsi [ np'' [/=val'l val'r]].
 	rewrite np' np''; apply injective_projections => //=.
-	rewrite (cont_sing Fcont vall FlphilFGphi).
+	rewrite (ptw_cont_sing Fcont vall FlphilFGphi).
 	apply/ Lprop; [ | | apply val'l ] => //=.
 	rewrite /lprj coin_lstn => q' listin/=.
 	rewrite ((@coin_lstn _ _ _ _ (map inl L)).1 coin (inl q')) => //.
@@ -194,7 +177,7 @@ have [L [/=_ Lprop]] := (Gcont (rprj phi) rphifd q).
 exists (map inr L); split; first by exists FGphi; split.
 move => FGphi' [np' [/=vall valr]] psi coin Fpsi [ np'' [/=val'l val'r]].
 rewrite np' np''; apply injective_projections => //=.
-rewrite (cont_sing Gcont valr GrphirFGphi).
+rewrite (ptw_cont_sing Gcont valr GrphirFGphi).
 apply/ Lprop; [ | | apply val'r ] => //=.
 rewrite /rprj coin_lstn => q' listin/=.
 rewrite ((@coin_lstn _ _ _ _ (map inr L)).1 coin (inr q')) => //.

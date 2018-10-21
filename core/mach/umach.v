@@ -7,7 +7,7 @@ Q and A as substitute for B. The assumptions needed about Q and A are that they 
 countable and that A is inhabited. *)
 From mathcomp Require Import all_ssreflect.
 From mpf Require Import all_mpf choice_mf.
-Require Import baire cont inseg exec count.
+Require Import all_cont choice inseg exec count.
 Require Import ClassicalChoice Psatz FunctionalExtensionality.
 
 Set Implicit Arguments.
@@ -177,25 +177,25 @@ Context (ims: sec \is_minimal_section_of cnt).
 Lemma exists_minmod: cnt \is_surjective_function -> F \is_continuous ->
 	exists mf, is_min_mod mf.
 Proof.
-move => sur cont.
+move => sur [mf mod].
 pose P := make_mf (fun phiq n => mf_mod F phiq (init_seg n)).
 have Pdom: forall phi, phi \from dom F -> forall q', (phi, q') \from dom P.
-	move => phi fd q'; have [L [/=_ Lprop]]:= (cont phi fd q').
-	exists (size L); split => // Fphi FphiFphi.
-	apply: cert_mon; first exact: inseg_melt.
-	by apply/ Lprop; first by apply FphiFphi.
+	move => phi fd q'; exists (size (mf phi q')); split => // Fphi FphiFphi.
+	apply: cert_subl; first exact: inseg_melt.
+	by apply/mod; first by apply FphiFphi.
 pose R := make_mf (fun phiq n => P phiq n /\ (forall K, P phiq (size K) ->  n <= size K)).
 have Rdom: forall phi, phi \from dom F -> forall q', (phi, q') \from dom R.
 	move => phi fd q'.
   have [n [p nprop]] := well_order_nat (Pdom phi fd q').
   by exists n; split => // K p'; apply/nprop.
-have [mf mfprop] := exists_choice R 0.
-exists (fun phi q' => mf (phi, q')).
-split => phi q' X.
-	by have [n Rn]:= (Rdom phi X q'); apply: (mfprop (phi, q') n Rn).1.
-move => fd Xprop; have [n Rn]:= (Rdom phi fd q').
+have [mmf mfprop] := exists_choice R 0.
+exists (fun phi q' => mmf (phi, q')).
+split => [phi Fphi FphiFphi q' | phi q' K phifd].
+	have [ | n Rn]:= (Rdom phi _ q'); first by exists Fphi.
+	exact/(mfprop (phi, q') n Rn).1.2.
+move => [fd Xprop]; have [n Rn]:= (Rdom phi fd q').
 apply: (mfprop (phi, q') n Rn).2; split => // Fphi FphiFphi.
-by apply/ cert_mon; [apply: inseg_melt | apply Xprop].
+by apply/ cert_subl; [apply: inseg_melt | apply Xprop].
 Qed.
 
 Definition compat mf listf:= forall phi, phi \from dom F ->
@@ -204,8 +204,8 @@ Definition compat mf listf:= forall phi, phi \from dom F ->
 Lemma minmod_compat mf listf:
 	listfprop listf -> is_min_mod mf -> compat mf listf.
 Proof.
-move => listfprop [mod min] phi phifd q' m ineq.
-have [/=_ mod'] := mod phi q' phifd.
+move => listfprop [/mod_mf_mod mod min] phi phifd q' m ineq.
+have [/= _ mod']:= mod phi q' phifd.
 pose L := flst phi (init_seg m).
 pose phi' := listf L.
 have [phi'fd icf]:= (phi'prop m listfprop phifd).
@@ -217,9 +217,9 @@ have ineq': size (init_seg m) <= m by exact/(melt_inseg ims).
 suffices ineq'': mf phi' q' <= size (init_seg m) by apply /(leq_trans ineq'').
 apply/ min => //; split => // Fphi' /= Fphi'Fphi'.
 suffices <-: (Fphi q' = Fphi' q').
-	by apply/(cert_cons coin)/cert_mon; [apply/inseg_mon/ineq | apply /mod'].
+	by apply/(cert_c coin)/cert_subl; [apply/inseg_subl/ineq | apply /mod'].
 apply /mod' => //; last apply Fphi'Fphi'.
-by apply /coin_mon; [apply /inseg_mon/ineq | apply /coin ].
+by apply /coin_subl; [apply /inseg_subl/ineq | apply /coin ].
 Qed.
 
 End MINIMAL_MODULI.
@@ -272,13 +272,14 @@ Lemma Ffprop
 	(lstprp: listfprop F listf):
 		forall phi q', phi \from dom F -> Ff_mod phi q'.
 Proof.
+move: mod; rewrite mod_mf_mod => mod.
 move => phi q' phifd m.
 have phinprop:= (phi'prop cnt m lstprp phifd).
 have coin: (listf (L phi m)) \and phi \coincide_on (init_seg m) by apply/icf_flst_coin/(phinprop).2.
 move: mod (mod (listf (L phi m)) q' (phinprop).1) => _ [/=_ mprop] ineq.
 move: phifd (phinprop).1 => [] Fphi FphiFphi [] Fphin FphinFphin.
 apply/mprop; [ apply/ (icf _ Fphin) | | apply/(icf _ Fphi) ] => //.
-by apply/coin_mon; [apply/inseg_mon | apply coin].
+by apply/coin_subl; [apply/inseg_subl | apply coin].
 Qed.
 
 Lemma U_step_compat phi q' (cmpt: compat F cnt mf listf):
@@ -314,6 +315,7 @@ have U_stops q': U psiF (mf phi q') phi q' = some (Ff phi q').
 	have /eq eqn: m <= mf phi q' by rewrite E leqnSn.
 	by rewrite /= eqn -E U_step_compat => //; apply/ Ffprop.
 
+move: mod; rewrite mod_mf_mod => mod.
 have [Fphi FphiFphi]:= phifd.
 have eq' q': U psiF (mf phi q') phi q' = Some (Fphi q').
 	rewrite U_stops; congr Some.

@@ -7,7 +7,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Local Open Scope coq_nat_scope.
 Section COUNTABILITY.
 Definition is_count Q :=
 	exists cnt: nat -> option Q, cnt \is_surjective_function.

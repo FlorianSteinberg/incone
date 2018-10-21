@@ -43,7 +43,7 @@ Canonical cs_usig_prod (X: cs) := @cs.Pack
   (dictionary.Pack (cs_usig_modest_set_mixin X)).
 
 Lemma usig_base (X: cs) (an: nat -> X) (phi: names (cs_usig_prod X)):
-	phi \is_name_of an -> forall n, (fun q => phi (n,q)) \is_name_of (an n).
+	phi \is_name_of (an: cs_usig_prod X) -> forall n, (fun q => phi (n,q)) \is_name_of (an n).
 Proof. done. Qed.
 
 Definition ptw (X: cs) (op: X * X -> X) (fg: (nat -> X) * (nat -> X)) :=

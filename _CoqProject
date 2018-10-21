@@ -1,10 +1,17 @@
 -R . incone
-core/baire.v
-core/cont.v
-core/inseg.v
-core/count.v
-core/exec.v
-core/umach.v
+core/cont/baire.v
+core/cont/cont.v
+core/cont/ptw_cont.v
+core/cont/choice.v
+core/cont/seq_cont.v
+all_cont.v
+
+core/mach/inseg.v
+core/mach/count.v
+core/mach/exec.v
+core/mach/umach.v
+all_mach.v
+
 all_core.v
 
 cs/cs.v

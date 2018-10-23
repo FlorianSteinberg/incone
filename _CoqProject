@@ -28,3 +28,12 @@ cnstr/cs_one.v
 cnstr/opt.v
 cnstr/usig.v
 all_cs.v
+
+reals/Rstruct.v
+reals/under.v
+reals/reals.v
+reals/c_reals.v
+reals/sd_reals.v
+reals/sdvsc.v
+reals/Ireals.v
+xmpl/examples_continuity.v

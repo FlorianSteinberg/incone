@@ -18,7 +18,7 @@ have [ | phi phiprp]:= choice R; last by exists (fun p => phi p.1 p.2).
 by move => n; have [phi phinx]:= (get_name (xn n)); exists phi.
 Qed.
 
-Definition cs_usig_assembly_mixin (X: cs):
+Definition cs_usig_interview_mixin (X: cs):
 	interview_mixin.type (nat * (questions X) -> answers X) (nat -> X).
 Proof. exists (rep_usig_prod X); exact/rep_usig_prod_sur. Defined.
 
@@ -29,8 +29,8 @@ apply functional_extensionality => n.
 by apply/ (rep_sing); [apply phinxn | apply phinyn ].
 Qed.
 
-Definition cs_usig_modest_set_mixin (X: cs):
-	dictionary_mixin.type (interview.Pack (cs_usig_assembly_mixin X)).
+Definition cs_usig_dictionary_mixin (X: cs):
+	dictionary_mixin.type (interview.Pack (cs_usig_interview_mixin X)).
 Proof. split; exact/rep_usig_prod_sing. Defined.
 
 Canonical cs_usig_prod (X: cs) := @cs.Pack
@@ -40,7 +40,7 @@ Canonical cs_usig_prod (X: cs) := @cs.Pack
 	(somea X)
   (prod_count nat_count (cs.Qcount X))
   (cs.Acount X)
-  (dictionary.Pack (cs_usig_modest_set_mixin X)).
+  (dictionary.Pack (cs_usig_dictionary_mixin X)).
 
 Lemma usig_base (X: cs) (an: nat -> X) (phi: names (cs_usig_prod X)):
 	phi \is_name_of (an: cs_usig_prod X) -> forall n, (fun q => phi (n,q)) \is_name_of (an n).

@@ -16,7 +16,7 @@ Structure type := Pack {
 	somea: A;
   Qcount: Q \is_countable;
   Acount: A \is_countable;
-	X: dictionary.type (Q -> A)
+	X:> dictionary.type (Q -> A)
 }.
 End cs.
 Notation somea := cs.somea.

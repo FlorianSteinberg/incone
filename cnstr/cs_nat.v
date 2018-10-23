@@ -7,7 +7,7 @@ Unset Printing Implicit Defensive.
 
 Section NATURALS.
 
-Canonical rep_space_nat := @cs.Pack
+Canonical cs_nat := @cs.Pack
 	one
 	nat
 	star

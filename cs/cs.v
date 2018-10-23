@@ -28,8 +28,8 @@ Notation rep X := (conversation (cs.X X)).
 Notation delta := (rep _).
 Notation rep_sing := answer_unique.
 Notation rep_sur := only_respond.
-Notation get_name x:= (get_question x).
-Notation "phi '\is_name_of' x" := (x \is_response_to phi) (at level 2).
+Notation get_description x:= (get_question x).
+Notation "phi '\is_description_of' x" := (x \is_response_to phi) (at level 2).
 Notation cs:= cs.type.
 Coercion cs.X: cs.type >-> dictionary.type.
 

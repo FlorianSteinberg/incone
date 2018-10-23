@@ -229,13 +229,13 @@ Proof.
 move => [/= F [/= rlzr cont]].
 pose xn := (fun (n: nat) => 0%R):cs_usig_prod Rc_cs.
 pose qn (p: (nat * Q)) := 0%Q.
-have qnxn: qn \is_name_of xn.
+have qnxn: qn \is_description_of xn.
 	move => n eps ineq; rewrite /qn /xn {1}/Q2R/=; split_Rabs; lra.
 have limxn0: lim xn 0.
 	move => eps ineq;	exists 0%nat.
 	move => n ineq'; rewrite /xn;	split_Rabs; lra.
 pose zn := (fun eps => 0%Q): names Rc_cs.
-have zn0: zn \is_name_of (0: Rc_cs).
+have zn0: zn \is_description_of (0: Rc_cs).
 	move => eps ineq; rewrite {1}/Q2R/=; split_Rabs; lra.
 have qnfdF: qn \from dom F.
 	have qnfd: qn \from dom (lim o (rep (cs_usig_prod Rc_cs))).
@@ -256,7 +256,7 @@ have mprop: forall n eps, List.In (n, eps) L -> (n <= m)%nat.
 	by apply/ leq_trans; last apply leq_maxr; apply (ih n eps).
 pose yn := (fun n => if (n <= m)%nat then 0 else 3): cs_usig_prod Rc_cs.
 pose rn (p: nat * Q) := if (p.1 <= m)%nat then 0%Q else 3#1.
-have rnyn: rn \is_name_of yn.
+have rnyn: rn \is_description_of yn.
 	move => n eps ineq; rewrite /rn /yn.
 	case: ifP => ineq'; rewrite {1}/Q2R/=; split_Rabs; lra.
 have limyn3: lim yn 3.
@@ -290,8 +290,8 @@ have [psi Fqnpsi]:= qnfdF.
 have /=eq':= Lprop psi Fqnpsi rn coin phi Frnphi.
 have eq: psi 1%Q == phi 1%Q by rewrite eq'.
 have := Qeq_eqR (psi 1%Q) (phi 1%Q) eq.
-have psin0: psi \is_name_of (0: Rc_cs) by apply/(rlzr_val_sing _ rlzr); first exact/lim_sing.
-have phin3: phi \is_name_of (3: Rc_cs).
+have psin0: psi \is_description_of (0: Rc_cs) by apply/(rlzr_val_sing _ rlzr); first exact/lim_sing.
+have phin3: phi \is_description_of (3: Rc_cs).
 	by apply/(rlzr_val_sing _ rlzr)/Frnphi/limyn3; first exact/lim_sing.
 have l01: 0 < Q2R 1 by rewrite /Q2R/=; lra.
 have:= psin0 1%Q l01; have:= phin3 1%Q l01.

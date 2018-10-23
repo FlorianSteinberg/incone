@@ -18,7 +18,7 @@ Lemma rep_opt_sur X:
 	(@rep_opt X) \is_cototal.
 Proof.
 move => [a | ]; last by exists (fun q => (None, somea X)).
-have [phi phinx]:= get_name a.
+have [phi phinx]:= get_description a.
 by exists (fun q => (Some star, if q is inr q' then phi q' else somea X)).
 Qed.
 

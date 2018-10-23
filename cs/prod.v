@@ -25,8 +25,8 @@ Lemma prod_rep_sur (X Y: cs):
 	(@prod_rep X Y) \is_cototal.
 Proof.
 move => x.
-have [phi phinx1]:= (get_name x.1).
-have [psi psinx2]:= (get_name x.2).
+have [phi phinx1]:= (get_description x.1).
+have [psi psinx2]:= (get_description x.2).
 by exists (name_pair phi psi).
 Qed.
 
@@ -67,7 +67,7 @@ Notation "f '\is_computable_function'" := (@is_cmpt_fun _ _ (prog f)) (at level 
 *)
 Section products.
 Lemma name_split X Y phi (x: cs_prod X Y):
-	phi \is_name_of x <-> (lprj phi) \is_name_of (x.1) /\ (rprj phi) \is_name_of (x.2).
+	phi \is_description_of x <-> (lprj phi) \is_description_of (x.1) /\ (rprj phi) \is_description_of (x.2).
 Proof. done. Qed.
 
 Lemma lprj_rlzr_fst (X Y: cs):

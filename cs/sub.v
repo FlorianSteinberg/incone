@@ -18,7 +18,7 @@ Definition rep_sub (X: cs) (P: mf_subset.type X):=
 	make_mf (fun phi (t: {x | P x}) => delta phi (sval t)).
 
 Lemma rep_sub_sur (X: cs) P: (@rep_sub X P) \is_cototal.
-Proof. by move => [s Ps]; have [phi phins]:= get_name s; exists phi. Qed.
+Proof. by move => [s Ps]; have [phi phins]:= get_description s; exists phi. Qed.
 
 Definition cs_sub_assembly_mixin (X: cs) (P: mf_subset.type X):
 	interview_mixin.type (questions X -> answers X) {x | P x}.

@@ -50,7 +50,7 @@ Definition sum_rep X Y :=
 
 Lemma sum_rep_sur (X Y: cs): (@sum_rep X Y) \is_cototal.
 Proof.
-move => [xy | xy]; have [phi phin]:= get_name xy.
+move => [xy | xy]; have [phi phin]:= get_description xy.
 	by exists (linc phi); split; first by exists (phi (someq X)).
 by exists (rinc phi); split; first by exists (phi (someq Y)).
 Qed.

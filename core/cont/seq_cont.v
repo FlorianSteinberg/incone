@@ -1,8 +1,8 @@
 (* This file provides a definition of continuity of functions between spaces of the form
 Q -> A for some arbitrary types Q and A. It also proves some basic Lemmas about this notion.*)
 From mathcomp Require Import all_ssreflect.
-From mpf Require Import all_mpf choice_mf.
-Require Import baire cont ptw_cont.
+From mpf Require Import all_mpf.
+Require Import baire cont.
 Require Import FunctionalExtensionality.
 
 Set Implicit Arguments.

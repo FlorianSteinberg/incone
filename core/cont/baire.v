@@ -1,11 +1,23 @@
 From mathcomp Require Import all_ssreflect.
 From mpf Require Import all_mpf.
-Require Import CRelationClasses.
+Require Import Morphisms.
 Require Import FunctionalExtensionality.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+
+Notation "L '\is_sublist_of' K" := (List.incl L K) (at level 2).
+
+Section L2SS.
+Context (T: Type).
+
+Definition L2SS L:= make_subset (fun (t: T) => List.In t L).
+
+Lemma L2SS_subs L K:
+	L \is_sublist_of K <-> (L2SS L) \is_subset_of (L2SS K).
+Proof. done. Qed.
+End L2SS.
 
 Section coincide.
 Context (Q A : Type).
@@ -14,27 +26,40 @@ Notation B := (Q -> A).
 (* The topology on Baire space is the topology of pointwise convergence the following are
 the basic open ets (in the sens that for each finite list L and each element phi of Baire
 space the set {psi | coin phi psi L} is a basic open set *)
-Fixpoint coin L (phi psi: B) :=
+Fixpoint coincide L (phi psi: B) :=
   match L with
     | nil => True
-    | cons s K => (phi s = psi s) /\ (coin K phi psi)
+    | cons s K => (phi s = psi s) /\ (coincide K phi psi)
   end.
-Notation "phi '\and' psi '\coincide_on' L" := (coin L phi psi) (at level 2).
+
+Notation "phi '\and' psi '\coincide_on' L" := (coincide L phi psi) (at level 2).
+
+Definition ball phi := make_mf (fun L psi => phi \and psi \coincide_on L). 
+
+Lemma restr_exte S T (f g: S ->> T) P P':
+	P \is_subset_of P' -> f|_P' \extends g|_P' -> f|_P \extends g|_P.
+Proof. by move => subs eq s t [Ps gst]; split => //; apply eq; split => //; apply/subs. Qed.
+
+Lemma restr_equiv S T (f g: S ->> T) P P':
+	P \is_subset_of P' -> f|_P' =~= g|_P' -> f|_P =~= g|_P.
+Proof.
+by rewrite !exte_equiv => subs [exte1 exte2]; split; apply/restr_exte; try apply/subs.
+Qed.
 
 (* coinciding on a finite list is an equivalence relation on the elemets of Baire space. *)
-Lemma coin_ref L: Reflexive (coin L).
+Lemma coin_ref L: Reflexive (coincide L).
 Proof. by elim: L. Qed.
 
-Lemma coin_sym L: Symmetric (coin L).
+Lemma coin_sym L: Symmetric (coincide L).
 Proof. by move => phi psi; elim: L => // q L ih [eq coin]; split; [rewrite eq | apply ih]. Qed.
 
-Lemma coin_trans L: Transitive (coin L).
+Lemma coin_trans L: Transitive (coincide L).
 Proof.
 move => phi psi psi'.
 by elim: L => // q L ih [] eq1 c1 [] eq2 c2; split; [rewrite eq1 eq2| apply: ih].
 Qed.
 
-Global Instance coin_equiv L: Equivalence (coin L).
+Global Instance coin_equiv L: Equivalence (coincide L).
 Proof. by split; [apply coin_ref | apply coin_sym | apply coin_trans]. Qed.
 
 Lemma coin_lstn (phi psi: B) L:
@@ -51,23 +76,22 @@ split; first by elim: L => [| a L ih] //=; case => eq b; have []:= ih b; do 2 tr
 by elim: L => [[_ coin]| a L ih [/=[/=ass1 ass2] ass3]] => //=; split => //; apply ih.
 Qed.
 
-Notation "L '\is_sublist_of' K" := (List.incl L K) (at level 2).
-
-Definition L2SS (L: seq Q) := make_subset (fun q => List.In q L).
-
-Lemma L2SS_eq L K: (L2SS L) === (L2SS K) <-> L \is_sublist_of K /\ K \is_sublist_of L.
-Proof.
-split => [eq | [LsK KsL q]]; last by split => /=lst; [apply LsK | apply KsL].
-by split => q lstn; [have/=<-:= eq q | have /=->:= eq q].
-Qed.
+Lemma L2SS_eq (L K: seq Q):
+	(L2SS L) === (L2SS K) <-> L \is_sublist_of K /\ K \is_sublist_of L.
+Proof. by rewrite set_eq_subs !L2SS_subs. Qed.
 
 Lemma coin_subl phi psi L K:
 	L \is_sublist_of K -> phi \and psi \coincide_on K -> phi \and psi \coincide_on L.
 Proof. by rewrite !coin_lstn; intros; apply/H0/H. Qed.
 
+Lemma coin_spec L phi psi:
+	phi \and psi \coincide_on L <-> (F2MF phi)|_(L2SS L) =~= (F2MF psi)|_(L2SS L).
+Proof.
+split => [/coin_lstn coin | eq]; last by rewrite coin_lstn => q lstn; apply eq; split.
+by split => [[Ls <-] | [Ls <-]]; split => //=; first symmetry; apply/coin.
+Qed.
 End coincide.
-Notation "L '\is_sublist_of' K" := (List.incl L K) (at level 2).
-Notation "phi '\and' psi '\coincide_on' L" := (coin L phi psi) (at level 2).
+Notation "phi '\and' psi '\coincide_on' L" := (coincide L phi psi) (at level 2).
 
 Section closures.
 Context (Q A : Type).

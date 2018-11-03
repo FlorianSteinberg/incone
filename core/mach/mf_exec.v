@@ -11,18 +11,14 @@ Unset Printing Implicit Defensive.
 
 Section oracle_computation.
 Context (A A' Q Q': Type).
-Notation B := (Q -> A).
-Notation B' := (Q' -> A').
-Notation "B o~> B'" := (nat -> B -> Q' -> option A') (at level 2).
+Notation B := (Q ->> A).
+Notation B' := (Q' ->> A').
+Notation "B o~> B'" := (nat -> B -> B') (at level 2).
 
 Definition operator (M: B o~> B') :=
-	make_mf (fun phi Mphi => forall q', exists c, M c phi q' = some (Mphi q')).
+	make_mf (fun phi (Mphi: B') => forall q' a', Mphi q' a' -> exists c, M c phi q' a').
 
 Notation "\F_ M" := (operator M) (format "'\F_' M", at level 2).
-
-Lemma mach_choice M phi:
-	(forall q', exists a' n, M n phi q' = some a') -> phi \from dom \F_M.
-Proof. by move => Rtot; have [Fphi FphiFphi]:= choice _ Rtot; exists Fphi. Qed.
 
 Notation "M '\evaluates_to' F" := ((\F_M) \tightens F) (at level 40).
 
@@ -33,6 +29,8 @@ Lemma exte_sym_F2MF S T (f: S ->> T) g:
 	f \is_singlevalued -> f \extends (F2MF g) -> (F2MF g) \extends f.
 Proof. by move => sing exte s t fst; rewrite (sing s t (g s)) => //; apply exte. Qed.
 
+Definition O2MO (F: B -> B') := make_mf (fun phi Fphi => F phi =~= Fphi).
+
 Lemma eval_F2MF M F:
 	M \evaluates_to (F2MF F) <-> \F_M =~= F2MF F.
 Proof.
@@ -40,10 +38,20 @@ split => [eval | <-] //; rewrite exte_equiv; split; first exact/sing_tight_exte/
 move => s t fst; apply /(tight_val eval)/fst/F2MF_tot.
 Qed.
 
+Lemma eval_O2MO M F:
+	M \evaluates_to (O2MO F) <-> \F_M =~= O2MO F.
+Proof.
+split => [eval | <-] //.
+split => [eval | <-] //; rewrite exte_equiv; split; first exact/sing_tight_exte/eval/F2MF_sing.
+move => s t fst; apply /(tight_val eval)/fst/F2MF_tot.
+Qed.
+
 Lemma F2MF_mach (F: B -> B'):
-	(fun n phi q => Some(F phi q)) \evaluates_to (F2MF F).
+	(fun n phi => F phi) \evaluates_to (O2MO F).
 Proof.
 move => phi _; split => [ | Fphi ev]; first by exists (F phi) => q'; exists 0.
+move => q' a'.
+have := ev q' a'.
 by apply functional_extensionality => q'; have [c val]:= ev q'; apply Some_inj.
 Qed.
 

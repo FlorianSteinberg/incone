@@ -1,6 +1,6 @@
 From mathcomp Require Import all_ssreflect.
 Require Import all_cs reals.
-Require Import Qreals Reals Psatz ClassicalChoice.
+Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -51,7 +51,7 @@ Qed.
 Definition Rc_interview_mixin: interview_mixin.type (Q -> Q) R.
 Proof. exists rep_C; exact/rep_C_sur. Defined.
 
-Definition Rc := interview.Pack Rc_interview_mixin.
+Definition Rc_interview := interview.Pack Rc_interview_mixin.
 
 Lemma rep_C_sing: rep_C \is_singlevalued.
 Proof.
@@ -65,7 +65,7 @@ apply /triang /Rle_trans.
 by rewrite Q2R_div; try lra; rewrite {2 4}/Q2R/=; lra.
 Qed.
 
-Definition Rc_dictionary_mixin: dictionary_mixin.type Rc.
+Definition Rc_dictionary_mixin: dictionary_mixin.type Rc_interview.
 Proof. split; exact rep_C_sing. Defined.
 
 Canonical Rc_dictionary := dictionary.Pack Rc_dictionary_mixin.
@@ -74,25 +74,17 @@ Lemma rationals_countable: Q \is_countable.
 Proof.
 Admitted.
 
-Canonical Rc_cs := cs.Pack
+Canonical Rc := cs.Pack
 	0%Q
 	0%Q
 	rationals_countable
 	rationals_countable
 	Rc_dictionary.
 
-(*
-Lemma id_is_computable : (id : R -> R) \is_computable_function.
-Proof. by apply/ rec_fun_cmpt; exists (fun phi => phi). Qed.
-
-Lemma Q_rec_elts q: (Q2R q) \is_recursive_element.
-Proof.
-exists (fun eps => q).
-by abstract by move => eps ineq; apply/ Rbasic_fun.Rabs_le; lra.
-Defined. *)
-
 Section addition.
-Definition Ropp_rlzr := F2MF (fun phi (q: Q) => Qopp (phi q)).
+Definition Ropp_rlzrf phi (eps: Q) := Qopp (phi eps).
+
+Definition Ropp_rlzr := F2MF Ropp_rlzrf.
 
 Lemma Ropp_rlzr_spec: Ropp_rlzr \realizes (F2MF Ropp: Rc ->> Rc).
 Proof.
@@ -100,11 +92,21 @@ rewrite F2MF_rlzr_F2MF => phi x phinx eps epsg0 /=.
 rewrite Q2R_opp; move: (phinx eps epsg0); split_Rabs; lra.
 Qed.
 
-Definition Rplus_rlzr:=	F2MF (fun phi (eps: Q) =>
-	(Qplus (phi (inl (Qdiv eps (1+1)))).1 (phi (inr (Qdiv eps (1+1)))).2)).
+Lemma Ropp_rlzr_cont: Ropp_rlzr \is_pointwise_continuous.
+Proof.
+by rewrite F2MF_cont => phi eps; exists [::eps]; rewrite /Ropp_rlzrf => psi [<- _].
+Qed.
+
+Lemma Ropp_hcr: (F2MF Ropp: Rc ->> Rc) \has_continuous_realizer.
+Proof. exists Ropp_rlzr; split; [apply/Ropp_rlzr_spec | apply/Ropp_rlzr_cont]. Qed.
+
+Definition Rplus_rlzrf phi (eps: Q) :=
+	(Qplus (phi (inl (Qdiv eps (1+1)))).1 (phi (inr (Qdiv eps (1+1)))).2).
+
+Definition Rplus_rlzr:= F2MF Rplus_rlzrf.
 
 Lemma Rplus_rlzr_spec:
-	Rplus_rlzr \realizes (F2MF (fun x => Rplus x.1 x.2) : (Rc_cs \*_cs Rc_cs) ->> Rc).
+	Rplus_rlzr \realizes (F2MF (fun x => Rplus x.1 x.2) : (Rc \*_cs Rc) ->> Rc).
 Proof.
 rewrite F2MF_rlzr_F2MF.
 move => phi x phinx eps eg0.
@@ -114,27 +116,33 @@ set phi1 := (fun q => (phi (inr q)).2).
 set r := Q2R (phi0 (Qdiv eps (1 + 1))).
 set q := Q2R (phi1 (Qdiv eps (1 + 1))).
 have ->: (x.1 + x.2 - (r + q)) = (x.1 - r + (x.2 - q)) by field.
-apply: triang.
-rewrite -(eps2 (Q2R eps)).
+apply: triang; rewrite -(eps2 (Q2R eps)).
 have eq: Q2R eps * / 2 = Q2R (eps / (1 + 1)).
 	symmetry; rewrite Q2R_div; last by lra.
 	by rewrite {2}/Q2R/=; lra.
 by rewrite eq; apply: Rplus_le_compat; apply phinx; lra.
+Qed.
+
+Lemma Rplus_rlzr_cont: Rplus_rlzr \is_pointwise_continuous.
+Proof.
+rewrite F2MF_cont => phi eps.
+exists [:: inl (Qdiv eps (1 + 1)); inr (Qdiv eps (1 + 1))].
+by rewrite /Rplus_rlzrf => psi /= [-> [-> _]].
 Qed.
 End addition.
 
 Section multiplication.
 (* Multiplication is more involved as the precision of approximations that have to be used
 depends on the size of the inputs *)
-Let trunc (eps: questions Rc_cs) := if Qlt_le_dec eps 1 then eps else (1%Q: questions Rc_cs).
+Let trunc (eps: questions Rc) := if Qlt_le_dec eps 1 then eps else (1%Q: questions Rc).
 Let rab := (fun (phi : Q -> Q) => inject_Z(up(Rabs(Q2R(phi (1#2)))+1))).
 Definition Rmult_rlzr := F2MF (fun phi (eps: Q) =>
   ((phi (inl (trunc eps / (1 + 1)/(rab (fun q => (phi(inr q)).2))))).1
   *
   (phi (inr (eps / (1 + 1)/(rab (fun q => (phi(inl q) ).1))))).2)%Q).
 
-Lemma Rmult_frlzr_crct:
-	Rmult_rlzr \realizes (F2MF (fun x => Rmult x.1 x.2):Rc_cs \*_cs Rc_cs ->> Rc_cs).
+Lemma Rmult_rlzr_crct:
+	Rmult_rlzr \realizes (F2MF (fun x => Rmult x.1 x.2):Rc \*_cs Rc ->> Rc).
 Proof.
 have rab_pos: forall phi, Q2R (rab phi) >= 1.
 	move => phi; rewrite /Q2R/rab/=.
@@ -224,74 +232,50 @@ End multiplication.
 Section limit.
 (* The unrestricted limit function is discontinuous with respect to the Cauchy representation,
 and thus there is no hope to prove it computable *)
-Lemma lim_not_cont: ~(lim: cs_usig_prod Rc_cs ->> Rc_cs) \has_continuous_realizer.
+Lemma cnst_dscr q: (cnst q) \is_description_of (Q2R q: Rc).
+Proof. rewrite /cnst => eps; split_Rabs; lra. Qed.
+
+Lemma cnst_sqnc_dscr q: (cnst q) \is_description_of (cnst (Q2R q): cs_usig_prod Rc).
+Proof. rewrite /cnst => n eps ineq; split_Rabs; lra. Qed.
+
+Lemma Q_sqnc_dscr qn:
+	(fun neps => qn neps.1) \is_description_of ((fun n => Q2R (qn n)): cs_usig_prod Rc).
+Proof. move => n eps ineq /=; split_Rabs; lra. Qed.
+
+Lemma lim_cnst x: lim (cnst x) x.
+Proof. exists 0%nat; rewrite /cnst; split_Rabs; lra. Qed.
+
+Lemma lim_not_cont: ~(lim: cs_usig_prod Rc ->> Rc) \has_continuous_realizer.
 Proof.
 move => [/= F [/= rlzr cont]].
-pose xn := (fun (n: nat) => 0%R):cs_usig_prod Rc_cs.
-pose qn (p: (nat * Q)) := 0%Q.
-have qnxn: qn \is_description_of xn.
-	move => n eps ineq; rewrite /qn /xn {1}/Q2R/=; split_Rabs; lra.
-have limxn0: lim xn 0.
-	move => eps ineq;	exists 0%nat.
-	move => n ineq'; rewrite /xn;	split_Rabs; lra.
-pose zn := (fun eps => 0%Q): names Rc_cs.
-have zn0: zn \is_description_of (0: Rc_cs).
-	move => eps ineq; rewrite {1}/Q2R/=; split_Rabs; lra.
-have qnfdF: qn \from dom F.
-	have qnfd: qn \from dom (lim o (rep (cs_usig_prod Rc_cs))).
-		exists 0;	split.
-			exists xn => //.
-		move => yn name.
-		rewrite -(rep_sing qn xn yn) => //.
-		by exists 0.
-	by apply/(rlzr_dom rlzr); last by exists 0; exact/limxn0.
-have [L [/=_ Lprop]]:= (cont qn qnfdF 1%Q).
+pose xn := cnst (Q2R 0):cs_usig_prod Rc.
+have limxn0: lim xn (Q2R 0) by exists 0%nat; rewrite /xn/cnst; split_Rabs; lra.
+have qnfdF: cnst 0%Q \from dom F.
+	by apply /(rlzr_dom rlzr); [exact/cnst_sqnc_dscr | exists (Q2R 0)].
+have [L [/=_ Lprop]]:= (cont (cnst 0%Q) qnfdF 1%Q).
 set fold := @List.fold_right nat nat.
 set m:= fold maxn 0%N (unzip1 L).
 have mprop: forall n eps, List.In (n, eps) L -> (n <= m)%nat.
-	move: Lprop => _; rewrite /m; move: m => _.
-	elim: L => // a L ih n eps /= lstn.
-	case: lstn => ass.
-		by apply/ leq_trans; last apply leq_maxl; rewrite ass.
-	by apply/ leq_trans; last apply leq_maxr; apply (ih n eps).
-pose yn := (fun n => if (n <= m)%nat then 0 else 3): cs_usig_prod Rc_cs.
+	rewrite /m; elim: {1 2}L => // a K ih n eps /=.
+	by case =>[-> | ineq]; apply/leq_trans; [ | apply/leq_maxl | apply/ih/ineq | apply/leq_maxr].
+pose yn := (fun n => Q2R (if (n <= m)%nat then 0%Q else 3#1)): cs_usig_prod Rc.
 pose rn (p: nat * Q) := if (p.1 <= m)%nat then 0%Q else 3#1.
-have rnyn: rn \is_description_of yn.
-	move => n eps ineq; rewrite /rn /yn.
-	case: ifP => ineq'; rewrite {1}/Q2R/=; split_Rabs; lra.
+have rnyn: rn \is_description_of yn by apply/Q_sqnc_dscr.
 have limyn3: lim yn 3.
-	move => eps ineq.
-	exists (S m) => n ineq'.
-	rewrite /yn.
-	case: ifP; last by split_Rabs; lra.
-	move  => ineq''.
-	have: (n <= m)%coq_nat by apply /leP.
-	have: (m < n)%coq_nat by apply /leP.
-	lia.
-have rnfdF: rn \from dom F.
-	have rnfd: rn \from dom (lim o (rep (cs_usig_prod Rc_cs))).
-		exists 3;	split.
-			exists yn => //.
-		move => y'n name.
-		rewrite -(rep_sing rn yn y'n) => //.
-		by exists 3.
-	by apply/(rlzr_dom rlzr); last by exists 3; apply limyn3.
-have coin: qn \and rn \coincide_on L.
+	exists (S m) => n /leP ineq; rewrite /yn.
+	case: ifP => [/leP ineq' | ]; [lia | split_Rabs; lra].
+have [phi Frnphi]: rn \from dom F by apply /(rlzr_dom rlzr); first exact/rnyn; exists 3.
+have coin: (cnst 0%Q) \and rn \coincide_on L.
 	apply /coin_lstn => [[n eps] listin].
-	rewrite /qn /rn.
-	case: ifP => // /= ineq.
-	specialize (mprop n eps listin).
-	have nineq: (~n <= m)%coq_nat by apply /leP; rewrite ineq.
-	have ge:= not_le n m nineq.
-	have fineq: (n <= m)%coq_nat by apply /leP.
-	lia.
-have [phi Frnphi ]:= rnfdF.
+	rewrite /cnst /rn; case: ifP => // /= /leP ineq.
+	exfalso; apply/ineq/leP/mprop/listin.
 have [psi Fqnpsi]:= qnfdF.
-have /=eq':= Lprop psi Fqnpsi rn coin phi Frnphi.
-have eq: psi 1%Q == phi 1%Q by rewrite eq'.
+have eq: psi 1%Q == phi 1%Q by rewrite (Lprop psi Fqnpsi rn coin phi Frnphi).
 have := Qeq_eqR (psi 1%Q) (phi 1%Q) eq.
-have psin0: psi \is_description_of (0: Rc_cs) by apply/(rlzr_val_sing _ rlzr); first exact/lim_sing.
-have phin3: phi \is_description_of (3: Rc_cs).
+have psin0: psi \is_description_of (0: Rc).
+	apply /(rlzr_val_sing _ rlzr)/Fqnpsi/lim_cnst; first exact/lim_sing.
+	rewrite /cnst/=/Q2R /=; split_Rabs; lra.
+have phin3: phi \is_description_of (3: Rc).
 	by apply/(rlzr_val_sing _ rlzr)/Frnphi/limyn3; first exact/lim_sing.
 have l01: 0 < Q2R 1 by rewrite /Q2R/=; lra.
 have:= psin0 1%Q l01; have:= phin3 1%Q l01.
@@ -344,75 +328,53 @@ Definition lim_eff_frlzr phin eps :=
 
 Definition lim_eff_rlzr := F2MF lim_eff_frlzr.
 
-(* The proof of this was done ages ago, it should be overhauled *)
 Lemma lim_eff_frlzr_crct:
-	lim_eff_rlzr \realizes (lim_eff: cs_usig_prod Rc_cs ->> Rc_cs).
+	lim_eff_rlzr \realizes (lim_eff: cs_usig_prod Rc ->> Rc).
 Proof.
-rewrite F2MF_rlzr.
-move => psi xn psinxn [x limxnx].
-exists x; split => //.
-move => eps epsg0.
-	set N:= (Pos_size (Qden eps)).
-	have ->: x - Q2R (lim_eff_frlzr psi eps) = x - (xn N.+1) + (xn N.+1 - Q2R (lim_eff_frlzr psi eps)) by lra.
-	rewrite /lim_eff_frlzr -/N.
-	apply /triang /Rle_trans.
-		apply /Rplus_le_compat; first by rewrite Rabs_minus_sym; apply/limxnx.
+rewrite F2MF_rlzr => psi xn psinxn [x limxnx].
+exists x; split => // eps epsg0.
+set N:= (Pos_size (Qden eps)).
+have ->: x - Q2R (lim_eff_frlzr psi eps) = x - (xn N.+1) + (xn N.+1 - Q2R (lim_eff_frlzr psi eps)) by lra.
+rewrite /lim_eff_frlzr -/N; apply/triang/Rle_trans.
+	apply/Rplus_le_compat; first by rewrite Rabs_minus_sym; apply/limxnx.
 	by apply psinxn; rewrite Q2R_mult {2}/Q2R/=; lra.
-have lt1:= pow_lt 2 (Pos_size (Qden eps)); have lt2:= size_Qden_leq epsg0; try lra.
-rewrite Q2R_mult {2}/Q2R /= /N Rinv_mult_distr; try lra.
+have lt1:= pow_lt 2 (Pos_size (Qden eps)); have lt2:= size_Qden_leq epsg0.
+by rewrite Q2R_mult {2}/Q2R /= /N Rinv_mult_distr; lra.
 Qed.
 End limit.
 
-(*
-Lemma cont_rlzr_cont (f: R -> R):
-	(F2MF f) \has_continuous_realizer <-> continuity f.
+Lemma cont_rlzr_cont (f: Rc -> Rc): (F2MF f) \has_continuous_realizer <-> continuity f.
 Proof.
 split.
-	move => [F [Frf Fcont]] x e eg0.
-	have [phi phinx]:= rep_sur rep_space_R x.
-	have [eps [epsg0 epsle]]:= Q_accumulates_to_zero eg0.
-	have phifd: phi \from_dom F by apply/ rlzr_dom; [apply Frf |	apply phinx | apply F2MF_tot].
-	have [L Lprop]:= Fcont phi eps phifd.
-	set fold := @List.fold_right R Q.
-	set delta:= fold (fun q => Rmin (Q2R q)) (Q2R eps) L.
-	exists delta.
-		have: delta <= e.
-			rewrite /delta/=.
-			elim: (L) => /=; try lra; move => a K ih.
-			apply/ Rle_trans; [exact: Rmin_r | exact: ih].
-	split.
-
+	move => [F [rlzr cont]] x e eg0.
+	have [phi phinx]:= get_description (x: Rc).
+	have [Fphi FphiFphi]: phi \from dom F by apply/(rlzr_dom rlzr)/F2MF_tot/phinx.
+	have Fphinfx: Fphi \is_description_of (f x).
+		by apply/(rlzr_val_sing _ rlzr phinx); first exact/F2MF_sing.
+	have [eps [epsg0 epsle]]:= accf_Q2R_0 eg0.
+	have [ | L [_ /=Lprop]]:= cont phi _ eps; first apply/(rlzr_dom rlzr)/F2MF_tot/phinx.
+	elim: L Lprop => [/=Lprop | ].
+		exists 1; split => [ | y [cnd neq]]; first by lra.
+		rewrite /R_dist.
+		set r:= Q2R (Fphi (Qdiv eps (1 + 1))).
+		have ->: f y - f x = f y - r - (f x - r) by ring.
+		apply/Rle_lt_trans/epsle/Rle_trans.
+			apply/triang/Rplus_le_compat; last first.
+				rewrite Rabs_Ropp; apply/Fphinfx.
+				admit.
+			have [psi psiny]:= get_description (y: Rc).
+			have [Fpsi FpsiFpsi]: psi \from dom F by apply /(rlzr_dom rlzr)/F2MF_tot/psiny.
+			have: F phi Fpsi.
+				have <-: Fphi = Fpsi; last done.
+					apply functional_extensionality => q'.
+					have :=(Lprop Fphi FphiFphi psi _ Fpsi).
+					have: Fphi = (fun q' => Fphi q').
+			have: Fphi \is_description_of (f y).
+			apply/(rlzr_val_sing _ rlzr psiny); first exact/F2MF_sing.
 Admitted.
 
-
-Definition ps_eval an (x: I) y:=
-	lim (fun m => eval (in_seg an m) (projT1 x)) y.
-
-Definition geo_series n := 1/(two_power_nat n).
-
-Lemma geo_series_comp_elt:
-	geo_series \is_computable_element.
-Proof.
-exists (fun p => 1/inject_Z (two_power_nat p.1))%Q.
-move => n eps epsg0 /=.
-suffices <-: geo_series n  = Q2R (1 / inject_Z (two_power_nat n)) by split_Rabs; lra.
-rewrite /geo_series.
-suffices ->: (Q2R (1 / inject_Z (two_power_nat n))) = (1/ Q2R (inject_Z (two_power_nat n))).
-	suffices ->: IZR (two_power_nat n) = Q2R (inject_Z(two_power_nat n)) by trivial.
-	by rewrite /Q2R/inject_Z /=; rewrite Rinv_1 Rmult_1_r.
-by rewrite /Q2R/= Rinv_1 Rmult_1_r/=.
-Defined.
-
-Lemma geo_series_sum x:
-	ps_eval geo_series x (1/(1-(projT1 x)/2)).
+Definition dom_cont g:= make_subset (fun x => continuity_pt g x).
+Lemma cont_hcr (f: Rc ->> Rc): f \has_continuous_realizer <-> exists g, f =~= (F2MF g)|_(dom_cont g).
 Proof.
 Admitted.
-
-Lemma analytic (an: nat -> R):
-	eff_zero an -> (fun (x: I) (y: R) => ps_eval an x y) \is_prec.
-Proof.
-move => ez.
-rewrite /eff_zero in ez.
-Admitted.
-*)
 End CAUCHYREALS.

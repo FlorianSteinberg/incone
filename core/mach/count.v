@@ -1,6 +1,6 @@
 From mathcomp Require Import all_ssreflect.
 From mpf Require Import all_mpf.
-Require Import inseg.
+Require Import iseg.
 Require Import ClassicalChoice.
 
 Set Implicit Arguments.

@@ -145,8 +145,8 @@ move => rlzr rlzr'; apply split_rlzr => phi x.
 	have [Fphi2 FphiFphi2]:= rlzr_dom rlzr' phinx2 fd2.
 	exists (name_pair Fphi1 Fphi2).
 	by rewrite /= lprj_pair rprj_pair.
-move => FGphi; rewrite name_split => [[phinx1 phinx2]].
-rewrite fprd_dom => [[fd1 fd2]] [eq [/= FphiFGphi GphiFGphi]].
+rewrite name_split fprd_dom => [[phinx1 phinx2]] [fd1 fd2].
+move => FGphi [-> [/=FphiFGphi GphiFGphi]].
 have [y []]:= rlzr_val rlzr phinx1 fd1 FphiFGphi.
 have [y' []]:= rlzr_val rlzr' phinx2 fd2 GphiFGphi.
 by exists (y, y').

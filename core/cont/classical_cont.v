@@ -37,6 +37,14 @@ Notation minimal_modulus := (minimal_modulus cnt sec).
 Notation init_seg := (iseg cnt).
 Notation max_elt := (max_elt sec).
 
+Lemma F2MF_cont_choice (F: B -> B'): (F2MF F) \is_continuous_operator <->
+	forall phi q', exists L, forall psi, phi \and psi \coincide_on L -> F phi q' = F psi q'.
+Proof.
+rewrite F2MF_cont; split=> [cont phi q' | cont phi].
+	by have [Lf mod]:= cont phi; exists (Lf q') => psi; apply/mod.
+by have [Lf mod]:= choice _ (cont phi); exists Lf => q' psi; apply/mod.
+Qed.
+
 Lemma cert_cdom (F: B ->> B') phi q' a':
 	~ phi \from closure (dom F) -> exists L, cert F (L2SS L) phi q' a'.
 Proof.

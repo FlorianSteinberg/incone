@@ -16,6 +16,10 @@ Definition L2SS L:= make_subset (fun (t: T) => List.In t L).
 Lemma L2SS_subs L K:
 	L \is_sublist_of K <-> (L2SS L) \is_subset_of (L2SS K).
 Proof. done. Qed.
+
+Lemma L2SS_eq L K:
+	(L2SS L) === (L2SS K) <-> L \is_sublist_of K /\ K \is_sublist_of L.
+Proof. by rewrite set_eq_subs !L2SS_subs. Qed.
 End L2SS.
 
 Section coincide.
@@ -75,10 +79,6 @@ split; first by elim: L => [| a L ih] //=; case => eq b; have []:= ih b; do 2 tr
 by elim: L => [[_ coin]| a L ih [/=[/=ass1 ass2] ass3]] => //=; split => //; apply ih.
 Qed.
 
-Lemma L2SS_eq (L K: seq Q):
-	(L2SS L) === (L2SS K) <-> L \is_sublist_of K /\ K \is_sublist_of L.
-Proof. by rewrite set_eq_subs !L2SS_subs. Qed.
-
 Lemma coin_subl phi psi L K:
 	L \is_sublist_of K -> phi \and psi \coincide_on K -> phi \and psi \coincide_on L.
 Proof. by rewrite !coin_lstn; intros; apply/H0/H. Qed.
@@ -91,6 +91,14 @@ by split => [[Ls <-] | [Ls <-]]; split => //=; first symmetry; apply/coin.
 Qed.
 End coincide.
 Notation "phi '\and' psi '\coincide_on' L" := (coincide L phi psi) (at level 2).
+
+Lemma coin_funeq (T: eqType) S (L: seq T) (phi psi: T -> S):
+	phi \and psi \coincide_on L <-> {in L, phi =1 psi}.
+Proof.
+rewrite /prop_in1 /in_mem /=; elim: L => // t L /=->.
+split => [[eq coin] s /orP [/eqP -> | Ls] | prp]//; first exact/coin.
+by split => [ | s Ls]; apply/prp/orP; [left | right].
+Qed.
 
 Section closures.
 Context (Q A : Type).

@@ -1,16 +1,20 @@
 -R . incone
 
+core/count/iseg.v
+core/count/count.v
+core/count/classical_count.v
+all_count.v
+
 core/cont/baire.v
 core/cont/cont.v
-core/cont/iseg.v
 core/cont/minm.v
-core/cont/choice_cont.v
-core/cont/seq_cont.v
+core/cont/classical_cont.v
 all_cont.v
+
+core/count/seq_cont.v
 
 core/mach/exec.v
 core/mach/Mmach.v
-core/mach/choice_mach.v
 core/mach/classical_mach.v
 all_mach.v
 

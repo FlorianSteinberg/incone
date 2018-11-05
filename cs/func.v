@@ -10,7 +10,7 @@ Section cs_functions.
 Definition is_ass (X Y: cs) psi (f: X -> Y) := \F_(M psi) \realizes (F2MF f).
 
 Notation "X c-> Y" :=
-	{f: X -> Y | (F2MF f) \has_continuous_realizer} (at level 2).
+	{f: X -> Y | f \is_continuous} (at level 2).
 
 Definition exist_c (X Y: cs) F Fhcr := exist (fun f => @hcr X Y (F2MF f)) F (Fhcr).
 
@@ -20,7 +20,7 @@ Definition is_fun_name (X Y: cs):=
 Lemma is_fun_name_sur (X Y : cs): (@is_fun_name X Y) \is_cototal.
 Proof.
 move => [f [F [Frf cont]]].
-have [psi psinF]:= M_universal (someq X) (somea X) (fun _ => somea Y) (cs.Qcount X) cont.
+have [psi psinF]:= M_universal (someq X) (somea X) (fun _ => somea Y) (questions_countable X) cont.
 by exists psi; apply/ntrvw_rlzr.tight_rlzr/psinF.
 Qed.
 
@@ -38,15 +38,15 @@ Definition cs_fun_modest_set_mixin (X Y: cs):
 	dictionary_mixin.type (interview.Pack (cs_fun_assembly_mixin X Y)).
 Proof. split; exact/is_fun_name_sing. Defined.
 
-Canonical cs_fun X Y := @cs.Pack
+Canonical cs_fun X Y := @continuity_space.Pack
 	(seq (answers X) * questions Y)
 	(seq (questions X) + answers Y)
 	((nil, someq Y))
 	(inr (somea Y))
   (prod_count
-  	(list_count (cs.Acount X))
-  	(cs.Qcount Y))
-  (sum_count (list_count (cs.Qcount X)) (cs.Acount Y))
+  	(list_count (answers_countable X))
+  	(questions_countable Y))
+  (sum_count (list_count (questions_countable X)) (answers_countable Y))
 	(dictionary.Pack (cs_fun_modest_set_mixin X Y)).
 End cs_functions.
 Notation "X c-> Y" := (cs_fun X Y) (at level 2).

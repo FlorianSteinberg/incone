@@ -74,7 +74,7 @@ Lemma rationals_countable: Q \is_countable.
 Proof.
 Admitted.
 
-Canonical Rc := cs.Pack
+Canonical Rc := continuity_space.Pack
 	0%Q
 	0%Q
 	rationals_countable
@@ -92,13 +92,16 @@ rewrite F2MF_rlzr_F2MF => phi x phinx eps epsg0 /=.
 rewrite Q2R_opp; move: (phinx eps epsg0); split_Rabs; lra.
 Qed.
 
-Lemma Ropp_rlzr_cont: Ropp_rlzr \is_continuous.
+Lemma Ropp_rlzr_cont: Ropp_rlzr \is_continuous_operator.
 Proof.
 by rewrite F2MF_cont /Ropp_rlzrf => phi; exists (fun eps => [:: eps]) => psi q' [<-].
 Qed.
 
 Lemma Ropp_hcr: (F2MF Ropp: Rc ->> Rc) \has_continuous_realizer.
 Proof. exists Ropp_rlzr; split; [apply/Ropp_rlzr_spec | apply/Ropp_rlzr_cont]. Qed.
+
+Lemma Ropp_cont: (Ropp: Rc -> Rc) \is_continuous.
+Proof. exact/Ropp_hcr. Qed.
 
 Definition Rplus_rlzrf phi (eps: Q) :=
 	(Qplus (phi (inl (Qdiv eps (1+1)))).1 (phi (inr (Qdiv eps (1+1)))).2).
@@ -123,11 +126,14 @@ have eq: Q2R eps * / 2 = Q2R (eps / (1 + 1)).
 by rewrite eq; apply: Rplus_le_compat; apply phinx; lra.
 Qed.
 
-Lemma Rplus_rlzr_cont: Rplus_rlzr \is_continuous.
+Lemma Rplus_rlzr_cont: Rplus_rlzr \is_continuous_operator.
 Proof.
 rewrite F2MF_cont => phi; exists (fun eps => [:: inl (Qdiv eps (1 + 1)); inr (Qdiv eps (1 + 1))]).
 by rewrite /Rplus_rlzrf => psi q' [-> [-> _]].
 Qed.
+
+Lemma Rplus_cont: (fun (xy: Rc \*_cs Rc) => xy.1 + xy.2: Rc) \is_continuous.
+Proof. exists Rplus_rlzr; split; first exact/Rplus_rlzr_spec; exact/Rplus_rlzr_cont. Qed.
 End addition.
 
 Section multiplication.
@@ -234,20 +240,20 @@ and thus there is no hope to prove it computable *)
 Lemma cnst_dscr q: (cnst q) \is_description_of (Q2R q: Rc).
 Proof. rewrite /cnst => eps; split_Rabs; lra. Qed.
 
-Lemma cnst_sqnc_dscr q: (cnst q) \is_description_of (cnst (Q2R q): cs_usig_prod Rc).
+Lemma cnst_sqnc_dscr q: (cnst q) \is_description_of (cnst (Q2R q): cs_sig_prod Rc).
 Proof. rewrite /cnst => n eps ineq; split_Rabs; lra. Qed.
 
 Lemma Q_sqnc_dscr qn:
-	(fun neps => qn neps.1) \is_description_of ((fun n => Q2R (qn n)): cs_usig_prod Rc).
+	(fun neps => qn neps.1) \is_description_of ((fun n => Q2R (qn n)): cs_sig_prod Rc).
 Proof. move => n eps ineq /=; split_Rabs; lra. Qed.
 
 Lemma lim_cnst x: lim (cnst x) x.
 Proof. exists 0%nat; rewrite /cnst; split_Rabs; lra. Qed.
 
-Lemma lim_not_cont: ~(lim: cs_usig_prod Rc ->> Rc) \has_continuous_realizer.
+Lemma lim_not_cont: ~(lim: cs_sig_prod Rc ->> Rc) \has_continuous_realizer.
 Proof.
 move => [/= F [/= rlzr cont]].
-pose xn := cnst (Q2R 0):cs_usig_prod Rc.
+pose xn := cnst (Q2R 0):cs_sig_prod Rc.
 have limxn0: lim xn (Q2R 0) by exists 0%nat; rewrite /xn/cnst; split_Rabs; lra.
 have qnfdF: cnst 0%Q \from dom F.
 	by apply /(rlzr_dom rlzr); [exact/cnst_sqnc_dscr | exists (Q2R 0)].
@@ -258,7 +264,7 @@ pose m:= fold maxn 0%N (unzip1 L).
 have mprop: forall n eps, List.In (n, eps) L -> (n <= m)%nat.
 	rewrite /m; elim: {1 2}L => // a K ih n eps /=.
 	by case =>[-> | ineq]; apply/leq_trans; [ | apply/leq_maxl | apply/ih/ineq | apply/leq_maxr].
-pose yn:= (fun n => Q2R (if (n <= m)%nat then 0%Q else 3#1)): cs_usig_prod Rc.
+pose yn:= (fun n => Q2R (if (n <= m)%nat then 0%Q else 3#1)): cs_sig_prod Rc.
 pose rn (p: nat * Q) := if (p.1 <= m)%nat then 0%Q else 3#1.
 have rnyn: rn \is_description_of yn by apply/Q_sqnc_dscr.
 have limyn3: lim yn 3.
@@ -330,7 +336,7 @@ Definition lim_eff_frlzr phin eps :=
 Definition lim_eff_rlzr := F2MF lim_eff_frlzr.
 
 Lemma lim_eff_frlzr_crct:
-	lim_eff_rlzr \realizes (lim_eff: cs_usig_prod Rc ->> Rc).
+	lim_eff_rlzr \realizes (lim_eff: cs_sig_prod Rc ->> Rc).
 Proof.
 rewrite F2MF_rlzr => psi xn psinxn [x limxnx].
 exists x; split => // eps epsg0.
@@ -343,6 +349,7 @@ have lt1:= pow_lt 2 (Pos_size (Qden eps)); have lt2:= size_Qden_leq epsg0.
 by rewrite Q2R_mult {2}/Q2R /= /N Rinv_mult_distr; lra.
 Qed.
 End limit.
+
 (*
 Lemma cont_rlzr_cont (f: Rc -> Rc): (F2MF f) \has_continuous_realizer <-> continuity f.
 Proof.

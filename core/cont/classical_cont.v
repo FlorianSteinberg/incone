@@ -71,7 +71,7 @@ exists mf.
 by split => [q' | Lf' mod' q']; [exact/(mfprop q').1 | exact/(mfprop q').2].
 Qed.
 
-Lemma exists_minmod (F: B ->> B'): F \is_continuous ->
+Lemma exists_minmod (F: B ->> B'): F \is_continuous_operator ->
 	exists mf, forall phi, phi \from dom F -> minimal_modulus F phi (mf phi).
 Proof.
 move => cont; have [mf icf]:= exists_choice (minimal_modulus F) (fun _ => 0).

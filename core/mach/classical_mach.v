@@ -1,6 +1,6 @@
 From mathcomp Require Import all_ssreflect.
 From mpf Require Import all_mpf choice_mf.
-Require Import all_cont choice_cont exec Mmach.
+Require Import all_cont classical_cont exec Mmach.
 Require Import ClassicalChoice FunctionalExtensionality.
 
 Set Implicit Arguments.
@@ -149,7 +149,7 @@ by rewrite !subSn //; [ rewrite subKn | rewrite leq_subr].
 Qed.
 
 Lemma M_universal (someq: Q) (somea : A) (somephi': B') (F: B ->> B'):
- 	Q \is_countable -> F \is_continuous -> exists psiF, (M psiF) \evaluates_to F.
+ 	Q \is_countable -> F \is_continuous_operator -> exists psiF, (M psiF) \evaluates_to F.
 Proof.
 have [eqQ' _]:= classic_eqClass Q'.
 set Q'eqType:= EqType Q' eqQ'.
@@ -157,7 +157,7 @@ move => count cont.
 have [ | cnt sur]//:= (count_sur Q).2.
 have [Ff Fprop] := exists_choice (F: _ ->>(Q'eqType -> _)) somephi'.
 have [sec ms] := minimal_section sur.
-have [mf mfmod]:= exists_minmod ms (cont: (F: _ ->> (Q'eqType -> _)) \is_continuous).
+have [mf mfmod]:= exists_minmod ms (cont: (F: _ ->> (Q'eqType -> _)) \is_continuous_operator).
 have [listf listfprop] := exists_listf somea (F: _ ->> (Q'eqType -> _)) sur.
 exists (psiF cnt listf mf Ff).
 rewrite mon_eval; last exact/cont_sing; last exact/M_mon.

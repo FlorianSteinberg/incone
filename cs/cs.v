@@ -7,8 +7,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Module cs.
-Local Open Scope type_scope.
+Module continuity_space.
 Structure type := Pack {
   Q: Type;
   A: Type;
@@ -18,24 +17,26 @@ Structure type := Pack {
   Acount: A \is_countable;
 	X:> dictionary.type (Q -> A)
 }.
-End cs.
-Notation somea := cs.somea.
-Notation someq := cs.someq.
-Notation questions X:= (cs.Q X).
-Notation answers X:= (cs.A X).
+End continuity_space.
+Notation somea := continuity_space.somea.
+Notation someq := continuity_space.someq.
+Notation questions X:= (continuity_space.Q X).
+Notation questions_countable X := (continuity_space.Qcount X).
+Notation answers X:= (continuity_space.A X).
+Notation answers_countable X := (continuity_space.Acount X).
 Notation names X := ((questions X) -> (answers X)).
-Notation rep X := (conversation (cs.X X)).
+Notation rep X := (conversation (continuity_space.X X)).
 Notation delta := (rep _).
 Notation rep_sing := answer_unique.
 Notation rep_sur := only_respond.
 Notation get_description x:= (get_question x).
 Notation "phi '\is_description_of' x" := (x \is_response_to phi) (at level 2).
-Notation cs:= cs.type.
-Coercion cs.X: cs.type >-> dictionary.type.
+Notation cs:= continuity_space.type.
+Coercion continuity_space.X: continuity_space.type >-> dictionary.type.
 
 Section continuity.
 Definition hcr (X Y : cs) (f : X ->> Y) :=
-	exists F, F \realizes f /\ F \is_continuous.
+	exists F, F \realizes f /\ F \is_continuous_operator.
 Notation "f '\has_continuous_realizer'":= (hcr f) (at level 2).
 
 Global Instance hcr_prpr (X Y: cs):
@@ -49,14 +50,19 @@ Lemma comp_hcr (X Y Z: cs) (f: X ->> Y) (g: Y ->> Z):
 Proof.
 move => [F [Frf Fcont]] [G [Grg Gcont]].
 exists (G o F); split; first by apply rlzr_comp.
-exact/cont_comp.
+exact/cntop_comp.
 Qed.
 
-Lemma comp_hcr_fun (X Y Z: cs) (f: X -> Y) (g: Y -> Z):
-	(F2MF f) \has_continuous_realizer -> (F2MF g) \has_continuous_realizer -> (F2MF (fun x => g (f x))) \has_continuous_realizer.
+Definition continuous (X Y: cs) (f: X -> Y):= (F2MF f) \has_continuous_realizer.
+Notation "f \is_continuous" := (continuous f) (at level 30).
+
+Lemma cont_comp (X Y Z: cs) (f: Y -> Z) (g: X -> Y):
+	f \is_continuous -> g \is_continuous -> (f \o g) \is_continuous.
 Proof.
-have ->: (F2MF (fun x => g (f x))) =~= (F2MF g) o (F2MF f) by rewrite comp_F2MF.
+rewrite /funcomp /continuous => cont cont'.
+have ->: (F2MF (fun x => f (g x))) =~= (F2MF f) o (F2MF g) by rewrite comp_F2MF.
 exact: comp_hcr.
 Qed.
 End continuity.
 Notation "f '\has_continuous_realizer'":= (hcr f) (at level 2).
+Notation "f \is_continuous" := (continuous f) (at level 30).

@@ -140,7 +140,7 @@ Lemma Intervals_countable: ID \is_countable.
 Proof.
 Admitted.
 
-Canonical IR_cs := cs.Pack
+Canonical IR_cs := continuity_space.Pack
 	0%nat
 	I0
 	nat_count

@@ -132,7 +132,7 @@ move: E => /eqP ->; 	have [a' crt'] := mod' q'; exists a' => psi' /coin_spec coi
 exact/crt'/Fpsi'Fpsi'/coin_spec/coin_trans/coin'/coin_subl/coin_sym/coin_spec/coin/iseg_subl.
 Qed.
 
-Lemma minmod_cont: (minimal_modulus F) \is_continuous.
+Lemma minmod_cont: (minimal_modulus F) \is_continuous_operator.
 Proof.
 move => phi [mf mod]; exists (fun q' => init_seg (mf q')); exact/mod_minmod.
 Qed.

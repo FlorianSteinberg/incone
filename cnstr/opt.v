@@ -43,13 +43,13 @@ Definition cs_opt_modest_set_mixin (X: cs):
 	dictionary_mixin.type (interview.Pack (cs_opt_assembly_mixin X)).
 Proof. split; exact/rep_opt_sing. Defined.
 
-Canonical rep_space_opt (X: cs) := @cs.Pack
+Canonical rep_space_opt (X: cs) := @continuity_space.Pack
 	(one + questions X)
 	(option one * answers X)
 	(inl star)
 	((None, somea X))
-	(sum_count one_count (cs.Qcount X))
-	(prod_count (option_count one_count) (cs.Acount X))
+	(sum_count one_count (questions_countable X))
+	(prod_count (option_count one_count) (answers_countable X))
 	(dictionary.Pack (cs_opt_modest_set_mixin X)).
 
 (*

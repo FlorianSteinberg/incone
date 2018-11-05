@@ -144,10 +144,10 @@ split => [ | q']; first by exists Lf; rewrite eq.
 by have [a' crt]:= mod q'; exists a'; apply/cert_exte/crt; rewrite -eq.
 Qed.
 
-Definition continuous := dom F \is_subset_of dom continuity_modulus.
+Definition continuous_operator := dom F \is_subset_of dom continuity_modulus.
 Definition continuity_points := intersection (dom continuity_modulus) (dom F).
 
-Lemma cont_dom : continuous -> dom F === continuity_points.
+Lemma cont_dom : continuous_operator -> dom F === continuity_points.
 Proof. by move => cont phi; split => [dm | ]; [split; first exact/cont | case]. Qed.
 
 (*
@@ -167,7 +167,7 @@ move => [q']; split; first exact dom_elig; move => eligall phi.
 by have [_ [Fphi [FphiFphi _]]]:= eligall phi q'; exists Fphi.
 Qed.*)
 End continuity.
-Notation "F '\is_continuous'" := (continuous F) (at level 2).
+Notation "F '\is_continuous_operator'" := (continuous_operator F) (at level 2).
 
 Section continuity_lemmas.
 Context (Q A Q' A' : Type).
@@ -240,8 +240,8 @@ Lemma cont_mod_subl (F: B ->> B') Lf Lg phi:
 	(forall q', Lf q' \is_sublist_of Lg q') -> modulus F phi mf -> modulus F phi 
 *)
 
-Global Instance cont_prpr:
-	Proper (@equiv B B' ==> iff) (@continuous Q A Q' A').
+Global Instance cntop_prpr:
+	Proper (@equiv B B' ==> iff) (@continuous_operator Q A Q' A').
 Proof.
 move => f f' eq.
 split => cont phi phifd.
@@ -253,7 +253,7 @@ exists Lf => q'; have [a' crt]:= mod q'.
 by exists a' => psi coin Fpsi; rewrite eq; apply crt.
 Qed.
 
-Lemma F2MF_cont (f: B -> B'): (F2MF f) \is_continuous <->
+Lemma F2MF_cont (f: B -> B'): (F2MF f) \is_continuous_operator <->
 	forall phi, exists Lf, forall psi q', phi \and psi \coincide_on (Lf q') -> f phi q' = f psi q'.
 Proof.
 split => [cont phi| cont phi _]; last first.
@@ -262,23 +262,26 @@ by have [ | Lf /cont_mod_F2MF mod]:= cont phi; first exact/F2MF_tot; exists Lf.
 Qed.
 
 Lemma restr_cont (F: B ->> B') P P':
-	P \is_subset_of P' -> F|_P' \is_continuous -> F|_P \is_continuous.
+	P \is_subset_of P' -> F|_P' \is_continuous_operator -> F|_P \is_continuous_operator.
 Proof.
 move => subs cont phi phifd.
 exact/exte_dom/cont/dom_restr_subs/phifd/subs/cont_mod_exte/exte_restr.
 Qed.
 
-Lemma restr_cont_w (F: B ->> B') P: F \is_continuous -> F|_P \is_continuous.
+Lemma restr_cont_w (F: B ->> B') P: F \is_continuous_operator ->
+	F|_P \is_continuous_operator.
 Proof. by move => cont; apply/restr_cont; first exact/subs_all; rewrite -restr_all. Qed.
 
-Lemma mod_restr_cont (F: B ->> B'): F|_(dom (continuity_modulus F)) \is_continuous.
+Lemma mod_restr_cont (F: B ->> B'):
+	F|_(dom (continuity_modulus F)) \is_continuous_operator.
 Proof.
 move => phi [Fphi [[Lf mod] FphiFphi]].
 exists Lf => q'; have [a' crt]:= mod q'.
 by exists a' => psi coin Fpsi [_ FpsiFpsi]; rewrite (crt psi).
 Qed.
 
-Lemma restr_dom_cont (F: B ->> B'): F|_(continuity_points F) \is_continuous.
+Lemma restr_dom_cont (F: B ->> B'):
+	F|_(continuity_points F) \is_continuous_operator.
 Proof. by apply/restr_cont/mod_restr_cont; move => phi []. Qed.
 
 Lemma mod_restr_sing (F: B ->> B'): F|_(dom (modulus F)) \is_singlevalued.
@@ -287,7 +290,7 @@ apply/det_sing => phi [Fphi [[mf mod] FphiFphi]] q'.
 by have [a' crt]:= mod q'; exists a'; rewrite det_restr => phifd; apply/crt.
 Qed.
 
-Lemma cont_sing (F: B ->> B'): F \is_continuous -> F \is_singlevalued.
+Lemma cont_sing (F: B ->> B'): F \is_continuous_operator -> F \is_singlevalued.
 Proof.
 move => cont; apply/sing_mod_spec => phi phifd.
 by have [Lf]:= cont phi phifd; rewrite mod_cont_mod; exists (LF2MF Lf).
@@ -297,14 +300,15 @@ Lemma exte_dom S T (f g: S ->> T): f \extends g -> dom g \is_subset_of dom f.
 Proof. by move => exte s [gs gsgs]; exists gs; apply/exte. Qed.
 
 Lemma cont_exte (F G: B ->> B'):
-	G \tightens F -> G \is_continuous -> F \is_singlevalued -> F \is_continuous.
+	G \tightens F -> G \is_continuous_operator -> F \is_singlevalued ->
+	F \is_continuous_operator.
 Proof.
 move => /sing_tight_exte exte cont sing phi phifd.
 exact/exte_dom/cont/exte_dom/phifd/exte/sing/cont_mod_exte/exte.
 Qed.
 
 Lemma cnst_cont (Fphi: B'):
-	(F2MF (fun phi: B => Fphi)) \is_continuous.
+	(F2MF (fun phi: B => Fphi)) \is_continuous_operator.
 Proof. by move => phi/= _; exists (cnst nil) => q'; exists (Fphi q') => psi _ _ <-. Qed.
 End continuity_lemmas.
 
@@ -364,7 +368,8 @@ Qed.
 Lemma exte_ref S T (f: S ->> T): f \extends f.
 Proof. by move => s t fst. Qed.
 
-Lemma cont_comp: F \is_continuous -> G \is_continuous -> (G o F) \is_continuous.
+Lemma cntop_comp: F \is_continuous_operator -> G \is_continuous_operator ->
+	(G o F) \is_continuous_operator.
 Proof.
 move => cont cont' phi phifd.
 have [ | Lf /mod_cont_mod mod]:= cont phi; first exact/comp_dom/phifd.

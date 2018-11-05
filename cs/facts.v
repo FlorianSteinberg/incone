@@ -15,6 +15,9 @@ exists mf_id; split; first by rewrite F2MF_rlzr_F2MF.
 by apply F2MF_cont => phi; exists (fun q => [:: q]) => psi q' [-> ].
 Qed.
 
+Lemma id_cont (X: cs): (@id X) \is_continuous.
+Proof. exact/id_hcr. Qed.
+
 Lemma diag_hcr (X: cs):
 	(mf_diag: X ->> cs_prod _ _) \has_continuous_realizer.
 Proof.

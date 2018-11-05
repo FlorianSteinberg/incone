@@ -74,13 +74,13 @@ Qed.
 Definition cs_sum_modest_set_mixin (X Y: cs): dictionary_mixin.type (interview.Pack (cs_sum_assembly_mixin X Y)).
 Proof. split; exact/sum_rep_sing. Defined.
 
-Canonical cs_sum X Y := @cs.Pack
+Canonical cs_sum X Y := @continuity_space.Pack
   (@questions X * @questions Y)
   (@answers X + @answers Y)
  	(someq X, someq Y)
   (inl (somea X))
-  (prod_count (cs.Qcount X) (cs.Qcount Y))
-  (sum_count (cs.Acount X) (cs.Acount Y))
+  (prod_count (questions_countable X) (questions_countable Y))
+  (sum_count (answers_countable X) (answers_countable Y))
 	(dictionary.Pack (cs_sum_modest_set_mixin X Y)).
 End cs_sum.
 
@@ -174,31 +174,33 @@ exact/rec_fun_rec/prod_assoc_inv_rec_fun.
 Defined.
 *)
 
-Lemma linc_cont X Y:
-	(F2MF (@linc X Y)) \is_continuous.
+Lemma linc_cont X Y: (F2MF (@linc X Y)) \is_continuous_operator.
 Proof.
 by rewrite F2MF_cont => phi; exists (fun q => [:: q.1]) => psi /= q' [eq]; rewrite /linc eq.
 Qed.
 
-Lemma inl_hcr (X Y: cs):
-	(F2MF (@inl X Y): _ ->> cs_sum _ _) \has_continuous_realizer.
+Lemma inl_hcr (X Y: cs): (F2MF (@inl X Y): _ ->> cs_sum _ _) \has_continuous_realizer.
 Proof.
 exists (F2MF (@linc X Y)); split; last exact: linc_cont.
 by rewrite F2MF_rlzr_F2MF; split; first by exists (q (someq X)).
 Qed.
 
-Lemma rinc_cont X Y:
-	(F2MF (@rinc X Y)) \is_continuous.
+Lemma inl_cont (X Y: cs): (@inl X Y: _ -> cs_sum _ _) \is_continuous.
+Proof. exact/inl_hcr. Qed.
+
+Lemma rinc_cont X Y: (F2MF (@rinc X Y)) \is_continuous_operator.
 Proof.
 by rewrite F2MF_cont => phi; exists (fun q => [:: q.2]) => psi /= q' [eq]; rewrite /rinc eq.
 Qed.
 
-Lemma inr_hcr (X Y: cs):
-	(F2MF (@inr X Y): _ ->> cs_sum _ _) \has_continuous_realizer.
+Lemma inr_hcr (X Y: cs): (F2MF (@inr X Y): _ ->> cs_sum _ _) \has_continuous_realizer.
 Proof.
 exists (F2MF (@rinc X Y)); split; last exact: rinc_cont.
 by rewrite F2MF_rlzr_F2MF; split; first by exists (q (someq Y)).
 Qed.
+
+Lemma inr_cont (X Y: cs): (@inr X Y: _ -> cs_sum _ _) \is_continuous.
+Proof. exact/inr_hcr. Qed.
 
 Definition mfssFG_rlzr (X Y X' Y': cs) (F: (names X) ->> (names Y)) (G: (names X') ->> (names Y')):=
 	make_mf (fun (phi: names (cs_sum X X')) FGphi =>

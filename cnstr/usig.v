@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_cs_base classical_mach.
+Require Import all_cs_base classical_mach cs_nat.
 Require Import FunctionalExtensionality ClassicalChoice.
 
 Set Implicit Arguments.
@@ -33,16 +33,16 @@ Definition cs_usig_dictionary_mixin (X: cs):
 	dictionary_mixin.type (interview.Pack (cs_usig_interview_mixin X)).
 Proof. split; exact/rep_usig_prod_sing. Defined.
 
-Canonical cs_usig_prod (X: cs) := @cs.Pack
+Canonical cs_sig_prod (X: cs) := @continuity_space.Pack
 	(nat * questions X)
 	(answers X)
 	((0%nat, someq X))
 	(somea X)
-  (prod_count nat_count (cs.Qcount X))
-  (cs.Acount X)
+  (prod_count nat_count (questions_countable X))
+  (answers_countable X)
   (dictionary.Pack (cs_usig_dictionary_mixin X)).
 
-Lemma usig_base (X: cs) (an: cs_usig_prod X) (phi: names (cs_usig_prod X)):
+Lemma usig_base (X: cs) (an: cs_sig_prod X) (phi: names (cs_sig_prod X)):
 	phi \is_description_of an -> forall n, (fun q => phi (n,q)) \is_description_of (an n).
 Proof. done. Qed.
 
@@ -50,19 +50,19 @@ Definition ptw (X: cs) (op: X * X -> X) (fg: (nat -> X) * (nat -> X)) :=
 	(fun n => op (fg.1 n, fg.2 n)).
 
 (*
-Lemma ptw_rec X (op: rep_space_prod X X -> X):
-	op \is_recursive_function -> (ptw op) \is_recursive_function.
+Lemma ptw_cont X (op: X \*_cs X -> X): op \is_continuous ->
+	(ptw op: cs_sig_prod _ \*_cs cs_sig_prod _ -> cs_sig_prod _) \is_continuous.
 Proof.
-move => [Mop Mprop].
-exists (fun (phi: names (rep_space_prod (rep_space_usig_prod X)(rep_space_usig_prod X))) q =>
-	Mop (name_pair (fun q' => lprj phi (q.1, q')) (fun q' => rprj phi (q.1, q'))) q.2).
+move => [F [Frop Fcont]]; rewrite /continuous/hcr.
+exists (fun phi psi => forall q,
+	F (name_pair (fun q' => lprj phi (q, q')) (fun q' => rprj phi (q, q'))) (psi q)).
 abstract by move => phi [an bn] [/=phinan phinbn] n/=; rewrite /ptw/=;
 	apply ((Mprop (name_pair (fun q' => lprj phi (n, q')) (fun q' => rprj phi (n, q')))) (an n, bn n));
 	split; rewrite rprj_pair lprj_pair/=; [apply phinan | apply phinbn].
 Defined.
 
-Lemma wiso_usig X:
-	wisomorphic (rep_space_usig_prod X) (rep_space_cont_fun rep_space_nat X).
+Lemma sig_iso_fun X:
+	(cs_sig_prod X) ~=~ (cs_nat c-> X).
 Proof.
 have crlzr: forall xn: nat -> X, hcr (F2MF xn).
 	move => xn.

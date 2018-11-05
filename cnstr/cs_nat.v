@@ -7,7 +7,7 @@ Unset Printing Implicit Defensive.
 
 Section NATURALS.
 
-Canonical cs_nat := @cs.Pack
+Canonical cs_nat := @continuity_space.Pack
 	one
 	nat
 	star
@@ -16,29 +16,28 @@ Canonical cs_nat := @cs.Pack
 	nat_count
 	(dictionary.Pack (cs_id_modest_set_mixin nat)).
 
-Notation nS phi q := (S (phi q)).
+Lemma S_rec_fun: (S: cs_nat -> cs_nat) \is_continuous.
+Proof.
+exists (F2MF (fun phi q =>S (phi q))).
+split; first by rewrite F2MF_rlzr => /= phi n -> [m]; by exists m.
+by rewrite F2MF_cont => phi; exists (fun _ => [:: star]) => psi str []; elim: str => ->.
+Qed.
+
+Lemma nat_cont (f: nat -> nat): (f: cs_nat -> cs_nat) \is_continuous.
+Proof.
+exists (F2MF (fun phi q => f (phi q))); split; first by rewrite F2MF_rlzr_F2MF => phi n /= <-.
+by rewrite F2MF_cont => phi; exists (fun _ => [:: star]) => psi [[->]].
+Qed.
+
+Lemma nat_nat_cont (f: nat -> nat -> nat):
+	(fun (p: cs_nat \*_cs cs_nat) => f p.1 p.2: cs_nat) \is_continuous.
+Proof.
+exists (F2MF (fun phi q => f (phi (inl star)).1 (phi (inr star)).2)); split.
+	by rewrite F2MF_rlzr_F2MF => phi [n m] [/= <- <-].
+by rewrite F2MF_cont => phi; exists (fun _ => [:: inl star; inr star]) => psi str [-> [->]].
+Qed.
 
 (*
-Lemma S_rec_fun:
-	S \is_recursive_function.
-Proof.
-by exists (fun phi q => nS phi q); move => phi x /= <-.
-Defined.
-
-Lemma nat_rec_fun (f: nat -> nat):
-	f \is_recursive_function.
-Proof.
-exists (fun phi q => f (phi q): answers rep_space_nat).
-by move => phi x /= <-.
-Defined.
-
-Lemma nat_nat_rec_fun (f: nat -> nat -> nat):
-	(fun p => f p.1 p.2) \is_recursive_function.
-Proof.
-exists (fun phi q => f (phi (inl star)).1 (phi (inr star)).2: answers rep_space_nat).
-by move => phi x /= [<- <-].
-Defined.
-
 Lemma nat_rs_rec_pind (Z X: rep_space) (f0: Z -> X) (fS: (Z * X) -> X) (f: (Z * nat) -> X):
 	f0 \is_recursive_function -> fS \is_recursive_function ->
 		(forall p, f p = (fix f' z n := match n with

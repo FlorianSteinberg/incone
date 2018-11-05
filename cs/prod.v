@@ -46,7 +46,7 @@ Definition cs_prod_modest_set_mixin (X Y: cs):
  dictionary_mixin.type (interview.Pack (cs_prod_assembly_mixin X Y)).
 Proof. by split; exact/prod_rep_sing. Defined.
 
-Canonical cs_prod (X Y: cs) := @cs.Pack _ _ (inl (someq X)) (somea X, somea Y) (sum_count (cs.Qcount X) (cs.Qcount Y)) (prod_count (cs.Acount X) (cs.Acount Y)) (dictionary.Pack (cs_prod_modest_set_mixin X Y)).
+Canonical cs_prod (X Y: cs) := @continuity_space.Pack _ _ (inl (someq X)) (somea X, somea Y) (sum_count (questions_countable X) (questions_countable Y)) (prod_count (answers_countable X) (answers_countable Y)) (dictionary.Pack (cs_prod_modest_set_mixin X Y)).
 End cs_product.
 Notation "X \*_cs Y" := (cs_prod X Y) (at level 50).
 Arguments lprj {X} {Y}.
@@ -90,27 +90,24 @@ Lemma rprj_pair (X Y: cs) (phi: names X) (psi: names Y):
 	rprj (name_pair phi psi) =  psi.
 Proof. by trivial. Qed.
 
-Lemma lprj_cont X Y: (F2MF (@lprj X Y)) \is_continuous.
+Lemma lprj_cont X Y: (F2MF (@lprj X Y)) \is_continuous_operator.
 Proof.
 by rewrite F2MF_cont => phi; exists (fun q => [:: inl q]) => psi q' [eq _]; rewrite /lprj eq.
 Qed.
 
-Lemma fst_hcr (X Y: cs):
-	(@mf_fst X Y: _ \*_cs _ ->> _) \has_continuous_realizer.
+Lemma fst_hcr (X Y: cs): (@mf_fst X Y: _ \*_cs _ ->> _) \has_continuous_realizer.
 Proof.
 exists (F2MF (@lprj X Y)).
 split; last exact/lprj_cont.
 by rewrite F2MF_rlzr_F2MF => phi x [].
 Qed.
 
-Lemma rprj_cont X Y:
-	(F2MF (@rprj X Y)) \is_continuous.
+Lemma rprj_cont X Y: (F2MF (@rprj X Y)) \is_continuous_operator.
 Proof.
 by rewrite F2MF_cont => phi; exists (fun q => [:: inr q]) => psi q' [eq _]; rewrite /rprj eq.
 Qed.
 
-Lemma snd_hcr (X Y: cs):
-	(@mf_snd X Y: _ \*_cs _ ->> _) \has_continuous_realizer.
+Lemma snd_hcr (X Y: cs): (@mf_snd X Y: _ \*_cs _ ->> _) \has_continuous_realizer.
 Proof.
 exists (F2MF (@rprj X Y)).
 split; last exact/rprj_cont.
@@ -150,8 +147,9 @@ have [y' []]:= rlzr_val rlzr' phinx2 fd2 GphiFGphi.
 by exists (y, y').
 Qed.
 
-Lemma fprd_rlzr_val_cont (X Y X' Y': cs) (F: (names X) ->> (names Y)) (G: (names X') ->> (names Y')):
-	F \is_continuous -> G \is_continuous -> (fprd_rlzr F G) \is_continuous.
+Lemma fprd_rlzr_val_cont (X Y X' Y': cs) (F: (names X) ->> (names Y))
+	(G: (names X') ->> (names Y')): F \is_continuous_operator -> G \is_continuous_operator ->
+	(fprd_rlzr F G) \is_continuous_operator.
 Proof.
 have mapl: forall K (q:questions X), List.In q K -> List.In ((@inl _ (questions X')) q) (map inl K).
 	elim => // q K ih q' /=listin; by case: listin => ass; [left; rewrite -ass | right; apply ih].

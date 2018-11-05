@@ -291,7 +291,7 @@ Proof. split; exact rep_UI_inc_sing. Qed.
 Definition UI_inc_dictionary:= dictionary.Pack UI_inc_dictionary_mixin.
 
 Definition UI_inc :=
-cs.Pack [::] zero (list_count SD_count) (SD_count) UI_inc_dictionary.
+continuity_space.Pack [::] zero (list_count SD_count) (SD_count) UI_inc_dictionary.
 
 Lemma rep_UI_sur: rep_UI \is_cototal.
 Proof.
@@ -311,7 +311,7 @@ Proof. split; exact rep_UI_sing. Qed.
 
 Canonical UI_sd_dictionary:= dictionary.Pack UI_dicitionary_mixin.
 
-Canonical UI_sd_cs := cs.Pack
+Canonical UI_sd_cs := continuity_space.Pack
 	0%nat
 	zero
 	nat_count

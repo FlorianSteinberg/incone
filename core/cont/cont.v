@@ -3,8 +3,7 @@ Q -> A for some arbitrary types Q and A. It also proves some basic Lemmas about 
 From mathcomp Require Import all_ssreflect.
 From mpf Require Import all_mpf.
 Require Import baire.
-Require Import FunctionalExtensionality.
-Require Import Morphisms.
+Require Import Morphisms FunctionalExtensionality.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

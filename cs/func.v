@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_core cs prod facts sub.
+Require Import all_core classical_mach cs prod facts sub.
 Require Import FunctionalExtensionality ClassicalFacts ClassicalChoice Psatz.
 
 Set Implicit Arguments.
@@ -7,63 +7,46 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section cs_functions.
-Definition is_ass (X Y: cs) psi (f: X -> Y) :=
-	(oeval (U psi)) \realizes (F2MF f).
+Definition is_ass (X Y: cs) psi (f: X -> Y) := \F_(M psi) \realizes (F2MF f).
 
 Notation "X c-> Y" :=
 	{f: X -> Y | (F2MF f) \has_continuous_realizer} (at level 2).
 
-Check exist.
-Definition exist_c (X Y: cs) F Fhcr :=
-exist (fun f => @hcr X Y (F2MF f))
-	F (Fhcr).
+Definition exist_c (X Y: cs) F Fhcr := exist (fun f => @hcr X Y (F2MF f)) F (Fhcr).
 
 Definition is_fun_name (X Y: cs):=
-	make_mf (fun psi (f: X c-> Y) => (oeval (U psi)) \realizes (F2MF (projT1 f))).
+	make_mf (fun psi (f: X c-> Y) => \F_(M psi) \realizes (F2MF (projT1 f))).
 
-Lemma is_fun_name_sur (X Y : cs):
-	(@is_fun_name X Y) \is_cototal.
+Lemma is_fun_name_sur (X Y : cs): (@is_fun_name X Y) \is_cototal.
 Proof.
-case (classic (exists y: Y, true)) => [[somey _] | nex];last first.
-(*
-	split => [_ [f  fhcr] g _ _ | f].
-		apply /eq_sub/functional_extensionality => x.
-		by exfalso; apply nex; exists (f (x)).
-	exists (fun p => inr (some_answer Y)) => ka [y asd].
-	exfalso; apply nex; by exists y.
-split => [psi [f fhcr] [g ghcr] psinf psing | f].
-	apply/ eq_sub => /=; rewrite /is_fun_name/= in psinf psing.
-	have [F icf]:= exists_choice (eval (U psi)) (fun q => some_answer Y).
-	apply/ frlzr_sing; apply/frlzr_rlzr; apply/icf_rlzr; try apply icf; [apply psinf | 	apply psing].
-have [F [Frf Fcont]]:= (projT2 f).
-have [psiF psinF]:= (U_universal (some_question X) (some_answer X) (fun q => (some_answer Y)) (countable_questions X) Fcont).
-by exists psiF; apply/tight_trans; [apply tight_comp_r | apply Frf].
-Qed. *)
-Admitted.
+move => [f [F [Frf cont]]].
+have [psi psinF]:= M_universal (someq X) (somea X) (fun _ => somea Y) (cs.Qcount X) cont.
+by exists psi; apply/ntrvw_rlzr.tight_rlzr/psinF.
+Qed.
 
 Definition cs_fun_assembly_mixin (X Y: cs) : interview_mixin.type
-	(seq (questions X * answers X) * questions Y -> (questions X) + (answers Y)) (X c-> Y).
+	(seq (answers X) * questions Y -> seq (questions X) + (answers Y)) (X c-> Y).
 Proof. exists (@is_fun_name X Y); exact/is_fun_name_sur. Defined.
 
 Lemma is_fun_name_sing (X Y : cs): (@is_fun_name X Y) \is_singlevalued.
 Proof.
-Admitted.
+move => psi [f [F [Frf cont]]] [g [G [Grg cont']]] /= rlzr rlzr'.
+exact/eq_sub/(mf_rlzr_f_sing rlzr rlzr').
+Qed.
 
 Definition cs_fun_modest_set_mixin (X Y: cs):
 	dictionary_mixin.type (interview.Pack (cs_fun_assembly_mixin X Y)).
 Proof. split; exact/is_fun_name_sing. Defined.
 
 Canonical cs_fun X Y := @cs.Pack
-	(seq (questions X * answers X) * questions Y)
-	(questions X + answers Y)
+	(seq (answers X) * questions Y)
+	(seq (questions X) + answers Y)
 	((nil, someq Y))
 	(inr (somea Y))
   (prod_count
-  	(list_count (prod_count
-  		(cs.Qcount X)
-  		(cs.Acount X)))
+  	(list_count (cs.Acount X))
   	(cs.Qcount Y))
-  (sum_count (cs.Qcount X) (cs.Acount Y))
+  (sum_count (list_count (cs.Qcount X)) (cs.Acount Y))
 	(dictionary.Pack (cs_fun_modest_set_mixin X Y)).
 End cs_functions.
 Notation "X c-> Y" := (cs_fun X Y) (at level 2).
@@ -72,18 +55,18 @@ Section evaluation.
 Definition evaluation X Y (fx: (X c-> Y) * X) := (projT1 fx.1) fx.2.
 
 Lemma eval_rlzr X Y:
-	(oeval (fun n psiphi q => U (lprj psiphi) n (rprj psiphi) q)) \realizes (F2MF (@evaluation X Y): _ c-> _ \*_cs _ ->> _).
+	(operator (fun n psiphi q => M (lprj psiphi) n (rprj psiphi) q)) \realizes (F2MF (@evaluation X Y): _ c-> _ \*_cs _ ->> _).
 Proof.
-set R:=(fun n psiphi q => U (lprj psiphi) n (rprj psiphi) q).
+set R:=(fun n psiphi q => M (lprj psiphi) n (rprj psiphi) q).
 rewrite rlzr_F2MF => phi [[f fhcr] x] [/=phinf phinx].
 rewrite /is_fun_name/= in phinf.
 split.
 	have [ | Fphi FphiFphi]:= rlzr_dom phinf phinx; first by apply F2MF_tot.
-	have eq: (oeval (U (lprj phi))) (rprj phi) === (oeval R) phi by trivial.
-	admit.
+	have eq: (operator (M (lprj phi))) (rprj phi) === (operator R) phi by trivial.
+	by exists Fphi; apply/eq.
 move => Fphi RphiFphi.
 by apply/ rlzr_val_sing; [ apply F2MF_sing | apply phinf | apply phinx | | ].
-Admitted.
+Qed.
 
 (*
 Lemma eval_cmpt X Y:

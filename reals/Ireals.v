@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_cs_base reals.
+Require Import all_cs_base classical_mach reals.
 Require Import Reals Psatz FunctionalExtensionality ClassicalChoice.
 From Interval Require Import Interval_specific_ops Interval_bigint_carrier.
 From Interval Require Import Interval_interval_float_full Interval_interval.

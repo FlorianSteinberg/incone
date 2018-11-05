@@ -1,6 +1,6 @@
 From mathcomp Require Import all_ssreflect all_algebra.
 Require Import FunctionalExtensionality.
-Require Import all_cs reals Rstruct under.
+Require Import all_cs classical_mach reals Rstruct under.
 Require Import Reals Qreals Psatz ClassicalChoice.
 
 Import GRing.Theory.
@@ -192,14 +192,14 @@ rewrite Rmult_plus_distr_r Rmult_assoc Rinv_l ?IZR_SD2Z_SD2R; try lra.
 Qed.
 
 Lemma SDs2Zn_SDL2Z sds n:
-	SDs2Zn sds n = SDL2Z (in_seg sds n).
+	SDs2Zn sds n = SDL2Z (iseg sds n).
 Proof. by elim: n => // n ih; rewrite SDs2ZnS ih. Qed.
 
 Lemma SDs2Rn_SDL2R sds n:
-	SDs2Rn sds n = SDL2R (in_seg sds n).
+	SDs2Rn sds n = SDL2R (iseg sds n).
 Proof.
 elim: n => [ | n ih]; first by rewrite /SDs2Rn big_ord0.
-by rewrite /= SDs2RnS /= size_inseg ih.
+by rewrite /= SDs2RnS /= size_iseg ih.
 Qed.
 End Lists.
 
@@ -235,7 +235,7 @@ Proof. by elim: n => // n /= ->. Qed.
 Definition UI_inc_to_UI (Lf: seq SD -> SD) n := Lf (UI_inc_to_UI_rec Lf n).
 
 Lemma UI_inc_to_UI_inseg Lf n:
-	in_seg (UI_inc_to_UI Lf) n = UI_inc_to_UI_rec Lf n.
+	iseg (UI_inc_to_UI Lf) n = UI_inc_to_UI_rec Lf n.
 Proof. by elim :n => // n /= ->. Qed.
 
 Lemma UI_inc_to_UI_correct Lf x:

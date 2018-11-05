@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_core all_cs_base.
+Require Import all_core classical_mach all_cs_base.
 Require Import FunctionalExtensionality.
 
 Set Implicit Arguments.
@@ -64,10 +64,8 @@ Qed.
 Lemma one_fun_hcr (X: cs):
 	(F2MF (@one_fun X): X ->> cs_one) \has_continuous_realizer.
 Proof.
-exists (F2MF (fun _ _ => star)) => /=.
-split; first by rewrite F2MF_rlzr_F2MF.
-intros; exists nil; split => //.
-by move => Fphi/= -> psi _ Fpsi ->.
+exists (F2MF (fun _ _ => star)); split; first by rewrite F2MF_rlzr_F2MF.
+by rewrite F2MF_cont; exists (fun _ => nil).
 Qed.
 
 Definition one_cfun X := exist_c (@one_fun_hcr X) : (X c-> cs_one).

@@ -1,6 +1,6 @@
 From mathcomp Require Import all_ssreflect.
 From mpf Require Import all_mpf.
-Require Import iseg.
+Require Import iseg minm choice_cont.
 Require Import ClassicalChoice.
 
 Set Implicit Arguments.
@@ -18,6 +18,18 @@ have /choice[eq eqP]: forall q, exists b, (q.1 = q.2 :> Q) <-> (b = true).
   by move=> q; case: (classic (q.1 = q.2)) => ass; [exists true|exists false].
 unshelve eexists (@Equality.Mixin _ (fun x y => eq (x, y)) _) => //.
 by move=> x y; apply: (iffP idP) => [/eqP//|->]; apply/eqP.
+Qed.
+
+Definition is_min_sec Q (cnt: nat -> Q) (sec : Q -> nat) :=
+  cancel sec cnt /\ forall s,(forall m, cnt m = s -> sec s <= m).
+
+Lemma minimal_section Q (cnt: nat -> Q):
+	cnt \is_surjective_function -> exists sec, is_min_sec cnt sec.
+Proof.
+move => sur.
+set R := make_mf (fun s n => cnt n = s /\ (forall m, cnt m = s -> n <= m)).
+have Rtot: R \is_total by move => s; have [n]:= well_order_nat _ (sur s); exists n.
+by have [sec]:= (choice _ Rtot); exists sec; split => s; have []:= p s.
 Qed.
 
 Lemma count_countMixin Q : Q \is_countable ->

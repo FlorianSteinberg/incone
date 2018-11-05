@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_cs reals.
+Require Import all_cs classical_mach reals.
 Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
 
 Set Implicit Arguments.
@@ -92,9 +92,9 @@ rewrite F2MF_rlzr_F2MF => phi x phinx eps epsg0 /=.
 rewrite Q2R_opp; move: (phinx eps epsg0); split_Rabs; lra.
 Qed.
 
-Lemma Ropp_rlzr_cont: Ropp_rlzr \is_pointwise_continuous.
+Lemma Ropp_rlzr_cont: Ropp_rlzr \is_continuous.
 Proof.
-by rewrite F2MF_cont => phi eps; exists [::eps]; rewrite /Ropp_rlzrf => psi [<- _].
+by rewrite F2MF_cont /Ropp_rlzrf => phi; exists (fun eps => [:: eps]) => psi q' [<-].
 Qed.
 
 Lemma Ropp_hcr: (F2MF Ropp: Rc ->> Rc) \has_continuous_realizer.
@@ -123,11 +123,10 @@ have eq: Q2R eps * / 2 = Q2R (eps / (1 + 1)).
 by rewrite eq; apply: Rplus_le_compat; apply phinx; lra.
 Qed.
 
-Lemma Rplus_rlzr_cont: Rplus_rlzr \is_pointwise_continuous.
+Lemma Rplus_rlzr_cont: Rplus_rlzr \is_continuous.
 Proof.
-rewrite F2MF_cont => phi eps.
-exists [:: inl (Qdiv eps (1 + 1)); inr (Qdiv eps (1 + 1))].
-by rewrite /Rplus_rlzrf => psi /= [-> [-> _]].
+rewrite F2MF_cont => phi; exists (fun eps => [:: inl (Qdiv eps (1 + 1)); inr (Qdiv eps (1 + 1))]).
+by rewrite /Rplus_rlzrf => psi q' [-> [-> _]].
 Qed.
 End addition.
 
@@ -252,25 +251,27 @@ pose xn := cnst (Q2R 0):cs_usig_prod Rc.
 have limxn0: lim xn (Q2R 0) by exists 0%nat; rewrite /xn/cnst; split_Rabs; lra.
 have qnfdF: cnst 0%Q \from dom F.
 	by apply /(rlzr_dom rlzr); [exact/cnst_sqnc_dscr | exists (Q2R 0)].
-have [L [/=_ Lprop]]:= (cont (cnst 0%Q) qnfdF 1%Q).
+have [Lf Lmod]:= cont (cnst 0%Q) qnfdF.
 set fold := @List.fold_right nat nat.
-set m:= fold maxn 0%N (unzip1 L).
+pose L := Lf 1%Q.
+pose m:= fold maxn 0%N (unzip1 L).
 have mprop: forall n eps, List.In (n, eps) L -> (n <= m)%nat.
 	rewrite /m; elim: {1 2}L => // a K ih n eps /=.
 	by case =>[-> | ineq]; apply/leq_trans; [ | apply/leq_maxl | apply/ih/ineq | apply/leq_maxr].
-pose yn := (fun n => Q2R (if (n <= m)%nat then 0%Q else 3#1)): cs_usig_prod Rc.
+pose yn:= (fun n => Q2R (if (n <= m)%nat then 0%Q else 3#1)): cs_usig_prod Rc.
 pose rn (p: nat * Q) := if (p.1 <= m)%nat then 0%Q else 3#1.
 have rnyn: rn \is_description_of yn by apply/Q_sqnc_dscr.
 have limyn3: lim yn 3.
 	exists (S m) => n /leP ineq; rewrite /yn.
 	case: ifP => [/leP ineq' | ]; [lia | split_Rabs; lra].
 have [phi Frnphi]: rn \from dom F by apply /(rlzr_dom rlzr); first exact/rnyn; exists 3.
-have coin: (cnst 0%Q) \and rn \coincide_on L.
+have /coin_spec coin: (cnst 0%Q) \and rn \coincide_on L.
 	apply /coin_lstn => [[n eps] listin].
 	rewrite /cnst /rn; case: ifP => // /= /leP ineq.
 	exfalso; apply/ineq/leP/mprop/listin.
 have [psi Fqnpsi]:= qnfdF.
-have eq: psi 1%Q == phi 1%Q by rewrite (Lprop psi Fqnpsi rn coin phi Frnphi).
+have eq: psi 1%Q == phi 1%Q.
+	by have [a' crt]:= Lmod 1%Q; rewrite (crt rn coin phi)// (crt (cnst 0%Q) _ psi) //.
 have := Qeq_eqR (psi 1%Q) (phi 1%Q) eq.
 have psin0: psi \is_description_of (0: Rc).
 	apply /(rlzr_val_sing _ rlzr)/Fqnpsi/lim_cnst; first exact/lim_sing.
@@ -342,7 +343,7 @@ have lt1:= pow_lt 2 (Pos_size (Qden eps)); have lt2:= size_Qden_leq epsg0.
 by rewrite Q2R_mult {2}/Q2R /= /N Rinv_mult_distr; lra.
 Qed.
 End limit.
-
+(*
 Lemma cont_rlzr_cont (f: Rc -> Rc): (F2MF f) \has_continuous_realizer <-> continuity f.
 Proof.
 split.
@@ -377,4 +378,5 @@ Definition dom_cont g:= make_subset (fun x => continuity_pt g x).
 Lemma cont_hcr (f: Rc ->> Rc): f \has_continuous_realizer <-> exists g, f =~= (F2MF g)|_(dom_cont g).
 Proof.
 Admitted.
+*)
 End CAUCHYREALS.

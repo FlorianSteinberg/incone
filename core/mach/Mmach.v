@@ -162,18 +162,6 @@ suff ->: M_rec psi (size Ln) phi q' = inl (flatten (L :: Ln)) by rewrite eq.
 by apply M_rec_inl_spec; exists (L :: Ln).
 Qed.
 
-(*
-Lemma FM_dom_spec psi phi:
-	phi \from dom \F_(M psi) <-> (communication psi phi) \is_total.
-Proof.
-split => [[Fphi /FM_val_spec FphiFphi] q' | tot].
-	by have [Ln prp]:= FphiFphi q'; exists (Ln, (Fphi q')).
-have [LnFphi prp]:= choice _ tot.
-exists (fun q' => (LnFphi q').2); rewrite FM_val_spec => q'.
-by exists (LnFphi q').1; exact/(prp q').
-Qed.
-*)
-
 Definition dialogue psi phi := make_mf (fun q' a =>
 	exists Lna', communication psi phi q' Lna' /\ List.In a (flatten Lna'.1)).
 
@@ -182,17 +170,18 @@ Lemma dlg_spec psi phi q' a: dialogue psi phi q' a ->
 Proof.
 by move => [[Ln a'] [com lstn]] Ln' b' com'; have [<-]:= (cmcn_unique com com').
 Qed.
-
 End universal_machine.
+
 Section psiF.
-Context (Q: countType) (noq: Q) (noq_spec: pickle noq = 0) (Q': eqType) (A A': Type).
+Context (Q Q' A A': Type) (noq: Q).
 Notation B := (Q -> A).
 Notation B' := (Q' -> A').
+Context (cnt: nat -> Q).
+Notation init_seg := (iseg cnt).
+Notation segment :=(segment cnt).
 Context (listf: seq A -> B).
 Context (mf: B -> Q' -> nat).
 Context (FF: B -> B').
-Notation init_seg := (iseg noq).
-Notation segment :=(segment noq).
 
 Definition psiF (Lq': seq A * Q') := let phi:= listf Lq'.1 in let n:= size Lq'.1 in let q' := Lq'.2 in
 	if mf phi q' <= n then inr (FF phi q') else (inl (segment n (mf phi q').-1)).
@@ -241,20 +230,17 @@ Qed.
 
 Definition mod_mod mf (phi: B):= continuity_modulus (F2MF mf) phi (fun (q': Q') => init_seg (mf phi q')).
 
-Lemma MpsiF_spec (F: B ->> B'):
-	(forall phi n, listf (map phi (init_seg n)) \from dom F) ->
-	(forall phi n, (listf (map phi (init_seg n))) \and phi \coincide_on (init_seg n)) ->
-	(forall phi q' n, mf (listf (map phi (init_seg n))) q' <= mf phi q') ->
-	(forall phi, continuity_modulus F phi (fun q' => init_seg (mf phi q'))) ->
-	FF \is_choice_for F ->
-		(M psiF) \evaluates_to F.
+Lemma MpsiF_spec (F: B ->> B') phi: phi \from dom F ->
+	(forall n, listf (map phi (init_seg n)) \from dom F) ->
+	(forall n, (listf (map phi (init_seg n))) \and phi \coincide_on (init_seg n)) ->
+	(forall q' n, mf phi q' <= n -> mf (listf (map phi (init_seg n))) q' <= mf phi q') ->
+	(forall psi, psi \from dom F -> continuity_modulus F psi (fun q' => init_seg (mf psi q'))) ->
+	FF \is_choice_for F -> forall Fphi, F phi Fphi -> \F_(M psiF) phi Fphi.
 Proof.
-move => listfdom listfcoin listfmod mod icf.
-have cont: F \is_continuous by move => phi; exists (fun q' => init_seg (mf phi q')).
-apply/mon_eval; [ exact/M_mon | exact/cont_sing | ].
-move => phi Fphi FphiFphi q'; pose phin n := (listf (map phi (init_seg n))).
+move => phifd listfdom listfcoin listfmod mod icf Fphi FphiFphi q'.
+pose phin n := (listf (map phi (init_seg n))).
 have FFprop: forall n, mf (phin n) q' <= n -> FF (phin n) q' = Fphi q' => [n ineq | ].
-	have [a' crt]:= mod (phin n) q'; have [Fphik FphikFphik]:= listfdom phi n.
+	have [ | a' crt]:= mod (phin n) _ q'; first exact/listfdom; have [Fphik FphikFphik]:= listfdom n.
 	rewrite [RHS](crt phi) => //; first by rewrite (crt (phin n)) //; apply/icf/FphikFphik.
 	exact/coin_spec/coin_subl/listfcoin/iseg_subl/ineq.
 elim: {2}(mf phi q') (leqnn (mf phi q')) => [ | n ih]; last first.
@@ -263,37 +249,10 @@ elim: {2}(mf phi q') (leqnn (mf phi q')) => [ | n ih]; last first.
 	rewrite leq_eqVlt => /orP [/eqP eq| ineq]; last exact/ih.
 	have [ | k val]//:= prp n; exists n.+1; rewrite /M/=val/M_step/psiF/=size_map size_iseg.
 	suff bnd: mf (listf [seq phi i | i <- init_seg k]) q' <= k by rewrite bnd; f_equal; apply/FFprop.
-	apply/leq_trans; first exact/(listfmod phi q').
-	by rewrite eq; have:= psiF_size val; rewrite size_map size_iseg.
+	by apply/leq_trans; first apply/(listfmod q');
+		rewrite eq; have:= psiF_size val; rewrite size_map size_iseg.
 move => ineq; exists 0; rewrite /M/psiF/=/M_step /=.
-have eq': mf (listf nil) q' <= 0 by apply/leq_trans/ineq/leq_trans/(listfmod phi q' 0).
+have eq': mf (listf nil) q' <= 0 by apply/leq_trans/ineq/leq_trans/(listfmod q' 0).
 by rewrite eq'; f_equal; apply/(FFprop 0).
 Qed.
 End psiF.
-
-Lemma U_universal (someq: Q) (somea : A) (somephi': B') (count: Q \is_countable):
-	forall F, F \is_continuous -> exists psiF, (U psiF) \oracle_evaluates_to F.
-Proof.
-have [ | cnt sur]:= (count_sur Q).2.
-	by split; [apply (inhabits someq) | apply count].
-move => F Fcont.
-have [Ff Fprop] := exists_choice F somephi'.
-have [sec isminsec] := minimal_section sur.
-have [mf [mprop minmod]] := exists_minmod isminsec sur Fcont.
-have [listf listfprop] := exists_lstf F somea.
-exists (psiF cnt mf listf Ff).
-apply/U_psiF_cmpt_F => //.
-exact: (minmod_compat isminsec).
-Qed.
-
-(* Lemma comp_cont:
-  (exists psiF, (fun n phi q' => U n psiF phi q') \type_two_computes F) -> F \is_continuous.
-Proof.
-move => [] psiF comp phi q'.
-case: (classic (phi \from_dom F)) => [] phifd.
-move: (comp phi phifd) => [] [] psi ev prop.
-move: (ev q') => [] n eq.
-Admitted.
-*)
-End UNIVERSAL_MACHINE.
-Notation L2MF L := (mf.Pack (fun q a => List.In (q, a) L)).

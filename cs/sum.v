@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_core cs prod facts.
+Require Import all_core classical_mach cs prod facts.
 Require Import FunctionalExtensionality.
 
 Set Implicit Arguments.
@@ -175,10 +175,9 @@ Defined.
 *)
 
 Lemma linc_cont X Y:
-	(F2MF (@linc X Y)) \is_pointwise_continuous.
+	(F2MF (@linc X Y)) \is_continuous.
 Proof.
-move => phi phifd q; exists ([:: q.1]); split => //.
-by move => Fphi/= <- psi [eq _] Fpsi <-; rewrite /linc eq.
+by rewrite F2MF_cont => phi; exists (fun q => [:: q.1]) => psi /= q' [eq]; rewrite /linc eq.
 Qed.
 
 Lemma inl_hcr (X Y: cs):
@@ -189,10 +188,9 @@ by rewrite F2MF_rlzr_F2MF; split; first by exists (q (someq X)).
 Qed.
 
 Lemma rinc_cont X Y:
-	(F2MF (@rinc X Y)) \is_pointwise_continuous.
+	(F2MF (@rinc X Y)) \is_continuous.
 Proof.
-move => phi phifd q; exists ([::q.2]);split => //.
-by move => Fphi/= <- psi [eq _] Fpsi <-; rewrite /rinc eq.
+by rewrite F2MF_cont => phi; exists (fun q => [:: q.2]) => psi /= q' [eq]; rewrite /rinc eq.
 Qed.
 
 Lemma inr_hcr (X Y: cs):

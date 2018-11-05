@@ -7,17 +7,11 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section initial_segments.
-Context (Q: countType) (noq: Q) (noq_spec: pickle noq = 0) (A: Type).
-Notation B := (Q -> A).
-
-Definition inverse_pickle n:= match pickle_inv Q n with
-	| Some q => q
-	| None => noq
-end.
+Context (Q: Type) (cnt: nat -> Q).
 
 Fixpoint segment_rec n m {struct m} := match m with
 	| 0 => [::]
-	| S m' => [:: inverse_pickle (n + m') & segment_rec n m']
+	| S m' => [:: cnt (n + m') & segment_rec n m']
 end.
 
 Lemma size_seg_rec n m: size (segment_rec n m) = m.
@@ -58,7 +52,7 @@ Qed.
 
 Fixpoint iseg n:= match n with
 	| 0 => nil
-	| S n' => [:: inverse_pickle n' & iseg n']
+	| S n' => [:: cnt n' & iseg n']
 end.
 
 Lemma iseg_seg n: iseg n.+1 = segment 0 n.
@@ -72,54 +66,49 @@ by rewrite addSn subnKC // iseg_seg.
 Qed.
 
 Lemma size_iseg n: size (iseg n) = n.
-Proof. by elim: n => //n ih /=; case: (pickle_inv Q n) => [a | ]; rewrite /= ih. Qed.
+Proof. by elim: n => // n /= ->. Qed.
 
 Lemma iseg_subl n m:
 	  n <= m -> (iseg n) \is_sublist_of (iseg m).
 Proof.
 elim: m => [ | m ih]; first by rewrite leqn0 => /eqP ->.
-rewrite leq_eqVlt; case/orP => [/eqP -> | ] //=.
-by case: (pickle_inv Q m) => //; right; apply/ih.
+by rewrite leq_eqVlt; case/orP => [/eqP -> | ] //=; right; apply/ih.
 Qed.
 
-Lemma lstn_iseg: forall a, List.In a (iseg (pickle a).+1).
-Proof. by move => a /=; rewrite /inverse_pickle pickleK_inv; left. Qed.
-
-Lemma iseg_base a: forall n, List.In a (iseg n) -> pickle a < n.
+Lemma iseg_ex a n: List.In a (iseg n) -> exists m, m < n /\ cnt m = a.
 Proof.
-elim => // n ih/=; rewrite /inverse_pickle.
-case E: (pickle_inv Q n) => [q | ] /=[<- | lstn]; try exact/leqW/ih; last by rewrite noq_spec.
-by rewrite -(pickle_invK Q n) /oapp E.
+elim: n => // n ih/=; case => [ | lstn]; first by exists n.
+by have [m []]:= ih lstn; exists m; split => //; rewrite leqW.
 Qed.
 
-Lemma iseg_ex a n: List.In a (iseg n) -> exists m, m < n /\ m = pickle a.
+Lemma drop_iseg k m: drop k (iseg m) = iseg (m - k).
 Proof.
-elim: n => // n ih /=; rewrite /inverse_pickle; case E: (pickle_inv Q n) => [q | ] /= [<- | lstn];
-		try by have [m []]:= ih lstn; exists m; split; first exact/leqW.
-	by exists n; split; last by rewrite -(pickle_invK Q n) /oapp E.
-exists (0); split => //.
+move: {2}k (leqnn k) => l.
+elim: l k m => [k m | n ih k m].
+	by rewrite leqn0 => /eqP ->; rewrite drop0 subn0.
+rewrite leq_eqVlt; case/orP => [/eqP ->| ]; last exact/ih.
+rewrite -addn1 addnC -drop_drop.
+rewrite ih//.
+case: n ih => [ih | n ih]; last by rewrite ih // addSn add0n !subnS subn0.
+by rewrite subn0 addn0; elim: (m) => //m' ihm /=; rewrite drop0 subn1.
 Qed.
 
+Lemma nth_iseg n m: nth (cnt 0) (iseg m) n = cnt (m - n).-1.
+Proof. by rewrite -{1}(addn0 n) -nth_drop drop_iseg; elim: (m - n). Qed.
+
+Context (sec: Q -> nat).
 Fixpoint max_elt K := match K with
   | nil => 0
-  | cons q K' => maxn (pickle (q: Q)).+1 (max_elt K')
+  | cons q K' => maxn (sec (q: Q)).+1 (max_elt K')
 end.
 
 Lemma melt_app L K:
 	max_elt (L ++ K) = maxn (max_elt L) (max_elt K).
 Proof. by elim: L K; [move => K; rewrite max0n | intros; rewrite /= (H K) maxnA]. Qed.
 
-Lemma list_melt K (phi psi: B):
-	phi \and psi \coincide_on (iseg (max_elt K)) -> phi \and psi \coincide_on K.
-Proof.
-apply/coin_subl; elim: K => // q K subl q' /=[-> | lstn].
-	exact/iseg_subl/lstn_iseg/leq_maxl.
-exact/iseg_subl/subl/lstn/leq_maxr.
-Qed.
-
 Definition pickle_min:= forall n, max_elt (iseg n) <= n.
 
-Lemma lstn_melt K a: List.In a K -> pickle a < max_elt K.
+Lemma lstn_melt K a: List.In a K -> sec a < max_elt K.
 Proof.
 elim: K a => // a K ih a'/=.
 by case => [<- | lstn]; apply/leq_trans; [|exact: leq_maxl|apply ih|exact: leq_maxr].
@@ -129,21 +118,53 @@ Lemma melt_subl L K:
 	L \is_sublist_of K -> max_elt L <= max_elt K.
 Proof.
 elim: L => //a L ih /=subl.
-case/orP: (leq_total (pickle a).+1 (max_elt L)) => [/maxn_idPr -> | /maxn_idPl ->].
+case/orP: (leq_total (sec a).+1 (max_elt L)) => [/maxn_idPr -> | /maxn_idPl ->].
 by apply/ih => q lstn; apply/subl; right.
 by apply/lstn_melt/subl; left.
 Qed.
 
-Lemma melt_iseg n : max_elt (iseg n) <= n.
+Lemma lstn_iseg a: cancel sec cnt -> List.In a (iseg (sec a).+1).
+Proof. by move => cncl; left. Qed.
+
+Definition is_min_sec Q (cnt: nat -> Q) (sec : Q -> nat) :=
+  cancel sec cnt /\ forall s,(forall m, cnt m = s -> sec s <= m).
+
+Lemma iseg_base a n: is_min_sec cnt sec -> List.In a (iseg n) -> sec a < n.
 Proof.
-elim: n => // n ih /=; rewrite /inverse_pickle.
-case E: (pickle_inv Q n) => /= [q | ]; rewrite geq_max; apply/andP; split; try exact/leqW.
-	by apply/iseg_base; rewrite -(pickle_invK Q n) /oapp E; apply/lstn_iseg.
-by rewrite noq_spec.
+move => [cncl min]; elim: n => // n ih/=.
+by case => [<- | lstn]; [apply/min | rewrite leqW//; apply/ih].
 Qed.
 
-Lemma iseg_melt K: K \is_sublist_of (iseg (max_elt K)).
+Lemma melt_iseg n : is_min_sec cnt sec -> max_elt (iseg n) <= n.
 Proof.
-by move => q lstn; apply/iseg_subl/lstn_iseg/lstn_melt.
+move => [cncl min]; elim: n => // n ih /=.
+by rewrite geq_max; apply/andP; split; [apply/min | rewrite leqW].
+Qed.
+
+Lemma iseg_melt K: is_min_sec cnt sec -> K \is_sublist_of (iseg (max_elt K)).
+Proof. by move => [cncl min] q lstn; apply/iseg_subl/lstn_iseg/cncl/lstn_melt. Qed.
+
+Lemma list_melt A K (phi psi: Q -> A): cancel sec cnt ->
+	phi \and psi \coincide_on (iseg (max_elt K)) -> phi \and psi \coincide_on K.
+Proof.
+move => cncl; apply/coin_subl; elim: K => // q K subl q' /=[-> | lstn].
+	exact/iseg_subl/lstn_iseg/cncl/leq_maxl.
+exact/iseg_subl/subl/lstn/leq_maxr.
 Qed.
 End initial_segments.
+
+Section countTypes.
+Context (Q: countType) (noq: Q) (noq_spec: pickle noq = 0).
+
+Definition inverse_pickle n:= match pickle_inv Q n with
+	| Some q => q
+	| None => noq
+end.
+
+Lemma min_ip: is_min_sec inverse_pickle pickle.
+Proof.
+rewrite /inverse_pickle; split => [q | q n <-]; first by rewrite pickleK_inv.
+case E: pickle_inv => [a  | ]; last by rewrite noq_spec.
+by have := pickle_invK Q n; rewrite /oapp E => <-.
+Qed.
+End countTypes.

@@ -1,7 +1,6 @@
 From mathcomp Require Import all_ssreflect.
 From mpf Require Import all_mpf.
-Require Import Morphisms.
-Require Import FunctionalExtensionality.
+Require Import Morphisms FunctionalExtensionality.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

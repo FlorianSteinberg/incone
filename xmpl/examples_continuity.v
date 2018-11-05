@@ -3,7 +3,7 @@ a space that can be thought about continuity on. *)
 From Coq.micromega Require Import Psatz.
 From mathcomp Require Import all_ssreflect.
 Require Import all_cs.
-Require Import Classical.
+Require Import ClassicalChoice.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -13,7 +13,7 @@ Section BAIRE_SPACE.
 Context (Q A Q' A': Type).
 Notation B := (nat -> nat).
 Notation N := (one -> nat).
-Notation "'init_seg' phi" := (in_seg id phi) (at level 2).
+Notation "'init_seg' phi" := (iseg id phi) (at level 2).
 
 Lemma min_sec: @is_min_sec nat id id.
 Proof. split => // s m ineq; apply /leP; lia. Qed.
@@ -28,15 +28,14 @@ Qed.
 (* This is the more conventional continuity using intial segments.
 It is equivalent to the corresponding multifunction being continuous
 in the sense of "continuity.v" *)
-Definition is_cont1 (G: (nat -> nat) -> nat -> nat) :=
-  forall phi n, exists m, forall psi,
-    phi \and psi \coincide_on (init_seg m) -> (G phi) \and (G psi) \coincide_on (init_seg n).
+Definition is_cont1 (G: (nat -> nat) -> nat -> nat) := forall phi n, exists m, forall psi,
+	phi \and psi \coincide_on (init_seg m) -> (G phi) \and (G psi) \coincide_on (init_seg n).
 
+(*
 Lemma continuity1 (F: B -> B):
 	is_cont1 F <-> continuous (F2MF F).
 Proof.
-rewrite choice_cont_ptw_cont.
-split => [ cont phi fd s' | cont phi].
+split => [cont phi fd /= | cont phi].
 	have [m cont']:= (cont phi (S s')).
 	exists (init_seg m); split => // Fphi /= iv psi coin Fpsi iv'.
 	move: cont' (cont' psi coin) => _ coinv; rewrite iv iv' in coinv.
@@ -136,4 +135,5 @@ we get the following:
 Lemma no_extension':
 	~ exists G, G extends F /\ G is_continuous /\ G is_total.
 But I don't feel like proving that now. *)
+*)
 End BAIRE_SPACE.

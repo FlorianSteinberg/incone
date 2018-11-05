@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_cs_base.
+Require Import all_cs_base classical_mach.
 Require Import FunctionalExtensionality ClassicalChoice.
 
 Set Implicit Arguments.

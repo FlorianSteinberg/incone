@@ -1,6 +1,6 @@
 From mathcomp Require Import all_ssreflect.
 From rlzrs Require Export all_dict.
-Require Import all_core.
+Require Import all_core classical_mach.
 Import Morphisms.
 
 Set Implicit Arguments.
@@ -35,7 +35,7 @@ Coercion cs.X: cs.type >-> dictionary.type.
 
 Section continuity.
 Definition hcr (X Y : cs) (f : X ->> Y) :=
-	exists F, F \realizes f /\ F \is_pointwise_continuous.
+	exists F, F \realizes f /\ F \is_continuous.
 Notation "f '\has_continuous_realizer'":= (hcr f) (at level 2).
 
 Global Instance hcr_prpr (X Y: cs):
@@ -49,8 +49,7 @@ Lemma comp_hcr (X Y Z: cs) (f: X ->> Y) (g: Y ->> Z):
 Proof.
 move => [F [Frf Fcont]] [G [Grg Gcont]].
 exists (G o F); split; first by apply rlzr_comp.
-apply/ ptw_cont_comp => //.
-exact/choice_ptw_cont_cont.
+exact/cont_comp.
 Qed.
 
 Lemma comp_hcr_fun (X Y Z: cs) (f: X -> Y) (g: Y -> Z):

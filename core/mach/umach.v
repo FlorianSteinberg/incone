@@ -1,7 +1,7 @@
 From mathcomp Require Import all_ssreflect.
 From mpf Require Import all_mpf choice_mf.
-Require Import all_cont choice iseg exec minmod.
-Require Import ClassicalChoice Psatz FunctionalExtensionality.
+Require Import all_cont exec.
+Require Import Psatz FunctionalExtensionality.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -17,7 +17,7 @@ Notation init_seg':= (iseg noq').
 Notation "?" := (@inl (seq (Q * A)) A').
 Notation "!" := (@inr (seq (Q * A)) A').
 
-Definition U_step (psi : list (Q * A) * Q' -> Q + A') phi q' L :=
+Definition U_step (psi : seq (Q * A) * Q' -> seq (Q * nat) + A') phi q' L :=
 match psi (L, q') with
   | inr a' => inr a'
   | inl q => inl ((q, phi q) :: L)

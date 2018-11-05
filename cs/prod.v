@@ -1,6 +1,6 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_core cs.
-Import FunctionalExtensionality.
+Require Import all_core classical_mach cs.
+Import FunctionalExtensionality ClassicalChoice.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -90,10 +90,9 @@ Lemma rprj_pair (X Y: cs) (phi: names X) (psi: names Y):
 	rprj (name_pair phi psi) =  psi.
 Proof. by trivial. Qed.
 
-Lemma lprj_cont X Y: (F2MF (@lprj X Y)) \is_pointwise_continuous.
+Lemma lprj_cont X Y: (F2MF (@lprj X Y)) \is_continuous.
 Proof.
-move => phi phifd q; exists ([::inl q]).
-by split => // Fphi /= <- psi [eq _] Fpsi <-; rewrite /lprj eq.
+by rewrite F2MF_cont => phi; exists (fun q => [:: inl q]) => psi q' [eq _]; rewrite /lprj eq.
 Qed.
 
 Lemma fst_hcr (X Y: cs):
@@ -105,10 +104,9 @@ by rewrite F2MF_rlzr_F2MF => phi x [].
 Qed.
 
 Lemma rprj_cont X Y:
-	(F2MF (@rprj X Y)) \is_pointwise_continuous.
+	(F2MF (@rprj X Y)) \is_continuous.
 Proof.
-move => phi phifd q; exists ([::inr q]).
-by split => // Fphi/= <- psi [eq _] Fpsi <-; rewrite /rprj eq.
+by rewrite F2MF_cont => phi; exists (fun q => [:: inr q]) => psi q' [eq _]; rewrite /rprj eq.
 Qed.
 
 Lemma snd_hcr (X Y: cs):
@@ -153,35 +151,31 @@ by exists (y, y').
 Qed.
 
 Lemma fprd_rlzr_val_cont (X Y X' Y': cs) (F: (names X) ->> (names Y)) (G: (names X') ->> (names Y')):
-	F \is_pointwise_continuous -> G \is_pointwise_continuous -> (fprd_rlzr F G) \is_pointwise_continuous.
+	F \is_continuous -> G \is_continuous -> (fprd_rlzr F G) \is_continuous.
 Proof.
 have mapl: forall K (q:questions X), List.In q K -> List.In ((@inl _ (questions X')) q) (map inl K).
 	elim => // q K ih q' /=listin; by case: listin => ass; [left; rewrite -ass | right; apply ih].
 have mapr: forall K (q:questions X'), List.In q K -> List.In ((@inr (questions X) _) q) (map inr K).
 	elim => // q K ih q' /=listin; by case: listin => ass; [left; rewrite -ass | right; apply ih].
-move => Fcont Gcont phi [FGphi [ np [/=FlphilFGphi GrphirFGphi]]] q.
-case: q => q.
-	have lphifd: (lprj phi) \from dom F by exists (lprj FGphi).
-	have [L [/=phifd Lprop]] := (Fcont (lprj phi) lphifd q).
-	exists (map inl L).
-	split; first by exists FGphi; split.
-	move => FGphi' [np' [/=vall valr]] psi coin Fpsi [ np'' [/=val'l val'r]].
-	rewrite np' np''; apply injective_projections => //=.
-	rewrite (ptw_cont_sing Fcont vall FlphilFGphi).
-	apply/ Lprop; [ | | apply val'l ] => //=.
-	rewrite /lprj coin_lstn => q' listin/=.
-	rewrite ((@coin_lstn _ _ _ _ (map inl L)).1 coin (inl q')) => //.
-	by apply (mapl L q').
-have rphifd: (rprj phi) \from dom G by exists (rprj FGphi).
-have [L [/=_ Lprop]] := (Gcont (rprj phi) rphifd q).
-exists (map inr L); split; first by exists FGphi; split.
-move => FGphi' [np' [/=vall valr]] psi coin Fpsi [ np'' [/=val'l val'r]].
-rewrite np' np''; apply injective_projections => //=.
-rewrite (ptw_cont_sing Gcont valr GrphirFGphi).
-apply/ Lprop; [ | | apply val'r ] => //=.
-rewrite /rprj coin_lstn => q' listin/=.
-rewrite ((@coin_lstn _ _ _ _ (map inr L)).1 coin (inr q')) => //.
-by apply (mapr L q').
+move => cont cont' phi [FGphi [np [/=FphiFGphi GphiFGphi]]].
+have [ | Lf mod]:= cont (lprj phi); first by exists (lprj FGphi).
+have [ | Lf' mod']:= cont' (rprj phi); first by exists (rprj FGphi).
+exists (fun qq' => match qq' with
+	| inl q => map inl (Lf q)
+	| inr q' => map inr (Lf' q')
+end) => [[q | q']].
+	have [a' crt]:= mod q; exists (FGphi (inl q)).
+	move => psi /coin_spec/coin_lstn coin Fpsi [ np' [/=val'l val'r]].
+	rewrite np np'; apply injective_projections => //=.
+	rewrite (crt (lprj phi) _ (lprj FGphi))//(crt (lprj psi) _ (lprj Fpsi))//.
+	rewrite -coin_spec coin_lstn /lprj => q' lstn.
+	by rewrite (coin (inl q')) //; apply (mapl (Lf q) q').
+have [a' crt]:= mod' q'; exists (FGphi (inr q')).
+move => psi /coin_spec/coin_lstn coin Fpsi [ np' [/=val'l val'r]].
+rewrite np np'; apply injective_projections => //=.
+rewrite (crt (rprj phi) _ (rprj FGphi))//(crt (rprj psi) _ (rprj Fpsi))//.
+rewrite -coin_spec coin_lstn /rprj => q lstn.
+by rewrite (coin (inr q)) //; apply (mapr (Lf' q') q).
 Qed.
 
 Lemma mfpp_hcr (X Y X' Y': cs) (f: X ->> Y) (g: X' ->> Y'):

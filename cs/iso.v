@@ -1,6 +1,5 @@
-From mathcomp Require Import all_ssreflect.
+From mathcomp Require Import ssreflect ssrfun.
 Require Import all_core cs func facts.
-Require Import FunctionalExtensionality ClassicalFacts ClassicalChoice Psatz ProofIrrelevance.
 Require Import RelationClasses.
 
 Set Implicit Arguments.

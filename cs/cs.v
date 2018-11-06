@@ -1,6 +1,6 @@
-From mathcomp Require Import all_ssreflect.
-From rlzrs Require Export all_dict.
-Require Import all_core classical_mach.
+From mathcomp Require Import ssreflect ssrfun.
+From rlzrs Require Export all_rlzrs.
+Require Import all_core.
 Import Morphisms.
 
 Set Implicit Arguments.
@@ -46,10 +46,10 @@ by move => f g feg; split; move => [F [Frf Fcont]]; exists F; [rewrite -feg | re
 Qed.
 
 Lemma comp_hcr (X Y Z: cs) (f: X ->> Y) (g: Y ->> Z):
-	f \has_continuous_realizer -> g \has_continuous_realizer -> (g o f) \has_continuous_realizer.
+	f \has_continuous_realizer -> g \has_continuous_realizer -> (g \o f) \has_continuous_realizer.
 Proof.
 move => [F [Frf Fcont]] [G [Grg Gcont]].
-exists (G o F); split; first by apply rlzr_comp.
+exists (G \o F); split; first by apply rlzr_comp.
 exact/cntop_comp.
 Qed.
 
@@ -57,10 +57,10 @@ Definition continuous (X Y: cs) (f: X -> Y):= (F2MF f) \has_continuous_realizer.
 Notation "f \is_continuous" := (continuous f) (at level 30).
 
 Lemma cont_comp (X Y Z: cs) (f: Y -> Z) (g: X -> Y):
-	f \is_continuous -> g \is_continuous -> (f \o g) \is_continuous.
+	f \is_continuous -> g \is_continuous -> (f \o_f g) \is_continuous.
 Proof.
 rewrite /funcomp /continuous => cont cont'.
-have ->: (F2MF (fun x => f (g x))) =~= (F2MF f) o (F2MF g) by rewrite comp_F2MF.
+have ->: (F2MF (fun x => f (g x))) =~= (F2MF f) \o (F2MF g) by rewrite comp_F2MF.
 exact: comp_hcr.
 Qed.
 End continuity.

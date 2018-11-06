@@ -1,4 +1,4 @@
-From mathcomp Require Import all_ssreflect.
+From mathcomp Require Import ssreflect seq ssrnat ssrbool eqtype ssrfun choice.
 From mpf Require Import all_mpf.
 Require Import baire cont.
 

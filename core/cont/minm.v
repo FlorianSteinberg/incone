@@ -1,6 +1,7 @@
-From mathcomp Require Import all_ssreflect.
+From mathcomp Require Import ssreflect ssrnat ssrbool eqtype.
 From mpf Require Import all_mpf.
-Require Import baire cont iseg Psatz.
+Require Import baire cont iseg.
+Require Import Psatz.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

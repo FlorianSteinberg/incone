@@ -1,6 +1,6 @@
 (* This file provides a definition of continuity of functions between spaces of the form
 Q -> A for some arbitrary types Q and A. It also proves some basic Lemmas about this notion.*)
-From mathcomp Require Import all_ssreflect.
+From mathcomp Require Import ssreflect ssrfun seq.
 From mpf Require Import all_mpf.
 Require Import baire.
 Require Import Morphisms FunctionalExtensionality.
@@ -134,7 +134,7 @@ Proof. rewrite mod_cont_mod; exact/mod_frcs. Qed.
 Definition listfunctions:= make_subset (fun mf => exists Lf, mf = (@LF2MF Q' Q Lf)).
 
 Lemma cont_mod_spec:
-	modulus|^listfunctions =~= (F2MF (@LF2MF Q' Q)) o continuity_modulus.
+	modulus|^listfunctions =~= (F2MF (@LF2MF Q' Q)) \o continuity_modulus.
 Proof.
 move => phi mf; rewrite corestr_spec comp_rcmp; last exact/F2MF_tot.
 split => [[[Lf eq] mod] | [Lf [mod eq]]].
@@ -332,7 +332,7 @@ Context (F: B ->> B') (G: B' ->> B'').
 
 Lemma det_comp phi Fphi:
 	(forall Fphi', F phi Fphi' -> Fphi =1 Fphi') ->
-	F phi Fphi -> determines (G o F) phi \extends determines G Fphi.
+	F phi Fphi -> determines (G \o F) phi \extends determines G Fphi.
 Proof.
 move => det FphiFphi q'' a'' detG GFphi [[Fphi' [FphiFphi' GFphi'GFphi]] subs].
 apply/detG; suff ->: Fphi = Fphi' by trivial.
@@ -340,7 +340,7 @@ by apply functional_extensionality => q'; apply det.
 Qed.
 
 Lemma restr_rcmp_equiv S T S' T' (f f': S ->> T) (g: S' ->> S) (g': T' ->> S') (q: T') a:
-	g' q a -> f|_(g o_R g' q) =~= f'|_(g o_R g' q) -> f|_(g a) =~= f'|_(g a).
+	g' q a -> f|_(g \o_R g' q) =~= f'|_(g \o_R g' q) -> f|_(g a) =~= f'|_(g a).
 Proof.
 move => gqa eq s t.
 split => [[gas fst] | [gas f'st]]; first by split => //; apply (eq s t).1; split; first by exists a.
@@ -348,7 +348,7 @@ by split => //; apply (eq s t).2; split; first by exists a.
 Qed.
 
 Lemma mod_comp mf mg phi Fphi: F phi Fphi ->
-	modulus F phi mf -> modulus G Fphi mg -> modulus (G o F) phi (mf o_R mg).
+	modulus F phi mf -> modulus G Fphi mg -> modulus (G \o F) phi (mf \o_R mg).
 Proof.
 move => FphiFphi mod mod' q''; have [a'' crt']:= mod' q''; exists a''.
 move => psi coin GFpsi [[Fpsi [FpsiFpsi GFpsiGFpsi]] subs]; rewrite (crt' Fpsi) => //.
@@ -363,7 +363,7 @@ Fixpoint gather S T (Lf: S -> seq T) (K: seq S) := match K with
 end.
 
 Lemma gather_LF2MF R S T (Lf: S -> seq T) (Lg: R -> seq S):
-	LF2MF (fun r => (gather Lf (Lg r))) =~= (LF2MF Lf) o_R (LF2MF Lg).
+	LF2MF (fun r => (gather Lf (Lg r))) =~= (LF2MF Lf) \o_R (LF2MF Lg).
 Proof.
 move => r t /=; elim: (Lg r) => [ | a L ih /=]; first by split => // [[s []]].
 rewrite List.in_app_iff ih; split; last by case => s [[<- | ]]; [left | right; exists s].
@@ -371,7 +371,7 @@ by case => [lstn | [s []]]; [exists a | exists s]; split => //; [left | right].
 Qed.
 
 Lemma gather_LF2MF_eqfun R S T (Lf: S -> seq T) (Lg: R -> seq S) h:
-	(forall r, h r = gather Lf (Lg r)) -> (LF2MF h) =~= (LF2MF Lf) o_R (LF2MF Lg).
+	(forall r, h r = gather Lf (Lg r)) -> (LF2MF h) =~= (LF2MF Lf) \o_R (LF2MF Lg).
 Proof.
 by move => eq; rewrite -gather_LF2MF => r t /=; rewrite eq.
 Qed.
@@ -380,7 +380,7 @@ Lemma exte_ref S T (f: S ->> T): f \extends f.
 Proof. by move => s t fst. Qed.
 
 Lemma cntop_comp: F \is_continuous_operator -> G \is_continuous_operator ->
-	(G o F) \is_continuous_operator.
+	(G \o F) \is_continuous_operator.
 Proof.
 move => cont cont' phi phifd.
 have [ | Lf /mod_cont_mod mod]:= cont phi; first exact/comp_dom/phifd.

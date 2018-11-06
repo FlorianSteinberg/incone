@@ -1,5 +1,5 @@
-From mathcomp Require Import all_ssreflect.
-Require Import all_cs classical_mach reals.
+From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat.
+Require Import all_cs reals.
 Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
 
 Set Implicit Arguments.

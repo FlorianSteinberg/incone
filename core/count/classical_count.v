@@ -1,4 +1,4 @@
-From mathcomp Require Import all_ssreflect.
+From mathcomp Require Import ssreflect ssrnat ssrbool choice eqtype ssrfun.
 From mpf Require Import all_mpf.
 Require Import classical_cont count.
 Require Import ClassicalChoice.
@@ -20,7 +20,7 @@ Lemma count_countMixin Q : Q \is_countable ->
   exists P : Countable.mixin_of Q, True.
 Proof.
 move => [cnt sur]; have [sec [issec min]] := exists_minsec sur.
-unshelve eexists (@Countable.Mixin _ (sec \o some) cnt _) => //.
+unshelve eexists (@Countable.Mixin _ (sec \o_f Some) cnt _) => //.
 by move=> x /=; rewrite issec.
 Qed.
 

@@ -1,5 +1,5 @@
-From mathcomp Require Import all_ssreflect.
-Require Import all_core classical_mach all_cs_base cs_one.
+From mathcomp Require Import ssreflect ssrfun.
+Require Import all_core classical_count cs cs_one.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

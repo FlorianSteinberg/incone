@@ -1,7 +1,5 @@
-From mathcomp Require Import all_ssreflect.
-Require Import all_core cs prod.
-Require Import FunctionalExtensionality ClassicalFacts ClassicalChoice Psatz.
-Require Import Morphisms.
+From mathcomp Require Import ssreflect seq.
+Require Import cont cs prod.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

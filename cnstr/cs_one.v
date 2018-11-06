@@ -1,5 +1,5 @@
-From mathcomp Require Import all_ssreflect.
-Require Import all_core classical_mach all_cs_base.
+From mathcomp Require Import ssreflect ssrfun.
+Require Import all_core all_cs_base.
 Require Import FunctionalExtensionality.
 
 Set Implicit Arguments.

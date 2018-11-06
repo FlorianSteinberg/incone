@@ -1,5 +1,5 @@
-From mathcomp Require Import all_ssreflect.
-Require Import all_cs_base classical_cont classical_count cs_one cs_nat.
+From mathcomp Require Import ssreflect ssrfun seq ssrnat.
+Require Import classical_cont classical_count all_cs_base cs_one cs_nat.
 Require Import FunctionalExtensionality ClassicalChoice.
 
 Set Implicit Arguments.

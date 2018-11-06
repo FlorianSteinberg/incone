@@ -1,6 +1,6 @@
 From mathcomp Require Import all_ssreflect.
 From mpf Require Import all_mpf choice_mf.
-Require Import all_cont classical_cont exec Mmach.
+Require Import all_cont classical_count classical_cont exec Mmach.
 Require Import ClassicalChoice FunctionalExtensionality.
 
 Set Implicit Arguments.
@@ -23,7 +23,7 @@ Qed.
 Lemma count_countMixin Q : Q \is_countable ->
   exists P : Countable.mixin_of Q, True.
 Proof.
-move => [cnt sur]; have [sec [issec min]] := minimal_section sur.
+move => [cnt sur]; have [sec [issec min]] := exists_minsec sur.
 unshelve eexists (@Countable.Mixin _ (sec \o some) cnt _) => //.
 by move=> x /=; rewrite issec.
 Qed.
@@ -122,7 +122,7 @@ Lemma exists_listf (somea: A) (cnt: nat -> Q) (F: B ->> B'): cnt \is_surjective_
 		listf (map phi (iseg cnt n)) \from dom F /\
 		(listf (map phi (iseg cnt n))) \and phi \coincide_on (iseg cnt n).
 Proof.
-move => sur; have [sec min]:= minimal_section sur.
+move => sur; have [sec min]:= exists_minsec sur.
 pose R := make_mf (fun L psiL =>
 	(exists phi, phi \from dom F /\ map phi (iseg cnt (size L)) = L) ->
 	(psiL \from dom F /\ map psiL (iseg cnt (size L)) = L)).
@@ -156,7 +156,7 @@ set Q'eqType:= EqType Q' eqQ'.
 move => count cont.
 have [ | cnt sur]//:= (count_sur Q).2.
 have [Ff Fprop] := exists_choice (F: _ ->>(Q'eqType -> _)) somephi'.
-have [sec ms] := minimal_section sur.
+have [sec ms] := exists_minsec sur.
 have [mf mfmod]:= exists_minmod ms (cont: (F: _ ->> (Q'eqType -> _)) \is_continuous_operator).
 have [listf listfprop] := exists_listf somea (F: _ ->> (Q'eqType -> _)) sur.
 exists (psiF cnt listf mf Ff).

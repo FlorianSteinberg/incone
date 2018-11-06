@@ -19,6 +19,7 @@ have [n [pn min]]:= (worder_nat ex).
 by exists n; split => [ | k Pk ]; [ | apply min]; apply prop.
 Qed.
 
+(*
 Lemma minimal_section Q (cnt: nat -> Q):
 	cnt \is_surjective_function -> exists sec, is_min_sec cnt sec.
 Proof.
@@ -27,12 +28,13 @@ set R := make_mf (fun s n => cnt n = s /\ (forall m, cnt m = s -> n <= m)).
 have Rtot: R \is_total by move => s; have [n]:= well_order_nat (sur s); exists n.
 by have [sec]:= (choice _ Rtot); exists sec; split => s; have []:= p s.
 Qed.
+*) 
 
 Section classical_lemmas.
 Context (Q Q' A A': Type) (noq: Q).
 Notation B := (Q -> A).
 Notation B' := (Q' -> A').
-Context (cnt: nat -> Q) (sec: Q -> nat) (ms: is_min_sec cnt sec).
+Context (cnt: nat -> Q) (sec: Q -> nat) (ms: minimal_section cnt sec).
 Notation minimal_modulus := (minimal_modulus cnt sec).
 Notation init_seg := (iseg cnt).
 Notation max_elt := (max_elt sec).

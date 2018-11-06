@@ -126,22 +126,22 @@ Qed.
 Lemma lstn_iseg a: cancel sec cnt -> List.In a (iseg (sec a).+1).
 Proof. by move => cncl; left. Qed.
 
-Definition is_min_sec Q (cnt: nat -> Q) (sec : Q -> nat) :=
+Definition minimal_section Q (cnt: nat -> Q) (sec : Q -> nat) :=
   cancel sec cnt /\ forall s,(forall m, cnt m = s -> sec s <= m).
 
-Lemma iseg_base a n: is_min_sec cnt sec -> List.In a (iseg n) -> sec a < n.
+Lemma iseg_base a n: minimal_section cnt sec -> List.In a (iseg n) -> sec a < n.
 Proof.
 move => [cncl min]; elim: n => // n ih/=.
 by case => [<- | lstn]; [apply/min | rewrite leqW//; apply/ih].
 Qed.
 
-Lemma melt_iseg n : is_min_sec cnt sec -> max_elt (iseg n) <= n.
+Lemma melt_iseg n : minimal_section cnt sec -> max_elt (iseg n) <= n.
 Proof.
 move => [cncl min]; elim: n => // n ih /=.
 by rewrite geq_max; apply/andP; split; [apply/min | rewrite leqW].
 Qed.
 
-Lemma iseg_melt K: is_min_sec cnt sec -> K \is_sublist_of (iseg (max_elt K)).
+Lemma iseg_melt K: minimal_section cnt sec -> K \is_sublist_of (iseg (max_elt K)).
 Proof. by move => [cncl min] q lstn; apply/iseg_subl/lstn_iseg/cncl/lstn_melt. Qed.
 
 Lemma list_melt A K (phi psi: Q -> A): cancel sec cnt ->
@@ -161,7 +161,7 @@ Definition inverse_pickle n:= match pickle_inv Q n with
 	| None => noq
 end.
 
-Lemma min_ip: is_min_sec inverse_pickle pickle.
+Lemma min_ip: minimal_section inverse_pickle pickle.
 Proof.
 rewrite /inverse_pickle; split => [q | q n <-]; first by rewrite pickleK_inv.
 case E: pickle_inv => [a  | ]; last by rewrite noq_spec.

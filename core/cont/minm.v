@@ -106,7 +106,7 @@ Notation B' := (Q' -> A').
 Context (F: B ->> B').
 Context (cnt: nat -> Q).
 Context (sec: Q -> nat).
-Context (ms: is_min_sec cnt sec).
+Context (ms: minimal_section cnt sec).
 Notation init_seg := (iseg cnt).
 Notation max_elt := (max_elt sec).
 Notation minimal_modulus := (minimal_modulus cnt sec).

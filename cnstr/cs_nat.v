@@ -1,5 +1,6 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_core classical_mach all_cs_base cs_one.
+Require Import all_core classical_cont all_cs_base cs_one.
+Require Import ClassicalChoice FunctionalExtensionality.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -23,10 +24,14 @@ split; first by rewrite F2MF_rlzr => /= phi n -> [m]; by exists m.
 by rewrite F2MF_cont => phi; exists (fun _ => [:: star]) => psi str []; elim: str => ->.
 Qed.
 
-Lemma nat_cont (f: nat -> nat): (f: cs_nat -> cs_nat) \is_continuous.
+Lemma nat_dscrt (X: cs) (f: cs_nat -> X): f \is_continuous.
 Proof.
-exists (F2MF (fun phi q => f (phi q))); split; first by rewrite F2MF_rlzr_F2MF => phi n /= <-.
-by rewrite F2MF_cont => phi; exists (fun _ => [:: star]) => psi [[->]].
+pose R:= make_mf (fun phi psi => psi \is_description_of (f (phi star))).
+have Rtot: R \is_total by move => phi; apply/rep_sur.
+have [F icf]:= choice _ Rtot.
+exists (F2MF F); split; first by rewrite F2MF_rlzr_F2MF => fn n <-/=; apply/icf.
+rewrite F2MF_cont_choice => phi q'; exists [::star] => psi [eq _].
+by have ->: phi = psi by apply functional_extensionality => str; elim str.
 Qed.
 
 Lemma nat_nat_cont (f: nat -> nat -> nat):

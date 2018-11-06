@@ -145,6 +145,17 @@ by have [a' crt]:= mod q'; exists a'; apply/cert_exte/crt; rewrite -eq.
 Qed.
 
 Definition continuous_operator := dom F \is_subset_of dom continuity_modulus.
+
+Lemma cntop_spec: continuous_operator <->
+	forall phi Fphi, F phi Fphi -> exists Lf, forall q', cert (L2SS (Lf q')) phi q' (Fphi q').
+Proof.
+split => cont phi.
+	move => Fphi FphiFphi; have [ | Lf mod]:= cont phi; first by exists Fphi.
+	by exists Lf => q'; have [a' crt]:= mod q'; apply/cert_icf/crt.
+move => [Fphi FphiFphi]; have [Lf mod]:= cont phi Fphi FphiFphi.
+by exists Lf => q'; exists (Fphi q'); apply/mod.
+Qed.
+
 Definition continuity_points := intersection (dom continuity_modulus) (dom F).
 
 Lemma cont_dom : continuous_operator -> dom F === continuity_points.

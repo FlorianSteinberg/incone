@@ -11,6 +11,12 @@ Notation "L '\is_sublist_of' K" := (List.incl L K) (at level 2).
 Section L2SS.
 Context (T: Type).
 
+Lemma subl_refl: Reflexive (@List.incl T).
+Proof. by move => L t. Qed.
+
+Lemma subl_trans: Transitive (@List.incl T).
+Proof. by move => L K M subl subl' t lstn; apply/subl'/subl. Qed.
+
 Definition L2SS L:= make_subset (fun (t: T) => List.In t L).
 
 Lemma L2SS_subs L K:

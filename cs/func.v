@@ -1,4 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun seq.
+From rlzrs Require Import all_rlzrs choice_dict.
 Require Import all_core classical_count classical_mach cs prod sub.
 
 Set Implicit Arguments.
@@ -20,7 +21,7 @@ Lemma is_fun_name_sur (X Y : cs): (@is_fun_name X Y) \is_cototal.
 Proof.
 move => [f [F [Frf cont]]].
 have [psi psinF]:= M_universal (someq X) (somea X) (fun _ => somea Y) (questions_countable X) cont.
-by exists psi; apply/ntrvw_rlzr.tight_rlzr/psinF.
+by exists psi; apply/ntrvw.tight_rlzr/psinF.
 Qed.
 
 Definition cs_fun_assembly_mixin (X Y: cs) : interview_mixin.type

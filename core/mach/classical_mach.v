@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrnat ssrbool eqtype.
-From mpf Require Import all_mpf choice_mf.
+From rlzrs Require Import all_mf choice_mf.
 Require Import all_cont classical_count classical_cont exec Mmach.
 Require Import ClassicalChoice.
 

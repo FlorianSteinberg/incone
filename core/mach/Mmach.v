@@ -1,7 +1,6 @@
-From mathcomp Require Import all_ssreflect.
-From mpf Require Import all_mpf.
-Require Import all_cont iseg exec.
-Require Import FunctionalExtensionality.
+From mathcomp Require Import ssreflect seq ssrnat ssrbool eqtype ssrfun.
+From rlzrs Require Import all_mf.
+Require Import all_cont exec.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

@@ -1,7 +1,7 @@
 (* This file provides a definition of continuity of functions between spaces of the form
 Q -> A for some arbitrary types Q and A. It also proves some basic Lemmas about this notion.*)
 From mathcomp Require Import ssreflect ssrfun seq.
-From mpf Require Import all_mpf.
+From rlzrs Require Import all_mf.
 Require Import baire.
 Require Import Morphisms FunctionalExtensionality.
 

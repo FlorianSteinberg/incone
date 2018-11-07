@@ -1,7 +1,7 @@
-From mathcomp Require Import all_ssreflect.
-From mpf Require Import all_mpf choice_mf.
-Import ClassicalChoice.
+From mathcomp Require Import ssreflect ssrbool ssrnat seq ssrfun.
+From rlzrs Require Import all_mf choice_mf.
 Require Import baire cont iseg minm.
+Require Import ClassicalChoice.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

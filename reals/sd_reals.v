@@ -1,6 +1,6 @@
 From mathcomp Require Import all_ssreflect all_algebra.
 Require Import FunctionalExtensionality.
-Require Import all_cs classical_mach reals Rstruct under.
+Require Import classical_count all_cs classical_mach reals Rstruct under.
 Require Import Reals Qreals Psatz ClassicalChoice.
 
 Import GRing.Theory.
@@ -136,7 +136,7 @@ Qed.
 Lemma Cauchy_crit_SDs2Rn sds :	Cauchy_crit (SDs2Rn sds).
 Proof. exact /Cauchy_crit_eff_Cauchy_crit /Cauchy_crit_eff_SDs2Rn. Qed.
 
-Definition SDs2R := lim o (F2MF SDs2Rn).
+Definition SDs2R := lim \o (F2MF SDs2Rn).
 
 Lemma SDs2R_tot: SDs2R \is_total.
 Proof.
@@ -148,7 +148,7 @@ Qed.
 Lemma SDs2R_sing: SDs2R \is_singlevalued.
 Proof. by apply /comp_sing; [exact /lim_sing | exact /F2MF_sing]. Qed.
 
-Lemma SDs2R_lim_eff: SDs2R =~= lim_eff o (F2MF SDs2Rn).
+Lemma SDs2R_lim_eff: SDs2R =~= lim_eff \o (F2MF SDs2Rn).
 Proof.
 rewrite lim_eff_Cauchy /SDs2R !comp_F2MF => sds x.
 split => [limx| [Cauchy limx]]; first by split; first exact: Cauchy_crit_eff_SDs2Rn.

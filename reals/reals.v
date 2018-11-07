@@ -2,7 +2,7 @@
 usefull when considering computability. *)
 
 From mathcomp Require Import all_ssreflect.
-From mpf Require Import all_mpf.
+From rlzrs Require Import all_mf.
 Require Import Qreals Reals Psatz ClassicalChoice.
 
 Set Implicit Arguments.

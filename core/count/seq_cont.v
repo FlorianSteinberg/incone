@@ -1,7 +1,6 @@
-From mathcomp Require Import all_ssreflect.
-From mpf Require Import all_mpf.
-Require Import baire cont.
-Require Import FunctionalExtensionality.
+From mathcomp Require Import ssreflect.
+From rlzrs Require Import all_mf.
+Require Import baire.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

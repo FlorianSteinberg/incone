@@ -1,5 +1,5 @@
-From mathcomp Require Import all_ssreflect.
-From mpf Require Import all_mpf.
+From mathcomp Require Import ssreflect ssrfun seq ssrbool eqtype ssrnat.
+From rlzrs Require Import all_mf.
 Require Import Morphisms FunctionalExtensionality.
 
 Set Implicit Arguments.
@@ -42,8 +42,6 @@ Fixpoint coincide L (phi psi: B) :=
   end.
 
 Notation "phi '\and' psi '\coincide_on' L" := (coincide L phi psi) (at level 2).
-
-Definition ball phi := make_mf (fun L psi => phi \and psi \coincide_on L). 
 
 Lemma restr_exte S T (f g: S ->> T) P P':
 	P \is_subset_of P' -> f|_P' \extends g|_P' -> f|_P \extends g|_P.

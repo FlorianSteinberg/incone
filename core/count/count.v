@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun choice ssrnat ssrbool.
-From mpf Require Import all_mpf.
+From rlzrs Require Import all_mf.
 Require Import iseg Morphisms.
 
 Set Implicit Arguments.

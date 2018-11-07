@@ -1,9 +1,8 @@
 (* This file provides an abstract envelope for computability theoretical considerations *)
-From mathcomp Require Import all_ssreflect.
-From mpf Require Import all_mpf.
-Require Import all_cont iseg.
+From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype choice.
+From rlzrs Require Import all_mf.
+Require Import iseg.
 Import FunctionalExtensionality.
-Require Import ClassicalChoice.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -16,13 +15,10 @@ Notation B' := (Q' -> A').
 Notation "B o~> B'" := (nat -> B -> Q' -> option A') (at level 2).
 
 Definition operator (M: B o~> B') :=
-	make_mf (fun phi Mphi => forall q', exists c, M c phi q' = some (Mphi q')).
+	make_mf (fun phi Mphi => forall q', exists c, M c phi q' = Some (Mphi q')).
 
 Notation "\F_ M" := (operator M) (format "'\F_' M", at level 2).
 
-Lemma mach_choice M phi:
-	(forall q', exists a' n, M n phi q' = some a') -> phi \from dom \F_M.
-Proof. by move => Rtot; have [Fphi FphiFphi]:= choice _ Rtot; exists Fphi. Qed.
 
 Notation "M '\evaluates_to' F" := ((\F_M) \tightens F) (at level 40).
 
@@ -102,21 +98,6 @@ move => mon sing; split => [eval | eval]; first exact/sing_tight_exte.
 exact/exte_tight/eval/mon_sing.
 Qed.
 
-Lemma sing_cmpt_elt M F c phi Fphi q' a':	M \evaluates_to F -> F \is_singlevalued ->
-	F phi Fphi -> M c phi q' = Some a' -> a' = Fphi q'.
-Proof.
-move => comp sing FphiFphi ev.
-have [ | [Mphi MphiFphi] prop]:= (comp phi _); first by exists Fphi.
-have eq: Mphi = Fphi by rewrite -(sing phi Fphi Mphi); last apply prop.
-move: Mphi eq MphiFphi => _ -> MphiFphi.
-pose Nphi := (fun q a => (q <> q' /\ Fphi q = a) \/ (q' = q /\ a' = a)).
-have [q | Mphi Mphiprop]:= choice Nphi.
-	by case: (classic (q = q')) => ass; [exists a'; right | exists (Fphi q); left].
-have MphiMphi: (\F_M) phi Mphi => [q | ].
-	by case: (Mphiprop q) => [[_ <-] | [<- <-]]; [ | exists c].
-apply Some_inj; case: (Mphiprop q') => [[ctr] | [_ ->]] //.
-by have <-: Mphi = Fphi by apply/ sing; apply prop.
-Qed.
 
 (*
 Let op (M: B o~> B') (c: fuel) phi q n:= if n < (pickle c) then

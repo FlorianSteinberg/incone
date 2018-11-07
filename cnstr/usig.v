@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrnat.
-Require Import classical_cont classical_count all_cs_base cs_one cs_nat.
+Require Import classical_count classical_cont classical_mach all_cs_base cs_one cs_nat.
 Require Import FunctionalExtensionality ClassicalChoice.
 
 Set Implicit Arguments.
@@ -125,26 +125,34 @@ Qed.
 
 Definition fun2sig (X: cs) (xn: cs_nat c-> X):= projT1 xn: cs_sig_prod X.
 
-Fixpoint cnst_seq T (t: T) n:= match n with
-	| 0 => [::]
-	| S n => t :: (cnst_seq t n)
-end.
+Definition fun2sig_rlzr X:= make_mf (fun (psi: names cs_nat c-> X) phi =>
+	forall n, \F_(M psi) (fun _ => n) (fun q => phi (n, q))).
 
-Definition fun2sig_rlzrM (X: cs) n (psi: names (cs_nat c-> X)) nq := match psi (cnst_seq nq.1 n, nq.2) with
-		| inl qs => None
-		| inr a => Some a
-end.
-
-Definition fun2sig_rlzr X:= \F_(@fun2sig_rlzrM X).
-(*
 Lemma fun2sig_rlzr_spec X: (@fun2sig_rlzr X) \realizes (F2MF (@fun2sig X)).
 Proof.
-rewrite rlzr_F2MF => psi [xn cont] psinxn.
-split.
-	have [phi phinxn]:= get_description (xn: cs_sig_prod _).
-	exists phi; rewrite /fun2sig_rlzr =>/=[[n q]].
-	have [ | | [phi' q'] Fphi']//:= psinxn (fun _ => n) n; first by exists (xn n).
-	
+rewrite rlzr_F2MF => psi xn /rlzr_F2MF rlzr.
+split => [ | phin Fpsiphi n].
+	have prp: forall (n: nat), exists phi: questions X -> answers X, forall q,
+  exists c : nat, M psi c (fun _ : one => n) q = Some (phi q).
+  	move => n.
+  	have [ | [phi val prp]]//:= rlzr (fun _ => n) n.
+  	exists phi => q; apply/val.
+  have [phin nm]:= choice _ prp.
+  exists (fun nq => phin nq.1 nq.2).
+  move => n q /=; apply nm.
+have [ | [phi val prp]]//:= rlzr (fun _ => n) n.
+apply/prp => q.
+apply/Fpsiphi.
+Qed.
+
+(*
+Lemma fun2sig_rlzr_cntop X: (@fun2sig_rlzr X) \is_continuous_operator.
+Proof.
+
+rewrite /fun2sig_rlzr in FphiFphi.
+move => phi phifd.
+
+
 Lemma sig_iso_fun X: (cs_sig_prod X) ~=~ (cs_nat c-> X).
 Proof.
 exists (exist_c (sig2fun_cont X)).

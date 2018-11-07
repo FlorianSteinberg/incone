@@ -86,6 +86,17 @@ Definition consistent (psi: _ -> _ + A') (phi: B) (q': Q') Ln := forall i, i < s
 			/\
 			flatten (drop i Ln) = map phi K ++ flatten (drop i.+1 Ln).
 
+Lemma cns0 psi phi q': consistent psi phi q' nil.
+Proof. done. Qed.
+
+Lemma cns_drop psi phi q' Ln n:
+  consistent psi phi q' Ln -> consistent psi phi q' (drop n Ln).
+Proof.
+move => cns i; rewrite size_drop => ils.
+have [ | K []]:= cns (i + n); first by rewrite addnC -ltn_subRL.
+by exists K; rewrite !drop_drop addSn.
+Qed.
+
 Lemma rev_eq T (L L': seq T): rev L = rev L' <-> L = L'.
 Proof. by split; first rewrite -{2}(revK L) -{2}(revK L'); move ->. Qed.
 
@@ -161,14 +172,49 @@ suff ->: M_rec psi (size Ln) phi q' = inl (flatten (L :: Ln)) by rewrite eq.
 by apply M_rec_inl_spec; exists (L :: Ln).
 Qed.
 
-Definition dialogue psi phi := make_mf (fun q' a =>
-	exists Lna', communication psi phi q' Lna' /\ List.In a (flatten Lna'.1)).
+Definition mf_dialogue psi phi := make_mf (fun q' a =>
+	exists Ln, consistent psi phi q' Ln /\ List.In a (flatten Ln)).
 
-Lemma dlg_spec psi phi q' a: dialogue psi phi q' a -> 
+
+Lemma dlg_com psi phi q' a: mf_dialogue psi phi q' a -> 
 	forall Ln a', communication psi phi q' (Ln, a') -> List.In a (flatten Ln).
 Proof.
-by move => [[Ln a'] [com lstn]] Ln' b' com'; have [<-]:= (cmcn_unique com com').
+move => [Ln [cns lstn]] Ln' a' [/=cns' eq].
+case/orP: (leq_total (size Ln') (size Ln)) => ineq; first by rewrite (cns_rec eq ineq cns').
+have sze: size Ln = size (drop (size Ln' - size Ln) Ln') by rewrite size_drop subKn.
+move: lstn; rewrite (cns_eq sze cns); last exact/cns_drop.
+exact/flatten_subl/drop_subl.
 Qed.
+
+(*
+Definition mf_queries psi phi:= make_mf(fun q' q =>
+  exists Ln, consistent psi phi q' Ln /\ (exists K, psi (flatten Ln, q') = inl K /\ List.In q K)).
+
+
+Lemma gather_queries_spec psi n phi q':
+  mf_queries psi phi q' q <-> exists n, List.In q gather_queries psi n phi q'.
+
+communication psi phi q' (Ln, a') -> {qL | mf_queries psi phi q' === L2SS qL}.
+Proof.
+elim: Ln => [comm | L Ln ih comm].
+- exists nil.
+  rewrite /queries.
+  move => [Fphi /FM_val_spec val].
+have [Ln]:= val q'.
+elim => [ | n ih eq].
+rewrite /M/=/M_step; case E: (psi (nil, q')) => [ | a']// eq.
+exists nil => a /=; split => // [[n [L] []]].
+elim: n => [/= | n ihn eq' lstn]; first by rewrite /= /M_step E => [[]].
+apply/ihn => //.
+move: eq' => /=.
+case: (M_rec psi n phi q') => //.
+
+Lemma dialogue_queries psi phi q' a:
+  mf_dialogue psi phi q' a <-> exists q, mf_queries psi phi q' q /\ phi q = a.
+Proof.
+
+
+Lemma queries psi phi: phi*)
 End universal_machine.
 
 Section psiF.

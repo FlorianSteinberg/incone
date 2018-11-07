@@ -8,7 +8,7 @@ Unset Printing Implicit Defensive.
 
 Notation "L '\is_sublist_of' K" := (List.incl L K) (at level 2).
 
-Section L2SS.
+Section sublists.
 Context (T: Type).
 
 Lemma subl_refl: Reflexive (@List.incl T).
@@ -17,10 +17,48 @@ Proof. by move => L t. Qed.
 Lemma subl_trans: Transitive (@List.incl T).
 Proof. by move => L K M subl subl' t lstn; apply/subl'/subl. Qed.
 
-Definition L2SS L:= make_subset (fun (t: T) => List.In t L).
+Lemma subl0 (L: seq T): L \is_sublist_of [::] -> L = [::].
+Proof. by elim: L => // t L ih subl; have []:= subl t; left. Qed.
 
-Lemma L2SS_subs L K:
-	L \is_sublist_of K <-> (L2SS L) \is_subset_of (L2SS K).
+Lemma drop_subl (L : seq T) n: (drop n L) \is_sublist_of L.
+Proof.
+elim: n => [ | n ih]; first by rewrite drop0.
+rewrite -add1n -drop_drop drop1 => t lstn.
+by apply/ih; case: (drop n L) lstn => //; right.
+Qed.
+
+Lemma lstn_app (L K: seq T)t: List.In t (L ++ K) <-> List.In t L \/ List.In t K.
+Proof.
+split; last by have:= List.in_or_app L K t.
+elim: L => [ | l L ihL /= [eq | lstn]]; [ | left; left | ] => //.
+- by elim: K => // l K ihK /= [eq | lstn]; [right; left | right; right].
+by case: (ihL lstn); [ left; right | right ].
+Qed.
+End sublists.
+
+Lemma lstn_flatten T (Ln: seq (seq T)) t:
+  List.In t (flatten Ln) <-> exists L, List.In t L /\ List.In L Ln.
+Proof.
+split.
+- elim: Ln => [| L Ln ih /=]// /lstn_app [lstn | lstn]; first by exists L; split => //; left.
+  by have [K []] := ih lstn; exists K; split => //; right.
+elim: Ln => [[L []] | L Ln ih [K [lstn /=[-> | lstn']]]]//; apply/lstn_app; first by left.
+by right; apply/ih; exists K.
+Qed.
+
+Lemma flatten_subl T (Ln Kn: seq (seq T)):
+  Ln \is_sublist_of Kn -> (flatten Ln) \is_sublist_of (flatten Kn).
+Proof.
+move => subl t /lstn_flatten [L [lstn lstn']].
+by rewrite lstn_flatten; exists L; split; last apply subl.
+Qed.
+
+Section L2SS.
+Context (T: Type).
+
+Definition L2SS (L: seq T):= make_subset (fun s => List.In s L).
+
+Lemma L2SS_subs L K: L \is_sublist_of K <-> (L2SS L) \is_subset_of (L2SS K).
 Proof. done. Qed.
 
 Lemma L2SS_eq L K:

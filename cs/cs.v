@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun.
-From rlzrs Require Export all_rlzrs.
+From rlzrs Require Export all_mf all_rlzrs.
 Require Import all_core.
 Import Morphisms.
 

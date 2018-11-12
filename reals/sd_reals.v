@@ -421,7 +421,7 @@ Definition count_pos n := match n with
 	| S n => Some (Pos.of_nat n)
 end.
 
-Lemma count_pos_sur: count_pos \is_surjective_function.
+Lemma count_pos_sur: count_pos \is_surjective.
 Proof.
 case => [p | ]; last by exists 0%nat.
 by exists (Pos.to_nat p).+1; rewrite /count_pos Pos2Nat.id.

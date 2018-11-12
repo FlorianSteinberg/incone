@@ -42,7 +42,7 @@ exists (fun q' => (LnFphi q').2); rewrite FM_val_spec => q'.
 by exists (LnFphi q').1; exact/(prp q').
 Qed.
 
-Lemma exists_listf (somea: A) (cnt: nat -> Q) (F: B ->> B'): cnt \is_surjective_function ->
+Lemma exists_listf (somea: A) (cnt: nat -> Q) (F: B ->> B'): cnt \is_surjective ->
 	exists listf, 	forall phi n, phi \from dom F ->
 		listf (map phi (iseg cnt n)) \from dom F /\
 		(listf (map phi (iseg cnt n))) \and phi \coincide_on (iseg cnt n).

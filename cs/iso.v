@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun.
-Require Import all_core cs func facts.
+Require Import all_core cs func classical_func facts.
 Require Import RelationClasses.
 
 Set Implicit Arguments.
@@ -23,9 +23,8 @@ Proof. by move => X Y [f [g [cncl cncl']]]; exists g; exists f. Qed.
 
 Lemma iso_trans: Transitive (@isomorphic).
 Proof.
-move => X Y Z [f [g [cncl1 cncl2]]] [f' [g' [cncl1' cncl2']]].
-exists (exist_c (cont_comp (projT2 f') (projT2 f))).
-exists (exist_c (cont_comp (projT2 g) (projT2 g'))).
+move => X Y Z [f [g [cncl1 cncl2]]] [f' [g' [cncl1' cncl2']]].  
+exists (f' \o_cs f); exists (g \o_cs g').
 by rewrite /=; split; apply can_comp.
 Qed.
 

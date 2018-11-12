@@ -1,57 +1,11 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrbool eqtype ssrnat.
 From rlzrs Require Import all_mf.
+Require Import iseg.
 Require Import Morphisms FunctionalExtensionality.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
-
-Notation "L '\is_sublist_of' K" := (List.incl L K) (at level 2).
-
-Section sublists.
-Context (T: Type).
-
-Lemma subl_refl: Reflexive (@List.incl T).
-Proof. by move => L t. Qed.
-
-Lemma subl_trans: Transitive (@List.incl T).
-Proof. by move => L K M subl subl' t lstn; apply/subl'/subl. Qed.
-
-Lemma subl0 (L: seq T): L \is_sublist_of [::] -> L = [::].
-Proof. by elim: L => // t L ih subl; have []:= subl t; left. Qed.
-
-Lemma drop_subl (L : seq T) n: (drop n L) \is_sublist_of L.
-Proof.
-elim: n => [ | n ih]; first by rewrite drop0.
-rewrite -add1n -drop_drop drop1 => t lstn.
-by apply/ih; case: (drop n L) lstn => //; right.
-Qed.
-
-Lemma lstn_app (L K: seq T)t: List.In t (L ++ K) <-> List.In t L \/ List.In t K.
-Proof.
-split; last by have:= List.in_or_app L K t.
-elim: L => [ | l L ihL /= [eq | lstn]]; [ | left; left | ] => //.
-- by elim: K => // l K ihK /= [eq | lstn]; [right; left | right; right].
-by case: (ihL lstn); [ left; right | right ].
-Qed.
-End sublists.
-
-Lemma lstn_flatten T (Ln: seq (seq T)) t:
-  List.In t (flatten Ln) <-> exists L, List.In t L /\ List.In L Ln.
-Proof.
-split.
-- elim: Ln => [| L Ln ih /=]// /lstn_app [lstn | lstn]; first by exists L; split => //; left.
-  by have [K []] := ih lstn; exists K; split => //; right.
-elim: Ln => [[L []] | L Ln ih [K [lstn /=[-> | lstn']]]]//; apply/lstn_app; first by left.
-by right; apply/ih; exists K.
-Qed.
-
-Lemma flatten_subl T (Ln Kn: seq (seq T)):
-  Ln \is_sublist_of Kn -> (flatten Ln) \is_sublist_of (flatten Kn).
-Proof.
-move => subl t /lstn_flatten [L [lstn lstn']].
-by rewrite lstn_flatten; exists L; split; last apply subl.
-Qed.
 
 Section L2SS.
 Context (T: Type).
@@ -64,6 +18,14 @@ Proof. done. Qed.
 Lemma L2SS_eq L K:
 	(L2SS L) === (L2SS K) <-> L \is_sublist_of K /\ K \is_sublist_of L.
 Proof. by rewrite set_eq_subs !L2SS_subs. Qed.
+
+Lemma L2SS_cat (L K: seq T): L2SS (L ++ K) === (L2SS L) \u (L2SS K).
+Proof.
+move => t.
+elim: L => [ | a L ih /=]; first by split; [right | case].
+split => [[ | /ih []] | ]; [left; left | left; right | right | ] => //.
+by rewrite /= in ih; rewrite ih => [[[] | ]]; [left | right; left | right; right ].
+Qed.
 End L2SS.
 
 Section coincide.
@@ -73,48 +35,65 @@ Notation B := (Q -> A).
 (* The topology on Baire space is the topology of pointwise convergence the following are
 the basic open ets (in the sens that for each finite list L and each element phi of Baire
 space the set {psi | coin phi psi L} is a basic open set *)
+
+Definition agree_on P (phi psi: B):= forall q, P q -> phi q = psi q.
+
+Lemma agre_ref L: Reflexive (agree_on L).
+Proof. done. Qed.
+
+Lemma agre_sym L: Symmetric (agree_on L).
+Proof. by move => phi psi coin q Lq; rewrite coin. Qed.
+
+Lemma agre_trans L: Transitive (agree_on L).
+Proof. by move => phi psi psi' coin coin' q Lq; rewrite coin // coin'. Qed.
+
+Global Instance agre_equiv L: Equivalence (agree_on L).
+Proof. by split; [apply agre_ref | apply agre_sym | apply agre_trans]. Qed.
+
+Notation "phi '\agrees_with' psi '\on' P" :=
+  (agree_on (P: subset _) phi psi) (at level 2).
+
+Global Instance agre_prpr:
+  Proper (@set_equiv Q ==> @eqfun A Q ==> @eqfun A Q ==> iff) agree_on.
+Proof.
+move => P P' Peq phi phi' phieq psi psi' psieq.
+split => agre q /Peq Pq; first by rewrite -phieq -psieq; apply /agre.
+by rewrite phieq psieq; apply/agre.
+Qed.
+
+Lemma agre_union (P P': subset _) phi psi: phi \agrees_with psi \on (P \u P') <->
+   phi \agrees_with psi \on P /\ phi \agrees_with psi \on P'.
+Proof.
+split => [agre | [agre agre'] q [Pq | P'q]]; [ | apply agre | apply agre'] => //.
+by split => q Pq; apply/agre; [left | right].
+Qed.
+  
+Lemma agre_spec P phi psi:
+  phi \agrees_with psi \on P <-> (F2MF phi)|_P =~= (F2MF psi)|_P.
+Proof.
+split => [coin s t | eq q Pq]; last by have []:= (eq q (phi q)).1.
+by split; case => Ps <-; [rewrite coin | rewrite -coin].
+Qed.
+
+Lemma agre_subs phi psi P P':
+  P \is_subset_of P' -> phi \agrees_with psi \on P' -> phi \agrees_with psi \on P.
+Proof. by move => subs agre q /subs Pq; apply/agre. Qed.
+
 Fixpoint coincide L (phi psi: B) :=
   match L with
     | nil => True
     | cons s K => (phi s = psi s) /\ (coincide K phi psi)
   end.
-
-Notation "phi '\and' psi '\coincide_on' L" := (coincide L phi psi) (at level 2).
-
-Lemma restr_exte S T (f g: S ->> T) P P':
-	P \is_subset_of P' -> f|_P' \extends g|_P' -> f|_P \extends g|_P.
-Proof. by move => subs eq s t [Ps gst]; split => //; apply eq; split => //; apply/subs. Qed.
-
-Lemma restr_equiv S T (f g: S ->> T) P P':
-	P \is_subset_of P' -> f|_P' =~= g|_P' -> f|_P =~= g|_P.
-Proof.
-by rewrite !exte_equiv => subs [exte1 exte2]; split; apply/restr_exte; try apply/subs.
-Qed.
-
-(* coinciding on a finite list is an equivalence relation on the elemets of Baire space. *)
-Lemma coin_ref L: Reflexive (coincide L).
-Proof. by elim: L. Qed.
-
-Lemma coin_sym L: Symmetric (coincide L).
-Proof. by move => phi psi; elim: L => // q L ih [eq coin]; split; [rewrite eq | apply ih]. Qed.
-
-Lemma coin_trans L: Transitive (coincide L).
-Proof.
-move => phi psi psi'.
-by elim: L => // q L ih [] eq1 c1 [] eq2 c2; split; [rewrite eq1 eq2| apply: ih].
-Qed.
-
-Global Instance coin_equiv L: Equivalence (coincide L).
-Proof. by split; [apply coin_ref | apply coin_sym | apply coin_trans]. Qed.
-
-Lemma coin_lstn (phi psi: B) L:
+Notation "phi \and psi \coincide_on L" := (coincide L phi psi) (at level 20).
+  
+Lemma coin_lstn (phi psi: B) (L: seq Q):
 	phi \and psi \coincide_on L <-> (forall q, List.In q L -> phi q = psi q).
 Proof.
 elim: L => //; split => [ [ass1 ass2] q' [<- | listin] | ass ] //; first by apply H.1.
 by split; last (apply H.2; intros); apply ass; [left | right].
 Qed.
 
-Lemma coin_app (phi psi: B) L K:
+Lemma coin_cat (phi psi: B) L K:
 	phi \and psi \coincide_on (L ++ K) <-> (phi \and psi \coincide_on L /\ phi \and psi \coincide_on K).
 Proof.
 split; first by elim: L => [| a L ih] //=; case => eq b; have []:= ih b; do 2 try split.
@@ -125,13 +104,45 @@ Lemma coin_subl phi psi L K:
 	L \is_sublist_of K -> phi \and psi \coincide_on K -> phi \and psi \coincide_on L.
 Proof. by rewrite !coin_lstn; intros; apply/H0/H. Qed.
 
-Lemma coin_spec L phi psi:
-	phi \and psi \coincide_on L <-> (F2MF phi)|_(L2SS L) =~= (F2MF psi)|_(L2SS L).
+Lemma list_melt (cnt: nat -> Q) (sec: Q -> nat) K (phi psi: B): cancel sec cnt ->
+	phi \and psi \coincide_on (iseg cnt (max_elt sec K)) -> phi \and psi \coincide_on K.
 Proof.
-split => [/coin_lstn coin | eq]; last by rewrite coin_lstn => q lstn; apply eq; split.
-by split => [[Ls <-] | [Ls <-]]; split => //=; first symmetry; apply/coin.
+move => cncl; apply/coin_subl; elim: K => // q K subl q' /=[-> | lstn].
+- exact/iseg_subl/lstn_iseg/cncl/leq_maxl.
+exact/iseg_subl/subl/lstn/leq_maxr.
 Qed.
+
+Lemma coin_agre L (phi psi: B) :
+   phi \and psi \coincide_on L <-> phi \agrees_with psi \on (L2SS L).
+Proof.
+elim: L => [ | q L ih /=]; first by split => // _ q.
+split => [[eq /ih agre] s [<- | lstn] // | agre]; first exact/agre.
+split; first by apply/agre; left.
+by apply/ih => s lstn; apply/agre; right.
+Qed.
+
+Lemma coin_spec L (phi psi: B):
+  phi \and psi \coincide_on L <-> (F2MF phi)|_(L2SS L) =~= (F2MF psi)|_(L2SS L).
+Proof. by rewrite -agre_spec; exact/coin_agre. Qed.
+
+Lemma coin_ref L: Reflexive (coincide L).
+Proof. by elim: L. Qed.
+
+Lemma coin_sym L: Symmetric (coincide L).
+Proof. by move => phi psi /coin_agre agre; apply/coin_agre/agre_sym. Qed.
+
+Lemma coin_trans L: Transitive (coincide L).
+Proof.
+move => phi psi psi' /coin_agre agre /coin_agre agre'.
+exact/coin_agre/agre_trans/agre'.
+Qed.
+
+Global Instance coin_equiv L: Equivalence (coincide L).
+Proof. by split; [apply coin_ref | apply coin_sym | apply coin_trans]. Qed.
+
 End coincide.
+Notation "phi '\agrees_with' psi '\on' P" :=
+  (agree_on (P: subset _) phi psi) (at level 2).
 Notation "phi '\and' psi '\coincide_on' L" := (coincide L phi psi) (at level 2).
 
 Lemma coin_funeq (T: eqType) S (L: seq T) (phi psi: T -> S):

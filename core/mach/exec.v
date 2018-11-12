@@ -2,7 +2,7 @@
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype choice.
 From rlzrs Require Import all_mf.
 Require Import iseg.
-Import FunctionalExtensionality.
+Require Import FunctionalExtensionality.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

@@ -66,7 +66,7 @@ have [L Lprop]: exists L, forall psi, ~ (phi \and psi \coincide_on L /\ psi \fro
 	by apply negi; exists psi.
 exists L => psi coin Fpsi FpsiFpsi.
 exfalso; apply (Lprop psi).
-by split; [apply/coin_spec | exists Fpsi].
+by split; [apply/coin_agre | exists Fpsi].
 Qed.
 
 Lemma dom_minmod (F: B ->> B'):

@@ -129,8 +129,8 @@ apply/leq_trans; last first;
 		last apply/(min (fun q => if q == q' then init_seg (mf' q) else init_seg (mf q))).
 	by rewrite /=; case: ifP => /eqP // _; exact/melt_iseg.
 move => q''; case E: (q'' == q'); last by have [a' crt]:= mod q''; exists a'; exact/crt.
-move: E => /eqP ->; 	have [a' crt'] := mod' q'; exists a' => psi' /coin_spec coin' Fpsi' Fpsi'Fpsi'.
-exact/crt'/Fpsi'Fpsi'/coin_spec/coin_trans/coin'/coin_subl/coin_sym/coin_spec/coin/iseg_subl.
+move: E => /eqP ->; 	have [a' crt'] := mod' q'; exists a' => psi' /coin_agre coin' Fpsi' Fpsi'Fpsi'.
+exact/crt'/Fpsi'Fpsi'/coin_agre/coin_trans/coin'/coin_subl/coin_sym/coin_agre/coin/iseg_subl.
 Qed.
 
 Lemma minmod_cont: (minimal_modulus F) \is_continuous_operator.

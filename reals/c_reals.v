@@ -271,13 +271,13 @@ have limyn3: lim yn 3.
 	exists (S m) => n /leP ineq; rewrite /yn.
 	case: ifP => [/leP ineq' | ]; [lia | split_Rabs; lra].
 have [phi Frnphi]: rn \from dom F by apply /(rlzr_dom rlzr); first exact/rnyn; exists 3.
-have /coin_spec coin: (cnst 0%Q) \and rn \coincide_on L.
+have /coin_agre coin: (cnst 0%Q) \and rn \coincide_on L.
 	apply /coin_lstn => [[n eps] listin].
 	rewrite /cnst /rn; case: ifP => // /= /leP ineq.
 	exfalso; apply/ineq/leP/mprop/listin.
 have [psi Fqnpsi]:= qnfdF.
 have eq: psi 1%Q == phi 1%Q.
-	by have [a' crt]:= Lmod 1%Q; rewrite (crt rn coin phi)// (crt (cnst 0%Q) _ psi) //.
+- by have [a' crt]:= Lmod 1%Q; rewrite (crt rn coin phi)// (crt (cnst 0%Q) _ psi) //.
 have := Qeq_eqR (psi 1%Q) (phi 1%Q) eq.
 have psin0: psi \is_description_of (0: Rc).
 	apply /(rlzr_val_sing _ rlzr)/Fqnpsi/lim_cnst; first exact/lim_sing.

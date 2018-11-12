@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun seq.
-Require Import all_core classical_count cs.
+Require Import all_core cs.
 Require Import FunctionalExtensionality.
 
 Set Implicit Arguments.

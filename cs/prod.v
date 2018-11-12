@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun seq.
-Require Import all_cont classical_count cs.
+Require Import all_cont cs.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -7,18 +7,18 @@ Unset Printing Implicit Defensive.
 
 Section cs_product.
 (* This is the product of continuity-spaces. *)
-Definition lprj X Y (phipsi: questions X + questions Y -> (answers X) * (answers Y)) q := (phipsi (inl q)).1.
-Definition rprj X Y (phipsi: questions X + questions Y -> (answers X) * (answers Y)) q := (phipsi (inr q)).2.
+Definition lprj Q Q' A A' (phipsi: Q + Q' -> A * A') q := (phipsi (inl q)).1.
+Definition rprj Q Q' A A' (phipsi: Q + Q' -> A * A') q := (phipsi (inr q)).2.
+
+Definition prod_rep X Y :=
+	make_mf (fun (phipsi : (questions X + questions Y -> answers X * answers Y)) xy =>
+      (rep X ** rep Y) (lprj phipsi, rprj phipsi) xy).
 
 Definition name_pair X Y (phi: names X) (psi: names Y) :=
 	fun c => match c with
 		| inl s => (phi s, somea Y)
 		| inr t => (somea X, psi t)
 	end.
-
-Definition prod_rep X Y :=
-	make_mf (fun (phipsi : (questions X + questions Y -> answers X * answers Y)) xy =>
-      (rep X ** rep Y) (lprj phipsi, rprj phipsi) xy).
 
 Lemma prod_rep_sur (X Y: cs):
 	(@prod_rep X Y) \is_cototal.
@@ -48,8 +48,8 @@ Proof. by split; exact/prod_rep_sing. Defined.
 Canonical cs_prod (X Y: cs) := @continuity_space.Pack _ _ (inl (someq X)) (somea X, somea Y) (sum_count (questions_countable X) (questions_countable Y)) (prod_count (answers_countable X) (answers_countable Y)) (dictionary.Pack (cs_prod_modest_set_mixin X Y)).
 End cs_product.
 Notation "X \*_cs Y" := (cs_prod X Y) (at level 50).
-Arguments lprj {X} {Y}.
-Arguments rprj {X} {Y}.
+Arguments lprj {Q} {Q'} {A} {A'}.
+Arguments rprj {Q} {Q'} {A} {A'}.
 (*
 Class Uncurry T (f : T) src tgt := { prog : src -> tgt }.
 Arguments prog {T} f {src tgt _}.
@@ -64,21 +64,32 @@ Instance Uncurry_step (A B : rep_space) C (f : A -> B -> C)
 Notation "f '\is_recursive_function'" := (@is_rec_fun _ _ (prog f)) (at level 2).
 Notation "f '\is_computable_function'" := (@is_cmpt_fun _ _ (prog f)) (at level 2).
 *)
+
 Section products.
 Lemma name_split X Y phi (x: cs_prod X Y):
 	phi \is_description_of x <-> (lprj phi) \is_description_of (x.1) /\ (rprj phi) \is_description_of (x.2).
 Proof. done. Qed.
 
-Lemma lprj_rlzr_fst (X Y: cs):
-	(F2MF lprj) \realizes (@mf_fst X Y: _ \*_cs _ ->> _).
+Definition fst_rlzr X Y:= F2MF (@lprj (questions X) (questions Y) (answers X) (answers Y)).
+Arguments fst_rlzr {X} {Y}.
+
+Definition snd_rlzr X Y:= F2MF (@rprj (questions X) (questions Y) (answers X) (answers Y)).
+Arguments snd_rlzr {X} {Y}.
+
+Lemma fst_rlzr_spec (X Y: cs):
+  fst_rlzr \realizes (mf_fst: X \*_cs Y ->> X).
 Proof. by rewrite F2MF_rlzr_F2MF => phi x [phinx _]. Qed.
 
 Lemma rprj_rlzr_snd (X Y: cs):
-	(F2MF rprj) \realizes (@mf_snd X Y: _ \*_cs _ ->> _).
+  snd_rlzr \realizes (mf_snd: X \*_cs Y ->> Y).
 Proof. by rewrite F2MF_rlzr_F2MF => phi x [_ phinx]. Qed.
 
-Lemma name_pair_rlzr_diag (X: cs):
-	(F2MF (fun phi => @name_pair X X phi phi)) \realizes (@mf_diag X: _ ->> (_ \*_cs _)).
+Definition diag_rlzr (X: cs):=
+  F2MF (fun (phi: names X) => name_pair phi phi).
+Arguments diag_rlzr {X}.
+
+Lemma diag_rlzr_spec (X: cs):
+  diag_rlzr \realizes (@mf_diag X: _ ->> (_ \*_cs _)).
 Proof. by rewrite F2MF_rlzr_F2MF. Qed.
 
 Lemma lprj_pair (X Y: cs) (phi: names X) (psi: names Y):
@@ -89,29 +100,34 @@ Lemma rprj_pair (X Y: cs) (phi: names X) (psi: names Y):
 	rprj (name_pair phi psi) =  psi.
 Proof. by trivial. Qed.
 
-Lemma lprj_cont X Y: (F2MF (@lprj X Y)) \is_continuous_operator.
+Lemma lprj_cntop Q Q' A A': (F2MF (@lprj Q Q' A A')) \is_continuous_operator.
 Proof.
 by rewrite F2MF_cont => phi; exists (fun q => [:: inl q]) => psi q' [eq _]; rewrite /lprj eq.
 Qed.
 
 Lemma fst_hcr (X Y: cs): (@mf_fst X Y: _ \*_cs _ ->> _) \has_continuous_realizer.
 Proof.
-exists (F2MF (@lprj X Y)).
-split; last exact/lprj_cont.
+exists fst_rlzr.
+split; last exact/lprj_cntop.
 by rewrite F2MF_rlzr_F2MF => phi x [].
 Qed.
 
-Lemma rprj_cont X Y: (F2MF (@rprj X Y)) \is_continuous_operator.
+Lemma fst_cont (X Y: cs): (@fst X Y: _ \*_cs _ -> _) \is_continuous.
+Proof. exact/fst_hcr. Qed.
+  
+Lemma rprj_cntop Q Q' A A': (F2MF (@rprj Q Q' A A')) \is_continuous_operator.
 Proof.
 by rewrite F2MF_cont => phi; exists (fun q => [:: inr q]) => psi q' [eq _]; rewrite /rprj eq.
 Qed.
 
 Lemma snd_hcr (X Y: cs): (@mf_snd X Y: _ \*_cs _ ->> _) \has_continuous_realizer.
 Proof.
-exists (F2MF (@rprj X Y)).
-split; last exact/rprj_cont.
+exists snd_rlzr; split; last exact/rprj_cntop.
 by rewrite F2MF_rlzr_F2MF => phi x [].
 Qed.
+
+Lemma snd_cont (X Y: cs): (@snd X Y: _ \*_cs _ -> _) \is_continuous.
+Proof. exact/snd_hcr. Qed.
 
 Definition fprd_rlzr (X Y X' Y': cs) (F: (names X) ->> (names Y)) (G: (names X') ->> (names Y')):=
 	make_mf (fun (phipsi: names (cs_prod X X')) FphiGpsi =>
@@ -133,12 +149,12 @@ Lemma fprd_rlzr_spec (X Y X' Y': cs) (f: X ->> Y) (g: X' ->> Y') F G:
 	F \realizes f -> G \realizes g -> (fprd_rlzr F G) \realizes (f ** g: _ \*_cs _ ->> (_ \*_cs _)).
 Proof.
 move => rlzr rlzr'; apply split_rlzr => phi x.
-	rewrite name_split => [[phinx1 phinx2]].
-	rewrite fprd_dom => [[fd1 fd2]].
-	have [Fphi1 FphiFphi1]:= rlzr_dom rlzr phinx1 fd1.
-	have [Fphi2 FphiFphi2]:= rlzr_dom rlzr' phinx2 fd2.
-	exists (name_pair Fphi1 Fphi2).
-	by rewrite /= lprj_pair rprj_pair.
+- rewrite name_split => [[phinx1 phinx2]].
+  rewrite fprd_dom => [[fd1 fd2]].
+  have [Fphi1 FphiFphi1]:= rlzr_dom rlzr phinx1 fd1.
+  have [Fphi2 FphiFphi2]:= rlzr_dom rlzr' phinx2 fd2.
+  exists (name_pair Fphi1 Fphi2).
+  by rewrite /= lprj_pair rprj_pair.
 rewrite name_split fprd_dom => [[phinx1 phinx2]] [fd1 fd2].
 move => FGphi [-> [/=FphiFGphi GphiFGphi]].
 have [y []]:= rlzr_val rlzr phinx1 fd1 FphiFGphi.
@@ -146,7 +162,7 @@ have [y' []]:= rlzr_val rlzr' phinx2 fd2 GphiFGphi.
 by exists (y, y').
 Qed.
 
-Lemma fprd_rlzr_val_cont (X Y X' Y': cs) (F: (names X) ->> (names Y))
+Lemma fprd_rlzr_cntop (X Y X' Y': cs) (F: (names X) ->> (names Y))
 	(G: (names X') ->> (names Y')): F \is_continuous_operator -> G \is_continuous_operator ->
 	(fprd_rlzr F G) \is_continuous_operator.
 Proof.
@@ -162,25 +178,32 @@ exists (fun qq' => match qq' with
 	| inr q' => map inr (Lf' q')
 end) => [[q | q']].
 	have [a' crt]:= mod q; exists (FGphi (inl q)).
-	move => psi /coin_spec/coin_lstn coin Fpsi [ np' [/=val'l val'r]].
+	move => psi /coin_agre/coin_lstn coin Fpsi [ np' [/=val'l val'r]].
 	rewrite np np'; apply injective_projections => //=.
 	rewrite (crt (lprj phi) _ (lprj FGphi))//(crt (lprj psi) _ (lprj Fpsi))//.
-	rewrite -coin_spec coin_lstn /lprj => q' lstn.
+	rewrite -coin_agre coin_lstn /lprj => q' lstn.
 	by rewrite (coin (inl q')) //; apply (mapl (Lf q) q').
 have [a' crt]:= mod' q'; exists (FGphi (inr q')).
-move => psi /coin_spec/coin_lstn coin Fpsi [ np' [/=val'l val'r]].
+move => psi /coin_agre/coin_lstn coin Fpsi [ np' [/=val'l val'r]].
 rewrite np np'; apply injective_projections => //=.
 rewrite (crt (rprj phi) _ (rprj FGphi))//(crt (rprj psi) _ (rprj Fpsi))//.
-rewrite -coin_spec coin_lstn /rprj => q lstn.
+rewrite -coin_agre coin_lstn /rprj => q lstn.
 by rewrite (coin (inr q)) //; apply (mapr (Lf' q') q).
 Qed.
 
-Lemma mfpp_hcr (X Y X' Y': cs) (f: X ->> Y) (g: X' ->> Y'):
+Lemma fprd_hcr (X Y X' Y': cs) (f: X ->> Y) (g: X' ->> Y'):
 	f \has_continuous_realizer -> g \has_continuous_realizer -> (f ** g: cs_prod _ _ ->> cs_prod _ _) \has_continuous_realizer.
 Proof.
 move => [F [Frf Fcont]] [G [Grg Gcont]].
 exists (fprd_rlzr F G).
-split; [exact: fprd_rlzr_spec | exact: fprd_rlzr_val_cont].
+split; [exact: fprd_rlzr_spec | exact: fprd_rlzr_cntop].
 Qed.
 End products.
+
+Lemma fprd_cont (X Y X' Y': cs) (f: X -> Y) (g: X' -> Y'):
+  f \is_continuous -> g \is_continuous ->
+  (f **_f g: _ \*_cs _ -> _ \*_cs _) \is_continuous.
+Proof.
+by move => cont cont' ; rewrite /continuous F2MF_fprd; apply/fprd_hcr.
+Qed.
 Notation "X \*_cs Y" := (cs_prod X Y) (at level 50).

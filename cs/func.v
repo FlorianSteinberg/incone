@@ -1,46 +1,39 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs choice_dict.
-Require Import all_core classical_count classical_mach cs prod sub.
+Require Import all_core cs prod sub.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section cs_functions.
-Definition is_ass (X Y: cs) psi (f: X -> Y) := \F_(M psi) \realizes (F2MF f).
+Definition associate (X Y: cs):= make_mf (fun psi (f: X -> Y) =>
+                                            \F_(M psi) \realizes (F2MF f)).
+Arguments associate {X} {Y}.
 
-Notation "X c-> Y" :=
-	{f: X -> Y | f \is_continuous} (at level 2).
+Notation "X c-> Y" := (codom (@associate X Y)) (at level 2).
 
-Definition exist_c (X Y: cs) F Fhcr := exist (fun f => @hcr X Y (F2MF f)) F (Fhcr).
+Definition function_representation (X Y: cs) := make_mf (fun psi (f: X c-> Y) =>
+                                                        associate psi (projT1 f)).
 
-Definition is_fun_name (X Y: cs):=
-	make_mf (fun psi (f: X c-> Y) => \F_(M psi) \realizes (F2MF (projT1 f))).
-
-Lemma is_fun_name_sur (X Y : cs): (@is_fun_name X Y) \is_cototal.
-Proof.
-move => [f [F [Frf cont]]].
-have [psi psinF]:= M_universal (someq X) (somea X) (fun _ => somea Y) (questions_countable X) cont.
-by exists psi; apply/ntrvw.tight_rlzr/psinF.
-Qed.
+Lemma fun_rep_sur (X Y: cs): (function_representation X Y) \is_cototal.
+Proof. by move => [f [psi ass]]/=; exists psi. Qed.
 
 Definition cs_fun_assembly_mixin (X Y: cs) : interview_mixin.type
 	(seq (answers X) * questions Y -> seq (questions X) + (answers Y)) (X c-> Y).
-Proof. exists (@is_fun_name X Y); exact/is_fun_name_sur. Defined.
+Proof. exists (function_representation X Y); exact/fun_rep_sur. Defined.
 
-Lemma is_fun_name_sing (X Y : cs): (@is_fun_name X Y) \is_singlevalued.
+Lemma fun_rep_sing (X Y : cs): (function_representation X Y) \is_singlevalued.
 Proof.
-move => psi [f [F [Frf cont]]] [g [G [Grg cont']]] /= rlzr rlzr'.
+move => phi [f [psi ass]] [f' [psi' ass']] rlzr rlzr'.
 exact/eq_sub/(mf_rlzr_f_sing rlzr rlzr').
 Qed.
 
 Definition cs_fun_modest_set_mixin (X Y: cs):
 	dictionary_mixin.type (interview.Pack (cs_fun_assembly_mixin X Y)).
-Proof. split; exact/is_fun_name_sing. Defined.
+Proof. split; exact/fun_rep_sing. Defined.
 
-Canonical cs_fun X Y := @continuity_space.Pack
-	(seq (answers X) * questions Y)
-	(seq (questions X) + answers Y)
+Canonical cs_fun X Y := continuity_space.Pack
 	((nil, someq Y))
 	(inr (somea Y))
   (prod_count
@@ -53,57 +46,43 @@ Notation "X c-> Y" := (cs_fun X Y) (at level 2).
 
 Section evaluation.
 Definition evaluation X Y (fx: (X c-> Y) * X) := (projT1 fx.1) fx.2.
+Arguments evaluation {X} {Y}.
 
-Lemma eval_rlzr X Y:
-	(operator (fun n psiphi q => M (lprj psiphi) n (rprj psiphi) q)) \realizes (F2MF (@evaluation X Y): _ c-> _ \*_cs _ ->> _).
+Definition eval_rlzr Q Q' A A' :=
+  \F_(fun n (psiphi: _ + Q -> _ * A) => M (lprj psiphi) n (rprj psiphi): Q' -> option A'). 
+Arguments eval_rlzr {Q} {Q'} {A} {A'}.
+
+Lemma eval_rlzr_val Q A Q' A' (psiphi: (seq A * Q') + Q -> (seq Q + A') * A):
+  eval_rlzr psiphi === \F_(M (lprj psiphi)) (rprj psiphi).
+Proof. done. Qed.
+  
+Lemma eval_rlzr_crct X Y:
+	eval_rlzr \realizes (F2MF evaluation: X c-> Y \*_cs X ->> Y).
 Proof.
-set R:=(fun n psiphi q => M (lprj psiphi) n (rprj psiphi) q).
 rewrite rlzr_F2MF => phi [[f fhcr] x] [/=phinf phinx].
-rewrite /is_fun_name/= in phinf.
-split.
-	have [ | Fphi FphiFphi]:= rlzr_dom phinf phinx; first by apply F2MF_tot.
-	have eq: (operator (M (lprj phi))) (rprj phi) === (operator R) phi by trivial.
-	by exists Fphi; apply/eq.
-move => Fphi RphiFphi.
-by apply/ rlzr_val_sing; [ apply F2MF_sing | apply phinf | apply phinx | | ].
+rewrite /function_representation/= in phinf.
+split => [| Fphi RphiFphi]; last by apply/rlzr_val_sing; [apply/F2MF_sing | apply phinf | apply phinx | | ].
+have [ | Fphi FphiFphi]:= rlzr_dom phinf phinx; first by apply F2MF_tot.
+by exists Fphi; apply/eval_rlzr_val.
 Qed.
 
-(*
-Lemma eval_cmpt X Y:
-	(@evaluation X Y) \is_computable_function.
-Proof.
-exists (fun n psiphi q => U (lprj psiphi) n (rprj psiphi) q).
-exact: eval_rlzr.
-Defined.
-
-Lemma eval_hcr X Y:
-	(@evaluation X Y) \has_continuous_realizer.
-Proof.
-exists (eval (fun n psiphi q => U (lprj psiphi) n (rprj psiphi) q)).
-split; first exact: eval_rlzr.
-move => psiphi q [Fpsiphi val].
-have [n evl] := val q.
-Admitted.*)
-
 End evaluation.
-
+Arguments eval_rlzr {Q} {Q'} {A} {A'}.
 (*
-Section COMPUTABLE_ELEMENTS.
-Lemma cmpt_elt_mon_cmpt (X Y: rep_space) (f: X c-> Y):
-	f \is_recursive_element -> (F2MF (projT1 f)) \is_monotone_computable.
-Proof. move => [psiF comp]; exists (U psiF); split => //; exact: U_mon. Defined.
+Section associates.
 
-Lemma prod_space_cont (X Y Z: rep_space) (f: Z c-> X) (g: Z c-> Y):
-	exists (F: rep_space_cont_fun Z (rep_space_prod X Y)),
-		(forall z, (projT1 F z).1 = (projT1 f) z)
-		/\
-		(forall z, (projT1 F z).2 = (projT1 g) z).
+Lemma prod_space_cont (X Y Z: cs) (f: Z c-> X) (g: Z c-> Y):
+  exists (F: cs_fun Z (cs_prod X Y)),
+    (forall z, (projT1 F z).1 = (projT1 f) z)
+    /\
+    (forall z, (projT1 F z).2 = (projT1 g) z).
 Proof.
 set F := fun z => ((projT1 f) **_f (projT1 g)) (z, z).
-have Fhcr: (F2MF F) \has_continuous_realizer.
-	have ->: (F2MF F) =~= (F2MF (projT1 f) ** F2MF (projT1 g)) o (F2MF (fun z => (z, z))).
-		by rewrite -mfpp_fun_mfpp F2MF_comp.
-	by apply comp_hcr; [apply diag_hcr | apply mfpp_hcr; [apply (projT2 f) | apply (projT2 g) ]].
+have Fhcr: (F2MF F: Z ->> cs_prod X Y) \has_continuous_realizer.
+- have ->: (F2MF F) =~= (F2MF (projT1 f) ** F2MF (projT1 g)) \o (F2MF (fun z => (z, z))).
+    by rewrite -F2MF_fprd comp_F2MF.
+  apply/comp_hcr.
+  by apply comp_hcr; [apply diag_hcr | apply mfpp_hcr; [apply (projT2 f) | apply (projT2 g) ]].
 by exists (exist_c Fhcr).
 Qed.
 

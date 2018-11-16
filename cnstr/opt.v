@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun.
-Require Import all_core classical_count cs cs_one.
+Require Import all_core classical_count cs cs_unit.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -8,10 +8,10 @@ Unset Printing Implicit Defensive.
 Section OPTIONSPACES.
 Definition rep_opt (X: cs) :=
 make_mf (fun phi (x: option X) => match x with
-	| some x => (phi (inl star)).1 = some star
+	| some x => (phi (inl tt)).1 = some tt
 		/\
 		 delta (fun q => (phi (inr q)).2) x
-	| None => (phi (inl star)).1 = None
+	| None => (phi (inl tt)).1 = None
 end).
 
 Lemma rep_opt_sur X:
@@ -19,11 +19,11 @@ Lemma rep_opt_sur X:
 Proof.
 move => [a | ]; last by exists (fun q => (None, somea X)).
 have [phi phinx]:= get_description a.
-by exists (fun q => (Some star, if q is inr q' then phi q' else somea X)).
+by exists (fun q => (Some tt, if q is inr q' then phi q' else somea X)).
 Qed.
 
 Definition cs_opt_assembly_mixin (X: cs):
-	interview_mixin.type (one + questions X -> option one * answers X) (option X).
+	interview_mixin.type (unit + questions X -> option unit * answers X) (option X).
 Proof. exists (@rep_opt X); exact/rep_opt_sur. Defined.
 
 Lemma rep_opt_sing X:
@@ -44,12 +44,12 @@ Definition cs_opt_modest_set_mixin (X: cs):
 Proof. split; exact/rep_opt_sing. Defined.
 
 Canonical rep_space_opt (X: cs) := @continuity_space.Pack
-	(one + questions X)
-	(option one * answers X)
-	(inl star)
+	(unit + questions X)
+	(option unit * answers X)
+	(inl tt)
 	((None, somea X))
-	(sum_count one_count (questions_countable X))
-	(prod_count (option_count one_count) (answers_countable X))
+	(sum_count unit_count (questions_countable X))
+	(prod_count (option_count unit_count) (answers_countable X))
 	(dictionary.Pack (cs_opt_modest_set_mixin X)).
 
 (*

@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrnat.
-Require Import classical_count classical_cont classical_mach all_cs_base cs_one cs_nat.
+Require Import classical_count classical_cont classical_mach all_cs_base cs_unit cs_nat.
 Require Import FunctionalExtensionality ClassicalChoice.
 
 Set Implicit Arguments.
@@ -90,7 +90,7 @@ Qed.
 Definition sig2fun (X: cs) (f: cs_sig_prod X) := exist_c (nat_dscrt f): cs_nat c-> X.
 
 Definition sig2fun_rlzrf (X: cs) (phi: names (cs_sig_prod X)) Lq' := match Lq'.1 with
-	| nil => inl [:: star]
+	| nil => inl [:: tt]
 	| (n :: L) => inr (phi (n, Lq'.2))
 end.
 
@@ -133,7 +133,7 @@ Proof.
 rewrite rlzr_F2MF => psi xn /rlzr_F2MF rlzr.
 split => [ | phin Fpsiphi n].
 	have prp: forall (n: nat), exists phi: questions X -> answers X, forall q,
-  exists c : nat, M psi c (fun _ : one => n) q = Some (phi q).
+  exists c : nat, M psi c (fun _ : unit => n) q = Some (phi q).
   	move => n.
   	have [ | [phi val prp]]//:= rlzr (fun _ => n) n.
   	exists phi => q; apply/val.

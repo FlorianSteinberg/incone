@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrnat ssrbool choice eqtype ssrfun.
 From rlzrs Require Import all_mf.
-Require Import classical_cont count.
+Require Import classical_cont iseg count.
 Require Import ClassicalChoice.
 
 Set Implicit Arguments.
@@ -8,7 +8,7 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Lemma exists_minsec Q (cnt: nat -> Q):
-	cnt \is_surjective -> exists sec, minimal_section cnt sec.
+  cnt \is_surjective -> exists sec, minimal_section cnt sec.
 Proof.
 move => sur.
 set R := make_mf (fun s n => cnt n = s /\ (forall m, cnt m = s -> n <= m)).
@@ -19,8 +19,11 @@ Qed.
 Lemma count_countMixin Q : Q \is_countable ->
   exists P : Countable.mixin_of Q, True.
 Proof.
-move => [cnt sur]; have [sec [issec min]] := exists_minsec sur.
-unshelve eexists (@Countable.Mixin _ (sec \o_f Some) cnt _) => //.
+move => [cnt sur].
+pose cnt' := (fun n => match n with | 0 => None | S n => cnt n end).
+have sur': cnt' \is_surjective by move => [q | ]; [have [n]:= sur q; exists n.+1 | exists 0].
+have [sec' [issec min]] := exists_minsec sur'.
+unshelve eexists (@Countable.Mixin _ (sec' \o_f Some) cnt' _) => //.
 by move=> x /=; rewrite issec.
 Qed.
 

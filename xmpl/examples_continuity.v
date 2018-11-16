@@ -12,7 +12,7 @@ Unset Printing Implicit Defensive.
 Section BAIRE_SPACE.
 Context (Q A Q' A': Type).
 Notation B := (nat -> nat).
-Notation N := (one -> nat).
+Notation N := (unit -> nat).
 Notation init_seg := (iseg id).
 Notation max_elt:= (max_elt id).
 
@@ -47,7 +47,7 @@ exact/iseg_subl/leq_max/(@iseg_base _ id id)/lstn/ms.
 Qed.
 
 (*To have function from baire space to natural numbers, we identify nat with one -> nat.*)
-Definition F := make_mf (fun phi n => phi (n star) = 0 /\ forall m, phi m = 0 -> n star <= m).
+Definition F := make_mf (fun phi n => phi (n tt) = 0 /\ forall m, phi m = 0 -> n tt <= m).
 (* F is a partial function: if phi is never zero, the right hand side is always false and
 phi is not assinged any value. On the other hand the function is single valued, as only
 the smalles number where phi is zero allowed as return value. More generally, the function
@@ -56,11 +56,11 @@ is continuous:*)
 Lemma F_cont: F \is_continuous_operator.
 Proof.
 apply cont_choice => phi nf [val prp] str.
-exists (init_seg (nf star).+1) => psi/coin_spec/coin_lstn coin nf' [val' prp'].
+exists (init_seg (nf tt).+1) => psi/coin_spec/coin_lstn coin nf' [val' prp'].
 elim str; apply/eqP; rewrite eqn_leq; apply/andP.
-split; [apply/prp'; rewrite -coin// | apply/prp]; first exact/(@lstn_iseg _ id id (nf star)).
+split; [apply/prp'; rewrite -coin// | apply/prp]; first exact/(@lstn_iseg _ id id (nf tt)).
 rewrite -coin in val' => //;
-apply/iseg_subl; [suff e: (nf' star).+1 <= (nf star).+1 by apply/e | exact/(@lstn_iseg _ id id)].
+apply/iseg_subl; [suff e: (nf' tt).+1 <= (nf tt).+1 by apply/e | exact/(@lstn_iseg _ id id)].
 by apply/prp'; rewrite -coin //; apply/(@lstn_iseg _ id id).
 Qed.
 

@@ -24,16 +24,15 @@ Qed.
 
 Canonical SD_eqType := Equality.Pack SD_eqClass Type.
 
-Lemma SD_count:
-	SD \is_countable.
+Lemma SD_count: SD \is_countable.
 Proof.
 exists (fun n => match n with
-	| 0%nat => Some minusone
-	| S 0 => Some zero
-	| S (S 0) => Some one
-	| S (S (S n)) => None
-end).
-by case; [case; [exists 0%nat | exists 1%nat | exists 2%nat] | exists 3%nat].
+	 | 0%nat => Some minusone
+	 | S 0 => Some zero
+	 | S (S 0) => Some one
+	 | S (S (S n)) => None
+         end).
+by case; [exists 0%nat | exists 1%nat | exists 2%nat].
 Qed.
 
 Definition SD2Z sd : Z := match sd with
@@ -442,14 +441,13 @@ pose count_Z := fix count_Z n := match n with
 	end
 end.
 exists count_Z.
-case; last by exists 0%nat.
 case => [ | p | p]; first by exists 1%nat.
-	rewrite -[p]Pos2Nat.id.
-	elim: (Pos.to_nat p) => [ | n [m eq]]; first by exists 2%nat.
-	case: n eq => [ | n eq]; first by exists 2%nat.
-	exists m.+2; rewrite /= eq.
-	case: m eq => //; case => // m eq.
-	by rewrite Pplus_one_succ_r.
+- rewrite -[p]Pos2Nat.id.
+  elim: (Pos.to_nat p) => [ | n [m eq]]; first by exists 2%nat.
+  case: n eq => [ | n eq]; first by exists 2%nat.
+  exists m.+2; rewrite /= eq.
+  case: m eq => //; case => // m eq.
+  by rewrite Pplus_one_succ_r.
 rewrite -[p]Pos2Nat.id.
 elim: (Pos.to_nat p) => [ | n [m eq]]; first by exists 3%nat.
 case: n eq => [ | n eq]; first by exists 3%nat.

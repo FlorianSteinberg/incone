@@ -1,6 +1,6 @@
-From mathcomp Require Import all_ssreflect.
+From mathcomp Require Import ssreflect ssrfun.
 Require Import all_core cs.
-Require Import Classical ProofIrrelevance.
+Require Import ProofIrrelevance ProofIrrelevanceFacts.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -11,7 +11,7 @@ Fact eq_sub T P (a b : {x : T | P x}) : a = b <-> projT1 a = projT1 b.
 Proof.
 split=> [->//|]; move: a b => [a Pa] [b Pb] /= eqab.
 case: _ / eqab in Pb *; congr (exist _ _ _).
-exact: Classical_Prop.proof_irrelevance.
+apply/proof_irrelevance.
 Qed.
 
 Definition rep_sub (X: cs) (P: mf_subset.type X):= 
@@ -34,12 +34,11 @@ Definition cs_sub_modest_set_mixin X P:
 	dictionary_mixin.type (interview.Pack (@cs_sub_assembly_mixin X P)).
 Proof. split; exact/rep_sub_sing. Qed.
 
-Canonical cs_sub (X: cs) (P: mf_subset.type X) := @continuity_space.Pack
-	(questions X)
-	(answers X)
-	(someq X)
-	(somea X)
-  (questions_countable X)
-  (answers_countable X)
-  (dictionary.Pack (@cs_sub_modest_set_mixin X P)).
+Canonical cs_sub (X: cs) (P: mf_subset.type X) :=
+  continuity_space.Pack
+    (someq X)
+    (somea X)
+    (questions_countable X)
+    (answers_countable X)
+    (dictionary.Pack (@cs_sub_modest_set_mixin X P)).
 End cs_subspace.

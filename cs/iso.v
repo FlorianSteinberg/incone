@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun.
-Require Import all_core cs func facts.
+Require Import all_core cs func classical_func facts.
 Require Import RelationClasses.
 
 Set Implicit Arguments.

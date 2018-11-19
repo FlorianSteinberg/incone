@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun seq.
-Require Import all_cont classical_count cs.
+Require Import all_cont cs.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

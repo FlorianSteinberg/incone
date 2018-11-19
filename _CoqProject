@@ -7,8 +7,8 @@ all_count.v
 
 core/cont/baire.v
 core/cont/cont.v
-core/cont/minm.v
 core/cont/classical_cont.v
+core/cont/minm.v
 all_cont.v
 
 core/count/seq_cont.v
@@ -25,6 +25,7 @@ cs/prod.v
 cs/facts.v
 cs/sub.v
 cs/func.v
+cs/classical_func.v
 cs/iso.v
 cs/sum.v
 all_cs_base.v

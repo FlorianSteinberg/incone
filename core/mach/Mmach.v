@@ -99,9 +99,7 @@ Qed.
 
 Lemma cns_cons psi phi q' K Kn:
   consistent psi phi q' (K::Kn) -> consistent psi phi q' Kn.
-Proof.
-by move => cns i ineq; apply/cns.
-Qed.
+Proof. by move => cns i ineq; apply/cns. Qed.
 
 Lemma rev_eq T (L L': seq T): rev L = rev L' <-> L = L'.
 Proof. by split; first rewrite -{2}(revK L) -{2}(revK L'); move ->. Qed.
@@ -145,7 +143,7 @@ by rewrite lstn_iseg; exists i.
 Qed.
   
 Lemma cns_eq psi psi' phi q' Kn Kn': size Kn = size Kn' ->
-        psi \and psi' \coincide_on (iseg (fun i => (map phi (flatten (drop i.+1 Kn)), q')) (size Kn)) ->
+   psi \and psi' \coincide_on (iseg (fun i => (map phi (flatten (drop i.+1 Kn)), q')) (size Kn)) ->
 	consistent psi phi q' Kn -> consistent psi phi q' Kn' -> Kn = Kn'.
 Proof.
 move: {2}(size Kn) (leqnn (size Kn)) => n.
@@ -162,8 +160,9 @@ have [ | K''' []]//=:= cns' 0; rewrite drop0 => val' /cat_eq_right ->.
 by move: val val'; rewrite eq' => -> [->].
 Qed.
 
-Lemma cns_rec psi psi' phi q' Kn Kn' a': psi (map phi (flatten Kn), q') = ! a' -> size Kn <= size Kn' ->
-        psi \and psi' \coincide_on (iseg (fun i => (map phi (flatten (drop i Kn)), q')) (size Kn).+1) -> 
+Lemma cns_rec psi psi' phi q' Kn Kn' a': psi (map phi (flatten Kn), q') = ! a' ->
+  size Kn <= size Kn' ->
+  psi \and psi' \coincide_on (iseg (fun i => (map phi (flatten (drop i Kn)), q')) (size Kn).+1) -> 
 	consistent psi phi q' Kn -> consistent psi' phi q' Kn' -> Kn = Kn'.
 Proof.
 move => val; elim: Kn' => [ | K' Kn' ih].
@@ -202,10 +201,10 @@ split => val q'.
 - have [n]:= val q'.
   elim: n => [ | n ih /=]; rewrite /M/=/M_step.
     by case E: (psi (nil, q')) => [ | a']// [eq]; exists nil; rewrite E eq; split.
-  case E: (M_rec psi n phi q') => [L | a']; last by move => eq; apply/ih; rewrite /M /= E eq.
-  case E': (psi (map phi L, q')) => [ | a']// [eq].
-  have [Ln [<- [eq' prp]]]:= (M_rec_inl_spec psi n phi q' L).1 E.
-  by exists Ln; split; last by rewrite -eq' E' eq.
+  case E: (M_rec psi n phi q') => [K | a']; last by move => eq; apply/ih; rewrite /M /= E eq.
+  case E': (psi (map phi K, q')) => [ | a']// [eq].
+  have [Kn [sze [eq']]]:= (M_rec_inl_spec psi n phi q' K).1 E.
+  by exists Kn; split; last by rewrite -eq' E' eq.
 have [Ln [eq prp]]:= val q'.
 elim: Ln eq prp => [_ /= eq | L Ln ih prp eq/=]; first by exists 0; rewrite/M/=/M_step eq.
 exists (size Ln).+1; rewrite /M/=/M_step.
@@ -213,8 +212,35 @@ suff ->: M_rec psi (size Ln) phi q' = inl (flatten (L :: Ln)) by rewrite eq.
 by apply M_rec_inl_spec; exists (L :: Ln).
 Qed.
 
-Definition mf_dialogue psi phi := make_mf (fun q' a =>
-	exists Ln, consistent psi phi q' Ln /\ List.In a (flatten Ln)).
+Fixpoint gather_queries psi n phi q':= match n with
+                                       | 0 => nil
+                                       | S n' => match M_rec psi n' phi q' with
+                                                | inr a' => gather_queries psi n' phi q'
+                                                |inl K => K ++ gather_queries psi n' phi q'
+                                                end
+                                       end.
+
+Lemma gather_queries_mon psi n phi q':
+  (gather_queries psi n phi q') \is_sublist_of (gather_queries psi n.+1 phi q').
+Proof. by move => q lstn /=; case E: (M_rec psi n phi q') => //; apply/lstn_app; right. Qed.
+
+Lemma gather_queries_spec psi phi q' q: (exists n, List.In q (gather_queries psi n phi q')) <->
+      exists Qn, consistent psi phi q' Qn /\ List.In q (flatten Qn).
+Proof.
+split => [[] | [Qn [cns lstn]]]; last first.
+- case E: (size Qn) => [ | n]; first by rewrite (size0nil E) in lstn.
+- exists n.+1; rewrite /= (M_rec_inl_spec psi n phi q' (flatten Qn)).2; last by exists Qn.
+  by  apply /lstn_app; left.
+elim => // n ih /=.
+case: (M_rec psi n phi q') => [K /lstn_app [lstn | lstn] | a' lstn]; try exact/ih.
+Admitted.
+
+Definition queriesM psi n phi q' := match M_rec psi n phi q' with
+                                    | inl K => None
+                                    | inr a' => Some (gather_queries psi n phi q')
+                                    end.
+
+Lemma queriesM_mon psi: (queriesM psi) \is_monotone.
 
 Lemma dlg_com psi phi q' a: mf_dialogue psi phi q' a -> 
 	forall Ln a', communication psi phi q' (Ln, a') -> List.In a (flatten Ln).

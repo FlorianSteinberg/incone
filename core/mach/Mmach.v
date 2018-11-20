@@ -14,10 +14,10 @@ Notation B' := (Q' -> A').
 Notation "? K" := (@inl (list Q) A' K) (format "'?' K", at level 50).
 Notation "! a'" := (@inr (list Q) A' a') (format "'!' a'", at level 50).
 
-Definition M_step (psi: list A * Q' -> list Q + A') phi q' L :=
-  match psi (L, q') with
+Definition M_step (psi: list A * Q' -> list Q + A') phi q' K :=
+  match psi (map phi K, q') with
   | inr a' => inr a'
-  | inl K => inl ((map phi K) ++ L)
+  | inl K' => inl (K' ++ K)
   end.
 
 Fixpoint M_rec (psi: list A * Q' -> list Q + A') n phi q' :=
@@ -25,7 +25,7 @@ Fixpoint M_rec (psi: list A * Q' -> list Q + A') n phi q' :=
   | 0 => M_step psi phi q' nil
   | S n' => match M_rec psi n' phi q' with
 	   | inr a' => inr a'
-	   | inl L => M_step psi phi q' L
+	   | inl K => M_step psi phi q' K
 	   end
   end.
 
@@ -45,55 +45,62 @@ Proof. by move => phi phifd q' n; rewrite/M/=; case E: (M_rec psi n phi q'). Qed
 Lemma M_rec_step n psi phi q':
   M_rec psi n.+1 phi q' = match M_rec psi n phi q' with
 	                  | inr a' => inr a'
-		          | inl L => M_step psi phi q' L
+		          | inl K => M_step psi phi q' K
 	                  end.
 Proof. done. Qed.
 
-Lemma M_rec_inl_spec psi n phi q' L:
-  M_rec psi n phi q' =  inl L <-> exists (Ln: list (list A)),
-    size Ln = n.+1 /\ L = flatten Ln /\
-    forall i, i < n.+1 -> exists K,
-	psi (flatten (drop i.+1 Ln), q') = ? K /\
-	flatten (drop i Ln) = map phi K ++ flatten (drop i.+1 Ln).
+Definition consistent (psi: _ -> _ + A') (phi: B) (q': Q') Qn :=
+  forall i, i < size Qn -> exists K,
+      psi (map phi (flatten (drop i.+1 Qn)), q') = ? K
+      /\
+      flatten (drop i Qn) = K ++ flatten (drop i.+1 Qn).
+
+Lemma M_rec_inl_spec psi n phi q' K:
+  M_rec psi n phi q' =  inl K <-> exists (Qn: list (list Q)),
+    size Qn = n.+1 /\ K = flatten Qn /\ consistent psi phi q' Qn.
 Proof.
 split.
-- elim: n L => [L | /= n]; first rewrite /=/M_step.
-  case E: (psi (nil, q')) => [K | ]//; rewrite cats0 => [[]] eq.
-  exists [:: L]; split => //; split => [ | i ineq]; first by rewrite /= cats0.
-  exists K; split => //; have /eqP ->: i == 0 by rewrite -leqn0.
+- elim: n K => [K | /= n]; first rewrite /=/M_step.
+  case E: (psi (nil, q')) => [K' | ]//; rewrite cats0 => [[]] eq.
+  exists [:: K]; split => //; split => [ | i ineq]; first by rewrite /= cats0.
+  exists K'; split => //; have /eqP ->: i == 0 by rewrite -leqn0.
   by rewrite /= eq.
-case E: (M_rec psi n phi q') => [L' | ] // ih L /=.
-- have [ | Ln [sze [eq prp E']]]//:= ih L'.
-  move: E'; rewrite /M_step; case val: (psi (L', q')) => [K | ]// [E'].
-  exists (map phi K :: Ln); split => //=; first by rewrite sze.
+case E: (M_rec psi n phi q') => [K' | ] // ih K /=.
+- have [ | Qn [sze [eq prp E']]]//:= ih K'.
+  move: E'; rewrite /M_step; case val: (psi (map phi K', q')) => [K'' | ]// [E'].
+  exists ( K'' :: Qn); split => //=; first by rewrite sze.
   split; first by rewrite -eq E'.
   case => [_ | i ineq]; last exact/prp.
-  by exists K; rewrite drop0 /=; split; first by rewrite -eq.
-elim: n L => [_ [Ln [sze [-> prp]]]/= | /= n ih _ [Ln [sze [-> prp]]]].
-- have [ | K [ ]]//:= prp 0; rewrite drop1 drop0.
+  by exists K''; rewrite drop1/= -eq.
+elim: n K => [_ [Ln [sze [-> cns]]]/= | /= n ih _ [Ln [sze [-> cns]]]].
+- have [ | K [ ]]//:= cns 0; first by rewrite sze.
+  rewrite drop1 drop0.
   have -> /=: (behead Ln) = [::] by apply/size0nil; rewrite size_behead sze.
   by rewrite !cats0 /M_step => -> ->/=; rewrite cats0.
-rewrite (ih (flatten (drop 1 Ln))); have [ | K [val ]]//:= prp 0.
+rewrite (ih (flatten (drop 1 Ln))).
+  have [ | K [val ]]//:= cns 0; first by rewrite sze.
   by rewrite drop0 /M_step val => ->.
-move => eq; exists (drop 1 Ln); split; first by rewrite size_drop sze.
-split => // i ineq; have [ | K']//:= prp i.+1 => [[val' eq']].
-by exists K'; split; [rewrite drop_drop -val' addn1 | rewrite !drop_drop !addn1].
+exists (drop 1 Ln); split; first by rewrite size_drop sze.
+split => // i; rewrite size_drop sze subnS subn0/= => ineq. 
+have [ | K' []]:= cns i.+1; first by rewrite sze.
+by exists K'; split; [rewrite drop_drop addn1| rewrite !drop_drop !addn1].
 Qed.
-
-Definition consistent (psi: _ -> _ + A') (phi: B) (q': Q') Ln := forall i, i < size Ln -> exists K,
-      psi (flatten (drop i.+1 Ln), q') = ? K
-      /\
-      flatten (drop i Ln) = map phi K ++ flatten (drop i.+1 Ln).
 
 Lemma cns0 psi phi q': consistent psi phi q' nil.
 Proof. done. Qed.
 
-Lemma cns_drop psi phi q' Ln n:
-  consistent psi phi q' Ln -> consistent psi phi q' (drop n Ln).
+Lemma cns_drop psi phi q' Kn n:
+  consistent psi phi q' Kn -> consistent psi phi q' (drop n Kn).
 Proof.
 move => cns i; rewrite size_drop => ils.
 have [ | K []]:= cns (i + n); first by rewrite addnC -ltn_subRL.
 by exists K; rewrite !drop_drop addSn.
+Qed.
+
+Lemma cns_cons psi phi q' K Kn:
+  consistent psi phi q' (K::Kn) -> consistent psi phi q' Kn.
+Proof.
+by move => cns i ineq; apply/cns.
 Qed.
 
 Lemma rev_eq T (L L': seq T): rev L = rev L' <-> L = L'.
@@ -111,57 +118,92 @@ elim: K L L' => [L L' | a K ih L L']; [rewrite !cats0 | split => [ | ->]] => //.
 by rewrite -!cat_rcons (ih (rcons L a) (rcons L' a)) rcons_eq => [[->]].
 Qed.
 
-Lemma cns_eq psi phi q' Ln Ln': size Ln = size Ln' ->
-	consistent psi phi q' Ln -> consistent psi phi q' Ln' -> Ln = Ln'.
+Lemma lstn_nseg n m: List.In n (iseg id m) <-> n < m.
 Proof.
-move: {2}(size Ln) (leqnn (size Ln)) => n.
-elim: n Ln Ln' => [[[] | []] | n ih [[] | L Ln []]]// L' Ln' ineq [eq] cns cns'.
-have eq': Ln = Ln' by rewrite (ih Ln Ln') => //[i ineq' | i ineq']; try exact/cns; try exact/cns'.
+elim: m => // m ih.
+rewrite leq_eqVlt /=.
+split => [[-> | /ih ineq] |/orP [/eqP [->] | ineq]].
+- - - by apply/orP; left.
+- - by apply/orP; right.
+- by left.
+by right; apply/ih.
+Qed.
+
+Lemma lstn_iseg T (cnt: nat -> T) q m: List.In q (iseg cnt m) <-> exists n, n < m /\ cnt n = q. 
+Proof.
+split => [ | [n []]]; first exact/iseg_ex; elim: m => // m ih.
+by rewrite leq_eqVlt; case/orP => [/eqP [<-]| ]; [left | right; apply/ih].
+Qed.
+
+Lemma coin_cns psi psi' phi q' Kn:
+  psi \and psi' \coincide_on (iseg (fun i => (map phi (flatten (drop i.+1 Kn)), q')) (size Kn)) ->
+  consistent psi phi q' Kn -> consistent psi' phi q' Kn.
+Proof.
+elim: Kn => // K Kn ih /coin_lstn coin cns i ineq.
+rewrite -coin; first exact/cns.  
+by rewrite lstn_iseg; exists i.
+Qed.
+  
+Lemma cns_eq psi psi' phi q' Kn Kn': size Kn = size Kn' ->
+        psi \and psi' \coincide_on (iseg (fun i => (map phi (flatten (drop i.+1 Kn)), q')) (size Kn)) ->
+	consistent psi phi q' Kn -> consistent psi phi q' Kn' -> Kn = Kn'.
+Proof.
+move: {2}(size Kn) (leqnn (size Kn)) => n.
+elim: n Kn Kn' => [[[] | []] | n ih [[] | K Kn []]]// K' Kn' ineq [eq] /coin_lstn coin cns cns'.
+have eq': Kn = Kn'.
+- rewrite (ih Kn Kn') => //[ | i ineq' | i ineq']; try exact/cns; try exact/cns'.
+  apply/coin_lstn => q.
+  rewrite lstn_iseg => [[k [ineq' <-]]].
+  apply/coin; rewrite lstn_iseg.
+  by exists k.+1; rewrite -addn1 -drop_drop drop1 /= addn1.
 rewrite eq'; f_equal.
-have [ | K []]//=:= cns 0; rewrite drop0 => val /cat_eq_right ->.
-have [ | K' []]//=:= cns' 0; rewrite drop0 => val' /cat_eq_right ->.
+have [ | K'' []]//=:= cns 0; rewrite drop0 => val /cat_eq_right ->.
+have [ | K''' []]//=:= cns' 0; rewrite drop0 => val' /cat_eq_right ->.
 by move: val val'; rewrite eq' => -> [->].
 Qed.
 
-Lemma cns_rec psi phi q' Ln Ln' a': psi (flatten Ln, q') = ! a' -> size Ln <= size Ln' ->
-	consistent psi phi q' Ln -> consistent psi phi q' Ln' -> Ln = Ln'.
+Lemma cns_rec psi psi' phi q' Kn Kn' a': psi (map phi (flatten Kn), q') = ! a' -> size Kn <= size Kn' ->
+        psi \and psi' \coincide_on (iseg (fun i => (map phi (flatten (drop i Kn)), q')) (size Kn).+1) -> 
+	consistent psi phi q' Kn -> consistent psi' phi q' Kn' -> Kn = Kn'.
 Proof.
-move => val; elim: Ln' => [ | L' Ln' ih].
+move => val; elim: Kn' => [ | K' Kn' ih].
   by rewrite leqn0 => /eqP eq; rewrite (size0nil eq).
-rewrite leq_eqVlt; case /orP => [/eqP eq | ineq cns cns'].
-  by case: Ln eq ih val => // L Ln eq ih val cns cns'; exact/cns_eq/cns'/cns.
-have [ | K [/=]]//:= cns' 0.
-have <-: Ln = Ln' by apply/ih => // i ineq'; apply cns'.
-by rewrite drop0 val.
+rewrite leq_eqVlt; case /orP => [/eqP eq | ineq /coin_lstn coin cns cns'].
+- case: Kn eq ih val => // K Kn [sze] ih val /coin_lstn coin cns cns'.
+  have cns'': consistent psi' phi q' (K :: Kn).
+  - apply/coin_cns/cns/coin_lstn => q /lstn_iseg [k [ineq eq]].
+    by apply/coin/lstn_iseg; exists k.+1.
+  apply/cns_eq/cns'/cns''/coin_sym; first by rewrite /= sze.
+  exact/coin_ref.
+have [ | K ]//:= cns' 0.
+have eq: Kn = Kn'.
+- by apply/ih => //; [ apply/coin_lstn/coin | apply/cns_cons/cns'].
+rewrite -coin; last by apply/lstn_iseg; exists 0; rewrite drop1 drop0 /= eq.
+by rewrite drop1 /= -eq val; case.
 Qed.
 
-Definition communication psi (phi: B) := make_mf (fun (q': Q') Lna' =>
-	let Ln:= Lna'.1 in let a':= Lna'.2 in consistent psi phi q' Ln /\ psi (flatten Ln, q') = !a').
+Definition communication psi (phi: B) := make_mf (fun (q': Q') Kna' =>
+	let Kn:= Kna'.1 in let a':= Kna'.2 in consistent psi phi q' Kn /\ psi (map phi (flatten Kn), q') = !a').
 
 Lemma cmcn_unique psi phi: (communication psi phi) \is_singlevalued.
 Proof.
 move => q' [Ln a'] [Ln' b'] [/=cns val] [cns' val'].
 case/orP: (leq_total (size Ln) (size Ln')) => ineq.
-  by move: val'; have <-:= cns_rec val ineq cns cns'; rewrite val => [[->]].
-by move: val; have <-:= cns_rec val' ineq cns' cns; rewrite val' => [[->]].
-Qed.
-
-Lemma lstn_nth (L: seq A) Ln: List.In L Ln -> exists n, n < size Ln /\ L = nth nil Ln n.
-Proof.
-elim: Ln => // K Ln ih /=.
-case => [-> | lstn]; first by exists 0.
-by have [n []]:= ih lstn; exists n.+1.
+- move: val'; have <-: Ln = Ln' by apply/cns_rec/cns'/cns/coin_ref/ineq/val.
+  by rewrite val => [[->]].
+move: val; have <-: Ln' = Ln by apply/cns_rec/cns/cns'/coin_ref/ineq/val'.
+by rewrite val' => [[->]].
 Qed.
 
 Lemma FM_val_spec psi phi Fphi: \F_(M psi) phi Fphi <->
-	forall q', exists (Ln: list (list A)), communication psi phi q' (Ln, (Fphi q')).
+	forall q', exists Qn, communication psi phi q' (Qn, (Fphi q')).
 Proof.
 split => val q'.
 - have [n]:= val q'.
   elim: n => [ | n ih /=]; rewrite /M/=/M_step.
     by case E: (psi (nil, q')) => [ | a']// [eq]; exists nil; rewrite E eq; split.
   case E: (M_rec psi n phi q') => [L | a']; last by move => eq; apply/ih; rewrite /M /= E eq.
-  case E': (psi (L, q')) => [ | a']// [eq].
+  case E': (psi (map phi L, q')) => [ | a']// [eq].
   have [Ln [<- [eq' prp]]]:= (M_rec_inl_spec psi n phi q' L).1 E.
   by exists Ln; split; last by rewrite -eq' E' eq.
 have [Ln [eq prp]]:= val q'.
@@ -184,13 +226,24 @@ move: lstn; rewrite (cns_eq sze cns); last exact/cns_drop.
 exact/flatten_subl/drop_subl.
 Qed.
 
-(*
 Definition mf_queries psi phi:= make_mf(fun q' q =>
   exists Ln, consistent psi phi q' Ln /\ (exists K, psi (flatten Ln, q') = inl K /\ List.In q K)).
 
+Fixpoint gather_queries (psi: seq A * Q' -> seq Q + A') n (phi: B) q' :=
+  match n with
+  | 0 => nil
+  | S n' => let K' := gather_queries psi n' phi q' in
+            match psi (map phi K', q') with
+            | inr a => K'
+            | inl K => K ++ K'
+            end
+  end.
 
-Lemma gather_queries_spec psi n phi q':
-  mf_queries psi phi q' q <-> exists n, List.In q gather_queries psi n phi q'.
+Definition queriesM psi n phi q' :=
+  match M_rec psi n phi q' with
+
+Lemma mf_queries_spec psi phi q' q: mf_queries psi phi q' q <->
+       exists n, List.In q (gather_queries psi n phi q').
 
 communication psi phi q' (Ln, a') -> {qL | mf_queries psi phi q' === L2SS qL}.
 Proof.

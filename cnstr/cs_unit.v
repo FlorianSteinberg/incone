@@ -43,7 +43,7 @@ Qed.
 
 Lemma unit_fun_cont (X: cs): (@unit_fun X: _ -> cs_unit) \is_continuous.
 Proof. exact/unit_fun_hcr. Qed.
-
+(*
 Definition unit_cfun X := exist_c (@unit_fun_hcr X) : (X c-> cs_unit).
 
 Lemma trmnl_uprp_cont (X: cs): exists! f: X c-> cs_unit, True.
@@ -52,4 +52,5 @@ exists (@unit_cfun X); split => // f _.
 apply /eq_sub; apply functional_extensionality => x.
 by case: (projT1 f x).
 Qed.
+ *)
 End TERMINAL.

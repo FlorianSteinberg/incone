@@ -30,7 +30,7 @@ It is equivalent to the corresponding multifunction being continuous
 in the sense of "continuity.v" *)
 Definition continuity (G: (nat -> nat) -> nat -> nat) := forall phi n, exists m, forall psi,
 	{in init_seg m, phi =1 psi} -> {in init_seg n, G phi =1 G psi}.
-
+(*
 Lemma continuity1 (F: B -> B): continuity F <-> (F2MF F) \is_continuous_operator.
 Proof.
 split => [cont | /F2MF_cont cont phi n].
@@ -45,14 +45,14 @@ exists m => psi/coin_funeq/coin_subl coin; rewrite -coin_funeq coin_lstn => q ls
 apply/mod/coin/subl_trans; first exact/iseg_melt/ms.
 exact/iseg_subl/leq_max/(@iseg_base _ id id)/lstn/ms.
 Qed.
-
+*)
 (*To have function from baire space to natural numbers, we identify nat with one -> nat.*)
 Definition F := make_mf (fun phi n => phi (n tt) = 0 /\ forall m, phi m = 0 -> n tt <= m).
 (* F is a partial function: if phi is never zero, the right hand side is always false and
 phi is not assinged any value. On the other hand the function is single valued, as only
 the smalles number where phi is zero allowed as return value. More generally, the function
 is continuous:*)
-
+(*
 Lemma F_cont: F \is_continuous_operator.
 Proof.
 apply cont_choice => phi nf [val prp] str.
@@ -66,7 +66,7 @@ Qed.
 
 Lemma F_sing: F \is_singlevalued.
 Proof. exact: cont_sing F_cont. Qed.
-
+*)
 (*
 Lemma no_extension G: G \is_continuous_operator -> G \extends F -> G =~= F.
 Proof.

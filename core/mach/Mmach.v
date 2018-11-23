@@ -230,42 +230,55 @@ case E: (M_rec psi n phi q') => [K | a'] //; rewrite /M_step.
 by case: (psi (map phi K, q')) => // K' lstn; apply/lstn_app; right.
 Qed.
 
+Lemma nil_subl (K: seq Q): nil \is_sublist_of K.
+Proof. done. Qed.
+
+Lemma gather_queries_subl psi n m phi q':
+  n <= m -> (gather_queries psi n phi q') \is_sublist_of (gather_queries psi m phi q').
+Proof.  
+elim: m n => [n | m ih n]; first by rewrite leqn0 => /eqP ->.
+rewrite leq_eqVlt; case/orP => [/eqP -> | ineq]//.  
+exact/subl_trans/gather_queries_mon/ih.
+Qed.
+
 Lemma M_rec_spec psi n phi q':
   M_rec psi n phi q' = ?(gather_queries psi n phi q') \/ exists a', M_rec psi n phi q' = !a'.
 Proof.
 elim: n => [ | n [/= -> | [a' eq]]]; [left | | right; exists a' => /=; rewrite eq] => //.
 by case E: (M_step psi phi q' (gather_queries psi n phi q')) => [K | a']; [left | right; exists a'].
 Qed.
-  
+
+Lemma gather_queries_cns psi phi q' Qn: consistent psi phi q' Qn ->
+  gather_queries psi (size Qn) phi q' = flatten Qn.
+Proof.
+elim: Qn => // K Qn ih cns /=.
+rewrite ih; last exact/cns_cons/cns.
+have [ | K' [/=val eq]]//:= cns 0.
+rewrite (M_rec_inl_spec psi (size Qn) phi q' (flatten Qn)).2.
+- by rewrite drop0 in val; rewrite /M_step val eq drop0.
+by exists Qn; do 2 split => //; apply/cns_cons/cns.
+Qed.
+
 Lemma gather_queries_spec psi phi q' K:
   (exists n, gather_queries psi n phi q' = K) <->
       exists Qn, consistent psi phi q' Qn /\ K = flatten Qn.
 Proof.
-split => [[n] | [Qn [cns eq]]].  
-- rewrite unfold_gather_queries.
-  elim: n K => [K | n /=ih K]; first by rewrite /= => <-; exists nil.
-  case E: (M_rec psi n phi q') ih => [K' | a'] => [ ih | ih gq].
-  - rewrite /=/M_step/=.
-    case val: (psi (map phi K', q')) => [K'' | ]// eq.
-    - have [ | Qn [cns eq']]//:= ih K'.
-      exists (K'' :: Qn); split; last by rewrite -eq /= -eq'.
-      case => [ | i ineq]; last by apply/cns.
-      by exists K''; rewrite drop1/=; split; first by rewrite -eq'.
-    by apply/ih; rewrite unfold_gather_queries E in eq.
-  apply/ih; case: (n) gq E => [ | k].
-  - by rewrite /=/M_step/=; case: (psi (nil, q')).
-    rewrite /= unfold_gather_queries.
-  case: (M_rec psi k phi q') => [K' | b'] //.
-  by case: (M_step psi phi q' K') => //.
-case E: (psi (map phi K, q')) => [K' | a']; last first.
-exists (size Qn).+1.
-- rewrite /= (M_rec_inl_spec psi (size Qn) phi q' K).2; last by exists Qn.
-  rewrite unfold_gather_queries.
-  rewrite (M_rec_inl_spec psi (size Qn) phi q' K).2; last by exists Qn.
-  by rewrite/M_step E.
-exists (size Qn).
+split => [[n] | [Qn [cns eq]]]; last by exists (size Qn); rewrite eq gather_queries_cns.
 rewrite unfold_gather_queries.
-by rewrite (M_rec_inl_spec psi (size Qn) phi q' K).2; last by exists Qn.
+elim: n K => [K | n /=ih K]; first by rewrite /= => <-; exists nil.
+case E: (M_rec psi n phi q') ih => [K' | a'] => [ ih | ih gq].
+- rewrite /=/M_step/=.
+  case val: (psi (map phi K', q')) => [K'' | ]// eq.
+  - have [ | Qn [cns eq']]//:= ih K'.
+    exists (K'' :: Qn); split; last by rewrite -eq /= -eq'.
+    case => [ | i ineq]; last by apply/cns.
+    by exists K''; rewrite drop1/=; split; first by rewrite -eq'.
+  by apply/ih; rewrite unfold_gather_queries E in eq.
+apply/ih; case: (n) gq E => [ | k].
+- by rewrite /=/M_step/=; case: (psi (nil, q')).
+  rewrite /= unfold_gather_queries.
+  case: (M_rec psi k phi q') => [K' | b'] //.
+by case: (M_step psi phi q' K') => //.
 Qed.
 
 Definition queriesM psi n phi q' := match M_rec psi n phi q' with
@@ -279,16 +292,102 @@ move => phi phifd q' n; rewrite /queriesM /=.
 by case: (M_rec psi n phi q').
 Qed.
 
-Lemma queriesM_spec psi phi mf:
+Lemma coin_map (phi phi': B) K: phi \and phi' \coincide_on K -> map phi K = map phi' K.
+Proof. by elim: K => // q K ih /=[-> coin]; rewrite ih. Qed.
+
+Lemma M_rec_cont psi n phi phi' q': phi \and phi' \coincide_on (gather_queries psi n phi q') -> M_rec psi n phi q' = M_rec psi n phi' q'.
+Proof.
+elim: n => // n ih /=.
+case: (M_rec_spec psi n phi q') => [eq | [a' val]]; last by rewrite val => coin; rewrite -ih// val.
+rewrite eq /M_step.
+case val: (psi (map phi (gather_queries psi n phi q'), q')) => [K' | a'].
+- by rewrite coin_app => [[coin coin']]; rewrite -ih // eq -(coin_map coin') val.
+by move => coin; rewrite -ih// eq -(coin_map coin) val.
+Qed.
+
+Lemma cns_cont psi phi phi' q' Qn: consistent psi phi q' Qn -> phi \and phi' \coincide_on (gather_queries psi (size Qn) phi q') -> consistent psi phi' q' Qn.
+Proof.
+elim: Qn => // K Qn ih cns /=.
+have rec:= (M_rec_inl_spec psi (size Qn) phi q' (flatten Qn)).2.
+rewrite rec; last by exists Qn; do 2 split => //; apply/cns_cons/cns.
+rewrite /M_step; case val: (psi (map phi (flatten Qn), q')) => [K' | a']; last first.
+- by have [ | K'' [/=]]//:= cns 0; rewrite drop0 val.
+rewrite coin_app => [[coin coin']] [_/= | i].
+- rewrite drop0 -(coin_map coin').
+  by have prp:= cns 0; rewrite /= drop0 in prp; apply/prp.
+rewrite /=; apply/ih=>//; first by apply/cns_cons/cns.
+rewrite unfold_gather_queries rec//.
+by exists Qn; do 2 split => //; apply/cns_cons/cns.
+Qed.
+
+Lemma queriesM_spec psi phi mf: \F_(queriesM psi) phi mf <-> forall q', 
+                          exists Qn a', communication psi phi q' (Qn, a')
+                                  /\
+                                  gather_queries psi (size Qn) phi q' = mf (q').
+Proof.
+split => [mod q' | prp q'].
+- have [n]:= mod q'.
+  rewrite /queriesM.
+  case val: (M_rec psi n phi q') => [ | a'] // [eq].
+  have [ | Qn [cns flt]]:= (gather_queries_spec psi phi q' (mf q')).1; first by exists n.
+  have sze: size Qn <= n.
+  - rewrite leqNgt; apply /negP => lt.
+    case E: (size Qn) => [ | k]; first by rewrite E in lt.
+    have [ | K [vl eq']]:= cns (k - n); first by rewrite E; apply/leq_subr.
+    rewrite (M_rec_inl_spec psi n phi q' (flatten (drop (k.+1-n) Qn))).2 in val => //.
+    exists (drop (k.+1 - n) Qn); split; last split => //; last by apply/cns_drop.
+    by rewrite size_drop E subKn // -E; apply/leq_trans/lt.  
+  exists Qn; exists a'; split; first split => //; last by rewrite gather_queries_cns.
+  rewrite flt in eq; move: flt => _ /=.
+  have prp: forall K, psi (map phi (flatten Qn), q') = ? K -> K = nil.
+  - rewrite - eq => K.
+    move: val eq.
+    rewrite -(subnK sze).
+    elim (n - size Qn) => [ | k ih].
+    - rewrite (M_rec_inl_spec psi (size Qn) phi q' (flatten Qn)).2 //.
+      by exists Qn.
+    rewrite addSn /=.
+    case: (M_rec_spec psi (k + size Qn) phi q') => [-> | [b' eq]]; last first.
+    - by rewrite eq => eq' gq ps; apply/ih => //; first by rewrite -eq'.
+    rewrite /M_step.
+    case E: (psi (map phi (gather_queries psi (k + size Qn) phi q'), q')) => [ | b'] // eq'.
+    by rewrite E.
+    rewrite -eq.
+  have prp': forall k, gather_queries psi (k + size Qn) phi q' = flatten Qn.
+  - elim => [ | k ih]; first by rewrite add0n; apply/gather_queries_cns.
+    rewrite addSn /=; case: (M_rec_spec psi (k + size Qn) phi q') => [-> | [_ ->]]//.
+    rewrite /M_step ih; case E: (psi (map phi (flatten Qn), q')) => [K' | ]//.
+    by rewrite (prp K') //.
+    move: val.
+  rewrite -(subnK sze).
+  elim: (n - size Qn) => [ | k ih].
+  - by rewrite add0n (M_rec_inl_spec psi (size Qn) phi q' (flatten Qn)).2 //; exists Qn.
+  rewrite addSn/=.
+  case: (M_rec_spec psi (k + size Qn) phi q') => [E | [b' eq']].
+  rewrite E /M_step.
+  case E': (psi (map phi (gather_queries psi (k + size Qn) phi q'), q')) => [K | b'] // <- //.
+  rewrite eq' => eq''.
+  by apply ih; rewrite -eq''.
+have [Qn [a' [[com val] gq]]]:= prp q'.
+exists (size Qn).+1.
+rewrite /queriesM /=/M_step.
+rewrite (M_rec_inl_spec psi (size Qn) phi q' (flatten Qn)).2; last by exists Qn.
+by rewrite val; f_equal.
+Qed.
+  
+Lemma queriesM_mod psi phi mf:
   \F_(queriesM psi) phi mf -> continuity_modulus \F_(M psi) phi mf.
 Proof.
-move => mod q'.
-have [n]:= mod q'.
-rewrite /queriesM.
-case val: (M_rec psi n phi q') => [ | a'] // [eq].
-exists a' => phi'/coin_spec coin Fphi' Fphi'Fphi'.
-Admitted.
-
+move => /queriesM_spec mod q'.
+have [Qn [a' [[/=cns val] gq]]]:= mod q'.  
+exists a' => phi'/coin_spec coin Fphi' /FM_val_spec Fphi'Fphi'.
+have [Qn' com]:= Fphi'Fphi' q'.
+suff com': communication psi phi' q' (Qn, a') by have [_ ->]:= (cmcn_unique com com').
+split.
+- apply/cns_cont => /=; first exact/cns.
+  by rewrite gq.    
+by rewrite /= -(gather_queries_cns cns) gq -(coin_map coin) -gq (gather_queries_cns cns).
+Qed.
 End universal_machine.
 
 Section psiF.
@@ -306,16 +405,16 @@ Definition psiF (Lq': seq A * Q') :=
   let phi:= listf Lq'.1 in let n:= size Lq'.1 in let q' := Lq'.2 in
 	if mf phi q' <= n then inr (FF phi q') else (inl (segment n (mf phi q').-1)).
 
-Lemma psiF_size n phi q' L: M_rec psiF n phi q' = inl L -> n < size L.
+Lemma psiF_size n phi q' L: M_rec psiF n phi q' = inl L -> n <= size L.
 Proof.
-elim: n L => [L | n ih L /=].
-  by rewrite /psiF/=/M_step/=; case E: (mf (listf nil) q') => [ | m /=]; last by move => [<-].
+elim: n L => [L | n ih L /=] //.
 case E: (M_rec psiF n phi q') => [K | ]//.
 rewrite /M_step/psiF /=.
-case E': (mf (listf K) q' <= size K) => //.
-move => [<-]; case eq': (mf (listf K) q') E' => [ | k] //= E'.
+case E': (mf (listf (map phi K)) q' <= size (map phi K)) => //.
+move => [<-]; case eq': (mf (listf (map phi K)) q') E' => [ | k] //= E'.
+rewrite size_map in eq' E'.
 rewrite size_cat size_map size_seg subnK; last by rewrite leqW // leqNgt E'.
-apply/leq_trans; first by have ineq': n.+1 < (size K).+1; [apply/ih | apply/ineq'].
+apply/leq_trans; first by have ineq': n.+1 <= (size K).+1; [apply/ih | apply/ineq'].
 by rewrite ltnNge E'.
 Qed.
 
@@ -325,14 +424,9 @@ Lemma psiF_spec phi q' n:
 		/\
 		M_rec psiF n phi q' = inr (FF (listf (map phi (init_seg k))) q'))
 	\/
-	forall m, m <= n -> exists k, M_rec psiF m phi q' = inl (map phi (init_seg k)).
-Proof.
-pose phin m := listf (map phi (init_seg m)).
-elim: n => [ | n ih].
-- rewrite /M_rec/M_step/psiF/=.
-  case E: (mf (listf [::]) q' <= 0); first by left; exists 0; split.
-  right => m; rewrite leqn0 => /eqP ->; rewrite E /=.
-  by case S: (mf (listf nil) q') E => [ | n]// _; exists n.+1; rewrite cats0 iseg_seg.
+	forall m, m <= n -> exists k, M_rec psiF m phi q' = inl (init_seg k).
+Proof.  
+elim: n => [ | n ih]; first by right => m; rewrite leqn0 => /eqP ->; exists 0.
 case: ih => [[] m [] ineq | prp].
   by rewrite /M_rec; left; exists m; split; [apply ineq | rewrite /M_rec b].
 have [ | k val]//:= prp n.
@@ -341,7 +435,7 @@ case E: (mf (listf (map phi (init_seg k))) q' <= k).
 right => m; rewrite leq_eqVlt; case/orP => [/eqP -> /= | le]; last exact/prp.
 rewrite val/M_step/psiF/= size_map size_iseg E.
 exists (mf (listf [seq phi i | i <- init_seg k]) q').
-f_equal; rewrite -map_cat; f_equal; case: k prp E val => [prp E val | k prp E val].
+f_equal; case: k prp E val => [prp E val | k prp E val].
   by rewrite cats0; case: (mf (listf [seq phi i | i <- init_seg 0]) q') E => // h E; rewrite iseg_seg.
 by rewrite iseg_cat_seg // ltnNge E.
 Qed.
@@ -360,15 +454,17 @@ have FFprop: forall n, mf (phin n) q' <= n -> FF (phin n) q' = Fphi q' => [n ine
   rewrite [RHS](crt phi) => //; first by rewrite (crt (phin n)) //; apply/icf/FphikFphik.
   exact/coin_spec/coin_subl/listfcoin/iseg_subl/ineq.
 elim: {2}(mf phi q') (leqnn (mf phi q')) => [ineq | n ih].
-- exists 0; rewrite /M/psiF/=/M_step /=.
+- exists 1; rewrite /M/=/M_step/=/psiF /=.
   have eq': mf (listf nil) q' <= 0 by apply/leq_trans/ineq/leq_trans/(listfmod q' 0).
   by rewrite eq'; f_equal; apply/(FFprop 0).
-case: (psiF_spec phi q' n) => [[k [nlk eq]] | prp].
-  by exists n.+1; rewrite /M/=eq; f_equal; exact/FFprop/nlk.
+case: (psiF_spec phi q' n.+1) => [[k [nlk eq]] | prp].
+  by exists n.+1; rewrite /M eq; f_equal; exact/FFprop/nlk.
 rewrite leq_eqVlt => /orP [/eqP eq| ineq]; last exact/ih.
-have [ | k val]//:= prp n; exists n.+1; rewrite /M/=val/M_step/psiF/=size_map size_iseg.
+have [ | k val]//:= prp n.+1.
+exists n.+2; have:= val; rewrite /M/= =>  ->; rewrite /M_step/psiF/=size_map size_iseg.
 suff bnd: mf (listf [seq phi i | i <- init_seg k]) q' <= k by rewrite bnd; f_equal; apply/FFprop.
-by apply/leq_trans; first apply/(listfmod q');
-rewrite eq; have:= psiF_size val; rewrite size_map size_iseg.
+apply/leq_trans; first apply/(listfmod q'); rewrite eq.
+- by have:= psiF_size val; rewrite size_iseg.
+by have:= psiF_size val; rewrite size_iseg.
 Qed.
 End psiF.

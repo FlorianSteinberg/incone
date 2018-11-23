@@ -99,4 +99,83 @@ apply/(MpsiF_spec phifd) => //; try by move => n; have []:= listfprop phi n phif
 	exact/mfmod.
 by move => psi psifd; have [mod min]:= mfmod psi psifd.
 Qed.
+
+Lemma queriesM_dom (psi: seq A * Q' -> seq Q + A'):
+  dom (\F_(M psi)) \is_subset_of dom (\F_(queriesM psi)). 
+Proof.
+move => phi [Fphi FphiFphi].
+suff ch: (forall q', exists L, exists n, queriesM psi n phi q' = Some L) by apply/(choice _ ch).
+move => q'; have [n eq]:= FphiFphi q'.
+exists (gather_queries psi n phi q').
+exists n; move: eq; rewrite /M/queriesM.
+by case: (M_rec psi n phi q').
+Qed.
+
+Lemma FM_cont (psi: seq A * Q' -> seq Q + A'):
+  \F_(M psi) \is_continuous_operator.
+Proof.
+move => phi /queriesM_dom [mf mod].
+by exists mf; apply/queriesM_mod.
+Qed.
+
+Lemma FM_val_cont (phi: B): (make_mf (fun psi (Fphi: B') => \F_(M psi) phi Fphi)) \is_continuous_operator.
+Proof.
+move => psi [Fphi prp].  
+have /FM_val_spec FphiFphi: \F_(M psi) phi Fphi by trivial.
+suff prp': forall q', exists L, cert (make_mf (fun psi0 => [eta \F_(M psi0) phi])) (L2SS L) psi q' (Fphi q').
+- by have [mf cond]:= choice _ prp'; exists mf => q'; exists (Fphi q').
+move => q'.
+have [Qn com]:= FphiFphi q'.
+exists (iseg (fun i => (map phi (flatten (drop i Qn)), q')) (size Qn).+1).
+move => psi'/coin_spec coin Fphi' /= /FM_val_spec FphiFphi'.
+have [Qn' [/=cns' val']]:= FphiFphi' q'.
+have:= cmcn_unique com .
+suff: (Qn, Fphi q') = (Qn', Fphi' q') by case.
+apply/cmcn_unique.
+- apply/com.
+suff eq: Qn = Qn'.
+- rewrite -eq.
+  split => /=; first by apply com.1.
+  rewrite eq.
+  move: coin; rewrite coin_lstn => coin.
+  rewrite coin // lstn_iseg.
+  by exists 0; split => //; rewrite drop0 eq.            
+case/orP: (leq_total (size Qn) (size Qn')) => ineq.
+- by apply/cns_rec/cns'/com.1=>//; exact/com.2.
+symmetry.
+apply/cns_rec/com.1/cns' => //; try apply/val'.
+apply/coin_sym.
+apply/coin_subl/coin.
+move => pr /lstn_iseg [n [ineq' eq]].
+apply/lstn_iseg; exists (n + (size Qn - size Qn')).
+rewrite -drop_drop.
+split.
+- rewrite -{2}(subnK ineq).
+  rewrite [_ + size Qn']addnC -[X in _ < X]addSn.
+  by rewrite ltn_add2r.
+suff ->: drop (size Qn - size Qn') Qn = Qn' by trivial. 
+apply/cns_eq/cns'; last first; last by rewrite size_drop subKn.
+move => i.
+rewrite size_drop subKn// => ils.
+have [ | K [] ]//:= com.1 (i + size Qn - size Qn').
+- rewrite /= -[X in _ < X](subnK ineq) [_ + size Qn']addnC -addnBA//.
+  by rewrite ltn_add2r.
+exists K.
+rewrite !drop_drop addSn addnBA//; split => //.
+move: coin; rewrite coin_lstn => coin; rewrite -coin//.
+apply/lstn_iseg.
+exists (i + size Qn - size Qn').+1.
+split => //.
+rewrite -addnBA // -[X in _ < X.+1](subnK ineq) addnC.
+by have: (size Qn - size Qn' + i) < (size Qn - size Qn' + size Qn') by rewrite ltn_add2l.
+apply/coin_sym/coin_subl/coin.
+move => Kq' /lstn_iseg [k []].
+rewrite size_drop subKn // => a <-.
+apply/lstn_iseg.
+exists (k.+1 + (size Qn - size Qn')).   
+rewrite drop_drop; split => //.
+rewrite addSn.
+have: (size Qn - size Qn' + k) < (size Qn - size Qn' + size Qn') by rewrite ltn_add2l.
+by rewrite subnK//addnC.
+Qed.
 End classical_machines.

@@ -87,6 +87,7 @@ rewrite /phin/= -(coin (inr (n,q'))) /rprj//.
 by elim: (Lf q) lstn => // a L ih /= [ -> | ]; [left | right; apply/ih].
 Qed.
 
+(*
 Definition sig2fun (X: cs) (f: cs_sig_prod X) := exist_c (nat_dscrt f): cs_nat c-> X.
 
 Definition sig2fun_rlzrf (X: cs) (phi: names (cs_sig_prod X)) Lq' := match Lq'.1 with
@@ -144,7 +145,7 @@ have [ | [phi val prp]]//:= rlzr (fun _ => n) n.
 apply/prp => q.
 apply/Fpsiphi.
 Qed.
-
+*)
 (*
 Lemma fun2sig_rlzr_cntop X: (@fun2sig_rlzr X) \is_continuous_operator.
 Proof.

@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrnat.
-Require Import classical_count classical_cont classical_mach all_cs_base cs_unit cs_nat.
+Require Import classical_count classical_cont classical_mach classical_func all_cs_base cs_unit cs_nat.
 Require Import FunctionalExtensionality ClassicalChoice.
 
 Set Implicit Arguments.
@@ -87,7 +87,6 @@ rewrite /phin/= -(coin (inr (n,q'))) /rprj//.
 by elim: (Lf q) lstn => // a L ih /= [ -> | ]; [left | right; apply/ih].
 Qed.
 
-(*
 Definition sig2fun (X: cs) (f: cs_sig_prod X) := exist_c (nat_dscrt f): cs_nat c-> X.
 
 Definition sig2fun_rlzrf (X: cs) (phi: names (cs_sig_prod X)) Lq' := match Lq'.1 with
@@ -101,14 +100,14 @@ Lemma sig2fun_rlzr_spec (X: cs): (@sig2fun_rlzr X) \realizes (F2MF (@sig2fun X))
 Proof.
 rewrite F2MF_rlzr_F2MF => phi xn phinxn.
 rewrite /= rlzr_F2MF => nf /= n eq.
-split; first by exists (fun q => phi (n, q)) => q'; exists 1; rewrite /M/= eq.
+split; first by exists (fun q => phi (n, q)) => q'; exists 2; rewrite /M/= eq.
 move => psi val.
 suff <-: (fun q => phi (n, q)) = psi by apply/phinxn.
 apply/functional_extensionality => q.
-have [m eq']:= val q; case: m eq' => //m.
-have ->: M (sig2fun_rlzrf phi) m.+1 nf q = M (sig2fun_rlzrf phi) 1 nf q.
-	elim: m => // m; rewrite -addn1 /M /=.
-	by case: (M_rec (sig2fun_rlzrf phi) (m +1) nf q).
+have [m eq']:= val q; case: m eq' => //m; case: m => //m.
+have ->: M (sig2fun_rlzrf phi) m.+2 nf q = M (sig2fun_rlzrf phi) 2 nf q.
+- elim: m => // m; rewrite -addn1 -addn1 /M /=.
+  by case: (M_rec (sig2fun_rlzrf phi) (m + 1 + 1) nf q).
 by rewrite /M/= eq => [[]].
 Qed.
 
@@ -145,18 +144,28 @@ have [ | [phi val prp]]//:= rlzr (fun _ => n) n.
 apply/prp => q.
 apply/Fpsiphi.
 Qed.
-*)
-(*
+
 Lemma fun2sig_rlzr_cntop X: (@fun2sig_rlzr X) \is_continuous_operator.
 Proof.
+rewrite /fun2sig_rlzr => psi [phi Fpsiphi].
+suff prp: forall n, exists mf, continuity_modulus (make_mf (fun psi0 phi0 => \F_(M psi0) (fun _ => n) phi0)) psi mf.
+- have [mf mod]:= choice _ prp.
+  exists (fun nq => mf nq.1 nq.2) => [[n q]]; have [a' /=mod']:= mod n q.
+  by exists a' => psi' coin phi' val; apply/ (mod' psi' coin (fun q => phi' (n, q))).
+move => n.
+have [ | mf mod]:= @FM_val_cont _ _ _ _ (fun _ => n) psi; first by exists (fun q => phi (n, q)); apply/Fpsiphi.
+exists mf => psi'; apply/mod.
+Qed.
 
-rewrite /fun2sig_rlzr in FphiFphi.
-move => phi phifd.
-
+Lemma fun2sig_cont X: (@fun2sig X) \is_continuous.
+Proof.
+exists (fun2sig_rlzr X); split; [exact/fun2sig_rlzr_spec | exact/fun2sig_rlzr_cntop].
+Qed.
 
 Lemma sig_iso_fun X: (cs_sig_prod X) ~=~ (cs_nat c-> X).
 Proof.
 exists (exist_c (sig2fun_cont X)).
-rewrite /isomorphic.
-Admitted.*)
+exists (exist_c (fun2sig_cont X)).
+by split => [f | f]; last apply/eq_sub; apply functional_extensionality => n /=.
+Qed.
 End USIGPROD.

@@ -33,9 +33,7 @@ Definition cs_fun_modest_set_mixin (X Y: cs):
 	dictionary_mixin.type (interview.Pack (cs_fun_assembly_mixin X Y)).
 Proof. split; exact/fun_rep_sing. Defined.
 
-Canonical cs_fun X Y := @continuity_space.Pack
-	(seq (answers X) * questions Y)
-	(seq (questions X) + answers Y)
+Canonical cs_fun X Y := continuity_space.Pack
 	((nil, someq Y))
 	(inr (somea Y))
   (prod_count
@@ -48,16 +46,20 @@ Notation "X c-> Y" := (cs_fun X Y) (at level 2).
 
 Section evaluation.
 Definition evaluation X Y (fx: (X c-> Y) * X) := (projT1 fx.1) fx.2.
+Arguments evaluation {X} {Y}.
 
-Lemma eval_rlzr X Y:
-	(\F_(fun n psiphi q => M (lprj psiphi) n (rprj psiphi) q)) \realizes (F2MF (@evaluation X Y): _ c-> _ \*_cs _ ->> _).
+Definition eval_rlzr Q Q' A A' :=
+  \F_(fun n (psiphi: _ + Q -> _ * A) => M (lprj psiphi) n (rprj psiphi): Q' -> option A'). 
+Arguments eval_rlzr {Q} {Q'} {A} {A'}.
+
+Lemma eval_rlzr_spec X Y:
+	eval_rlzr \realizes (F2MF evaluation: X c-> Y \*_cs X ->> Y).
 Proof.
-set R:=(fun n psiphi q => M (lprj psiphi) n (rprj psiphi) q).
 rewrite rlzr_F2MF => phi [[f fhcr] x] [/=phinf phinx].
 rewrite /function_representation/= in phinf.
 split => [| Fphi RphiFphi]; last by apply/rlzr_val_sing; [apply/F2MF_sing | apply phinf | apply phinx | | ].
 have [ | Fphi FphiFphi]:= rlzr_dom phinf phinx; first by apply F2MF_tot.
-have eq: (operator (M (lprj phi))) (rprj phi) === (operator R) phi by trivial.
+have eq: \F_(M (lprj phi)) (rprj phi) === eval_rlzr phi by trivial.
 by exists Fphi; apply/eq.
 Qed.
 End evaluation.

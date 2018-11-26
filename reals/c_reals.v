@@ -70,9 +70,36 @@ Proof. split; exact rep_C_sing. Defined.
 
 Canonical Rc_dictionary := dictionary.Pack Rc_dictionary_mixin.
 
+Lemma pos_count: positive \is_countable.
+Proof.
+exists (fun n => Some (Pos.of_nat n)) => p.
+by exists (Pos.to_nat p); rewrite Pos2Nat.id.
+Qed.
+
+Lemma Z_count: Z \is_countable.
+Proof.
+have [cnt sur]:= option_count (sum_count pos_count pos_count).
+exists (fun n => match cnt n with
+        | None => None
+        | Some None => Some Z0
+        | Some (Some (inl p)) => Some (Zpos p)
+        | Some (Some (inr n)) => Some (Zneg n)
+         end).
+case => [ | p | n]; first by have [n val]:= sur None; exists n; rewrite val.
+- by have [n val] := sur (Some (inl p)); exists n; rewrite val.
+by have [m val] := sur (Some (inr n)); exists m; rewrite val.
+Qed.
+
 Lemma rationals_countable: Q \is_countable.
 Proof.
-Admitted.
+have [cnt sur]:= prod_count Z_count pos_count.
+exists (fun n => match (cnt n) with
+         | None => None
+         | Some p => Some (Qmake p.1 p.2)
+         end).
+case => e d.
+by have [n val] := sur (e, d); exists n; rewrite val.
+Qed.
 
 Canonical Rc := continuity_space.Pack
 	0%Q
@@ -350,40 +377,39 @@ by rewrite Q2R_mult {2}/Q2R /= /N Rinv_mult_distr; lra.
 Qed.
 End limit.
 
-(*
-Lemma cont_rlzr_cont (f: Rc -> Rc): (F2MF f) \has_continuous_realizer <-> continuity f.
+Require Import sets.
+
+Definition sign (x: Rc) : cs_Kleeneans := match (total_order_T x 0) with
+                     | inleft l => match l with
+                                  | left _ => false_K
+                                  | right _ => bot_K
+                                  end
+                     | inright _ => true_K
+                     end.
+
+Definition mf_sign:= F2MF sign.
+
+Definition sign_rlzrf phi n : option bool := let eps := Qpower_positive (1#2) (Pos.of_nat n) in let q := phi eps in
+                                                                                             if Qlt_le_dec q (Qopp eps) then Some false else if Qlt_le_dec eps q then Some true else None.
+
+Definition sign_rlzr := F2MF sign_rlzrf.
+
+Lemma sign_rlzr_spec:
+  sign_rlzr \realizes mf_sign.
 Proof.
-split.
-	move => [F [rlzr cont]] x e eg0.
-	have [phi phinx]:= get_description (x: Rc).
-	have [Fphi FphiFphi]: phi \from dom F by apply/(rlzr_dom rlzr)/F2MF_tot/phinx.
-	have Fphinfx: Fphi \is_description_of (f x).
-		by apply/(rlzr_val_sing _ rlzr phinx); first exact/F2MF_sing.
-	have [eps [epsg0 epsle]]:= accf_Q2R_0 eg0.
-	have [ | L [_ /=Lprop]]:= cont phi _ eps; first apply/(rlzr_dom rlzr)/F2MF_tot/phinx.
-	elim: L Lprop => [/=Lprop | ].
-		exists 1; split => [ | y [cnd neq]]; first by lra.
-		rewrite /R_dist.
-		set r:= Q2R (Fphi (Qdiv eps (1 + 1))).
-		have ->: f y - f x = f y - r - (f x - r) by ring.
-		apply/Rle_lt_trans/epsle/Rle_trans.
-			apply/triang/Rplus_le_compat; last first.
-				rewrite Rabs_Ropp; apply/Fphinfx.
-				admit.
-			have [psi psiny]:= get_description (y: Rc).
-			have [Fpsi FpsiFpsi]: psi \from dom F by apply /(rlzr_dom rlzr)/F2MF_tot/psiny.
-			have: F phi Fpsi.
-				have <-: Fphi = Fpsi; last done.
-					apply functional_extensionality => q'.
-					have :=(Lprop Fphi FphiFphi psi _ Fpsi).
-					have: Fphi = (fun q' => Fphi q').
-			have: Fphi \is_description_of (f y).
-			apply/(rlzr_val_sing _ rlzr psiny); first exact/F2MF_sing.
+rewrite F2MF_rlzr_F2MF => phi x phinx /=.
+rewrite /sign /=.
+case: (total_order_T x 0) => [[lt | eq] | gt].
 Admitted.
 
-Definition dom_cont g:= make_subset (fun x => continuity_pt g x).
-Lemma cont_hcr (f: Rc ->> Rc): f \has_continuous_realizer <-> exists g, f =~= (F2MF g)|_(dom_cont g).
+Lemma sign_rlzr_cntop:
+  sign_rlzr \is_continuous_operator.
 Proof.
-Admitted.
-*)
+rewrite F2MF_cont => phi.
+exists (fun n => [:: Qpower_positive (1#2) (Pos.of_nat n)]) => phi' n /= [coin _].
+by rewrite /sign_rlzrf /= coin.
+Qed.
+
+Lemma sign_cont: sign \is_continuous.
+Proof. by exists sign_rlzr; split; [exact/sign_rlzr_spec | exact/sign_rlzr_cntop]. Qed.
 End CAUCHYREALS.

@@ -34,6 +34,7 @@ cnstr/cs_nat.v
 cnstr/cs_unit.v
 cnstr/opt.v
 cnstr/usig.v
+cnstr/sets.v
 all_cs.v
 
 reals/Rstruct.v

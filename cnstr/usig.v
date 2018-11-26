@@ -75,12 +75,12 @@ have [ | Lf mod]:=Fcont phin (fun q' => Fphi (n, q')); first exact/FphiFphi.
 exists (map (fun q' => match q' with
 	| inl q'' => inl (n, q'')
 	| inr q'' => inr (n, q'')
-	end) (Lf q)) => psi /coin_spec/coin_lstn coin Fpsi eq.
+	end) (Lf q)) => psi /coin_agre/coin_lstn coin Fpsi eq.
 apply/(mod q (fun q' => match q' with
 	| inl q'' => ((psi (inl (n, q''))).1, somea _)
 	| inr q'' => (somea _, (psi (inr (n, q''))).2)
 end) _ (fun q => Fpsi (n, q))); last by apply eq.
-apply/coin_spec/coin_lstn => [[q' | q'] lstn].
+apply/coin_agre/coin_lstn => [[q' | q'] lstn].
 	rewrite /phin/= -(coin (inl (n,q'))) /lprj//.
 	by elim: (Lf q) lstn => // a L ih /= [ -> | ]; [left | right; apply/ih].
 rewrite /phin/= -(coin (inr (n,q'))) /rprj//.

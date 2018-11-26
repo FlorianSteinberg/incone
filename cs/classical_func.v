@@ -27,3 +27,36 @@ Notation "g \o_cs f" := (cs_comp f g) (at level 29).
 
 Lemma cs_comp_spec (X Y Z: cs)(f: X c-> Y) (g: Y c-> Z): projT1 (g \o_cs f) =1 (projT1 g \o_f projT1 f).
 Proof. done. Qed.
+
+Require Import ClassicalChoice.
+
+
+(*
+Lemma eval_rlzr_cntop (X Y: cs):
+  (@eval_rlzr (questions X) (questions Y) (answers X) (answers Y)) \is_continuous_operator.
+Proof.
+move => psiphi [Fphi /eval_rlzr_val FphiFphi].
+have [ | mf mod]:= @FM_cont _ _ _ _ (lprj psiphi) (rprj psiphi); first by exists Fphi.
+have [ | mf' mod']:= @FM_val_cont _ _ _ _ (rprj psiphi) (lprj psiphi); first by exists Fphi.
+exists (fun q' => (map inl (mf' q')) ++ (map inr (mf q'))) => q'.
+exists (Fphi q') => psi'phi' /coin_agre /coin_cat [coin' coin] Fphi'/eval_rlzr_val Fphi'Fphi'.
+pose psi'phi := name_pair (lprj psi'phi') (rprj psiphi).
+have : psi'phi \from dom (eval_rlzr).
+rewrite /=.
+suff prp: forall q, exists a, exists c, M (lprj psi'phi) c (rprj psi'phi) q = Some a.
+- by have [fasdf prp']:= choice _ prp; exists fasdf; apply prp'.
+move => q.
+exists 
+have [a' crt']:= mod q'.
+have crt:= cert_icf FphiFphi crt'; move: a' crt' => _ _.
+apply/crt.
+elim: (mf q') coin => [_ crt | ].
+
+rewrite /=.
+pose psiphi' := name_pair (lprj psiphi) (rprj psi'phi').
+
+have [b' crt']:= mod' q'.
+have: Fphi' q' = b'.
+- apply/(crt' (lprj psiphi) _ Fphi').
+  exact/agre_ref.
+  rewrite /=.*)

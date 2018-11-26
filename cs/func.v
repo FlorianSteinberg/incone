@@ -52,18 +52,22 @@ Definition eval_rlzr Q Q' A A' :=
   \F_(fun n (psiphi: _ + Q -> _ * A) => M (lprj psiphi) n (rprj psiphi): Q' -> option A'). 
 Arguments eval_rlzr {Q} {Q'} {A} {A'}.
 
-Lemma eval_rlzr_spec X Y:
+Lemma eval_rlzr_val Q A Q' A' (psiphi: (seq A * Q') + Q -> (seq Q + A') * A):
+  eval_rlzr psiphi === \F_(M (lprj psiphi)) (rprj psiphi).
+Proof. done. Qed.
+  
+Lemma eval_rlzr_crct X Y:
 	eval_rlzr \realizes (F2MF evaluation: X c-> Y \*_cs X ->> Y).
 Proof.
 rewrite rlzr_F2MF => phi [[f fhcr] x] [/=phinf phinx].
 rewrite /function_representation/= in phinf.
 split => [| Fphi RphiFphi]; last by apply/rlzr_val_sing; [apply/F2MF_sing | apply phinf | apply phinx | | ].
 have [ | Fphi FphiFphi]:= rlzr_dom phinf phinx; first by apply F2MF_tot.
-have eq: \F_(M (lprj phi)) (rprj phi) === eval_rlzr phi by trivial.
-by exists Fphi; apply/eq.
+by exists Fphi; apply/eval_rlzr_val.
 Qed.
-End evaluation.
 
+End evaluation.
+Arguments eval_rlzr {Q} {Q'} {A} {A'}.
 (*
 Section associates.
 

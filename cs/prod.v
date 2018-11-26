@@ -50,6 +50,7 @@ End cs_product.
 Notation "X \*_cs Y" := (cs_prod X Y) (at level 50).
 Arguments lprj {Q} {Q'} {A} {A'}.
 Arguments rprj {Q} {Q'} {A} {A'}.
+Search _ (_ ** _).
 (*
 Class Uncurry T (f : T) src tgt := { prog : src -> tgt }.
 Arguments prog {T} f {src tgt _}.
@@ -178,16 +179,16 @@ exists (fun qq' => match qq' with
 	| inr q' => map inr (Lf' q')
 end) => [[q | q']].
 	have [a' crt]:= mod q; exists (FGphi (inl q)).
-	move => psi /coin_spec/coin_lstn coin Fpsi [ np' [/=val'l val'r]].
+	move => psi /coin_agre/coin_lstn coin Fpsi [ np' [/=val'l val'r]].
 	rewrite np np'; apply injective_projections => //=.
 	rewrite (crt (lprj phi) _ (lprj FGphi))//(crt (lprj psi) _ (lprj Fpsi))//.
-	rewrite -coin_spec coin_lstn /lprj => q' lstn.
+	rewrite -coin_agre coin_lstn /lprj => q' lstn.
 	by rewrite (coin (inl q')) //; apply (mapl (Lf q) q').
 have [a' crt]:= mod' q'; exists (FGphi (inr q')).
-move => psi /coin_spec/coin_lstn coin Fpsi [ np' [/=val'l val'r]].
+move => psi /coin_agre/coin_lstn coin Fpsi [ np' [/=val'l val'r]].
 rewrite np np'; apply injective_projections => //=.
 rewrite (crt (rprj phi) _ (rprj FGphi))//(crt (rprj psi) _ (rprj Fpsi))//.
-rewrite -coin_spec coin_lstn /rprj => q lstn.
+rewrite -coin_agre coin_lstn /rprj => q lstn.
 by rewrite (coin (inr q)) //; apply (mapr (Lf' q') q).
 Qed.
 

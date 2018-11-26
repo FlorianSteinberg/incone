@@ -89,14 +89,14 @@ rewrite mon_eval; last exact/cont_sing; last exact/M_mon.
 move => phi Fphi FphiFphi.
 have phifd: phi \from dom F by exists Fphi.
 apply/(MpsiF_spec phifd) => //; try by move => n; have []:= listfprop phi n phifd.
-	move => q' n ineq.
-	have [a' crt]:= mod_minmod ms (mfmod phi phifd) q'.
-	rewrite [mf phi q'](crt phi) //.
-	have -> //:= crt (listf (map phi (iseg cnt n))) _ (mf (listf (map phi (iseg cnt n)))).
-			have [_ coin]:= listfprop phi n phifd.
-			by rewrite -coin_spec; apply/coin_sym/coin_subl/coin/iseg_subl.
-		by apply/mfmod; have []:= listfprop phi n phifd.
-	exact/mfmod.
+- move => q' n ineq.
+  have [a' crt]:= mod_minmod ms (mfmod phi phifd) q'.
+  rewrite [mf phi q'](crt phi) //.
+  have -> //:= crt (listf (map phi (iseg cnt n))) _ (mf (listf (map phi (iseg cnt n)))).
+    - have [_ coin]:= listfprop phi n phifd.
+      by rewrite -coin_agre; apply/coin_sym/coin_subl/coin/iseg_subl.
+    by apply/mfmod; have []:= listfprop phi n phifd.
+  exact/mfmod.
 by move => psi psifd; have [mod min]:= mfmod psi psifd.
 Qed.
 
@@ -127,7 +127,7 @@ suff prp': forall q', exists L, cert (make_mf (fun psi0 => [eta \F_(M psi0) phi]
 move => q'.
 have [Qn com]:= FphiFphi q'.
 exists (iseg (fun i => (map phi (flatten (drop i Qn)), q')) (size Qn).+1).
-move => psi'/coin_spec coin Fphi' /= /FM_val_spec FphiFphi'.
+move => psi'/coin_agre coin Fphi' /= /FM_val_spec FphiFphi'.
 have [Qn' [/=cns' val']]:= FphiFphi' q'.
 have:= cmcn_unique com .
 suff: (Qn, Fphi q') = (Qn', Fphi' q') by case.

@@ -301,7 +301,7 @@ elim: n => // n ih /=.
 case: (M_rec_spec psi n phi q') => [eq | [a' val]]; last by rewrite val => coin; rewrite -ih// val.
 rewrite eq /M_step.
 case val: (psi (map phi (gather_queries psi n phi q'), q')) => [K' | a'].
-- by rewrite coin_app => [[coin coin']]; rewrite -ih // eq -(coin_map coin') val.
+- by rewrite coin_cat => [[coin coin']]; rewrite -ih // eq -(coin_map coin') val.
 by move => coin; rewrite -ih// eq -(coin_map coin) val.
 Qed.
 
@@ -312,7 +312,7 @@ have rec:= (M_rec_inl_spec psi (size Qn) phi q' (flatten Qn)).2.
 rewrite rec; last by exists Qn; do 2 split => //; apply/cns_cons/cns.
 rewrite /M_step; case val: (psi (map phi (flatten Qn), q')) => [K' | a']; last first.
 - by have [ | K'' [/=]]//:= cns 0; rewrite drop0 val.
-rewrite coin_app => [[coin coin']] [_/= | i].
+rewrite coin_cat => [[coin coin']] [_/= | i].
 - rewrite drop0 -(coin_map coin').
   by have prp:= cns 0; rewrite /= drop0 in prp; apply/prp.
 rewrite /=; apply/ih=>//; first by apply/cns_cons/cns.
@@ -380,7 +380,7 @@ Lemma queriesM_mod psi phi mf:
 Proof.
 move => /queriesM_spec mod q'.
 have [Qn [a' [[/=cns val] gq]]]:= mod q'.  
-exists a' => phi'/coin_spec coin Fphi' /FM_val_spec Fphi'Fphi'.
+exists a' => phi'/coin_agre coin Fphi' /FM_val_spec Fphi'Fphi'.
 have [Qn' com]:= Fphi'Fphi' q'.
 suff com': communication psi phi' q' (Qn, a') by have [_ ->]:= (cmcn_unique com com').
 split.
@@ -452,7 +452,7 @@ pose phin n := (listf (map phi (init_seg n))).
 have FFprop: forall n, mf (phin n) q' <= n -> FF (phin n) q' = Fphi q' => [n ineq | ].
 - have [ | a' crt]:= mod (phin n) _ q'; first exact/listfdom; have [Fphik FphikFphik]:= listfdom n.
   rewrite [RHS](crt phi) => //; first by rewrite (crt (phin n)) //; apply/icf/FphikFphik.
-  exact/coin_spec/coin_subl/listfcoin/iseg_subl/ineq.
+  exact/coin_agre/coin_subl/listfcoin/iseg_subl/ineq.
 elim: {2}(mf phi q') (leqnn (mf phi q')) => [ineq | n ih].
 - exists 1; rewrite /M/=/M_step/=/psiF /=.
   have eq': mf (listf nil) q' <= 0 by apply/leq_trans/ineq/leq_trans/(listfmod q' 0).

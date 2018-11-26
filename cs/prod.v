@@ -50,7 +50,6 @@ End cs_product.
 Notation "X \*_cs Y" := (cs_prod X Y) (at level 50).
 Arguments lprj {Q} {Q'} {A} {A'}.
 Arguments rprj {Q} {Q'} {A} {A'}.
-Search _ (_ ** _).
 (*
 Class Uncurry T (f : T) src tgt := { prog : src -> tgt }.
 Arguments prog {T} f {src tgt _}.

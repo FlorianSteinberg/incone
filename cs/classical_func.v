@@ -1,6 +1,7 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs choice_dict.
-Require Import all_core cs prod sub func classical_cont classical_mach.
+Require Import facts all_core cs prod sub func classical_cont classical_mach.
+Require Import FunctionalExtensionality ClassicalChoice.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -16,6 +17,20 @@ Qed.
 Definition exist_c (X Y: cs) (f: X -> Y) (cont: f \is_continuous): (X c-> Y).
 Proof. by exists f; apply/ass_cont. Defined.
 
+Lemma prod_uprp_cont (X Y Z: cs) (f: Z c-> X) (g: Z c-> Y):
+  exists! (F: Z c-> (cs_prod X Y)),
+    (forall z, (projT1 F z).1 = (projT1 f) z)
+    /\
+    (forall z, (projT1 F z).2 = (projT1 g) z).
+Proof.
+set F :Z -> X \*_cs Y := (projT1 f **_f projT1 g) \o_f diag.
+have Fcont: F \is_continuous.
+- exact/(cont_comp _ (diag_cont Z))/fprd_cont/ass_cont/(projT2 g)/ass_cont/(projT2 f).
+exists (exist_c Fcont); split => // G [] eq eq'.
+apply/eq_sub/functional_extensionality => z; symmetry.
+exact/injective_projections/eq'/eq.
+Qed.
+
 Definition cs_comp (X Y Z: cs) (f: X c-> Y) (g: Y c-> Z): (X c-> Z).
 Proof.
 exists ((projT1 g) \o_f projT1 f); apply/ass_cont/cont_comp.
@@ -27,8 +42,6 @@ Notation "g \o_cs f" := (cs_comp f g) (at level 29).
 
 Lemma cs_comp_spec (X Y Z: cs)(f: X c-> Y) (g: Y c-> Z): projT1 (g \o_cs f) =1 (projT1 g \o_f projT1 f).
 Proof. done. Qed.
-
-Require Import ClassicalChoice.
 
 Fixpoint collect_left S T (L: seq (S + T)) := match L with
                       | nil => nil

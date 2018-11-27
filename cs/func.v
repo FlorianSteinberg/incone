@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs choice_dict.
-Require Import all_core cs prod sub.
+Require Import all_core cs prod sub facts.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -68,152 +68,50 @@ Qed.
 
 End evaluation.
 Arguments eval_rlzr {Q} {Q'} {A} {A'}.
-(*
+
 Section associates.
+Require Import FunctionalExtensionality.
+Definition id_ass X Lq := match Lq.1: seq (answers X) with
+		| nil => inl ([::Lq.2:questions X])
+		| a:: L => inr (a: answers X)
+	end.
 
-Lemma prod_space_cont (X Y Z: cs) (f: Z c-> X) (g: Z c-> Y):
-  exists (F: cs_fun Z (cs_prod X Y)),
-    (forall z, (projT1 F z).1 = (projT1 f) z)
-    /\
-    (forall z, (projT1 F z).2 = (projT1 g) z).
+Lemma id_ass_eval (X: cs): (M (@id_ass X)) \evaluates_to mf_id.
 Proof.
-set F := fun z => ((projT1 f) **_f (projT1 g)) (z, z).
-have Fhcr: (F2MF F: Z ->> cs_prod X Y) \has_continuous_realizer.
-- have ->: (F2MF F) =~= (F2MF (projT1 f) ** F2MF (projT1 g)) \o (F2MF (fun z => (z, z))).
-    by rewrite -F2MF_fprd comp_F2MF.
-  apply/comp_hcr.
-  by apply comp_hcr; [apply diag_hcr | apply mfpp_hcr; [apply (projT2 f) | apply (projT2 g) ]].
-by exists (exist_c Fhcr).
+apply/mon_eval; first exact/M_mon; first exact/F2MF_sing.
+by move => phi _ <- q'; exists 2; rewrite /M/=.
 Qed.
 
-Definition id_fun X := (exist_c (id_hcr X)).
+Lemma id_ass_spec X: associate X X (@id_ass X) id.
+Proof. exact/ntrvw.tight_rlzr/id_ass_eval/id_rlzr. Qed.
 
-Lemma id_rec_elt X:
-	(id_fun X : X c-> X) \is_recursive_element.
+Definition fst_ass X Y (Lq: seq (answers (X \*_cs Y)) * (questions X)) :=
+                          match Lq.1 with
+                          | nil => inl [::inl Lq.2 : _ + (questions Y)]
+                          | cons a K => inr a.1: (_ + answers X) 
+                          end.
+
+Lemma fst_ass_eval (X Y: cs): (M (@fst_ass X Y)) \evaluates_to (fst_rlzr X Y).
 Proof.
-exists (fun p => match p.1: seq (questions X* answers X) with
-		| nil => inl (p.2:questions X)
-		| (q,a):: L => inr (a: answers X)
-	end).
-abstract by pose id_name p := match p.1: seq (questions X* answers X) with
-		| nil => inl (p.2:questions X)
-		| (q,a):: L => inr (a: answers X)
-	end; rewrite /=/is_fun_name/=/rlzr comp_id_l -{1}(comp_id_r (rep X));
-	apply /tight_comp_r/ (mon_cmpt_op); [exact: U_mon | move => phi q; exists 1].
-Defined.
-
-Definition composition X Y Z (f: X c-> Y) (g: Y c-> Z) :(X c-> Z) :=
-	exist_c (comp_hcr_fun (projT2 f) (projT2 g)).
-
-(*
-Lemma fcmp_mon_cmpt X Y Z:
-	(@composition X Y Z) \is_monotone_computable.
-Proof.
-Admitted.
-*)
-
-Lemma fst_fun_name X Y:
-	(fun Lq => match Lq.1  with
-		| nil => inl (inl Lq.2)
-		| cons a K => inr a.2.1
-		end) \is_name_of (exist_c (@fst_hcr X Y)).
-Proof.
-set psi:= (fun Lq => match Lq.1  with
-	| nil => inl (inl Lq.2)
-	| cons a K => inr a.2.1
-end).
-rewrite /=/is_fun_name.
-suffices ->: eval (U psi) =~= F2MF (@lprj X Y) by apply frlzr_rlzr => phi x [/=phinx _].
-move => phi Fphi.
-split => ass; last by rewrite -ass; exists 1.
-apply functional_extensionality => q.
-have [n val] := ass q.
-have U1: U psi 1 phi q = Some (lprj phi q) by trivial.
-apply Some_inj.
-rewrite -val.
-apply esym.
-apply/ U_mon; last apply U1.
-rewrite /pickle/=.
-by case: n val => // n val; lia.
+apply/mon_eval; first exact/M_mon; first exact/F2MF_sing.
+by move => phi _ <- q'; exists 2; rewrite /M /=.
 Qed.
 
-Lemma fst_cmpt (X Y: rep_space):
-	(exist_c (@fst_hcr X Y): (rep_space_prod X Y) c-> X) \is_recursive_element.
-Proof.
-exists (fun Lq => match Lq.1  with
-	| nil => inl (inl Lq.2)
-	| cons a K => inr a.2.1
-end).
-exact: fst_fun_name.
-Defined.
+Lemma fst_ass_spec X Y: associate (X \*_cs Y) X (@fst_ass X Y) fst.
+Proof. exact/ntrvw.tight_rlzr/fst_ass_eval/fst_rlzr_spec. Qed.
 
-Lemma snd_fun_name X Y:
-	(fun Lq => match Lq.1  with
-		| nil => inl (inr Lq.2)
-		| cons a K => inr a.2.2
-		end) \is_name_of (exist_c (@snd_hcr X Y)).
+Definition snd_ass X Y (Lq: seq (answers (X \*_cs Y)) * (questions Y)) :=
+                          match Lq.1 with
+                          | nil => inl [::inr Lq.2 : (questions X) + _]
+                          | cons a K => inr a.2: (_ + answers Y) 
+                          end.
+
+Lemma snd_ass_eval (X Y: cs): (M (@snd_ass X Y)) \evaluates_to (snd_rlzr X Y).
 Proof.
-set psi:= (fun Lq => match Lq.1  with
-	| nil => inl (inr Lq.2)
-	| cons a K => inr a.2.2
-end).
-rewrite /=/is_fun_name.
-suffices ->: eval (U psi) =~= F2MF (@rprj X Y) by apply frlzr_rlzr => phi x [_ phiny].
-move => phi Fphi.
-split => ass; last by rewrite -ass; exists 1.
-apply functional_extensionality => q.
-have [n val] := ass q.
-have U1: U psi 1 phi q = Some (rprj phi q) by trivial.
-apply Some_inj.
-rewrite -val.
-apply esym.
-apply/ U_mon; last apply U1.
-rewrite /pickle/=.
-by case: n val => // n val; lia.
+apply/mon_eval; first exact/M_mon; first exact/F2MF_sing.
+by move => phi _ <- q'; exists 2; rewrite /M /=.
 Qed.
 
-Lemma snd_cmpt (X Y: rep_space):
-	(exist_c (@snd_hcr X Y) :(rep_space_prod X Y) c-> Y) \is_recursive_element.
-Proof.
-exists (fun Lq => match Lq.1  with
-	| nil => inl (inr Lq.2)
-	| cons a K => inr a.2.2
-end).
-exact: snd_fun_name.
-Defined.
-
-(*
-Lemma prod_space_cmpt (X Y Z: rep_space) (f: Z c-> X) (g: Z c-> Y):
-	f \is_computable_element -> g \is_computable_element ->
-	exists (F: Z c-> (rep_space_prod X Y)) (P:	F \is_computable_element),
-		((F2MF (@fst X Y)) o (projT1 F) =~= (projT1 f))
-		/\
-		((F2MF (@snd X Y)) o (projT1 F) =~= (projT1 g)).
-Proof.
-move => [phi phinf] [psi psing].
-have [F Fprop]:= prod_space_cont f g.
-exists F; split; last exact: Fprop.
-suffices eq: projT1 F =~= (((projT1 f) ** (projT1 g)) o (F2MF (fun z => (z, z)))).
-exists (fun Lq => match Lq.2 with
-	|inl q' => match phi (Lq.1, q') with
-		| inl q'' => inl q''
-		| inr a => inr (a, some_answer Y)
-	end
-	|inr q' => match psi (Lq.1, q') with
-		| inl q'' => inl q''
-		| inr a => inr (some_answer X, a)
-	end
-end).
-set psiF:=(fun Lq => match Lq.2 with
-	|inl q' => match phi (Lq.1, q') with
-		| inl q'' => inl q''
-		| inr a => inr (a, some_answer Y)
-	end
-	|inr q' => match psi (Lq.1, q') with
-		| inl q'' => inl q''
-		| inr a => inr (some_answer X, a)
-	end
-end).
-*)
-End COMPUTABLE_ELEMENTS.
-*)
+Lemma snd_ass_spec X Y: associate (X \*_cs Y) Y (@snd_ass X Y) snd.
+Proof. exact/ntrvw.tight_rlzr/snd_ass_eval/snd_rlzr_spec. Qed.
+End associates.

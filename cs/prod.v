@@ -80,7 +80,7 @@ Lemma fst_rlzr_spec (X Y: cs):
   fst_rlzr \realizes (mf_fst: X \*_cs Y ->> X).
 Proof. by rewrite F2MF_rlzr_F2MF => phi x [phinx _]. Qed.
 
-Lemma rprj_rlzr_snd (X Y: cs):
+Lemma snd_rlzr_spec (X Y: cs):
   snd_rlzr \realizes (mf_snd: X \*_cs Y ->> Y).
 Proof. by rewrite F2MF_rlzr_F2MF => phi x [_ phinx]. Qed.
 

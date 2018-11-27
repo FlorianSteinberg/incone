@@ -45,7 +45,7 @@ End cs_functions.
 Notation "X c-> Y" := (cs_fun X Y) (at level 2).
 
 Section evaluation.
-Definition evaluation X Y (fx: (X c-> Y) * X) := (projT1 fx.1) fx.2.
+Definition evaluation X Y (fx: (X c-> Y) \*_cs X) := (projT1 fx.1) fx.2.
 Arguments evaluation {X} {Y}.
 
 Definition eval_rlzr Q Q' A A' :=

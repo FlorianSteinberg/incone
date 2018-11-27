@@ -118,64 +118,113 @@ move => phi /queriesM_dom [mf mod].
 by exists mf; apply/queriesM_mod.
 Qed.
 
-Lemma FM_val_cont (phi: B): (make_mf (fun psi (Fphi: B') => \F_(M psi) phi Fphi)) \is_continuous_operator.
+Lemma FM_sing (psi: seq A * Q' -> seq Q + A'):
+  \F_(M psi) \is_singlevalued.
+Proof. exact/cont_sing/FM_cont. Qed.
+
+Require Import FunctionalExtensionality.
+
+Lemma FM_ucont (psi: seq A * Q' -> seq Q + A'):exists mf Lf,
+    forall phi,  phi \from dom \F_(M psi) ->
+                 continuity_modulus \F_(M psi) phi (mf phi) /\
+                 continuity_modulus (F2MF mf)|_(dom \F_(M psi)) phi (mf phi) /\
+                 continuity_modulus (F2MF Lf)|_(dom \F_(M psi)) phi (mf phi) /\
+                 continuity_modulus (make_mf (fun psi Fphi => \F_(M psi) phi Fphi)) psi (Lf phi).
 Proof.
-move => psi [Fphi prp].  
-have /FM_val_spec FphiFphi: \F_(M psi) phi Fphi by trivial.
-suff prp': forall q', exists L, cert (make_mf (fun psi0 => [eta \F_(M psi0) phi])) (L2SS L) psi q' (Fphi q').
-- by have [mf cond]:= choice _ prp'; exists mf => q'; exists (Fphi q').
-move => q'.
-have [Qn com]:= FphiFphi q'.
-exists (iseg (fun i => (map phi (flatten (drop i Qn)), q')) (size Qn).+1).
-move => psi'/coin_agre coin Fphi' /= /FM_val_spec FphiFphi'.
+have /choice [Qnf Qnfprp]: forall phi, exists Qnf, forall Fphi, \F_(M psi) phi Fphi -> forall q', communication psi phi q'(Qnf q', Fphi q') .
+- move => phi; case: (classic (phi \from dom \F_(M psi))) => [[Fphi val] | neg].
+  - have /FM_val_spec /choice [Qnf prp]:= val.
+    exists Qnf => Fphi' val' q'.
+    by rewrite (FM_sing val' val); apply/prp.
+  by exists (fun _ => nil) => Fphi val; exfalso; apply/neg; exists Fphi.
+exists (fun phi q' => gather_queries psi (size (Qnf phi q')) phi q'). 
+exists (fun phi q' => iseg (fun i => (map phi (flatten (drop i (Qnf phi q'))), q')) (size (Qnf phi q')).+1) => phi [Fphi FphiFphi].
+split.
+- apply/queriesM_mod; rewrite queriesM_spec => q'.
+  by exists (Qnf phi q'); exists (Fphi q'); split; first exact/Qnfprp.
+split.
+- move => q'; exists (gather_queries psi (size (Qnf phi q')) phi q').
+  move => phi' /coin_agre coin _ [[Fphi' val'] <-].
+  have com:= Qnfprp phi' Fphi' val' q'.
+  have com': communication psi phi' q' (Qnf phi q', (Fphi q')).
+  have [/= cns val] := Qnfprp phi Fphi FphiFphi q'. 
+  split; first exact/cns_cont/coin.
+  by rewrite -(gather_queries_cns cns) -(coin_map coin) (gather_queries_cns cns).
+  have [-> _]:= (cmcn_unique com com').
+  rewrite gather_queries_cns; last apply/com'.1.
+  by rewrite gather_queries_cns; last apply/(Qnfprp phi Fphi FphiFphi q').1.
+split.              
+- move => q'; exists (iseg (fun i => (map phi (flatten (drop i (Qnf phi q'))), q')) (size (Qnf phi q')).+1).
+  move => phi' /coin_agre coin _ [[Fphi' val']] <-.
+  have com := Qnfprp phi' Fphi' val' q'.
+  have com': communication psi phi' q' (Qnf phi q', (Fphi q')).
+  have [/= cns val] := Qnfprp phi Fphi FphiFphi q'. 
+  split; first exact/cns_cont/coin.
+  by rewrite -(gather_queries_cns cns) -(coin_map coin) (gather_queries_cns cns).
+  have [-> _]:= (cmcn_unique com com').
+  f_equal; apply functional_extensionality => i.
+  suff coin': phi \and phi' \coincide_on (flatten (drop i (Qnf phi q'))).
+  - by rewrite (coin_map coin').
+  apply/coin_subl/coin.
+  rewrite gather_queries_cns; first exact/flatten_subl/drop_subl.
+  exact/(Qnfprp phi Fphi FphiFphi q').1.
+move => q'; exists (Fphi q') => psi'/coin_agre coin Fphi' /= /FM_val_spec FphiFphi'.
 have [Qn' [/=cns' val']]:= FphiFphi' q'.
-have:= cmcn_unique com .
-suff: (Qn, Fphi q') = (Qn', Fphi' q') by case.
+have:= cmcn_unique (Qnfprp phi Fphi FphiFphi q').
+suff: (Qnf phi q', Fphi q') = (Qn', Fphi' q') by case.
 apply/cmcn_unique.
-- apply/com.
-suff eq: Qn = Qn'.
+- apply/Qnfprp => //.    
+suff eq: (Qnf phi q') = Qn'.
 - rewrite -eq.
-  split => /=; first by apply com.1.
+  split => /=; first by apply (Qnfprp phi Fphi FphiFphi q').1.
   rewrite eq.
   move: coin; rewrite coin_lstn => coin.
   rewrite coin // lstn_iseg.
   by exists 0; split => //; rewrite drop0 eq.            
-case/orP: (leq_total (size Qn) (size Qn')) => ineq.
-- by apply/cns_rec/cns'/com.1=>//; exact/com.2.
+case/orP: (leq_total (size (Qnf phi q')) (size Qn')) => ineq.
+- by apply/cns_rec/cns'/(Qnfprp phi Fphi FphiFphi q').1=>//; exact/(Qnfprp phi Fphi FphiFphi q').2.
 symmetry.
-apply/cns_rec/com.1/cns' => //; try apply/val'.
+apply/cns_rec/(Qnfprp phi Fphi FphiFphi q').1/cns' => //; try apply/val'.
 apply/coin_sym.
 apply/coin_subl/coin.
 move => pr /lstn_iseg [n [ineq' eq]].
-apply/lstn_iseg; exists (n + (size Qn - size Qn')).
+apply/lstn_iseg; exists (n + (size (Qnf phi q') - size Qn')).
 rewrite -drop_drop.
 split.
 - rewrite -{2}(subnK ineq).
   rewrite [_ + size Qn']addnC -[X in _ < X]addSn.
   by rewrite ltn_add2r.
-suff ->: drop (size Qn - size Qn') Qn = Qn' by trivial. 
+suff ->: drop (size (Qnf phi q') - size Qn') (Qnf phi q') = Qn' by trivial. 
 apply/cns_eq/cns'; last first; last by rewrite size_drop subKn.
 move => i.
 rewrite size_drop subKn// => ils.
-have [ | K [] ]//:= com.1 (i + size Qn - size Qn').
+have [ | K [] ]//:= (Qnfprp phi Fphi FphiFphi q').1 (i + size (Qnf phi q') - size Qn').
 - rewrite /= -[X in _ < X](subnK ineq) [_ + size Qn']addnC -addnBA//.
   by rewrite ltn_add2r.
 exists K.
 rewrite !drop_drop addSn addnBA//; split => //.
 move: coin; rewrite coin_lstn => coin; rewrite -coin//.
 apply/lstn_iseg.
-exists (i + size Qn - size Qn').+1.
+exists (i + size (Qnf phi q') - size Qn').+1.
 split => //.
 rewrite -addnBA // -[X in _ < X.+1](subnK ineq) addnC.
-by have: (size Qn - size Qn' + i) < (size Qn - size Qn' + size Qn') by rewrite ltn_add2l.
+by have: (size (Qnf phi q') - size Qn' + i) < (size (Qnf phi q') - size Qn' + size Qn') by rewrite ltn_add2l.
 apply/coin_sym/coin_subl/coin.
 move => Kq' /lstn_iseg [k []].
 rewrite size_drop subKn // => a <-.
 apply/lstn_iseg.
-exists (k.+1 + (size Qn - size Qn')).   
+exists (k.+1 + (size (Qnf phi q') - size Qn')).   
 rewrite drop_drop; split => //.
 rewrite addSn.
-have: (size Qn - size Qn' + k) < (size Qn - size Qn' + size Qn') by rewrite ltn_add2l.
+have: (size (Qnf phi q') - size Qn' + k) < (size (Qnf phi q') - size Qn' + size Qn') by rewrite ltn_add2l.
 by rewrite subnK//addnC.
+Qed.
+
+Lemma FM_val_cont (phi: B): (make_mf (fun psi (Fphi: B') => \F_(M psi) phi Fphi)) \is_continuous_operator.
+Proof.
+move => psi psifd.
+have [mf [Lf prp]]:= FM_ucont psi.
+have [mod [mod' [mod'' mod''']]]:= prp phi psifd.
+by exists (Lf phi).
 Qed.
 End classical_machines.

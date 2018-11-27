@@ -2,16 +2,16 @@
 
 core/count/iseg.v
 core/count/count.v
-core/count/classical_count.v
 all_count.v
 
 core/cont/baire.v
 core/cont/cont.v
-core/cont/classical_cont.v
 core/cont/minm.v
+core/cont/classical_cont.v
 all_cont.v
 
 core/count/seq_cont.v
+core/count/classical_count.v
 
 core/mach/exec.v
 core/mach/Mmach.v

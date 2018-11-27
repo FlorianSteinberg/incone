@@ -25,4 +25,7 @@ apply F2MF_cont => phi.
 exists (fun qq' => match qq' with | inl q => [:: q] | inr q' => [:: q'] end) => psi [q | q'] [];
 by rewrite /name_pair => ->.
 Qed.
+
+Lemma diag_cont (X: cs): (@diag X: _ -> _ \*_cs _) \is_continuous.
+Proof. exact/diag_hcr. Qed.
 End BASIC_LEMMAS.

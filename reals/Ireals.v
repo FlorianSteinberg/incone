@@ -49,10 +49,11 @@ Qed.
 Definition rep_R : (nat -> ID) ->> R:= make_mf (
   fun I x => (forall n,  x \contained_in (I n))
   /\
-	forall n, exists N, forall k, (N <= k)%nat -> bounded (I k) /\ diam (I k) <= /2 ^ n).
+  forall n, exists N, forall k, (N <= k)%nat -> bounded (I k)
+                                                /\
+                                                diam (I k) <= /2 ^ n).
 
-Lemma D2R_SFBI2toX m e:
-	SFBI2.toX (Float m e) = Xreal (D2R (Float m e)).
+Lemma D2R_SFBI2toX m e: SFBI2.toX (Float m e) = Xreal (D2R (Float m e)).
 Proof.
 rewrite /D2R/proj_val/=/SFBI2.toX/=/Interval_definitions.FtoX/=.
 by case: BigIntRadix2.mantissa_sign (Float m e) => //.
@@ -136,28 +137,49 @@ Proof. split; exact/rep_R_sing. Qed.
 
 Definition IR := dictionary.Pack IR_dictionary_mixin.
 
-Lemma Intervals_countable: ID \is_countable.
+Lemma digits_count: digits \is_countable.
+Proof.
+exists (fun n => match n with
+                 | 0%nat => Some D0
+                 | S n => Some D1
+                 end).
+by case; [exists 0%nat | exists 1%nat].
+Qed.
+
+Lemma ID_count: ID \is_countable.
 Proof.
 Admitted.
 
-Canonical IR_cs := continuity_space.Pack
-	0%nat
-	I0
-	nat_count
-	Intervals_countable
-	IR.
+Canonical IR_cs := continuity_space.Pack 0%nat I0 nat_count ID_count IR.
 
 Definition nat2p n := SFBI2.PtoP (Pos.of_nat n).
-Lemma add_error I J n m p:
-	bounded I -> diam I <= /2^n -> bounded J -> diam J <= /2^m ->
-		diam (I.add (nat2p p) I J) <= /2 ^ n + /2 ^ m + /2 ^ p.
+
+Lemma SFBI2_add_correct: forall (mode: Interval_definitions.rounding_mode) (p: xpnt) (e e':xpnt) (m m':mant),
+    D2R (SFBI2.add mode p (Float e m) (Float e' m')) = Interval_definitions.round SFBI2.radix mode (SFBI2.prec p) (D2R (Float e m) + (D2R (Float e' m'))).
 Proof.
+move => mode p e e' m m'.
+have := SFBI2.add_correct mode p (Float e m) (Float e' m').
+rewrite !D2R_SFBI2toX.
+rewrite /Xadd/Interval_definitions.Xround/Xbind/SFBI2.toX.
+rewrite /Interval_definitions.FtoX.
+by case E: (SFBI2.toF (SFBI2.add mode p (Float e m) (Float e' m'))) => //; move =>  [<-]; rewrite /D2R/proj_val/SFBI2.toX/Interval_definitions.FtoX E.
+Qed.
+
+Lemma add_error I J n m p:
+  bounded I -> diam I <= /2^n -> bounded J -> diam J <= /2^m ->
+  bounded (I.add (nat2p p) I J)
+  /\
+  diam (I.add (nat2p p) I J) <= /2 ^ n + /2 ^ m + /2 ^ p.
+Proof.
+case: I => //; case => //lIe lIm; case => //uIe uIm _ ineq; rewrite /= in ineq.
+case: J => //; case => //lJe lJm; case => //uJe uJm _ ineq'; rewrite /= in ineq'.
+split; first admit.
+rewrite /upper /lower !SFBI2_add_correct /=.
 Admitted.
 
-Definition Rplus_frlzr (phi: names (cs_prod IR_cs IR_cs)) (n: questions IR_cs):=
-	I.add (nat2p n) (lprj phi n) (rprj phi n).
+Definition Rplus_rlzrf (phi: names (cs_prod IR_cs IR_cs)) (n: questions IR_cs):= I.add (nat2p n) (lprj phi n) (rprj phi n).
 
-Definition Rplus_rlzr := F2MF Rplus_frlzr.
+Definition Rplus_rlzr := F2MF Rplus_rlzrf.
 
 Lemma Rplus_rlzr_spec : Rplus_rlzr \realizes (F2MF (fun xy => Rplus xy.1 xy.2): IR_cs \*_cs IR_cs ->> IR_cs).
 Proof.
@@ -172,8 +194,8 @@ have [ | bndl dml]:= Nprp k.
 have [ | bndr dmr]:= Mprp k.
 	apply/leq_trans; first exact: (leq_maxl M N).
 	by apply/leq_trans; first exact: (leq_maxr n.+1 (maxn M N)).
-rewrite /Rplus_rlzr; split.
-	admit.
+rewrite /Rplus_rlzr/Rplus_rlzrf; split.
+admit.
 have npg0: 0 < 2 ^ n.+1.
 	admit.
 have /=exp: /2 ^ k <= /2 * /2 ^ n.

@@ -1,9 +1,9 @@
 (* This files proves some general Lemmas about the real numbers that are
 usefull when considering computability. *)
 
-From mathcomp Require Import all_ssreflect.
+From mathcomp Require Import ssreflect ssrnat ssrbool ssrfun.
 From rlzrs Require Import all_mf.
-Require Import Qreals Reals Psatz ClassicalChoice.
+Require Import Qreals Reals Psatz.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -85,7 +85,7 @@ Qed.
 Definition lim :=make_mf (fun xn x =>
 	forall eps, eps > 0 -> exists N, forall n, (N <= n)%nat -> Rabs (x - xn n) <= eps).
 
-Lemma Uncv_lim : 	make_mf Un_cv =~= lim.
+Lemma Uncv_lim: make_mf Un_cv =~= lim.
 Proof.
 move => xn x; split => ass eps epsg0.
 	have [N Nprp]:= ass eps epsg0; exists N => n ineq.

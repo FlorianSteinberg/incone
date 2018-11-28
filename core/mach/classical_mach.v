@@ -78,8 +78,8 @@ Lemma M_universal (someq: Q) (somea : A) (somephi': B') (F: B ->> B'):
 Proof.
 have [eqQ' _]:= classic_eqClass Q'.
 set Q'eqType:= EqType Q' eqQ'.
-move => count cont.
-have [ | cnt sur]//:= (count_sur Q).2.
+move => [_ [/pfun_spec [pcnt <-] /PF2MF_cotot psur]] cont.
+have [ | | cnt sur]:= (@count_fun Q pcnt); first apply/inhabits/someq; first exact/psur.
 have [Ff Fprop] := exists_choice (F: _ ->>(Q'eqType -> _)) somephi'.
 have [sec ms] := exists_minsec sur.
 have [mf mfmod]:= exists_minmod ms (cont: (F: _ ->> (Q'eqType -> _)) \is_continuous_operator).

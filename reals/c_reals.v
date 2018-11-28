@@ -70,42 +70,11 @@ Proof. split; exact rep_C_sing. Defined.
 
 Canonical Rc_dictionary := dictionary.Pack Rc_dictionary_mixin.
 
-Lemma pos_count: positive \is_countable.
-Proof.
-exists (fun n => Some (Pos.of_nat n)) => p.
-by exists (Pos.to_nat p); rewrite Pos2Nat.id.
-Qed.
-
-Lemma Z_count: Z \is_countable.
-Proof.
-have [cnt sur]:= option_count (sum_count pos_count pos_count).
-exists (fun n => match cnt n with
-        | None => None
-        | Some None => Some Z0
-        | Some (Some (inl p)) => Some (Zpos p)
-        | Some (Some (inr n)) => Some (Zneg n)
-         end).
-case => [ | p | n]; first by have [n val]:= sur None; exists n; rewrite val.
-- by have [n val] := sur (Some (inl p)); exists n; rewrite val.
-by have [m val] := sur (Some (inr n)); exists m; rewrite val.
-Qed.
-
-Lemma rationals_countable: Q \is_countable.
-Proof.
-have [cnt sur]:= prod_count Z_count pos_count.
-exists (fun n => match (cnt n) with
-         | None => None
-         | Some p => Some (Qmake p.1 p.2)
-         end).
-case => e d.
-by have [n val] := sur (e, d); exists n; rewrite val.
-Qed.
-
 Canonical Rc := continuity_space.Pack
 	0%Q
 	0%Q
-	rationals_countable
-	rationals_countable
+	Q_countable
+	Q_countable
 	Rc_dictionary.
 
 Section addition.

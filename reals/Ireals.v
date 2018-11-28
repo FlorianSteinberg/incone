@@ -137,15 +137,6 @@ Proof. split; exact/rep_R_sing. Qed.
 
 Definition IR := dictionary.Pack IR_dictionary_mixin.
 
-Lemma digits_count: digits \is_countable.
-Proof.
-exists (fun n => match n with
-                 | 0%nat => Some D0
-                 | S n => Some D1
-                 end).
-by case; [exists 0%nat | exists 1%nat].
-Qed.
-
 Lemma ID_count: ID \is_countable.
 Proof.
 Admitted.

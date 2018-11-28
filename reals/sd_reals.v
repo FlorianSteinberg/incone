@@ -26,11 +26,11 @@ Canonical SD_eqType := Equality.Pack SD_eqClass Type.
 
 Lemma SD_count: SD \is_countable.
 Proof.
+apply/fun_count.
 exists (fun n => match n with
-	 | 0%nat => Some minusone
-	 | S 0 => Some zero
-	 | S (S 0) => Some one
-	 | S (S (S n)) => None
+	 | 0%nat => minusone
+	 | S 0 => zero
+	 | S (S n) => one
          end).
 by case; [exists 0%nat | exists 1%nat | exists 2%nat].
 Qed.
@@ -426,57 +426,27 @@ case => [p | ]; last by exists 0%nat.
 by exists (Pos.to_nat p).+1; rewrite /count_pos Pos2Nat.id.
 Qed.
 
-Lemma Z_count: Z \is_countable.
-Proof.
-pose count_Z := fix count_Z n := match n with
-	| 0%nat => None
-	| S 0 => Some Z0
-	| S (S 0) => Some (Z.pos xH)
-	| S (S (S 0)) => Some (Z.neg xH)
-	| S (S n) => match count_Z n with
-		| None => None
-		| Some Z0 => Some Z0
-		| Some (Z.neg p) => Some (Z.pred (Z.neg p))
-		| Some (Z.pos p) => Some (Z.succ (Z.pos p))
-	end
-end.
-exists count_Z.
-case => [ | p | p]; first by exists 1%nat.
-- rewrite -[p]Pos2Nat.id.
-  elim: (Pos.to_nat p) => [ | n [m eq]]; first by exists 2%nat.
-  case: n eq => [ | n eq]; first by exists 2%nat.
-  exists m.+2; rewrite /= eq.
-  case: m eq => //; case => // m eq.
-  by rewrite Pplus_one_succ_r.
-rewrite -[p]Pos2Nat.id.
-elim: (Pos.to_nat p) => [ | n [m eq]]; first by exists 3%nat.
-case: n eq => [ | n eq]; first by exists 3%nat.
-exists m.+2.
-rewrite /= eq.
-case: m eq => //; case => // m eq.
-by rewrite Pplus_one_succ_r.
-Qed.
-
-(* Canonical rep_space_Z := @make_rep_space Z rs_one.one Z (@id_rep Z) star Z0 one_count Z_count (@id_rep_is_rep Z).
-
-Definition rep_R := (F2MF ZUI2R) o (rep (cs_prod rep_space_Z rep_space_UI)).
+Definition rep_R := (F2MF ZUI2R) \o (rep (cs_prod cs_Z UI_sd_cs)).
 
 Lemma rep_R_sur: rep_R \is_cototal.
 Proof.
 move => x; have ineq: -1 <= x - up x <= 1 by have := archimed x; lra.
 pose y:UI := (exist _ (x - up x) ineq).
-have [phi2 phi2ny]:= rep_UI_cotot y.
-pose phi1: names rep_space_Z := (fun _ => up x).
-exists (name_pair phi1 (phi2: names rep_space_UI)).
+have [phi2 phi2ny]:= rep_UI_sur y.
+pose phi1: names cs_Z := (fun _ => up x).
+exists (name_pair phi1 (phi2: names UI_sd_cs)).
 split; last by move => a b; apply F2MF_tot.
 exists (up x, y).
 split; last by rewrite /F2MF /y /ZUI2R /=; lra.
-by rewrite /=/prod_rep/= lprj_pair rprj_pair.
+rewrite /=/prod_rep.
+have ->:= @lprj_pair cs_Z UI_sd_cs.
+by have ->:= @rprj_pair cs_Z UI_sd_cs.
 Qed.
 
-Lemma rep_R_sing: rep_R \is_single_valued.
-Proof. by apply/ comp_sing; [apply: F2MF_sing | apply /(rep_sing _)]. Qed.
+Lemma rep_R_sing: rep_R \is_singlevalued.
+Proof. apply/comp_sing; [apply: F2MF_sing | by have:=(@rep_sing _ (cs_Z \*_cs UI_sd_cs)) ]. Qed.
 
-Canonical rep_space_R := @make_rep_space R _ _ rep_R (some_question _) (some_answer _) (countable_questions _) (countable_answers _) rep_R_is_rep.
+(*
+Canonical cs_R := @continuity_space.Pack R _ _ rep_R (some_question _) (some_answer _) (countable_questions _) (countable_answers _) rep_R_is_rep.
 *)
 End all_reals.

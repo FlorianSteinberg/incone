@@ -22,9 +22,6 @@ Definition cs_id_modest_set_mixin S:
 	dictionary_mixin.type (interview.Pack (cs_id_assembly_mixin S)).
 Proof. split; exact/id_rep_sing. Defined.
 
-Lemma unit_count: unit \is_countable.
-Proof. by exists (fun _ => Some tt) => [[]]; exists 0. Qed.
-
 Canonical cs_unit := continuity_space.Pack tt tt unit_count unit_count
 	(dictionary.Pack (cs_id_modest_set_mixin unit)).
 
@@ -74,14 +71,6 @@ Qed.
 End TERMINAL.
 
 Section BOOL.
-Lemma bool_count: bool \is_countable.
-Proof.
-exists (fun n => match n with
-                 | 0 => Some false
-                 | Sn => Some true
-                 end).
-by case; [exists 1 | exists 0].
-Qed.
 
 Canonical cs_bool := continuity_space.Pack tt false unit_count bool_count
 	(dictionary.Pack (cs_id_modest_set_mixin bool)).
@@ -123,3 +112,6 @@ exists (F2MF (fun phi q => f (phi (inl tt)).1 (phi (inr tt)).2)); split.
 by rewrite F2MF_cont => phi; exists (fun _ => [:: inl tt; inr tt]) => psi str [-> [->]].
 Qed.
 End NATURALS.
+
+Require Import ZArith.
+Canonical cs_Z := continuity_space.Pack tt Z0 unit_count Z_count (dictionary.Pack (@cs_id_modest_set_mixin Z)).

@@ -34,15 +34,6 @@ Proof. split; exact/rep_Sirp_sing. Defined.
 
 Definition Sirp_dictionary:= dictionary.Pack Sirp_dictionary_mixin.
 
-Lemma bool_count: bool \is_countable.
-Proof.
-exists (fun n => match n with
-         | 0 => Some false
-         | S n => Some true
-         end).
-by case; [exists 1 | exists 0].
-Qed.
-
 Canonical cs_Sirp := continuity_space.Pack 0%nat false nat_count bool_count Sirp_dictionary.
 End SIERPINSKISPACE.
 

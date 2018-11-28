@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrnat ssrbool choice eqtype ssrfun.
-From rlzrs Require Import all_mf.
+From rlzrs Require Import all_mf choice_mf.
 Require Import classical_cont iseg count.
 Require Import ClassicalChoice.
 
@@ -19,7 +19,7 @@ Qed.
 Lemma count_countMixin Q : Q \is_countable ->
   exists P : Countable.mixin_of Q, True.
 Proof.
-move => [cnt sur].
+move => [_ [/pfun_spec [cnt <-]/PF2MF_cotot sur]].
 pose cnt' := (fun n => match n with | 0 => None | S n => cnt n end).
 have sur': cnt' \is_surjective by move => [q | ]; [have [n]:= sur q; exists n.+1 | exists 0].
 have [sec' [issec min]] := exists_minsec sur'.
@@ -44,3 +44,17 @@ set QchoiceType := ChoiceType QeqType (CountChoiceMixin cmQ).
 by exists (Countable.class (CountType QchoiceType cmQ)).
 Qed.
 
+Lemma pfun_count_iff Q: Q \is_countable <-> exists cnt: nat -> option Q, cnt \is_psurjective.
+Proof.
+by split => [[_ [/pfun_spec [cnt <-] /PF2MF_cotot sur]] | ]; [exists cnt | exact/pfun_count].
+Qed.
+
+Lemma count_fun T (pcnt: nat -> option T): inhabited T -> pcnt \is_psurjective -> exists cnt: nat -> T, cnt \is_surjective.
+Proof.
+move => [somet] sur.
+exists (fun n => match pcnt n with
+         | None => somet
+         | Some t => t
+         end).
+by move => t; have [n eq]:= sur t; exists n; rewrite eq.
+Qed. 

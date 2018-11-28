@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrnat.
-Require Import classical_count classical_cont classical_mach classical_func all_cs_base cs_unit cs_nat.
+Require Import classical_count classical_cont classical_mach classical_func all_cs_base dscrt.
 Require Import FunctionalExtensionality ClassicalChoice.
 
 Set Implicit Arguments.
@@ -42,7 +42,9 @@ Canonical cs_sig_prod (X: cs) := @continuity_space.Pack
   (answers_countable X)
   (dictionary.Pack (cs_usig_dictionary_mixin X)).
 
-Lemma sigprd_base (X: cs) (an: cs_sig_prod X) (phi: names (cs_sig_prod X)):
+Notation "X '\^w'" := (cs_sig_prod X) (at level 35, format "X '\^w'").
+
+Lemma sigprd_base (X: cs) (an: X\^w) (phi: names (cs_sig_prod X)):
 	phi \is_description_of an <-> forall n, (fun q => phi (n,q)) \is_description_of (an n).
 Proof. done. Qed.
 
@@ -50,7 +52,7 @@ Definition ptw (X: cs) (op: X * X -> X) (fg: (nat -> X) * (nat -> X)) :=
 	(fun n => op (fg.1 n, fg.2 n)).
 
 Lemma ptw_cont X (op: X \*_cs X -> X): op \is_continuous ->
-	(ptw op: cs_sig_prod _ \*_cs cs_sig_prod _ -> cs_sig_prod _) \is_continuous.
+	(ptw op: X\^w \*_cs X\^w -> X\^w) \is_continuous.
 Proof.
 move => [F [/rlzr_F2MF Frop /cntop_spec Fcont]].
 pose np := (@name_pair X X: names X -> names X -> names (X \*_cs X)).
@@ -86,10 +88,13 @@ apply/coin_agre/coin_lstn => [[q' | q'] lstn].
 rewrite /phin/= -(coin (inr (n,q'))) /rprj//.
 by elim: (Lf q) lstn => // a L ih /= [ -> | ]; [left | right; apply/ih].
 Qed.
+End USIGPROD.
+Notation "X '\^w'" := (cs_sig_prod X) (at level 35, format "X '\^w'").
 
-Definition sig2fun (X: cs) (f: cs_sig_prod X) := exist_c (nat_dscrt f): cs_nat c-> X.
+Section isomorphism.
+Definition sig2fun (X: cs) (f: X\^w) := exist_c (nat_dscrt f): cs_nat c-> X.
 
-Definition sig2fun_rlzrf (X: cs) (phi: names (cs_sig_prod X)) Lq' := match Lq'.1 with
+Definition sig2fun_rlzrf (X: cs) (phi: names (X\^w)) Lq' := match Lq'.1 with
 	| nil => inl [:: tt]
 	| (n :: L) => inr (phi (n, Lq'.2))
 end.
@@ -123,7 +128,7 @@ Proof.
 by exists (@sig2fun_rlzr X); split; [apply/sig2fun_rlzr_spec | apply/sig2fun_rlzr_cntop].
 Qed.
 
-Definition fun2sig (X: cs) (xn: cs_nat c-> X):= projT1 xn: cs_sig_prod X.
+Definition fun2sig (X: cs) (xn: cs_nat c-> X):= projT1 xn: X\^w.
 
 Definition fun2sig_rlzr X:= make_mf (fun (psi: names cs_nat c-> X) phi =>
 	forall n, \F_(M psi) (fun _ => n) (fun q => phi (n, q))).
@@ -162,10 +167,10 @@ Proof.
 exists (fun2sig_rlzr X); split; [exact/fun2sig_rlzr_spec | exact/fun2sig_rlzr_cntop].
 Qed.
 
-Lemma sig_iso_fun X: (cs_sig_prod X) ~=~ (cs_nat c-> X).
+Lemma sig_iso_fun X: X\^w ~=~ (cs_nat c-> X).
 Proof.
 exists (exist_c (sig2fun_cont X)).
 exists (exist_c (fun2sig_cont X)).
 by split => [f | f]; last apply/eq_sub; apply functional_extensionality => n /=.
 Qed.
-End USIGPROD.
+End isomorphism.

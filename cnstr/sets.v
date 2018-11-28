@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_cs cs_unit usig.
+Require Import all_cs dscrt usig.
 Require Import Classical.
 
 Set Implicit Arguments.

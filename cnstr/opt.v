@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun.
-Require Import all_core classical_count cs cs_unit.
+Require Import all_core classical_count cs dscrt.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

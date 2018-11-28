@@ -30,8 +30,7 @@ cs/iso.v
 cs/sum.v
 all_cs_base.v
 
-cnstr/cs_nat.v
-cnstr/cs_unit.v
+cnstr/dscrt.v
 cnstr/opt.v
 cnstr/usig.v
 cnstr/sets.v

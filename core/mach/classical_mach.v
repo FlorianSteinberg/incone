@@ -1,7 +1,7 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrnat ssrbool eqtype.
 From rlzrs Require Import all_mf choice_mf.
 Require Import all_cont classical_count classical_cont exec Mmach.
-Require Import ClassicalChoice.
+Require Import ClassicalChoice FunctionalExtensionality.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -121,8 +121,6 @@ Qed.
 Lemma FM_sing (psi: seq A * Q' -> seq Q + A'):
   \F_(M psi) \is_singlevalued.
 Proof. exact/cont_sing/FM_cont. Qed.
-
-Require Import FunctionalExtensionality.
 
 Lemma FM_ucont (psi: seq A * Q' -> seq Q + A'):exists mf Lf,
     forall phi,  phi \from dom \F_(M psi) ->

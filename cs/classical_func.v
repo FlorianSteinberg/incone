@@ -43,49 +43,6 @@ Notation "g \o_cs f" := (cs_comp f g) (at level 29).
 Lemma cs_comp_spec (X Y Z: cs)(f: X c-> Y) (g: Y c-> Z): projT1 (g \o_cs f) =1 (projT1 g \o_f projT1 f).
 Proof. done. Qed.
 
-Fixpoint collect_left S T (L: seq (S + T)) := match L with
-                      | nil => nil
-                      | a :: L' => match a with
-                                   | inl b => b :: (collect_left L')
-                                   | inr _ => collect_left L'
-                                   end
-                      end.
-
-Fixpoint collect_right S T (L: seq (S + T)) := match L with
-                      | nil => nil
-                      | a :: L' => match a with
-                                   | inr b => b :: (collect_right L')
-                                   | inl _ => collect_right L'
-                                   end
-                      end.
-
-Lemma prod_cntop_left (X Y Z: cs) (F: names (X \*_cs Y) ->> names Z) phi:
-  F \is_continuous_operator ->
-  (make_mf (fun psi Fphipsi => F (name_pair phi psi) Fphipsi)) \is_continuous_operator.
-Proof.
-move => cont psi [Fphipsi /= val].
-have [ | mf mod]:= cont (name_pair phi psi); first by exists Fphipsi.
-exists (fun q => collect_right (mf q)) => q.
-exists (Fphipsi q) => psi' /coin_agre coin Fphipsi' val'.
-have [a' crt]:= mod q; apply/(cert_icf val crt)/val'/coin_agre.
-by elim: (mf q) coin => // [[q' L ih /=/ih | q' L ih /= [-> /ih]]].
-Qed.
-
-Lemma prod_cntop_right (X Y Z: cs) (F: names (X \*_cs Y) ->> names Z) psi:
-  F \is_continuous_operator ->
-  (make_mf (fun phi Fphipsi => F (name_pair phi psi) Fphipsi)) \is_continuous_operator.
-Proof.
-move => cont phi [Fphipsi /= val].
-have [ | mf mod]:= cont (name_pair phi psi); first by exists Fphipsi.
-exists (fun q => collect_left (mf q)) => q.
-exists (Fphipsi q) => psi' /coin_agre coin Fphipsi' val'.
-have [a' crt]:= mod q; apply/(cert_icf val crt)/val'/coin_agre.
-by elim: (mf q) coin => // [[q' L ih /= [-> /ih] | q' L ih /= /ih]].
-Qed.
-
-Definition name_pairs (X Y: cs) := make_subset (fun phipsi =>
-       exists (phi: names X), exists (psi: names Y), phipsi = name_pair phi psi).
-
 Lemma eval_rlzr_cntop (X Y: cs):
   (@eval_rlzr (questions X) (questions Y) (answers X) (answers Y))|_(dom (rep (X c-> Y \*_cs X))) \is_continuous_operator.
 Proof.

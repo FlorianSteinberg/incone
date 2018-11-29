@@ -198,6 +198,123 @@ move => [F [Frf Fcont]] [G [Grg Gcont]].
 exists (fprd_rlzr F G).
 split; [exact: fprd_rlzr_spec | exact: fprd_rlzr_cntop].
 Qed.
+
+Definition lcry_f S T R (f: S * T -> R) s t := f (s, t).
+
+Definition lcry S T R (f: S * T ->> R) s :=
+  make_mf (fun t fst => f (s,t) fst).
+
+Lemma F2MF_lcry S T R (f: S * T -> R) s:
+  F2MF (lcry_f f s) =~= lcry (F2MF f) s.
+Proof. done. Qed.
+
+Definition lcry_p S T R (f: S * T -> option R) s t := f (s, t).
+
+Lemma PF2MF_lcry S T R (f: S * T -> option R) s:
+  PF2MF (lcry_p f s) =~= lcry (PF2MF f) s.
+Proof. done. Qed.
+
+Definition lcry_rlzr (X Y Z: cs) (F: names (X \*_cs Y) ->> names Z) phi:=
+  (make_mf (fun psi Fphipsi => F (name_pair phi psi) Fphipsi)).
+
+Lemma lcry_rlzr_spec (X Y Z: cs) F (f: X \*_cs Y ->> Z) phi x:
+  F \realizes f -> phi \is_description_of x ->
+  (lcry_rlzr F phi) \realizes (lcry f x).
+Proof.
+move => rlzr phinx psi y psiny xyfd.
+by have []//:= rlzr (name_pair phi psi) (x, y).
+Qed.
+
+Fixpoint collect_right S T (L: seq (S + T)) := match L with
+                      | nil => nil
+                      | a :: L' => match a with
+                                   | inr b => b :: (collect_right L')
+                                   | inl _ => collect_right L'
+                                   end
+                      end.
+
+Lemma lcry_rlzr_cntop (X Y Z: cs) (F: names (X \*_cs Y) ->> names Z) phi:
+  F \is_continuous_operator -> (lcry_rlzr F phi) \is_continuous_operator.
+Proof.
+move => cont psi [Fphipsi /= val].
+have [ | mf mod]:= cont (name_pair phi psi); first by exists Fphipsi.
+exists (fun q => collect_right (mf q)) => q.
+exists (Fphipsi q) => psi' /coin_agre coin Fphipsi' val'.
+have [a' crt]:= mod q; apply/(cert_icf val crt)/val'/coin_agre.
+by elim: (mf q) coin => // [[q' L ih /=/ih | q' L ih /= [-> /ih]]].
+Qed.
+
+Lemma lcry_hcr (X Y Z: cs) (f: X \*_cs Y ->> Z) x:
+  f \has_continuous_realizer -> (lcry f x) \has_continuous_realizer.
+Proof.
+move => [F [rlzr cont]].
+have [phi phinx]:= get_description x.  
+exists (make_mf (fun psi Fphipsi => F (name_pair phi psi) Fphipsi)).
+by split; [exact/lcry_rlzr_spec | exact/lcry_rlzr_cntop].
+Qed.
+
+Lemma lcry_cont (X Y Z: cs) (f: X \*_cs Y -> Z) x:
+  f \is_continuous -> (lcry_f f x) \is_continuous.
+Proof. by move => cont; rewrite /continuous F2MF_lcry; exact/lcry_hcr. Qed.
+
+Definition rcry_f S T R (f: S * T -> R) t s := f (s, t).
+
+Definition rcry S T R (f: S * T ->> R) t :=
+  make_mf (fun s fst => f (s, t) fst).
+
+Lemma F2MF_rcry S T R (f: S * T -> R) t:
+  F2MF (rcry_f f t) =~= rcry (F2MF f) t.
+Proof. done. Qed.
+
+Definition rcry_p S T R (f: S * T -> option R) t s := f (s, t).
+
+Lemma PF2MF_rcry S T R (f: S * T -> option R) t:
+  PF2MF (rcry_p f t) =~= rcry (PF2MF f) t.
+Proof. done. Qed.
+
+Definition rcry_rlzr (X Y Z: cs) (F: names (X \*_cs Y) ->> names Z) psi :=
+  make_mf (fun phi Fphipsi => F (name_pair phi psi) Fphipsi).
+
+Lemma rcry_rlzr_spec (X Y Z: cs) F (f: X \*_cs Y ->> Z) psi y:
+  F \realizes f -> psi \is_description_of y ->
+  (rcry_rlzr F psi) \realizes (rcry f y).
+Proof.
+move => rlzr psiny phi x phinx xyfd.
+by have []//:= rlzr (name_pair phi psi) (x, y).
+Qed.
+  
+Fixpoint collect_left S T (L: seq (S + T)) := match L with
+                      | nil => nil
+                      | a :: L' => match a with
+                                   | inl b => b :: (collect_left L')
+                                   | inr _ => collect_left L'
+                                   end
+                      end.
+
+Lemma rcry_rlzr_cntop (X Y Z: cs) (F: names (X \*_cs Y) ->> names Z) psi:
+  F \is_continuous_operator ->
+  (rcry_rlzr F psi) \is_continuous_operator.
+Proof.
+move => cont phi [Fphipsi /= val].
+have [ | mf mod]:= cont (name_pair phi psi); first by exists Fphipsi.
+exists (fun q => collect_left (mf q)) => q.
+exists (Fphipsi q) => psi' /coin_agre coin Fphipsi' val'.
+have [a' crt]:= mod q; apply/(cert_icf val crt)/val'/coin_agre.
+by elim: (mf q) coin => // [[q' L ih /= [-> /ih] | q' L ih /= /ih]].
+Qed.
+
+Lemma rcry_hcr (X Y Z: cs) (f: X \*_cs Y ->> Z) y:
+  f \has_continuous_realizer -> (rcry f y) \has_continuous_realizer.
+Proof.
+move => [F [rlzr cont]].
+have [psi psiny]:= get_description y.  
+exists (rcry_rlzr F psi).
+by split; [exact/rcry_rlzr_spec | exact/rcry_rlzr_cntop].
+Qed.
+
+Lemma rcry_cont (X Y Z: cs) (f: X \*_cs Y -> Z) y:
+  f \is_continuous -> (rcry_f f y) \is_continuous.
+Proof. by move => cont; rewrite /continuous F2MF_rcry; exact/rcry_hcr. Qed.
 End products.
 
 Lemma fprd_cont (X Y X' Y': cs) (f: X -> Y) (g: X' -> Y'):

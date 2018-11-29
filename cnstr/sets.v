@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_cs dscrt usig.
+Require Import all_cs classical_func dscrt usig.
 Require Import Classical.
 
 Set Implicit Arguments.
@@ -75,5 +75,20 @@ Proof. split; exact/rep_K_sing. Defined.
 
 Definition Kleeneans_dictionary:= dictionary.Pack Kleeneans_dictionary_mixin.
 
-Canonical cs_Kleeneans := continuity_space.Pack 0 None nat_count (option_count bool_count) Kleeneans_dictionary.
+Definition cs_Kleeneans := continuity_space.Pack 0 None nat_count (option_count bool_count) Kleeneans_dictionary.
 End Kleeneans.
+
+Section Opens.
+Definition opens (X: cs):= X c-> cs_Sirp.
+Notation "\O( X )" := (opens X) (at level 2, format "'\O(' X ')'").
+
+Lemma OO_fun_val_cont (X: cs) (x: X): (fun (f: \O(X)) => evaluation (f, x)) \is_continuous.
+Proof. apply/rcry_cont/eval_cont. Qed.
+
+Definition OO_fun (X: cs) (x: X) := exist_c (OO_fun_val_cont x) : \O(\O(X)).
+
+Definition admissible (X: cs) := F2MF (@OO_fun X)\^-1 \has_continuous_realizer.
+
+End Opens.
+
+Notation "\O( X )" := (opens X) (at level 2, format "'\O(' X ')'").

@@ -122,7 +122,57 @@ Lemma FM_sing (psi: seq A * Q' -> seq Q + A'):
   \F_(M psi) \is_singlevalued.
 Proof. exact/cont_sing/FM_cont. Qed.
 
-Lemma FM_ucont (psi: seq A * Q' -> seq Q + A'):exists mf Lf,
+Lemma FM_ucont: exists (Mf Lf: _ -> _ -> _ -> Prop), forall (psi: seq A * Q' -> seq Q + A') phi mf lf,
+      phi \from dom \F_(M psi) -> Mf psi phi mf -> Lf psi phi lf ->
+               continuity_modulus \F_(M psi) phi mf /\
+               continuity_modulus (make_mf (Mf psi)) phi mf /\
+               continuity_modulus (make_mf (Lf psi)) phi mf /\
+               continuity_modulus (make_mf (fun psi => \F_(M psi) phi)) psi lf /\
+               continuity_modulus (make_mf (fun psi => Mf psi phi)) psi lf /\
+               continuity_modulus (make_mf (fun psi => Lf psi phi)) psi lf.
+Proof.
+exists (fun psi phi mf => \F_(queriesM psi) phi mf).
+exists (fun psi phi lf => forall Qn a' q', communication psi phi q' (Qn, a') -> lf q' = iseg (fun i => (map phi (flatten (drop i Qn)), q')) (size Qn).+1).
+move => psi phi mf lf [Fpsiphi /FM_val_spec val] /queriesM_spec mod mod'.
+split.
+- apply/queriesM_mod; rewrite queriesM_spec => q'.
+  have [Qn com]:= val q'; have [Qn'' [a' [com'' eq]]]:= mod q'.
+  exists Qn; exists (Fpsiphi q'); split => //.
+  by have [-> _]: (Qn, Fpsiphi q') = (Qn'', a') by apply/cmcn_unique/com''/com.
+split; last split; last split; last split;
+  move => q'; have [Qn com] := val q'; have [Qn'' [a' [com'' eq]]]:= mod q'.
+- exists (gather_queries psi (size Qn) phi q') => phi' /coin_agre coin mf' /queriesM_spec mf'val.
+  have [Qn' [b' [com' eq']]]:= mf'val q'; move: mf'val => _.
+  rewrite -eq' (gather_queries_cns com'.1) (gather_queries_cns com.1) /=; f_equal.
+  suff prp: communication psi phi' q' (Qn, a') by have []:= cmcn_unique com' prp.
+  have [-> _]:= cmcn_unique com com''.
+  split; first by apply/cns_cont; [exact/com''.1 | rewrite eq].
+  rewrite -(gather_queries_cns com''.1) eq -(coin_map coin).
+  by rewrite -eq (gather_queries_cns com''.1) com''.2.
+- exists (lf q') => phi' /coin_agre coin lf' lf'val.
+  rewrite (lf'val Qn (Fpsiphi q')) //.
+  rewrite (mod' Qn (Fpsiphi q')) //.
+  + f_equal; apply functional_extensionality => i; f_equal.
+    apply/coin_map/coin_subl/coin_sym/coin.
+    rewrite -eq (gather_queries_cns com''.1) (cmcn_unique com'' com).
+    exact/flatten_subl/drop_subl.
+  rewrite (cmcn_unique com com'').
+  split; first by apply/cns_cont; [exact/com''.1 | rewrite eq].
+  rewrite -(gather_queries_cns com''.1) eq -(coin_map coin).
+  by rewrite -eq (gather_queries_cns com''.1) com''.2.
+- exists (Fpsiphi q') => psi' /coin_agre coin Fpsiphi' /FM_val_spec val'.
+  have [eqQ eq']: (Qn'', a') = (Qn, Fpsiphi q') by apply/cmcn_unique/com/com''.
+  rewrite eqQ in eq; move: a' eqQ eq' com'' => _ _ _ _.
+  have [Qn' com']:= val' q'; move: coin; rewrite (mod' Qn (Fpsiphi q')) // => /coin_lstn coin.
+  suff prp: communication psi phi q' (Qn, Fpsiphi' q') by have []:= cmcn_unique com prp.
+  split; first exact/com.1.
+  rewrite coin; last by apply/lstn_iseg; exists 0; rewrite drop0.
+  rewrite -com'.2 /=; do 4 f_equal.
+  case/orP: (leq_total (size Qn) (size Qn')) => ineq.
+  - apply/cns_rec/com'.1/com.1/coin_lstn/coin; first exact/com.2.
+Admitted.
+
+Lemma FM_ucont' (psi: seq A * Q' -> seq Q + A'):exists mf Lf,
     forall phi,  phi \from dom \F_(M psi) ->
                  continuity_modulus \F_(M psi) phi (mf phi) /\
                  continuity_modulus (F2MF mf)|_(dom \F_(M psi)) phi (mf phi) /\

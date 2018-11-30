@@ -200,8 +200,7 @@ Fixpoint gather_queries psi n phi q':=
   | inl K => K
   end.
 
-Lemma unfold_gq psi n phi q':
-  gather_queries psi n phi q' =
+Lemma unfold_gq psi n phi q': gather_queries psi n phi q' =
   match M_rec psi n phi q' with
   | inr a' => match n with
               | 0 => nil
@@ -244,6 +243,24 @@ rewrite (M_rec_inl_spec psi (size Qn) phi q' (flatten Qn)).2.
 - by rewrite drop0 in val; rewrite /M_step val eq drop0.
 by exists Qn; do 2 split => //; apply/cns_cons/cns.
 Qed.
+
+Lemma gq_size psi phi q' Qn n: Qn <> nil ->
+  (exists a', communication psi phi q' (Qn, a')) -> gather_queries psi n phi q' = flatten Qn -> n = size Qn.
+Proof.
+case: Qn => // K Qn _ prp eq.
+
+- rewrite -gq in val; have [ | K'[]]//:= cns 0.
+  rewrite /= drop0; suff ->: flatten Qn = nil by rewrite val.
+  by elim: (K) gq => //.
+have [ | K']//:= cns 0.    
+rewrite /=.
+rewrite /M_step.
+case: (M_rec_spec psi n phi q') => [-> | ].
+  case: Qn cns val => // K Qn cns /= val eq.
+suff eq': flatten Qn = nil.
+rewrite eq' cats0 in eq.
+have [ | K' []]//:= cns 0.
+by rewrite -eq /= in val; rewrite /= drop0 val.
 
 Lemma gq_spec psi phi q' K:
   (exists n, gather_queries psi n phi q' = K) <->
@@ -396,27 +413,112 @@ Fixpoint build_shapes psi n phi q':=
               | 0 => nil
               | S n => build_shapes psi n phi q'
               end
-  | inl K => iseg (fun i => (map phi (gather_queries psi i phi q'), q')) n.+1
+  | inl K => iseg (fun i => (map phi (gather_queries psi i phi q'), q')) n
   end.
 
-Definition shapesM psi n phi q' :=
+Lemma unfold_bs psi n phi q': build_shapes psi n phi q' =
   match M_rec psi n phi q' with
-  | inr a' => None
-  | inl K => Some (build_shapes psi n phi q')
+  | inr a' => match n with
+              | 0 => nil
+              | S n => build_shapes psi n phi q'
+              end
+  | inl K => iseg (fun i => (map phi (gather_queries psi i phi q'), q')) n
+  end.
+Proof. by case: n. Qed.
+
+Lemma bs_mon psi n phi q':
+  (build_shapes psi n phi q') \is_sublist_of (build_shapes psi n.+1 phi q').
+Proof.
+move => q/=; rewrite unfold_bs.
+case E: (M_rec psi n phi q') => [K | a'] //; rewrite /M_step.
+by case: (psi (map phi K, q')) => // K' lstn; right.
+Qed.
+
+Lemma bs_subl psi n m phi q': n <= m ->
+  (build_shapes psi n phi q') \is_sublist_of (build_shapes psi m phi q').
+Proof.  
+elim: m n => [n | m ih n]; first by rewrite leqn0 => /eqP ->.
+by rewrite leq_eqVlt; case/orP => [/eqP -> | ineq]//; apply/subl_trans/bs_mon/ih.
+Qed.
+
+Lemma bs_cns psi phi q' Qn: consistent psi phi q' Qn ->
+  build_shapes psi (size Qn) phi q' =  iseg (fun i => (map phi (gather_queries psi i phi q'), q')) (size Qn).
+Proof.
+elim: Qn => // K Qn ih cns /=.
+rewrite ih; last exact/cns_cons/cns.
+have [ | K' [/=val eq]]//:= cns 0.
+rewrite (M_rec_inl_spec psi (size Qn) phi q' (flatten Qn)).2.
+- by rewrite /M_step -(drop0 Qn) val.
+by exists Qn; do 2 split => //; apply/cns_cons/cns.
+Qed.
+
+Require Import FunctionalExtensionality.
+
+Lemma bs_spec psi phi q' Ln: build_shapes psi (size Ln) phi q' = Ln <->
+   exists Qn, consistent psi phi q' Qn /\ Ln = iseg (fun i => (map phi (gather_queries psi i phi q'), q')) (size Qn).
+Proof.
+split => [[] | [Qn [cns ->]]]; last by rewrite size_iseg (bs_cns cns).
+rewrite unfold_bs.
+case: (M_rec_spec psi (size Ln) phi q') => [E | [a' E]]; rewrite E => <-.
+have[ | Qn [cns val]]:= (gq_spec psi phi q' (gather_queries psi (size Ln) phi q')).1; first by exists (size Ln).
+exists Qn; split => //; f_equal.
+
+rewrite E.
+have:= gq_spec.
+
+case E: (M_rec psi (size Ln) phi q') => [K' | a'] => [ ih | ih gq].
+- rewrite /M_step/=; case val: (psi (map phi K', q')) => [K'' | ]// eq.
+  - have [ | Qn [cns eq']]//:= ih K'.
+    exists (K'' :: Qn); split; last by rewrite -eq /= -eq'.
+    case => [ | i ineq]; last by apply/cns.
+    by exists K''; rewrite drop1/=; split; first by rewrite -eq'.
+  by apply/ih; rewrite unfold_gq E in eq.
+apply/ih; case: (n) gq E => [ | k].
+- by rewrite /M_step/=; case: (psi (nil, q')).
+rewrite /= unfold_gq; case: (M_rec psi k phi q') => [K' | b'] //.
+by case: (M_step psi phi q' K') => //.
+Qed.
+
+Lemma size_bs psi phi q' n: size (build_shapes psi n phi q') <= n.
+Proof.
+elim: n => // n ih /=.
+case: (M_rec psi n phi q') => [K | a']; last exact/leqW.
+case: (M_step psi phi q' K) => [K' | a'] /=; last exact/leqW.
+by rewrite size_iseg.
+Qed.
+
+Proof.
+elim: Ln => [ | L Ln ih /=]; first by split; first by exists nil.
+case: (M_rec_spec psi (size Ln) phi q') => [eq | [a' eq]]; rewrite eq.
+case: (M_step psi phi q' (gather_queries psi (size Ln) phi q')) => [K | a'] //; last first.
+rewrite -ih.2 //.
+
+rewrite unfold_bs eq; case => <- eq'.
+
+
+exists (gather_queries psi (size Ln) phi q' :: Qn
+
+  Definition shapesM psi n phi q' :=
+  match M_rec psi n phi q' with
+  | inl K => None
+  | inr a' => Some (build_shapes psi n phi q')
   end.
 
 Lemma sM_spec psi phi sf: \F_(shapesM psi) phi sf <->
   forall q', exists Qn a', communication psi phi q' (Qn, a') /\ sf q' = iseg (fun i => (map phi (flatten (drop i Qn)), q')) (size Qn).+1.
 Proof.
-rewrite /shapesM.
 split => [val q' | ].
-have := val q'.
-
-
-
-
-
-  Require Import FunctionalExtensionality.
+have [n]:= val q'.
+rewrite /shapesM.
+case: (M_rec_spec psi n phi q') => [eq | [a' eq]]; rewrite eq//; case.
+case: n eq => // n /=.
+case: (M_rec psi n phi q') => [_ -> | _ _] // eq.
+exists (iseg (fun i => gather_queries psi i phi q') n); exists a'.
+split.
+- rewrite /shapesM /=; split.
+  have:= gq_spec psi phi q'.
+  
+Require Import FunctionalExtensionality.
 
 Lemma qM_mod_shps psi phi mf:
   \F_(queriesM psi) phi mf -> continuity_modulus (shapes psi) phi mf.

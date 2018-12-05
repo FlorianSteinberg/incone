@@ -108,7 +108,7 @@ Lemma list_melt (cnt: nat -> Q) (sec: Q -> nat) K (phi psi: B): cancel sec cnt -
 	phi \and psi \coincide_on (iseg cnt (max_elt sec K)) -> phi \and psi \coincide_on K.
 Proof.
 move => cncl; apply/coin_subl; elim: K => // q K subl q' /=[-> | lstn].
-- exact/iseg_subl/lstn_iseg/cncl/leq_maxl.
+- exact/iseg_subl/lstn_iseg_S/cncl/leq_maxl.
 exact/iseg_subl/subl/lstn/leq_maxr.
 Qed.
 
@@ -139,6 +139,10 @@ Qed.
 
 Global Instance coin_equiv L: Equivalence (coincide L).
 Proof. by split; [apply coin_ref | apply coin_sym | apply coin_trans]. Qed.
+
+Lemma coin_map (phi phi': B) K:
+  phi \and phi' \coincide_on K -> map phi K = map phi' K.
+Proof. by elim: K => // q K ih /=[-> coin]; rewrite ih. Qed.
 
 End coincide.
 Notation "phi '\agrees_with' psi '\on' P" :=

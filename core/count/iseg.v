@@ -171,8 +171,15 @@ by apply/ih => q lstn; apply/subl; right.
 by apply/lstn_melt/subl; left.
 Qed.
 
-Lemma lstn_iseg a: cancel sec cnt -> List.In a (iseg (sec a).+1).
+Lemma lstn_iseg_S a: cancel sec cnt -> List.In a (iseg (sec a).+1).
 Proof. by move => cncl; left. Qed.
+
+Lemma lstn_iseg q m:
+  List.In q (iseg m) <-> exists n, n < m /\ cnt n = q. 
+Proof.
+split => [ | [n []]]; first exact/iseg_ex; elim: m => // m ih.
+by rewrite leq_eqVlt; case/orP => [/eqP [<-]| ]; [left | right; apply/ih].
+Qed.
 
 Definition minimal_section Q (cnt: nat -> Q) (sec : Q -> nat) :=
   cancel sec cnt /\ forall s,(forall m, cnt m = s -> sec s <= m).
@@ -190,9 +197,19 @@ by rewrite geq_max; apply/andP; split; [apply/min | rewrite leqW].
 Qed.
 
 Lemma iseg_melt K: minimal_section cnt sec -> K \is_sublist_of (iseg (max_elt K)).
-Proof. by move => [cncl min] q lstn; apply/iseg_subl/lstn_iseg/cncl/lstn_melt. Qed.
-
+Proof. by move => [cncl min] q lstn; apply/iseg_subl/lstn_iseg_S/cncl/lstn_melt. Qed.
 End initial_segments.
+
+Lemma iseg_eq T (cnt cnt':nat -> T) n:
+  iseg cnt n = iseg cnt' n <-> (forall i, i< n -> cnt i = cnt' i). 
+Proof.
+split.
+elim: n => // n ih /= [eq eq'] i.
+by rewrite leq_eqVlt; case/orP => [/eqP [->] | ]; last exact/ih.
+elim: n => // n ih prp /=.
+rewrite ih => [ | i ineq]; first f_equal; apply/prp => //.
+exact/leqW.
+Qed.
 
 Section countTypes.
 Context (Q: countType) (noq: Q) (noq_spec: pickle noq = 0).

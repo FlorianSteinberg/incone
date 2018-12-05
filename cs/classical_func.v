@@ -48,45 +48,49 @@ Lemma eval_rlzr_cntop (X Y: cs):
 Proof.
 move => psiphi [Fpsiphi [[[f x] [psinf phinx]] /eval_rlzr_val val]].
 rewrite /= in psinf phinx; have phifd: (rprj psiphi) \from dom \F_(M (lprj psiphi)) by exists Fpsiphi.
-have [mf [Lf prp]]:= FM_ucont (lprj psiphi).
-exists (fun q' => map inl (Lf (rprj psiphi) q') ++ map inr (mf (rprj psiphi) q')) => q'.
+have [FqM [FsM prp]]:= @FM_cont_spec (questions X) (questions Y) (answers X) (answers Y).
+have [subs [subs' [c_prp _]]]:= prp (lprj psiphi) (rprj psiphi).
+have [qf qvl]:= subs (rprj psiphi) phifd.
+have [sf svl]:= subs' (rprj psiphi) phifd.
+move: subs subs' => _ _.
+have [qfmodF [qfmodqF _]]:= c_prp qf qvl.
+move: c_prp => _.
+exists (fun q' => map inl (sf q') ++ map inr (qf q')) => q'.
 exists (Fpsiphi q') => psi'phi' /coin_agre/coin_cat[coin coin'].
-have : (rprj psiphi) \and (rprj psi'phi') \coincide_on (mf (rprj psiphi) q').
-- by elim: (mf (rprj psiphi) q') coin' => // q K ih /= [eq /ih]; split; first rewrite /rprj eq.
-have: (lprj psiphi) \and (lprj psi'phi') \coincide_on (Lf (rprj psiphi) q').
-- by elim: (Lf (rprj psiphi) q') coin => // q K ih /= [eq /ih]; split; first rewrite /lprj eq.
-move: coin coin' => _ _ coin coin'.
-rewrite det_restr => [[[f' x'] [psi'nf' phi'nx']]] Fpsi'phi'/eval_rlzr_val val'.
+have : (rprj psiphi) \and (rprj psi'phi') \coincide_on (qf q').
+- by elim: (qf q') coin' => // q K ih /= [eq /ih]; split; first rewrite /rprj eq.
+have: (lprj psiphi) \and (lprj psi'phi') \coincide_on (sf q').
+- by elim: (sf q') coin => // q K ih /= [eq /ih]; split; first rewrite /lprj eq.
+move: coin coin' => _ _ coin coin'.  
+rewrite det_restr => [[[f' x'] [/=psi'nf' phi'nx']]] Fpsi'phi'/eval_rlzr_val val'.
 rewrite /= in psi'nf' phi'nx'; pose psiphi':= name_pair (lprj psiphi) (rprj psi'phi').
 have psiphi'nfx': psiphi' \is_description_of ((f, x'): X c-> Y \*_cs X).
 - by trivial.
 have [Fpsiphi' val'']: psiphi' \from dom eval_rlzr.
 - by have []:= eval_rlzr_crct psiphi'nfx'; first exact/F2MF_dom.
-have [ | mod _]:= prp (rprj psiphi); first by exists Fpsiphi.
-have [a' tempcrt]:= mod q'.  
+have [a' tempcrt]:= qfmodF q'.  
 have crt := cert_icf val tempcrt _; move: a' tempcrt => _ _.
-rewrite -(crt (rprj psi'phi') _ Fpsiphi' val''); last first.
-- apply/coin_agre/coin'.
-have mfeq: mf (rprj psiphi) q' = mf (rprj psi'phi') q'.
-- have [ | _ [mod' _]]:= prp (rprj psiphi); first by exists Fpsiphi.
-  have [a' crt']:= mod' q'.
-  suff ->: mf (rprj psi'phi') q' = a' by apply/crt'; [exact/agre_ref | split; first exists Fpsiphi].
-  apply/crt'; first by apply/coin_agre/coin'.
-  split => //; apply/rlzr_dom; first exact/ psinf.
-  - apply/phi'nx'.
-  exact/F2MF_tot.
-have eq: Lf (rprj psiphi) q' = Lf (rprj psi'phi') q'.
-- have [ | _ [_ [mod' _]]]:= prp (rprj psi'phi'); first by exists Fpsiphi'.
-  have [a' crt']:= mod' q'.
-  have ->: Lf (rprj psiphi) q' = a'.
-  - by apply/crt'; first by apply/coin_agre; rewrite -mfeq; exact/coin_sym/coin'.
-  symmetry.
-  apply/crt'; first exact/agre_ref; split => //.
-  apply/rlzr_dom; first exact/psinf; first exact/phi'nx'; exact/F2MF_tot.
-have [ | _ [_ [_ mod']]] := prp (rprj psi'phi'); first by exists Fpsiphi'.
-have [a' crt']:= mod' q'.
-suff ->: Fpsi'phi' q' = a' by symmetry; apply/crt'; first exact/agre_ref.
-by apply/crt'; first by apply/coin_agre; rewrite -eq; exact/coin.
+rewrite -(crt (rprj psi'phi') _ Fpsiphi' val''); last by apply/coin_agre/coin'.
+have [subs [subs' [cprp _]]]:= prp (lprj psiphi) (rprj psi'phi').
+have [ | qf' qvl']:= subs (rprj psi'phi'); first by exists Fpsiphi'.
+move: subs subs' => _ _.
+have [_ [_ qf'modsF]]:= cprp qf' qvl'.
+move: cprp => _.
+have mfeq: qf q' = qf' q'.  
+- have [a' crt'] := qfmodqF q'.
+  suff ->: qf' q' = a' by apply/crt'; first apply/agre_ref.
+  by apply/crt'; first apply/coin_agre/coin'.
+have [_ [subs' [_ vprp]]]:= prp (lprj psiphi) (rprj psi'phi').
+have [ | sf' svl']:= subs' (rprj psi'phi'); first by exists Fpsiphi'.
+have [sfmodF _]:= vprp sf' svl'.
+move: vprp prp => _ _.
+have eq: sf q' = sf' q'.
+- have [a' crt']:= qf'modsF q'.
+  have ->: sf' q' = a' by apply/crt'; first by rewrite -mfeq; apply/agre_ref.
+  by apply/crt'; first by rewrite -mfeq; apply/coin_agre/coin_sym/coin'.
+have [a' crt']:= sfmodF q'.
+have ->: Fpsi'phi' q' = a' by apply/crt'; first by rewrite -eq; apply/coin_agre/coin.
+by symmetry; apply/crt'; first by rewrite -eq; apply/agre_ref.
 Qed.
 
 Lemma eval_cont (X Y: cs): (@evaluation X Y) \is_continuous.

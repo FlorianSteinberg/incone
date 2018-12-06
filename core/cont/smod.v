@@ -186,24 +186,6 @@ apply/detG; suff ->: Fphi = Fphi' by trivial.
 by apply functional_extensionality => q'; apply det.
 Qed.
 
-Lemma restr_rcmp_equiv S T S' T' (f f': S ->> T) (g: S' ->> S) (g': T' ->> S') (q: T') a:
-	g' q a -> f|_(g \o_R g' q) =~= f'|_(g \o_R g' q) -> f|_(g a) =~= f'|_(g a).
-Proof.
-move => gqa eq s t.
-split => [[gas fst] | [gas f'st]]; first by split => //; apply (eq s t).1; split; first by exists a.
-by split => //; apply (eq s t).2; split; first by exists a.
-Qed.
-
-Lemma comp_rcmp_corestr R S T (f: R ->> S) (g: S ->> T):
-  g \o_R f =~= g \o f|^(dom g).
-Proof.
-move => r t; split => [[s [frs gst]] | [[s [[]]]]]; last by exists s.
-by split => [ | s' []]//; exists s; split => //; split => //; exists t.
-Qed.
-
-Lemma exte_ref S T (f: S ->> T): f \extends f.
-Proof. by move => s t fst. Qed.
-
 Lemma mod_comp mf mg phi Fphi: F phi Fphi ->
  modulus F phi mf -> modulus G Fphi mg -> modulus (G \o F) phi (mf \o_R mg).
 Proof.

@@ -9,6 +9,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+Notation determines:= determines.
 Section continuity.
 Context (Q A Q' A' : Type).
 (* Q is for questions, A is for answers*)

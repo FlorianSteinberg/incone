@@ -54,7 +54,7 @@ Definition ptw (X: cs) (op: X * X -> X) (fg: (nat -> X) * (nat -> X)) :=
 Lemma ptw_cont X (op: X \*_cs X -> X): op \is_continuous ->
 	(ptw op: X\^w \*_cs X\^w -> X\^w) \is_continuous.
 Proof.
-move => [F [/rlzr_F2MF Frop /cntop_spec Fcont]].
+move => [F [/rlzr_F2MF Frop Fcont]].
 pose np := (@name_pair X X: names X -> names X -> names (X \*_cs X)).
 exists (make_mf (fun (phi: names (cs_sig_prod _ \*_cs cs_sig_prod _)) psi => forall n,
 	F (np (fun q => lprj phi (n, q)) (fun q => rprj phi (n, q))) (fun q => psi (n, q)))).
@@ -73,16 +73,16 @@ split.
 	by rewrite /ptw/=; apply/val.
 apply cont_choice => phi Fphi /=FphiFphi [n q].
 pose phin:= np (fun q => lprj phi (n, q)) (fun q => rprj phi (n, q)).
-have [ | Lf mod]:=Fcont phin (fun q' => Fphi (n, q')); first exact/FphiFphi.
+have [ | Lf mod]:= Fcont phin (fun q' => Fphi (n, q')); first exact/FphiFphi.
 exists (map (fun q' => match q' with
 	| inl q'' => inl (n, q'')
 	| inr q'' => inr (n, q'')
-	end) (Lf q)) => psi /coin_agre/coin_lstn coin Fpsi eq.
+	end) (Lf q)) => psi /coin_lstn coin Fpsi eq.
 apply/(mod q (fun q' => match q' with
 	| inl q'' => ((psi (inl (n, q''))).1, somea _)
 	| inr q'' => (somea _, (psi (inr (n, q''))).2)
 end) _ (fun q => Fpsi (n, q))); last by apply eq.
-apply/coin_agre/coin_lstn => [[q' | q'] lstn].
+apply/coin_lstn => [[q' | q'] lstn].
 	rewrite /phin/= -(coin (inl (n,q'))) /lprj//.
 	by elim: (Lf q) lstn => // a L ih /= [ -> | ]; [left | right; apply/ih].
 rewrite /phin/= -(coin (inr (n,q'))) /rprj//.
@@ -152,14 +152,11 @@ Qed.
 
 Lemma fun2sig_rlzr_cntop X: (@fun2sig_rlzr X) \is_continuous_operator.
 Proof.
-rewrite /fun2sig_rlzr => psi [phi Fpsiphi].
-suff prp: forall n, exists mf, continuity_modulus (make_mf (fun psi0 phi0 => \F_(M psi0) (fun _ => n) phi0)) psi mf.
-- have [mf mod]:= choice _ prp.
-  exists (fun nq => mf nq.1 nq.2) => [[n q]]; have [a' /=mod']:= mod n q.
-  by exists a' => psi' coin phi' val; apply/ (mod' psi' coin (fun q => phi' (n, q))).
-move => n.
-have [ | mf mod]:= @FM_val_cont _ _ _ _ (fun _ => n) psi; first by exists (fun q => phi (n, q)); apply/Fpsiphi.
-exists mf => psi'; apply/mod.
+apply/cont_choice.
+rewrite /fun2sig_rlzr => psi phi Fpsiphi [n q'].
+have [ | mf mod]:= @FM_val_cont _ _ _ _ (fun _ => n) psi (fun q => phi (n, q)); first exact/(Fpsiphi n).
+exists (mf q') => psi' coin Fpsi' val.
+exact/(mod q' psi' coin (fun q => Fpsi' (n, q)))/val.
 Qed.
 
 Lemma fun2sig_cont X: (@fun2sig X) \is_continuous.

@@ -90,7 +90,7 @@ Qed.
 
 Lemma Ropp_rlzr_cont: Ropp_rlzr \is_continuous_operator.
 Proof.
-by rewrite F2MF_cont /Ropp_rlzrf => phi; exists (fun eps => [:: eps]) => psi q' [<-].
+by rewrite -F2MF_cntop /Ropp_rlzrf => phi; exists (fun eps => [:: eps]) => psi q' [<-].
 Qed.
 
 Lemma Ropp_hcr: (F2MF Ropp: Rc ->> Rc) \has_continuous_realizer.
@@ -124,7 +124,7 @@ Qed.
 
 Lemma Rplus_rlzr_cont: Rplus_rlzr \is_continuous_operator.
 Proof.
-rewrite F2MF_cont => phi; exists (fun eps => [:: inl (Qdiv eps (1 + 1)); inr (Qdiv eps (1 + 1))]).
+rewrite -F2MF_cntop => phi; exists (fun eps => [:: inl (Qdiv eps (1 + 1)); inr (Qdiv eps (1 + 1))]).
 by rewrite /Rplus_rlzrf => psi q' [-> [-> _]].
 Qed.
 
@@ -248,7 +248,7 @@ Proof. exists 0%nat; rewrite /cnst; split_Rabs; lra. Qed.
 
 Lemma lim_not_cont: ~(lim: cs_sig_prod Rc ->> Rc) \has_continuous_realizer.
 Proof.
-move => [/= F [/= rlzr cont]].
+move => [/= F [/= rlzr /cntop_spec cont]].
 pose xn := cnst (Q2R 0):cs_sig_prod Rc.
 have limxn0: lim xn (Q2R 0) by exists 0%nat; rewrite /xn/cnst; split_Rabs; lra.
 have qnfdF: cnst 0%Q \from dom F.
@@ -267,13 +267,14 @@ have limyn3: lim yn 3.
 	exists (S m) => n /leP ineq; rewrite /yn.
 	case: ifP => [/leP ineq' | ]; [lia | split_Rabs; lra].
 have [phi Frnphi]: rn \from dom F by apply /(rlzr_dom rlzr); first exact/rnyn; exists 3.
-have /coin_agre coin: (cnst 0%Q) \and rn \coincide_on L.
+have coin: (cnst 0%Q) \and rn \coincide_on L.
 	apply /coin_lstn => [[n eps] listin].
 	rewrite /cnst /rn; case: ifP => // /= /leP ineq.
 	exfalso; apply/ineq/leP/mprop/listin.
 have [psi Fqnpsi]:= qnfdF.
 have eq: psi 1%Q == phi 1%Q.
-- by have [a' crt]:= Lmod 1%Q; rewrite (crt rn coin phi)// (crt (cnst 0%Q) _ psi) //.
+- have [a' crt]:= Lmod 1%Q; rewrite (crt rn coin phi)// (crt (cnst 0%Q) _ psi) //.
+  exact/coin_ref.
 have := Qeq_eqR (psi 1%Q) (phi 1%Q) eq.
 have psin0: psi \is_description_of (0: Rc).
 	apply /(rlzr_val_sing _ rlzr)/Fqnpsi/lim_cnst; first exact/lim_sing.
@@ -381,7 +382,7 @@ Admitted.
 Lemma sign_rlzr_cntop:
   sign_rlzr \is_continuous_operator.
 Proof.
-rewrite F2MF_cont => phi.
+rewrite -F2MF_cntop => phi.
 exists (fun n => [:: Qpower_positive (1#2) (Pos.of_nat n)]) => phi' n /= [coin _].
 by rewrite /sign_rlzrf /= coin.
 Qed.

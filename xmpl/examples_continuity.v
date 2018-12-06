@@ -34,7 +34,7 @@ Definition continuous_operator_f (G: B -> B) := forall phi n, exists m, forall p
 Lemma F2MF_continuous (F: B -> B):
   continuous_operator_f F <-> (F2MF F) \is_continuous_operator.
 Proof.
-split => [cont | /F2MF_cont cont phi n].
+split => [cont | /F2MF_cntop cont phi n].
 - rewrite F2MF_cont_choice => phi n.
   have [m mod]:= cont phi n.+1.
   exists (init_seg m) => psi /coin_funeq coin.
@@ -59,20 +59,17 @@ split => [cont | cont phi psi val n].
 - rewrite cont_choice => phi /=.
   case val: (F phi) => [psi | ]// _ <- n.
   have [m mod]:= cont phi psi val n.+1.
-  exists (init_seg m)=> phi' /coin_agre /coin_funeq coin.
+  exists (init_seg m)=> phi' /coin_funeq coin.
   case val': (F phi') => [psi' | ]// _ <-.
   have /coin_funeq/coin_lstn prp:= mod phi' psi' val' coin.
   by symmetry; apply/prp/lstn_iseg; exists n.
-have [ | Lf mod]:= cont phi _; first by exists psi; rewrite /= val.
+have [ | Lf mod]/=:= cont phi psi; first by rewrite val.
 set m := \max_(i <- init_seg n) max_elt (Lf i).
 exists m => phi' psi' val'/coin_funeq coin.
-apply/coin_funeq/coin_lstn => k lstn.
-have [a' crt]:= mod k.
-suff -> : psi' k = a' by apply/(crt phi); [apply/coin_agre/coin_ref | rewrite /= val].
-apply/(crt phi'); last by rewrite /= val'.
-apply/coin_agre/coin_subl/coin.
-apply/subl_trans/iseg_subl/leq_max/(@iseg_base _ id id)/lstn/ms.
-exact/iseg_melt/ms.
+apply/coin_funeq/coin_lstn => k lstn; symmetry; apply/mod.
+- apply/coin_subl/coin/subl_trans/iseg_subl/leq_max/iseg_base/lstn/ms.
+  exact/iseg_melt/ms.
+by rewrite /= val'.
 Qed.
 
 (*To have function from baire space to natural numbers, we identify nat with one -> nat.*)
@@ -85,7 +82,7 @@ is continuous:*)
 Lemma F_cont: F \is_continuous_operator.
 Proof.
 apply cont_choice => phi nf [val prp] str.
-exists (init_seg (nf tt).+1) => psi/coin_agre/coin_lstn coin nf' [val' prp'].  
+exists (init_seg (nf tt).+1) => psi /coin_lstn coin nf' [val' prp'].  
 elim str; apply/eqP; rewrite eqn_leq; apply/andP.
 split; [apply/prp'; rewrite -coin// | apply/prp]; first by apply/lstn_iseg; exists (nf tt).
 rewrite -coin // in val'.

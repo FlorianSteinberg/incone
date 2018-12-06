@@ -46,7 +46,7 @@ Proof. done. Qed.
 Lemma eval_rlzr_cntop (X Y: cs):
   (@eval_rlzr (questions X) (questions Y) (answers X) (answers Y))|_(dom (rep (X c-> Y \*_cs X))) \is_continuous_operator.
 Proof.
-move => psiphi [Fpsiphi [[[f x] [psinf phinx]] /eval_rlzr_val val]].
+rewrite !cntop_spec => psiphi [Fpsiphi [[[f x] [psinf phinx]] /eval_rlzr_val val]].
 rewrite /= in psinf phinx; have phifd: (rprj psiphi) \from dom \F_(M (lprj psiphi)) by exists Fpsiphi.
 have [FqM [FsM prp]]:= @FM_cont_spec (questions X) (questions Y) (answers X) (answers Y).
 have [subs [subs' [c_prp _]]]:= prp (lprj psiphi) (rprj psiphi).
@@ -56,7 +56,7 @@ move: subs subs' => _ _.
 have [qfmodF [qfmodqF _]]:= c_prp qf qvl.
 move: c_prp => _.
 exists (fun q' => map inl (sf q') ++ map inr (qf q')) => q'.
-exists (Fpsiphi q') => psi'phi' /coin_agre/coin_cat[coin coin'].
+exists (Fpsiphi q') => psi'phi' /coin_cat[coin coin'].
 have : (rprj psiphi) \and (rprj psi'phi') \coincide_on (qf q').
 - by elim: (qf q') coin' => // q K ih /= [eq /ih]; split; first rewrite /rprj eq.
 have: (lprj psiphi) \and (lprj psi'phi') \coincide_on (sf q').
@@ -68,9 +68,9 @@ have psiphi'nfx': psiphi' \is_description_of ((f, x'): X c-> Y \*_cs X).
 - by trivial.
 have [Fpsiphi' val'']: psiphi' \from dom eval_rlzr.
 - by have []:= eval_rlzr_crct psiphi'nfx'; first exact/F2MF_dom.
-have [a' tempcrt]:= qfmodF q'.  
-have crt := cert_icf val tempcrt _; move: a' tempcrt => _ _.
-rewrite -(crt (rprj psi'phi') _ Fpsiphi' val''); last by apply/coin_agre/coin'.
+have [a' tempcrt]:= qfmodF q'. 
+have crt := crt_icf val tempcrt _; move: a' tempcrt => _ _.
+rewrite -(crt (rprj psi'phi') _ Fpsiphi' val''); last by apply/coin'.
 have [subs [subs' [cprp _]]]:= prp (lprj psiphi) (rprj psi'phi').
 have [ | qf' qvl']:= subs (rprj psi'phi'); first by exists Fpsiphi'.
 move: subs subs' => _ _.
@@ -78,19 +78,19 @@ have [_ [_ qf'modsF]]:= cprp qf' qvl'.
 move: cprp => _.
 have mfeq: qf q' = qf' q'.  
 - have [a' crt'] := qfmodqF q'.
-  suff ->: qf' q' = a' by apply/crt'; first apply/agre_ref.
-  by apply/crt'; first apply/coin_agre/coin'.
+  suff ->: qf' q' = a' by apply/crt'; first apply/coin_ref.
+  by apply/crt'; first apply/coin'.
 have [_ [subs' [_ vprp]]]:= prp (lprj psiphi) (rprj psi'phi').
 have [ | sf' svl']:= subs' (rprj psi'phi'); first by exists Fpsiphi'.
 have [sfmodF _]:= vprp sf' svl'.
 move: vprp prp => _ _.
 have eq: sf q' = sf' q'.
 - have [a' crt']:= qf'modsF q'.
-  have ->: sf' q' = a' by apply/crt'; first by rewrite -mfeq; apply/agre_ref.
-  by apply/crt'; first by rewrite -mfeq; apply/coin_agre/coin_sym/coin'.
+  have ->: sf' q' = a' by apply/crt'; first by rewrite -mfeq; apply/coin_ref.
+  by apply/crt'; first by rewrite -mfeq; apply/coin_sym/coin'.
 have [a' crt']:= sfmodF q'.
-have ->: Fpsi'phi' q' = a' by apply/crt'; first by rewrite -eq; apply/coin_agre/coin.
-by symmetry; apply/crt'; first by rewrite -eq; apply/agre_ref.
+have ->: Fpsi'phi' q' = a' by apply/crt'; first by rewrite -eq; apply/coin.
+by symmetry; apply/crt'; first by rewrite -eq; apply/coin_ref.
 Qed.
 
 Lemma eval_cont (X Y: cs): (@evaluation X Y) \is_continuous.

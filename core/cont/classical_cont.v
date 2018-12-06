@@ -40,19 +40,18 @@ Notation init_seg := (iseg cnt).
 Notation max_elt := (max_elt sec).
 
 Lemma cont_choice (F: B ->> B'): F \is_continuous_operator <->
-	forall phi Fphi, F phi Fphi -> forall q', exists L, cert F (L2SS L) phi q' (Fphi q').
+  forall phi Fphi, F phi Fphi -> forall q', exists L, certificate F L phi q' (Fphi q').
 Proof.
-rewrite cntop_spec.
 split => cont phi Fphi FphiFphi; first move => q'.
-	by have [Lf mod] := cont phi Fphi FphiFphi; exists (Lf q'); apply/mod.
+  by have [Lf mod] := cont phi Fphi FphiFphi; exists (Lf q'); apply/mod.
 by have [Lf mod]:= choice _ (cont phi Fphi FphiFphi); exists Lf.
 Qed.
 
 Lemma F2MF_cont_choice (F: B -> B'): (F2MF F) \is_continuous_operator <->
 	forall phi q', exists L, forall psi, phi \and psi \coincide_on L -> F phi q' = F psi q'.
 Proof.
-rewrite F2MF_cont; split=> [cont phi q' | cont phi].
-	by have [Lf mod]:= cont phi; exists (Lf q') => psi; apply/mod.
+rewrite -F2MF_cntop; split=> [cont phi q' | cont phi].
+  by have [Lf mod]:= cont phi; exists (Lf q') => psi; apply/mod.
 by have [Lf mod]:= choice _ (cont phi); exists Lf => q' psi; apply/mod.
 Qed.
 
@@ -69,31 +68,37 @@ exfalso; apply (Lprop psi).
 by split; [apply/coin_agre | exists Fpsi].
 Qed.
 
+Lemma crt_exte (F: B ->> B') L K phi: L \is_sublist_of K -> certificate F K phi \extends certificate F L phi.
+Proof.
+by rewrite !crt_cert => subl; apply/cert_exte; rewrite -L2SS_subs.
+Qed.
+
 Lemma dom_minmod (F: B ->> B'):
 	dom (minimal_modulus F) === dom (continuity_modulus F).
 Proof.
 move => phi; split => [[mf [mod min]] | [Lf mod]]; first by exists (fun q' => init_seg (mf q')).
 pose R q' n :=
-	(exists a', cert F (L2SS (init_seg n)) phi q' a')
-	/\
-	forall (Lf': Q' -> seq Q), continuity_modulus F phi Lf' -> n <= max_elt (Lf' q').
+  (exists a', certificate F (init_seg n) phi q' a')
+  /\
+  forall (Lf': Q' -> seq Q), continuity_modulus F phi Lf' -> n <= max_elt (Lf' q').
 have Rtot: forall q', exists n, R q' n.
-	move => q'; pose p n := exists a', cert F (L2SS (init_seg n)) phi q' a'.
-	have ex: exists n, p n.
-		exists (max_elt (Lf q')); have [a' crt]:= (mod q').
-		by exists a'; apply/cert_exte/crt; rewrite -L2SS_subs; apply/iseg_melt.
-	have [n [prp min]]:= well_order_nat ex.
-	exists n; split => // Lf' mod'; apply/min; rewrite /p; have [a' crt]:= mod' q'.
-	by exists a'; apply/cert_exte/crt; rewrite -L2SS_subs; apply/iseg_melt.
-have [mf mfprop] := choice R Rtot.
-exists mf.
+- move => q'; pose p n := exists a', certificate F (init_seg n) phi q' a'.
+  have ex: exists n, p n.
+  - exists (max_elt (Lf q')); have [a' crt]:= (mod q').
+    by exists a'; apply/crt_exte/crt/iseg_melt.
+  have [n [prp min]]:= well_order_nat ex.
+  exists n; split => // Lf' mod'; apply/min; rewrite /p; have [a' crt]:= mod' q'.
+  by exists a'; apply/crt_exte/crt/iseg_melt.
+have [mf mfprop] := choice R Rtot; exists mf.
 by split => [q' | Lf' mod' q']; [exact/(mfprop q').1 | exact/(mfprop q').2].
 Qed.
 
 Lemma exists_minmod (F: B ->> B'): F \is_continuous_operator ->
-	exists mf, forall phi, phi \from dom F -> minimal_modulus F phi (mf phi).
+  exists mf, forall phi, phi \from dom F -> minimal_modulus F phi (mf phi).
 Proof.
-move => cont; have [mf icf]:= exists_choice (minimal_modulus F) (fun _ => 0).
-by exists mf => phi phifd; have:= cont phi phifd; rewrite -dom_minmod => [[]]; apply/icf.
+have [mf icf]:= exists_choice (minimal_modulus F) (fun _ => 0) => /cntop_spec cont.
+exists mf => phi [Fphi val].
+have [ | mf' mod']:= (dom_minmod F phi).2; first by apply/cont; exists Fphi.
+by split => [q' | Lf mod q']; have [cont' prp]:= icf phi mf' mod'; last have:= prp Lf mod q'.
 Qed.
 End classical_lemmas.

@@ -404,7 +404,7 @@ Lemma FqM_mod_FM psi phi mf:
 Proof.
 move => /FqM_spec mod q'.
 have [Qn [a' [[/=cns val] gq]]]:= mod q'.  
-exists a' => phi'/coin_agre coin Fphi' /FM_spec Fphi'Fphi'.
+exists a' => phi' coin Fphi' /FM_spec Fphi'Fphi'.
 have [Qn' com]:= Fphi'Fphi' q'.
 suff com': communication psi phi' q' (Qn, a') by have [_ ->]:= (cmcn_sing com com').
 split; first by apply/cns_cont; [exact/cns | rewrite gq].    
@@ -415,7 +415,7 @@ Lemma FqM_mod_FqM (psi: seq A * Q' -> seq Q + A') phi mf:
   \F_(queriesM psi) phi mf -> continuity_modulus \F_(queriesM psi) phi mf.
 Proof.
 move => /FqM_spec val q'; have [Qn [a' [com eq]]]:= val q'.  
-exists (gather_queries psi (size Qn) phi q') => phi' /coin_agre coin mf' /FqM_spec mf'val.
+exists (gather_queries psi (size Qn) phi q') => phi' coin mf' /FqM_spec mf'val.
 have [Qn' [b' [com' eq']]]:= mf'val q'; move: mf'val => _.
 rewrite -eq' (gq_cns com'.1) (gq_cns com.1) /=; f_equal.
 suff prp: communication psi phi' q' (Qn, a') by have []:= cmcn_sing com' prp.
@@ -521,7 +521,7 @@ Proof.
   move => /FqM_spec val q'.
 have [Qn [a' [com <-]]]:= val q'.
 exists (iseg (fun i => (map phi (flatten (drop ((size Qn) - i) Qn)), q')) (size Qn).+1).
-move => phi' /coin_agre coin sf /FsM_spec val'.
+move => phi' coin sf /FsM_spec val'.
 have [Qn' [b' [com' ->]]]:= val' q'.
 have com'': communication psi phi' q' (Qn, a').
 split; first exact/cns_cont/coin/com.1.
@@ -537,7 +537,7 @@ Lemma FsM_mod_FM psi phi sf: \F_(shapesM psi) phi sf ->
   continuity_modulus (make_mf (fun psi => \F_(M psi) phi)) psi sf.
 Proof.
 move => /FsM_spec val q'; have [Qn [a' [com ->]]]:= val q'.
-exists a' => psi' /coin_agre coin Fpsiphi /FM_spec val'.
+exists a' => psi' coin Fpsiphi /FM_spec val'.
 have [Qn' com']:= val' q'.
 suff com'': communication psi' phi q' (Qn, a') by have []:= (cmcn_sing com' com'').
 split.
@@ -554,7 +554,7 @@ Lemma FsM_mod_FqM psi phi sf: \F_(shapesM psi) phi sf ->
 Proof.
 move => /FsM_spec val q'.
 have [Qn [a' [com ->]]]:= val q'.
-exists (flatten Qn) => psi' /coin_agre coin mf /FqM_spec val'.
+exists (flatten Qn) => psi' coin mf /FqM_spec val'.
 have [Qn' [b' [com' <-]]]:= val' q'.
 rewrite (gq_cns com'.1).
 suff com'': communication psi' phi q' (Qn, a') by have [->]:= (cmcn_sing com' com'').
@@ -573,7 +573,7 @@ Proof.
 move => /FsM_spec val q'.
 have [Qn [a' [com ->]]]:= val q'.
 exists (iseg (fun i => (map phi (flatten (drop ((size Qn) - i) Qn)), q')) (size Qn).+1).
-move => psi' /coin_agre coin sf' /FsM_spec val'.
+move => psi' coin sf' /FsM_spec val'.
 have [Qn' [b' [com' ->]]]:= val' q'.
 suff com'': communication psi' phi q' (Qn, a') by have [->]:= (cmcn_sing com' com'').
 split.
@@ -648,8 +648,10 @@ move => phifd listfdom listfcoin listfmod mod icf Fphi FphiFphi q'.
 pose phin n := (listf (map phi (init_seg n))).
 have FFprop: forall n, mf (phin n) q' <= n -> FF (phin n) q' = Fphi q' => [n ineq | ].
 - have [ | a' crt]:= mod (phin n) _ q'; first exact/listfdom; have [Fphik FphikFphik]:= listfdom n.
-  rewrite [RHS](crt phi) => //; first by rewrite (crt (phin n)) //; apply/icf/FphikFphik.
-  exact/coin_agre/coin_subl/listfcoin/iseg_subl/ineq.
+  rewrite [RHS](crt phi)//.
+  rewrite (crt (phin n)) //; first exact/coin_ref.
+  - exact/icf/FphikFphik.
+  exact/coin_subl/listfcoin/iseg_subl/ineq.
 elim: {2}(mf phi q') (leqnn (mf phi q')) => [ineq | n ih].
 - exists 1; rewrite /M/=/M_step/=/psiF /=.
   have eq': mf (listf nil) q' <= 0 by apply/leq_trans/ineq/leq_trans/(listfmod q' 0).

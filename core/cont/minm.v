@@ -119,22 +119,23 @@ move => [mod min] q'.
 exists (mf q') => psi coin mf' [mod' min'].
 apply/eqP; rewrite eqn_leq; apply/andP.
 case/orP: (leq_total (mf q') (mf' q')) => ineq; split => //.
-	apply/leq_trans; last first;
-			last apply/(min' (fun q => if q == q' then init_seg (mf q) else init_seg (mf' q))).
-		by rewrite /=; case: ifP => /eqP // _; apply/melt_iseg.
-	move => q''; case E: (q'' == q'); last by have [a' crt']:= mod' q''; exists a'; exact/crt'.
-	move: E => /eqP ->; 	have [a' crt'] := mod q'; exists a' => psi' coin' Fpsi' Fpsi'Fpsi'.
-	by apply/crt'/Fpsi'Fpsi'; rewrite coin coin'.
+- apply/leq_trans; last first;
+      last apply/(min' (fun q => if q == q' then init_seg (mf q) else init_seg (mf' q))).
+    by rewrite /=; case: ifP => /eqP // _; apply/melt_iseg.
+    move => q''; case E: (q'' == q'); last by have [a' crt']:= mod' q''; exists a'; exact/crt'.
+  move: E => /eqP ->; 	have [a' crt'] := mod q'; exists a' => psi' coin' Fpsi' Fpsi'Fpsi'.
+  by apply/crt'; first exact/coin_trans/coin'/coin.
 apply/leq_trans; last first;
 		last apply/(min (fun q => if q == q' then init_seg (mf' q) else init_seg (mf q))).
 	by rewrite /=; case: ifP => /eqP // _; exact/melt_iseg.
 move => q''; case E: (q'' == q'); last by have [a' crt]:= mod q''; exists a'; exact/crt.
-move: E => /eqP ->; 	have [a' crt'] := mod' q'; exists a' => psi' /coin_agre coin' Fpsi' Fpsi'Fpsi'.
-exact/crt'/Fpsi'Fpsi'/coin_agre/coin_trans/coin'/coin_subl/coin_sym/coin_agre/coin/iseg_subl.
+move: E => /eqP ->; 	have [a' crt'] := mod' q'; exists a' => psi' coin' Fpsi' Fpsi'Fpsi'.
+exact/crt'/Fpsi'Fpsi'/coin_trans/coin'/coin_subl/coin_sym/coin/iseg_subl.
 Qed.
 
 Lemma minmod_cont: (minimal_modulus F) \is_continuous_operator.
 Proof.
-move => phi [mf mod]; exists (fun q' => init_seg (mf q')); exact/mod_minmod.
+move => phi mf mod; exists (fun q' => init_seg (mf q')) => q'.
+by have [a' mod']:=(mod_minmod mod q'); exact/crt_cert/cert_icf/crt_cert/mod'.
 Qed.
 End minimal_moduli.

@@ -94,8 +94,9 @@ apply/(MpsiF_spec phifd) => //; try by move => n; have []:= listfprop phi n phif
   rewrite [mf phi q'](crt phi) //.
   have -> //:= crt (listf (map phi (iseg cnt n))) _ (mf (listf (map phi (iseg cnt n)))).
     - have [_ coin]:= listfprop phi n phifd.
-      by rewrite -coin_agre; apply/coin_sym/coin_subl/coin/iseg_subl.
+      by apply/coin_sym/coin_subl/coin/iseg_subl.
     by apply/mfmod; have []:= listfprop phi n phifd.
+    exact/coin_ref.
   exact/mfmod.
 by move => psi psifd; have [mod min]:= mfmod psi psifd.
 Qed.
@@ -163,7 +164,7 @@ Qed.
 Lemma FM_cont (psi: seq A * Q' -> seq Q + A'):
   \F_(M psi) \is_continuous_operator.
 Proof.
-move => phi /FqM_dom [mf mod].
+rewrite cntop_spec => phi /FqM_dom [mf mod].
 by exists mf; apply/FqM_mod_FM.
 Qed.
 
@@ -173,7 +174,7 @@ Proof. exact/cont_sing/FM_cont. Qed.
 
 Lemma FM_val_cont (phi: B): (make_mf (fun psi (Fphi: B') => \F_(M psi) phi Fphi)) \is_continuous_operator.
 Proof.
-move => psi [Fphi val].
+rewrite cntop_spec => psi [Fphi val].
 have [ | sf val']:= (FsM_dom psi phi).1; first by exists Fphi.
 by exists sf; apply/FsM_mod_FM.
 Qed.

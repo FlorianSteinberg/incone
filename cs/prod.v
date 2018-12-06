@@ -102,7 +102,7 @@ Proof. by trivial. Qed.
 
 Lemma lprj_cntop Q Q' A A': (F2MF (@lprj Q Q' A A')) \is_continuous_operator.
 Proof.
-by rewrite F2MF_cont => phi; exists (fun q => [:: inl q]) => psi q' [eq _]; rewrite /lprj eq.
+by rewrite -F2MF_cntop => phi; exists (fun q => [:: inl q]) => psi q' [eq _]; rewrite /lprj eq.
 Qed.
 
 Lemma fst_hcr (X Y: cs): (@mf_fst X Y: _ \*_cs _ ->> _) \has_continuous_realizer.
@@ -117,7 +117,7 @@ Proof. exact/fst_hcr. Qed.
   
 Lemma rprj_cntop Q Q' A A': (F2MF (@rprj Q Q' A A')) \is_continuous_operator.
 Proof.
-by rewrite F2MF_cont => phi; exists (fun q => [:: inr q]) => psi q' [eq _]; rewrite /rprj eq.
+by rewrite -F2MF_cntop => phi; exists (fun q => [:: inr q]) => psi q' [eq _]; rewrite /rprj eq.
 Qed.
 
 Lemma snd_hcr (X Y: cs): (@mf_snd X Y: _ \*_cs _ ->> _) \has_continuous_realizer.
@@ -170,24 +170,24 @@ have mapl: forall K (q:questions X), List.In q K -> List.In ((@inl _ (questions 
 	elim => // q K ih q' /=listin; by case: listin => ass; [left; rewrite -ass | right; apply ih].
 have mapr: forall K (q:questions X'), List.In q K -> List.In ((@inr (questions X) _) q) (map inr K).
 	elim => // q K ih q' /=listin; by case: listin => ass; [left; rewrite -ass | right; apply ih].
-move => cont cont' phi [FGphi [np [/=FphiFGphi GphiFGphi]]].
+rewrite !cntop_spec => cont cont' phi [FGphi [np [/=FphiFGphi GphiFGphi]]].
 have [ | Lf mod]:= cont (lprj phi); first by exists (lprj FGphi).
 have [ | Lf' mod']:= cont' (rprj phi); first by exists (rprj FGphi).
 exists (fun qq' => match qq' with
 	| inl q => map inl (Lf q)
 	| inr q' => map inr (Lf' q')
 end) => [[q | q']].
-	have [a' crt]:= mod q; exists (FGphi (inl q)).
-	move => psi /coin_agre/coin_lstn coin Fpsi [ np' [/=val'l val'r]].
-	rewrite np np'; apply injective_projections => //=.
-	rewrite (crt (lprj phi) _ (lprj FGphi))//(crt (lprj psi) _ (lprj Fpsi))//.
-	rewrite -coin_agre coin_lstn /lprj => q' lstn.
-	by rewrite (coin (inl q')) //; apply (mapl (Lf q) q').
+- have [a' crt]:= mod q; exists (FGphi (inl q)).
+  move => psi /coin_lstn coin Fpsi [ np' [/=val'l val'r]].
+  rewrite np np'; apply injective_projections => //=.
+  rewrite (crt (lprj phi) _ (lprj FGphi))//; last exact/coin_ref.
+  rewrite (crt (lprj psi) _ (lprj Fpsi))// coin_lstn /lprj => q' lstn.
+  by rewrite (coin (inl q')) //; apply (mapl (Lf q) q').
 have [a' crt]:= mod' q'; exists (FGphi (inr q')).
-move => psi /coin_agre/coin_lstn coin Fpsi [ np' [/=val'l val'r]].
+move => psi /coin_lstn coin Fpsi [ np' [/=val'l val'r]].
 rewrite np np'; apply injective_projections => //=.
-rewrite (crt (rprj phi) _ (rprj FGphi))//(crt (rprj psi) _ (rprj Fpsi))//.
-rewrite -coin_agre coin_lstn /rprj => q lstn.
+rewrite (crt (rprj phi) _ (rprj FGphi))//; last exact/coin_ref.
+rewrite (crt (rprj psi) _ (rprj Fpsi))// coin_lstn /rprj => q lstn.
 by rewrite (coin (inr q)) //; apply (mapr (Lf' q') q).
 Qed.
 
@@ -236,11 +236,11 @@ Fixpoint collect_right S T (L: seq (S + T)) := match L with
 Lemma lcry_rlzr_cntop (X Y Z: cs) (F: names (X \*_cs Y) ->> names Z) phi:
   F \is_continuous_operator -> (lcry_rlzr F phi) \is_continuous_operator.
 Proof.
-move => cont psi [Fphipsi /= val].
+rewrite !cntop_spec => cont psi [Fphipsi /= val].
 have [ | mf mod]:= cont (name_pair phi psi); first by exists Fphipsi.
 exists (fun q => collect_right (mf q)) => q.
-exists (Fphipsi q) => psi' /coin_agre coin Fphipsi' val'.
-have [a' crt]:= mod q; apply/(cert_icf val crt)/val'/coin_agre.
+exists (Fphipsi q) => psi' coin Fphipsi' val'.
+have [a' crt]:= mod q; apply/(crt_icf val crt)/val'.
 by elim: (mf q) coin => // [[q' L ih /=/ih | q' L ih /= [-> /ih]]].
 Qed.
 
@@ -295,11 +295,11 @@ Lemma rcry_rlzr_cntop (X Y Z: cs) (F: names (X \*_cs Y) ->> names Z) psi:
   F \is_continuous_operator ->
   (rcry_rlzr F psi) \is_continuous_operator.
 Proof.
-move => cont phi [Fphipsi /= val].
+rewrite !cntop_spec => cont phi [Fphipsi /= val].
 have [ | mf mod]:= cont (name_pair phi psi); first by exists Fphipsi.
 exists (fun q => collect_left (mf q)) => q.
-exists (Fphipsi q) => psi' /coin_agre coin Fphipsi' val'.
-have [a' crt]:= mod q; apply/(cert_icf val crt)/val'/coin_agre.
+exists (Fphipsi q) => psi' coin Fphipsi' val'.
+have [a' crt]:= mod q; apply/(crt_icf val crt)/val'.
 by elim: (mf q) coin => // [[q' L ih /= [-> /ih] | q' L ih /= /ih]].
 Qed.
 

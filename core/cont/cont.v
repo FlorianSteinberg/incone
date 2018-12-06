@@ -113,10 +113,10 @@ apply functional_extensionality => q'; have [a' crt]:= mod q'.
 by rewrite (crt phi) //; symmetry; apply/crt/FphiFphi.
 Qed.
 
-Lemma sing_mod_spec:
-	dom F \is_subset_of dom modulus <-> F \is_singlevalued.
+Lemma sing_spec_mod: F \is_singlevalued <->
+	             dom F \is_subset_of dom modulus.
 Proof.
-rewrite sing_spec; split => [cont phi [Fphi FphiFphi]| sing phi [Fphi FphiFphi]].
+rewrite sing_spec; split => [sing phi [Fphi FphiFphi]| cont phi [Fphi FphiFphi]]; last first.
 	by have [ | mf mod]:= cont phi; [exists Fphi | exists Fphi; apply/mod_frcs/mod].
 exists (make_mf (fun q => All)) => q'; exists (Fphi q'); rewrite cert_all => Fphi' FphiFphi'.
 by have [ | Fphi'' frcs]:= sing phi; [exists Fphi | rewrite (frcs Fphi)//(frcs Fphi')].
@@ -124,46 +124,59 @@ Qed.
 
 Definition LF2MF S T (Lf: S -> seq T):= make_mf (fun s => L2SS (Lf s)).
 
+Definition certificate L phi := make_mf (fun q' a' =>
+	forall psi, phi \and psi \coincide_on L -> determines psi q' a').
+
+Lemma crt_cert L phi: certificate L phi =~= cert (L2SS L) phi.
+Proof. by split => crt psi/coin_agre; apply/crt. Qed.
+
+Lemma crt_icf L phi Fphi: F phi Fphi -> Fphi \is_choice_for (certificate L phi).
+Proof.
+by move => val q' a'/crt_cert crt; rewrite crt_cert; apply/cert_icf/crt. 
+Qed.
+
 Definition continuity_modulus := make_mf (fun phi Lf =>
-	forall q', exists a', cert (L2SS (Lf q')) phi q' a').
+	forall q', exists a', certificate (Lf q') phi q' a').
 
-Lemma mod_cont_mod phi Lf:
+Lemma mod_cmod phi Lf:
 	continuity_modulus phi Lf <-> modulus phi (LF2MF Lf).
-Proof. done. Qed.
+Proof. by split => mod q'; have [a' /crt_cert crt]:= mod q'; exists a'. Qed.
 
-Lemma cont_mod_frcs phi Fphi mf:
+Lemma cmod_frcs phi Fphi mf:
 	F phi Fphi -> continuity_modulus phi mf -> forces F phi Fphi.
-Proof. rewrite mod_cont_mod; exact/mod_frcs. Qed.
+Proof. rewrite mod_cmod; exact/mod_frcs. Qed.
 
 Definition listfunctions:= make_subset (fun mf => exists Lf, mf = (@LF2MF Q' Q Lf)).
 
-Lemma cont_mod_spec:
+Lemma cmod_spec:
 	modulus|^listfunctions =~= (F2MF (@LF2MF Q' Q)) \o continuity_modulus.
 Proof.
 move => phi mf; rewrite corestr_spec comp_rcmp; last exact/F2MF_tot.
-split => [[[Lf eq] mod] | [Lf [mod eq]]].
-	exists Lf; split => [q' | ]; last by rewrite eq.
-	by have [a' crt]:= mod q'; exists a'; apply/cert_exte/crt; rewrite eq.
-split => [ | q']; first by exists Lf; rewrite eq.
-by have [a' crt]:= mod q'; exists a'; apply/cert_exte/crt; rewrite -eq.
+split => [[[Lf ->] /mod_cmod mod] | [Lf [/mod_cmod mod <-]]]; first by exists Lf.
+by split; first by exists Lf.
 Qed.
 
-Definition continuous_operator := dom F \is_subset_of dom continuity_modulus.
+Definition continuous_operator := forall phi Fphi,
+  F phi Fphi -> exists Lf, forall q', certificate (Lf q') phi q' (Fphi q').
 
 Lemma cntop_spec: continuous_operator <->
-	forall phi Fphi, F phi Fphi -> exists Lf, forall q', cert (L2SS (Lf q')) phi q' (Fphi q').
+                  dom F \is_subset_of (dom continuity_modulus).
 Proof.
-split => cont phi.
-	move => Fphi FphiFphi; have [ | Lf mod]:= cont phi; first by exists Fphi.
-	by exists Lf => q'; have [a' crt]:= mod q'; apply/cert_icf/crt.
-move => [Fphi FphiFphi]; have [Lf mod]:= cont phi Fphi FphiFphi.
-by exists Lf => q'; exists (Fphi q'); apply/mod.
+split => [cont phi [Fphi val] | cont phi Fphi val].
+- have [Lf mod]:= cont phi Fphi val.
+  by exists Lf => q'; exists (Fphi q'); apply/mod.
+have [ | Lf mod]:= cont phi; first by exists Fphi.
+exists Lf => q'; have [a' crt]:= mod q'.
+exact/crt_cert/cert_icf/crt_cert/crt.
 Qed.
 
 Definition continuity_points := intersection (dom continuity_modulus) (dom F).
 
 Lemma cntop_dom : continuous_operator -> dom F === continuity_points.
-Proof. by move => cont phi; split => [dm | ]; [split; first exact/cont | case]. Qed.
+Proof.
+move => /cntop_spec cont phi.
+by split => [dm | ]; [split; first exact/cont | case].
+Qed.
 
 End continuity.
 Notation "F '\is_continuous_operator'" := (continuous_operator F) (at level 2).
@@ -202,7 +215,7 @@ Qed.
 Lemma mod_F2MF phi Lf (f: B -> B'): continuity_modulus (F2MF f) phi Lf <->
   forall psi q', phi \and psi \coincide_on (Lf q') -> f phi q' = f psi q'.
 Proof.
-rewrite mod_cont_mod smod_F2MF.
+rewrite mod_cmod smod_F2MF.
 by split => mod psi q'; [rewrite coin_agre| rewrite -coin_agre]; apply/mod.
 Qed.
 
@@ -214,53 +227,49 @@ Qed.
 
 Lemma mod_exte (F G: B ->> B'):
   G \extends F -> continuity_modulus F \extends continuity_modulus G.
-Proof. by move => exte phi Lf; rewrite !mod_cont_mod; apply smod_exte. Qed.
+Proof. by move => exte phi Lf; rewrite !mod_cmod; apply smod_exte. Qed.
 
 Lemma smod_exte_mf (F: B ->> B') mf mg phi:
 	mg \extends mf -> modulus F phi mf -> modulus F phi mg.
 Proof. by move => exte mod q'; have [a' crt]:= mod q'; exists a'; apply/cert_exte/crt. Qed.
 
-(*
-Lemma cont_mod_subl (F: B ->> B') Lf Lg phi:
-	(forall q', Lf q' \is_sublist_of Lg q') -> modulus F phi mf -> modulus F phi 
-*)
-
 Global Instance cntop_prpr:
 	Proper (@equiv B B' ==> iff) (@continuous_operator Q A Q' A').
 Proof.
-move => f f' eq.
-split => cont phi phifd.
-	have [ | Lf mod] := cont phi; first by rewrite eq.
-	exists Lf => q'; have [a' crt]:= mod q'.
-	by exists a' => psi coin Fpsi; rewrite -eq; apply crt.
-have [ | Lf mod] := cont phi; first by rewrite -eq.
-exists Lf => q'; have [a' crt]:= mod q'.
-by exists a' => psi coin Fpsi; rewrite eq; apply crt.
+move => F F' eq.
+split => cont phi Fphi val.
+- have [ | Lf mod]:= cont phi Fphi; first exact/eq.
+  by exists Lf => q' psi coin Fpsi val'; exact/mod/eq/val'.
+have [ | Lf mod] := cont phi Fphi; first exact/eq.
+by exists Lf => q' psi coin Fpsi val'; exact/mod/eq/val'.
 Qed.
 
-Lemma F2MF_cont (f: B -> B'): (F2MF f) \is_continuous_operator <->
-	forall phi, exists Lf, forall psi q', phi \and psi \coincide_on (Lf q') -> f phi q' = f psi q'.
+Definition continuous_operator_f (f: B -> B'):= forall phi, exists Lf,
+   forall q' psi, phi \and psi \coincide_on (Lf q') -> f phi q' = f psi q'.
+
+Lemma F2MF_cntop f: continuous_operator_f f <-> continuous_operator (F2MF f).
 Proof.
-split => [cont phi| cont phi _]; last first.
-	by have [Lf] := cont phi; exists Lf; rewrite mod_F2MF.
-by have [ | Lf /mod_F2MF mod]:= cont phi; first exact/F2MF_tot; exists Lf.
+split => [cont phi Fphi <-| cont phi].
+- by have [Lf mod]:= cont phi; exists Lf => q' psi coin Fpsi <-; symmetry; apply/mod.
+have [ | Lf mod]//:= cont phi (f phi); exists Lf => q' psi coin.
+by symmetry; apply/mod; first exact/coin.
 Qed.
 
 Lemma restr_cont (F: B ->> B') P P':
-	P \is_subset_of P' -> F|_P' \is_continuous_operator -> F|_P \is_continuous_operator.
+  P \is_subset_of P' -> F|_P' \is_continuous_operator -> F|_P \is_continuous_operator.
 Proof.
-move => subs cont phi phifd.
+rewrite !cntop_spec => subs cont phi phifd.
 exact/exte_dom/cont/dom_restr_subs/phifd/subs/mod_exte/exte_restr.
 Qed.
 
 Lemma restr_cont_w (F: B ->> B') P: F \is_continuous_operator ->
-	F|_P \is_continuous_operator.
+	                            F|_P \is_continuous_operator.
 Proof. by move => cont; apply/restr_cont; first exact/subs_all; rewrite -restr_all. Qed.
 
 Lemma mod_restr_cont (F: B ->> B'):
-	F|_(dom (continuity_modulus F)) \is_continuous_operator.
+  F|_(dom (continuity_modulus F)) \is_continuous_operator.
 Proof.
-move => phi [Fphi [[Lf mod] FphiFphi]].
+rewrite cntop_spec => phi [Fphi [[Lf mod] FphiFphi]].
 exists Lf => q'; have [a' crt]:= mod q'.
 by exists a' => psi coin Fpsi [_ FpsiFpsi]; rewrite (crt psi).
 Qed.
@@ -277,8 +286,8 @@ Qed.
 
 Lemma cont_sing (F: B ->> B'): F \is_continuous_operator -> F \is_singlevalued.
 Proof.
-move => cont; apply/sing_mod_spec => phi phifd.
-by have [Lf]:= cont phi phifd; rewrite mod_cont_mod; exists (LF2MF Lf).
+move => /cntop_spec cont; apply/sing_spec_mod => phi phifd.
+by have [Lf]:= cont phi phifd; rewrite mod_cmod; exists (LF2MF Lf).
 Qed.
 
 Lemma exte_dom S T (f g: S ->> T): f \extends g -> dom g \is_subset_of dom f.
@@ -288,13 +297,13 @@ Lemma cont_exte (F G: B ->> B'):
 	G \tightens F -> G \is_continuous_operator -> F \is_singlevalued ->
 	F \is_continuous_operator.
 Proof.
-move => /sing_tight_exte exte cont sing phi phifd.
+rewrite !cntop_spec => /sing_tight_exte exte cont sing phi phifd.
 exact/exte_dom/cont/exte_dom/phifd/exte/sing/mod_exte/exte.
 Qed.
 
 Lemma cnst_cont (Fphi: B'):
 	(F2MF (fun phi: B => Fphi)) \is_continuous_operator.
-Proof. by move => phi/= _; exists (cnst nil) => q'; exists (Fphi q') => psi _ _ <-. Qed.
+Proof. by rewrite cntop_spec => phi/= _; exists (cnst nil) => q'; exists (Fphi q') => psi _ _ <-. Qed.
 End continuity_lemmas.
 
 Section composition.
@@ -322,12 +331,19 @@ by split => //; apply (eq s t).2; split; first by exists a.
 Qed.
 
 Lemma mod_comp mf mg phi Fphi: F phi Fphi ->
-	modulus F phi mf -> modulus G Fphi mg -> modulus (G \o F) phi (mf \o_R mg).
+ modulus F phi mf -> modulus G Fphi mg -> modulus (G \o F) phi (mf \o_R mg).
 Proof.
 move => FphiFphi mod mod' q''; have [a'' crt']:= mod' q''; exists a''.
 move => psi /agre_spec coin GFpsi [[Fpsi [FpsiFpsi GFpsiGFpsi]] subs]; rewrite (crt' Fpsi) => //.
 move => q' a' /=; have [b' crt] := mod q'.
 by rewrite (crt phi)//(crt psi)//; apply/agre_spec/restr_rcmp_equiv/coin.
+Qed.
+
+Lemma comp_rcmp_corestr R S T (f: R ->> S) (g: S ->> T):
+  g \o_R f =~= g \o f|^(dom g).
+Proof.
+move => r t; split => [[s [frs gst]] | [[s [[]]]]]; last by exists s.
+by split => [ | s' []]//; exists s; split => //; split => //; exists t.
 Qed.
 
 Fixpoint gather S T (Lf: S -> seq T) (K: seq S) := match K with
@@ -355,11 +371,11 @@ Proof. by move => s t fst. Qed.
 Lemma cntop_comp: F \is_continuous_operator -> G \is_continuous_operator ->
 	(G \o F) \is_continuous_operator.
 Proof.
-move => cont cont' phi phifd.
-have [ | Lf /mod_cont_mod mod]:= cont phi; first exact/comp_dom/phifd.
+rewrite !cntop_spec => cont cont' phi phifd.
+have [ | Lf /mod_cmod mod]:= cont phi; first exact/comp_dom/phifd.
 have [GFphi [[Fphi [FphiFphi GFphiGFphi]] _]] := phifd.
-have [ | Lf'/mod_cont_mod mod']:= cont' Fphi; first by exists GFphi.
-exists (fun q' => gather Lf (Lf' q')); rewrite mod_cont_mod; apply/smod_exte_mf.
+have [ | Lf'/mod_cmod mod']:= cont' Fphi; first by exists GFphi.
+exists (fun q' => gather Lf (Lf' q')); rewrite mod_cmod; apply/smod_exte_mf.
 have/exte_equiv [this _]:= gather_LF2MF Lf Lf'; apply/this.
 exact/mod_comp/mod'.
 Qed.

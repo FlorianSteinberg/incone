@@ -5,6 +5,7 @@ core/count/count.v
 all_count.v
 
 core/cont/baire.v
+core/cont/smod.v
 core/cont/cont.v
 core/cont/minm.v
 core/cont/classical_cont.v

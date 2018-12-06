@@ -34,7 +34,7 @@ Definition continuous_operator_f (G: B -> B) := forall phi n, exists m, forall p
 Lemma F2MF_continuous (F: B -> B):
   continuous_operator_f F <-> (F2MF F) \is_continuous_operator.
 Proof.
-split => [cont | /F2MF_cntop cont phi n].
+split => [cont | /cntop_F2MF cont phi n].
 - rewrite F2MF_cont_choice => phi n.
   have [m mod]:= cont phi n.+1.
   exists (init_seg m) => psi /coin_funeq coin.
@@ -92,7 +92,7 @@ by apply/prp'; rewrite -coin //; apply/lstn_iseg; exists (nf tt).
 Qed.
 
 Lemma F_sing: F \is_singlevalued.
-Proof. exact: cont_sing F_cont. Qed.
+Proof. exact: cntop_sing F_cont. Qed.
 
 (*
 Lemma no_extension G: G \is_continuous_operator -> G \extends F -> G =~= F.

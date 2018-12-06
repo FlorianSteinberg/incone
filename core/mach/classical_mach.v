@@ -85,7 +85,7 @@ have [sec ms] := exists_minsec sur.
 have [mf mfmod]:= exists_minmod ms (cont: (F: _ ->> (Q'eqType -> _)) \is_continuous_operator).
 have [listf listfprop] := exists_listf somea (F: _ ->> (Q'eqType -> _)) sur.
 exists (psiF cnt listf mf Ff).
-rewrite mon_eval; last exact/cont_sing; last exact/M_mon.
+rewrite mon_eval; last exact/cntop_sing; last exact/M_mon.
 move => phi Fphi FphiFphi.
 have phifd: phi \from dom F by exists Fphi.
 apply/(MpsiF_spec phifd) => //; try by move => n; have []:= listfprop phi n phifd.
@@ -170,7 +170,7 @@ Qed.
 
 Lemma FM_sing (psi: seq A * Q' -> seq Q + A'):
   \F_(M psi) \is_singlevalued.
-Proof. exact/cont_sing/FM_cont. Qed.
+Proof. exact/cntop_sing/FM_cont. Qed.
 
 Lemma FM_val_cont (phi: B): (make_mf (fun psi (Fphi: B') => \F_(M psi) phi Fphi)) \is_continuous_operator.
 Proof.

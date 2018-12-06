@@ -50,13 +50,13 @@ Qed.
 Lemma F2MF_cont_choice (F: B -> B'): (F2MF F) \is_continuous_operator <->
 	forall phi q', exists L, forall psi, phi \and psi \coincide_on L -> F phi q' = F psi q'.
 Proof.
-rewrite -F2MF_cntop; split=> [cont phi q' | cont phi].
+rewrite cntop_F2MF; split=> [cont phi q' | cont phi].
   by have [Lf mod]:= cont phi; exists (Lf q') => psi; apply/mod.
 by have [Lf mod]:= choice _ (cont phi); exists Lf => q' psi; apply/mod.
 Qed.
 
 Lemma cert_cdom (F: B ->> B') phi q' a':
-	~ phi \from closure (dom F) -> exists L, cert F (L2SS L) phi q' a'.
+	~ phi \from closure (dom F) -> exists L, certificate F L phi q' a'.
 Proof.
 move => neg.
 have [L Lprop]: exists L, forall psi, ~ (phi \and psi \coincide_on L /\ psi \from dom F).
@@ -65,12 +65,7 @@ have [L Lprop]: exists L, forall psi, ~ (phi \and psi \coincide_on L /\ psi \fro
 	by apply negi; exists psi.
 exists L => psi coin Fpsi FpsiFpsi.
 exfalso; apply (Lprop psi).
-by split; [apply/coin_agre | exists Fpsi].
-Qed.
-
-Lemma crt_exte (F: B ->> B') L K phi: L \is_sublist_of K -> certificate F K phi \extends certificate F L phi.
-Proof.
-by rewrite !crt_cert => subl; apply/cert_exte; rewrite -L2SS_subs.
+by split; last exists Fpsi.
 Qed.
 
 Lemma dom_minmod (F: B ->> B'):

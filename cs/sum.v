@@ -93,7 +93,7 @@ Lemma inl_rlzr_spec (X Y: cs): inl_rlzr \realizes (F2MF inl: X ->> X \+_cs Y).
 Proof. by rewrite F2MF_rlzr_F2MF => phi x phinx; split; first exists (phi (someq X)). Qed.
 
 Lemma linc_cntop Q A Q' A': (F2MF (@linc Q A Q' A')) \is_continuous_operator.
-Proof. by rewrite -F2MF_cntop => phi; rewrite /linc; exists (fun q => [:: q.1]) => psi q' [-> ]. Qed.
+Proof. by rewrite cntop_F2MF => phi; rewrite /linc; exists (fun q => [:: q.1]) => psi q' [-> ]. Qed.
 
 Lemma inl_cont (X Y: cs): (@inl X Y: _ -> cs_sum _ _) \is_continuous.
 Proof. by exists inl_rlzr; split; [exact/inl_rlzr_spec | exact/linc_cntop]. Qed.
@@ -105,7 +105,7 @@ Lemma inr_rlzr_spec (X Y: cs): inr_rlzr \realizes (F2MF inr: Y ->> X \+_cs Y).
 Proof. by rewrite F2MF_rlzr_F2MF => phi x phinx; split; first exists (phi (someq Y)). Qed.
 
 Lemma rinc_cntop Q A Q' A': (F2MF (@rinc Q A Q' A')) \is_continuous_operator.
-Proof. by rewrite -F2MF_cntop => phi; rewrite /rinc; exists (fun q => [:: q.2]) => psi q' [-> ]. Qed.
+Proof. by rewrite cntop_F2MF => phi; rewrite /rinc; exists (fun q => [:: q.2]) => psi q' [-> ]. Qed.
 
 Lemma inr_cont (X Y: cs): (@inr X Y: _ -> cs_sum _ _) \is_continuous.
 Proof. by exists inr_rlzr; split; [exact/inr_rlzr_spec | exact/rinc_cntop]. Qed.
@@ -125,7 +125,7 @@ Qed.
 
 Lemma paib_rlzr_cntop (X: cs): (@paib_rlzr X) \is_continuous_operator.
 Proof.
-rewrite -F2MF_cntop => phi.
+rewrite cntop_F2MF => phi.
 exists (fun q => [:: (someq X, someq X); (q, someq X); (someq X, q)]).
 rewrite /paib/slct/=/lslct/rslct => q' psi [-> [eq [eq' _]]].
 by case: (psi (someq X, someq X)); [rewrite eq | rewrite eq'].

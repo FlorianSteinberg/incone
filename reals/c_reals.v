@@ -90,7 +90,7 @@ Qed.
 
 Lemma Ropp_rlzr_cont: Ropp_rlzr \is_continuous_operator.
 Proof.
-by rewrite -F2MF_cntop /Ropp_rlzrf => phi; exists (fun eps => [:: eps]) => psi q' [<-].
+by rewrite cntop_F2MF /Ropp_rlzrf => phi; exists (fun eps => [:: eps]) => psi q' [<-].
 Qed.
 
 Lemma Ropp_hcr: (F2MF Ropp: Rc ->> Rc) \has_continuous_realizer.
@@ -124,7 +124,7 @@ Qed.
 
 Lemma Rplus_rlzr_cont: Rplus_rlzr \is_continuous_operator.
 Proof.
-rewrite -F2MF_cntop => phi; exists (fun eps => [:: inl (Qdiv eps (1 + 1)); inr (Qdiv eps (1 + 1))]).
+rewrite cntop_F2MF => phi; exists (fun eps => [:: inl (Qdiv eps (1 + 1)); inr (Qdiv eps (1 + 1))]).
 by rewrite /Rplus_rlzrf => psi q' [-> [-> _]].
 Qed.
 
@@ -382,7 +382,7 @@ Admitted.
 Lemma sign_rlzr_cntop:
   sign_rlzr \is_continuous_operator.
 Proof.
-rewrite -F2MF_cntop => phi.
+rewrite cntop_F2MF => phi.
 exists (fun n => [:: Qpower_positive (1#2) (Pos.of_nat n)]) => phi' n /= [coin _].
 by rewrite /sign_rlzrf /= coin.
 Qed.

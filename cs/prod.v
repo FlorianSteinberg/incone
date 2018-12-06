@@ -102,7 +102,7 @@ Proof. by trivial. Qed.
 
 Lemma lprj_cntop Q Q' A A': (F2MF (@lprj Q Q' A A')) \is_continuous_operator.
 Proof.
-by rewrite -F2MF_cntop => phi; exists (fun q => [:: inl q]) => psi q' [eq _]; rewrite /lprj eq.
+by rewrite cntop_F2MF => phi; exists (fun q => [:: inl q]) => psi q' [eq _]; rewrite /lprj eq.
 Qed.
 
 Lemma fst_hcr (X Y: cs): (@mf_fst X Y: _ \*_cs _ ->> _) \has_continuous_realizer.
@@ -117,7 +117,7 @@ Proof. exact/fst_hcr. Qed.
   
 Lemma rprj_cntop Q Q' A A': (F2MF (@rprj Q Q' A A')) \is_continuous_operator.
 Proof.
-by rewrite -F2MF_cntop => phi; exists (fun q => [:: inr q]) => psi q' [eq _]; rewrite /rprj eq.
+by rewrite cntop_F2MF => phi; exists (fun q => [:: inr q]) => psi q' [eq _]; rewrite /rprj eq.
 Qed.
 
 Lemma snd_hcr (X Y: cs): (@mf_snd X Y: _ \*_cs _ ->> _) \has_continuous_realizer.

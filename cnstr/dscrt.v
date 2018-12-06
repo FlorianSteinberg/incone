@@ -71,7 +71,7 @@ Lemma unit_fun_rlzr_spec (X: cs) : (@unit_fun_rlzr X) \realizes (F2MF (@unit_fun
 Proof. by rewrite F2MF_rlzr_F2MF. Qed.
 
 Lemma unit_fun_rlzr_cntop (X: cs): (@unit_fun_rlzr X) \is_continuous_operator.
-Proof. by rewrite -F2MF_cntop; exists (fun _ => nil). Qed.
+Proof. by rewrite cntop_F2MF; exists (fun _ => nil). Qed.
 
 Lemma unit_fun_cont (X: cs): (@unit_fun X) \is_continuous.
 Proof.
@@ -124,7 +124,7 @@ Lemma S_rec_fun: (S: cs_nat -> cs_nat) \is_continuous.
 Proof.
 exists (F2MF (fun phi q =>S (phi q))).
 split; first by rewrite F2MF_rlzr => /= n phi -> [m]; by exists m.
-by rewrite -F2MF_cntop => phi; exists (fun _ => [:: tt]) => str psi []; elim: str => ->.
+by rewrite cntop_F2MF => phi; exists (fun _ => [:: tt]) => str psi []; elim: str => ->.
 Qed.
 
 Lemma nat_dscrt (X: cs) (f: cs_nat -> X): f \is_continuous.
@@ -135,7 +135,7 @@ Lemma nat_nat_cont (f: nat -> nat -> nat):
 Proof.
 exists (F2MF (fun phi q => f (phi (inl tt)).1 (phi (inr tt)).2)).
 split; first by rewrite F2MF_rlzr_F2MF => phi [n m] [/= <- <-].
-by rewrite -F2MF_cntop => phi; exists (fun _ => [:: inl tt; inr tt]) => psi str [-> [->]].
+by rewrite cntop_F2MF => phi; exists (fun _ => [:: inl tt; inr tt]) => psi str [-> [->]].
 Qed.
 End NATURALS.
 

@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs choice_dict.
-Require Import facts all_core cs prod sub func classical_cont classical_mach.
+Require Import facts all_core cs smod prod sub func classical_cont classical_mach.
 Require Import FunctionalExtensionality ClassicalChoice.
 
 Set Implicit Arguments.

@@ -9,7 +9,7 @@ Unset Printing Implicit Defensive.
 
 Lemma ass_cont (X Y: cs) (f: X -> Y): f \from (codom (@associate X Y)) <-> f \is_continuous.
 Proof.
-split => [[psi /=rlzr] | [F [rlzr cont]]]; first by exists \F_(M psi); split; last exact/FM_cont.
+split => [[psi /=rlzr] | [F [rlzr cont]]]; first by exists \F_(U psi); split; last exact/FM_cont.
 have [psi val]:= (M_universal (someq X) (somea X) (fun _ => somea Y) (questions_countable X) cont).
 by exists psi; exact/ntrvw.tight_rlzr/val.
 Qed.
@@ -47,7 +47,7 @@ Lemma eval_rlzr_cntop (X Y: cs):
   (@eval_rlzr (questions X) (questions Y) (answers X) (answers Y))|_(dom (rep (X c-> Y \*_cs X))) \is_continuous_operator.
 Proof.
 rewrite !cntop_spec => psiphi [Fpsiphi [[[f x] [psinf phinx]] /eval_rlzr_val val]].
-rewrite /= in psinf phinx; have phifd: (rprj psiphi) \from dom \F_(M (lprj psiphi)) by exists Fpsiphi.
+rewrite /= in psinf phinx; have phifd: (rprj psiphi) \from dom \F_(U (lprj psiphi)) by exists Fpsiphi.
 have [FqM [FsM prp]]:= @FM_cont_spec (questions X) (questions Y) (answers X) (answers Y).
 have [subs [subs' [c_prp _]]]:= prp (lprj psiphi) (rprj psiphi).
 have [qf qvl]:= subs (rprj psiphi) phifd.

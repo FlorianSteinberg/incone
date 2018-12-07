@@ -105,15 +105,15 @@ Lemma sig2fun_rlzr_spec (X: cs): (@sig2fun_rlzr X) \realizes (F2MF (@sig2fun X))
 Proof.
 rewrite F2MF_rlzr_F2MF => phi xn phinxn.
 rewrite /= rlzr_F2MF => nf /= n eq.
-split; first by exists (fun q => phi (n, q)) => q'; exists 2; rewrite /M/= eq.
+split; first by exists (fun q => phi (n, q)) => q'; exists 2; rewrite /U/= eq.
 move => psi val.
 suff <-: (fun q => phi (n, q)) = psi by apply/phinxn.
 apply/functional_extensionality => q.
 have [m eq']:= val q; case: m eq' => //m; case: m => //m.
-have ->: M (sig2fun_rlzrf phi) m.+2 nf q = M (sig2fun_rlzrf phi) 2 nf q.
-- elim: m => // m; rewrite -addn1 -addn1 /M /=.
-  by case: (M_rec (sig2fun_rlzrf phi) (m + 1 + 1) nf q).
-by rewrite /M/= eq => [[]].
+have ->: U (sig2fun_rlzrf phi) m.+2 nf q = U (sig2fun_rlzrf phi) 2 nf q.
+- elim: m => // m; rewrite -addn1 -addn1 /U /=.
+  by case: (U_rec (sig2fun_rlzrf phi) (m + 1 + 1) nf q).
+by rewrite /U/= eq => [[]].
 Qed.
 
 Lemma sig2fun_rlzr_cntop (X: cs): (@sig2fun_rlzr X) \is_continuous_operator.
@@ -131,14 +131,14 @@ Qed.
 Definition fun2sig (X: cs) (xn: cs_nat c-> X):= projT1 xn: X\^w.
 
 Definition fun2sig_rlzr X:= make_mf (fun (psi: names cs_nat c-> X) phi =>
-	forall n, \F_(M psi) (fun _ => n) (fun q => phi (n, q))).
+	forall n, \F_(U psi) (fun _ => n) (fun q => phi (n, q))).
 
 Lemma fun2sig_rlzr_spec X: (@fun2sig_rlzr X) \realizes (F2MF (@fun2sig X)).
 Proof.
 rewrite rlzr_F2MF => psi xn /rlzr_F2MF rlzr.
 split => [ | phin Fpsiphi n].
 	have prp: forall (n: nat), exists phi: questions X -> answers X, forall q,
-  exists c : nat, M psi c (fun _ : unit => n) q = Some (phi q).
+  exists c : nat, U psi c (fun _ : unit => n) q = Some (phi q).
   	move => n.
   	have [ | [phi val prp]]//:= rlzr (fun _ => n) n.
   	exists phi => q; apply/val.

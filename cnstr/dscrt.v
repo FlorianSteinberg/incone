@@ -84,10 +84,10 @@ Proof. exact/unit_fun_cont. Qed.
 Definition unit_fun_ass (X: cs) (Lq: seq (answers X) * questions cs_unit) :=
   inr tt : seq (questions X) + answers cs_unit.
 
-Lemma unit_fun_ass_eval (X: cs): (M (@unit_fun_ass X)) \evaluates_to (@unit_fun_rlzr X). 
+Lemma unit_fun_ass_eval (X: cs): (U (@unit_fun_ass X)) \evaluates_to (@unit_fun_rlzr X). 
 Proof.
-apply/mon_eval; first exact/M_mon; first exact/F2MF_sing.
-by move => phi _ <- q'; exists 2; rewrite /M/=.
+apply/mon_eval; first exact/U_mon; first exact/F2MF_sing.
+by move => phi _ <- q'; exists 2; rewrite /U/=.
 Qed.
 
 Lemma unit_fun_ass_spec (X: cs): associate X cs_unit (@unit_fun_ass X) (@unit_fun X).

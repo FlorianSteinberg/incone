@@ -39,8 +39,10 @@ Lemma D_spec psi phi:
 Proof.
 move => Fphi.
 split => /FU_spec evl q'; last first.
-have [Qn com]:= evl q'.
+have [Qn [/=cns val]]:= evl q'.
 exists (size Qn).+2.
-elim: Qn com => [[_ /= val] | K Qn ih com]; first by rewrite /= /U /= /U_step/= val.
+rewrite /U unfold_U_rec.
+case: (U_rec_spec (D phi) (size Qn).+1 psi q') => [-> | ].
+rewrite /U_step.
 Admitted.
 End duality_operator.

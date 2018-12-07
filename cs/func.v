@@ -8,7 +8,7 @@ Unset Printing Implicit Defensive.
 
 Section cs_functions.
 Definition associate (X Y: cs):= make_mf (fun psi (f: X -> Y) =>
-                                            \F_(M psi) \realizes (F2MF f)).
+                                            \F_(U psi) \realizes (F2MF f)).
 Arguments associate {X} {Y}.
 
 Notation "X c-> Y" := (codom (@associate X Y)) (at level 2).
@@ -49,11 +49,11 @@ Definition evaluation X Y (fx: (X c-> Y) \*_cs X) := (projT1 fx.1) fx.2.
 Arguments evaluation {X} {Y}.
 
 Definition eval_rlzr Q Q' A A' :=
-  \F_(fun n (psiphi: _ + Q -> _ * A) => M (lprj psiphi) n (rprj psiphi): Q' -> option A'). 
+  \F_(fun n (psiphi: _ + Q -> _ * A) => U (lprj psiphi) n (rprj psiphi): Q' -> option A'). 
 Arguments eval_rlzr {Q} {Q'} {A} {A'}.
 
 Lemma eval_rlzr_val Q A Q' A' (psiphi: (seq A * Q') + Q -> (seq Q + A') * A):
-  eval_rlzr psiphi === \F_(M (lprj psiphi)) (rprj psiphi).
+  eval_rlzr psiphi === \F_(U (lprj psiphi)) (rprj psiphi).
 Proof. done. Qed.
   
 Lemma eval_rlzr_crct X Y:
@@ -76,10 +76,10 @@ Definition id_ass X Lq := match Lq.1: seq (answers X) with
 		| a:: L => inr (a: answers X)
 	end.
 
-Lemma id_ass_eval (X: cs): (M (@id_ass X)) \evaluates_to mf_id.
+Lemma id_ass_eval (X: cs): (U (@id_ass X)) \evaluates_to mf_id.
 Proof.
-apply/mon_eval; first exact/M_mon; first exact/F2MF_sing.
-by move => phi _ <- q'; exists 2; rewrite /M/=.
+apply/mon_eval; first exact/U_mon; first exact/F2MF_sing.
+by move => phi _ <- q'; exists 2; rewrite /U/=.
 Qed.
 
 Lemma id_ass_spec X: associate X X (@id_ass X) id.
@@ -91,10 +91,10 @@ Definition fst_ass X Y (Lq: seq (answers (X \*_cs Y)) * (questions X)) :=
                           | cons a K => inr a.1: (_ + answers X) 
                           end.
 
-Lemma fst_ass_eval (X Y: cs): (M (@fst_ass X Y)) \evaluates_to (fst_rlzr X Y).
+Lemma fst_ass_eval (X Y: cs): (U (@fst_ass X Y)) \evaluates_to (fst_rlzr X Y).
 Proof.
-apply/mon_eval; first exact/M_mon; first exact/F2MF_sing.
-by move => phi _ <- q'; exists 2; rewrite /M /=.
+apply/mon_eval; first exact/U_mon; first exact/F2MF_sing.
+by move => phi _ <- q'; exists 2; rewrite /U /=.
 Qed.
 
 Lemma fst_ass_spec X Y: associate (X \*_cs Y) X (@fst_ass X Y) fst.
@@ -106,10 +106,10 @@ Definition snd_ass X Y (Lq: seq (answers (X \*_cs Y)) * (questions Y)) :=
                           | cons a K => inr a.2: (_ + answers Y) 
                           end.
 
-Lemma snd_ass_eval (X Y: cs): (M (@snd_ass X Y)) \evaluates_to (snd_rlzr X Y).
+Lemma snd_ass_eval (X Y: cs): (U (@snd_ass X Y)) \evaluates_to (snd_rlzr X Y).
 Proof.
-apply/mon_eval; first exact/M_mon; first exact/F2MF_sing.
-by move => phi _ <- q'; exists 2; rewrite /M /=.
+apply/mon_eval; first exact/U_mon; first exact/F2MF_sing.
+by move => phi _ <- q'; exists 2; rewrite /U /=.
 Qed.
 
 Lemma snd_ass_spec X Y: associate (X \*_cs Y) Y (@snd_ass X Y) snd.

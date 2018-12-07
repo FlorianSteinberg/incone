@@ -18,6 +18,7 @@ core/mach/FMop.v
 core/mach/Umach.v
 core/mach/Ucont.v
 core/mach/Uuniv.v
+core/mach/Duop.v
 core/mach/classical_mach.v
 all_mach.v
 

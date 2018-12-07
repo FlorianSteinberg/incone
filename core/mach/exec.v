@@ -19,7 +19,6 @@ Definition operator (M: B o~> B') :=
 
 Notation "\F_ M" := (operator M) (format "'\F_' M", at level 2).
 
-
 Notation "M '\evaluates_to' F" := ((\F_M) \tightens F) (at level 40).
 
 Lemma eval_FM M: M \evaluates_to \F_M.

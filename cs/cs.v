@@ -56,6 +56,12 @@ Qed.
 Definition continuous (X Y: cs) (f: X -> Y):= (F2MF f) \has_continuous_realizer.
 Notation "f \is_continuous" := (continuous f) (at level 30).
 
+Global Instance cont_prpr (X Y: cs):
+  Proper (@eqfun Y X ==> iff) (@continuous X Y).
+Proof.
+by move => f g /F2MF_eq eq; rewrite /continuous eq.
+Qed.
+
 Lemma cont_comp (X Y Z: cs) (f: Y -> Z) (g: X -> Y):
 	f \is_continuous -> g \is_continuous -> (f \o_f g) \is_continuous.
 Proof.

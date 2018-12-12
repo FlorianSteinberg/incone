@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs choice_dict.
-Require Import all_core cs prod sub facts.
+Require Import all_core cs prod sub facts Duop.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -114,4 +114,9 @@ Qed.
 
 Lemma snd_ass_spec X Y: associate (X \*_cs Y) Y (@snd_ass X Y) snd.
 Proof. exact/ntrvw.tight_rlzr/snd_ass_eval/snd_rlzr_spec. Qed.
+
+Definition pt_eval (X Y: cs) (x: X) (f: X c-> Y):= (projT1 f) x.
+
+
 End associates.
+

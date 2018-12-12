@@ -34,15 +34,85 @@ Fixpoint D (phi: B) (Ka'sq': seq (seq Q + A') * Q') : seq (seq A * Q') + A' :=
                     end
   end.
 
+Lemma D_cntop: (F2MF D) \is_continuous_operator.
+Proof.
+rewrite cntop_F2MF => phi.
+exists (fun Ka'sq' => match Ka'sq'.1 with
+                      | inl K :: Ka's => collect_left Ka'sq'.1
+                      | _ => nil
+       end).
+move => [Ka's q'] psi coin.
+rewrite /D /=; case: Ka's coin => // [[]]//= K Ka's coin.
+by f_equal; f_equal; rewrite (coin_map coin).
+Qed.
+
+Lemma U_rec_D psi n phi q':
+  U_rec (D phi) n.+1 psi q' =
+  match U_rec psi n phi q' with
+  | inl _ => inl (iseg (fun i => (map phi (gather_queries psi i phi q'), q')) n.+1)
+  | inr a' => inr a'
+  end.
+Proof.
+elim: n => [ | n ih]; first by rewrite /=/U_step/=.
+rewrite unfold_U_rec ih /U_step.
+rewrite unfold_U_rec /U_step.
+case: (U_rec_spec psi n phi q') => [eq | [a' ->] ] //.
+rewrite eq /=/U_step eq /=.
+case E: (psi (map phi (gather_queries psi n phi q'), q')) => [K | a'] //.
+f_equal.
+move: ih => _ /=.
+do 4 f_equal.
+elim: n K eq E => //n ih K eq E.
+
+have eq': U_rec psi n phi q' = ?(gather_queries psi n phi q').
+move: eq.
+rewrite /=/U_step.
+by case (U_rec_spec psi n phi q') => [eq | [a' ->]].
+have:= (ih _ eq').
+move: ih => _ ih.
+rewrite /=; rewrite /= eq'/U_step in eq.
+move: eq.
+case E': (psi (map phi (gather_queries psi n phi q'), q')) => [K' | ]// _.
+rewrite /U_step eq' E'.
+f_equal.
+by apply/ih/E'.
+Qed.
+
+Lemma D_gq psi phi q' n:
+  gather_queries (D phi) n.+1 psi q' = build_shapes psi n phi q'.
+Proof. 
+elim: n => [ | n ih]; first by rewrite /=/U_step/=; case: (psi (nil, q')).
+rewrite unfold_bs -ih.
+rewrite unfold_gq.
+rewrite U_rec_D.
+by case: (U_rec psi n.+1 phi q').
+Qed.
+
 Lemma D_spec psi phi:
   \F_(U (D phi)) psi === \F_(U psi) phi.
 Proof.
 move => Fphi.
-split => /FU_spec evl q'; last first.
-have [Qn [/=cns val]]:= evl q'.
+split => /FU_spec evl q'; have [Qn [cns val]]:= evl q'.
+- exists (size Qn).
+  have:= U_rec_D psi (size Qn) phi q'.
+  case: (U_rec_spec (D phi) (size Qn) psi q') => [eq | [a' eq]]//.
+  + rewrite unfold_U_rec eq /U_step (gq_cns cns) val.
+    case E: (U_rec psi (size Qn) phi q') => [ | b']// [->].
+    by rewrite /U E.
+  move: val.
+  rewrite -(U_rec_inr_spec (Fphi q') cns) => ->.
+  case E: (U_rec psi (size Qn) phi q') => [K' | b'] //.
+  by rewrite /U E => [[<-]].    
 exists (size Qn).+2.
 rewrite /U unfold_U_rec.
-case: (U_rec_spec (D phi) (size Qn).+1 psi q') => [-> | ].
-rewrite /U_step.
-Admitted.
+case: (U_rec_spec (D phi) (size Qn).+1 psi q').
+- rewrite D_gq => ->; rewrite /U_step {1}unfold_bs.
+  rewrite (U_rec_inl_spec psi (size Qn) phi q' (flatten Qn)).2 /=; last by exists Qn.
+  by rewrite (gq_cns cns) val.
+move => [a'].
+rewrite U_rec_D.
+case E: (U_rec psi (size Qn) phi q') => [K' | b'] //.
+move: val.
+by rewrite -(U_rec_inr_spec)// unfold_U_rec E => [[->]].
+Qed.
 End duality_operator.

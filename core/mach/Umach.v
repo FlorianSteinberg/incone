@@ -124,7 +124,7 @@ exists (drop 1 Ln); split => //; first by rewrite size_drop sze subnS.
 by split; last exact/cns_drop.
 Qed.
 
-Lemma M_rec_inr_spec psi phi q' Qn a':
+Lemma U_rec_inr_spec psi phi q' Qn a':
   consistent psi phi q' Qn -> U_rec psi (size Qn).+1 phi q' = inr a' <-> psi (map phi (flatten Qn), q') = inr a'.
 Proof.
 rewrite /= => cns.

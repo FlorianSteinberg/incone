@@ -103,7 +103,7 @@ split => [ | Fq [_ val']]; first by exists Fpsiphi; split; first by exists fx.
 by have [f'x' [nm ->]]:= prp Fq val'.                         
 Qed.
 
-Definition pt_eval (X Y: cs) (x: X) (f: X c-> Y):= (projT1 f) x.
+Definition pt_eval (X Y: cs) (x: X) (f: X c-> Y):= evaluation (f, x).
 
 Lemma ptvl_val_cont (X Y: cs) (x: X): (@pt_eval X Y x) \is_continuous.
 Proof.
@@ -114,7 +114,7 @@ Proof.
   have [ | [Fphi /D_spec val] prp]:= psinf phi x phinx; first exact/F2MF_dom.
   split => [ | Fphi' /D_spec val']; first by exists Fphi.
   have [fa [Fphi'nfa]]:= prp Fphi' val'.
-  by rewrite /pt_eval => ->.
+  by rewrite /pt_eval /evaluation => ->.
 Qed.
 
 Definition point_evaluation (X Y: cs) (x: X):= exist_c (@ptvl_val_cont X Y x).
@@ -126,6 +126,6 @@ Proof.
   have [ | [Fphi /D_spec val] prp]:= psinf phi x phinx; first exact/F2MF_dom.
   split => [ | Fphi' /D_spec val']; first by exists (Fphi).
   have [fa [Fphinfa]]:= prp Fphi' val'.
-  rewrite /point_evaluation/pt_eval/= => ->.
+  rewrite /point_evaluation/pt_eval/evaluation/= => ->.
   by exists fa.      
 Qed.

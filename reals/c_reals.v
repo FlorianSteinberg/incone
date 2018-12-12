@@ -236,20 +236,20 @@ and thus there is no hope to prove it computable *)
 Lemma cnst_dscr q: (cnst q) \is_description_of (Q2R q: Rc).
 Proof. rewrite /cnst => eps; split_Rabs; lra. Qed.
 
-Lemma cnst_sqnc_dscr q: (cnst q) \is_description_of (cnst (Q2R q): cs_sig_prod Rc).
+Lemma cnst_sqnc_dscr q: (cnst q) \is_description_of (cnst (Q2R q): Rc\^w).
 Proof. rewrite /cnst => n eps ineq; split_Rabs; lra. Qed.
 
 Lemma Q_sqnc_dscr qn:
-	(fun neps => qn neps.1) \is_description_of ((fun n => Q2R (qn n)): cs_sig_prod Rc).
+  (fun neps => qn neps.1) \is_description_of ((fun n => Q2R (qn n)): Rc\^w).
 Proof. move => n eps ineq /=; split_Rabs; lra. Qed.
 
 Lemma lim_cnst x: lim (cnst x) x.
 Proof. exists 0%nat; rewrite /cnst; split_Rabs; lra. Qed.
 
-Lemma lim_not_cont: ~(lim: cs_sig_prod Rc ->> Rc) \has_continuous_realizer.
+Lemma lim_not_cont: ~(lim: Rc\^w ->> Rc) \has_continuous_realizer.
 Proof.
 move => [/= F [/= rlzr /cntop_spec cont]].
-pose xn := cnst (Q2R 0):cs_sig_prod Rc.
+pose xn := cnst (Q2R 0): Rc\^w.
 have limxn0: lim xn (Q2R 0) by exists 0%nat; rewrite /xn/cnst; split_Rabs; lra.
 have qnfdF: cnst 0%Q \from dom F.
 	by apply /(rlzr_dom rlzr); [exact/cnst_sqnc_dscr | exists (Q2R 0)].
@@ -260,7 +260,7 @@ pose m:= fold maxn 0%N (unzip1 L).
 have mprop: forall n eps, List.In (n, eps) L -> (n <= m)%nat.
 	rewrite /m; elim: {1 2}L => // a K ih n eps /=.
 	by case =>[-> | ineq]; apply/leq_trans; [ | apply/leq_maxl | apply/ih/ineq | apply/leq_maxr].
-pose yn:= (fun n => Q2R (if (n <= m)%nat then 0%Q else 3#1)): cs_sig_prod Rc.
+pose yn:= (fun n => Q2R (if (n <= m)%nat then 0%Q else 3#1)): Rc\^w.
 pose rn (p: nat * Q) := if (p.1 <= m)%nat then 0%Q else 3#1.
 have rnyn: rn \is_description_of yn by apply/Q_sqnc_dscr.
 have limyn3: lim yn 3.
@@ -333,7 +333,7 @@ Definition lim_eff_frlzr phin eps :=
 Definition lim_eff_rlzr := F2MF lim_eff_frlzr.
 
 Lemma lim_eff_frlzr_crct:
-	lim_eff_rlzr \realizes (lim_eff: cs_sig_prod Rc ->> Rc).
+	lim_eff_rlzr \realizes (lim_eff: Rc\^w ->> Rc).
 Proof.
 rewrite F2MF_rlzr => psi xn psinxn [x limxnx].
 exists x; split => // eps epsg0.

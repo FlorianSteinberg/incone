@@ -104,7 +104,7 @@ Qed.
 End TERMINAL.
 
 Section BOOL.
-Canonical cs_bool := continuity_space.Pack tt false unit_count bool_count
+Definition cs_bool := continuity_space.Pack tt false unit_count bool_count
 	(cs_id_dict bool).
 
 Lemma bool_dscrt: discrete cs_bool.
@@ -113,7 +113,7 @@ End BOOL.
 
 Section NATURALS.
 
-Canonical cs_nat := continuity_space.Pack
+Definition cs_nat := continuity_space.Pack
 	tt
 	0%nat
 	unit_count

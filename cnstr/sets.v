@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_cs classical_func dscrt usig.
+Require Import all_cs classical_func dscrt cprd.
 Require Import Classical.
 
 Set Implicit Arguments.
@@ -82,10 +82,10 @@ Section Opens.
 Definition opens (X: cs):= X c-> cs_Sirp.
 Notation "\O( X )" := (opens X) (at level 2, format "'\O(' X ')'").
 
-Lemma OO_fun_val_cont (X: cs) (x: X): (fun (f: \O(X)) => evaluation (f, x)) \is_continuous.
-Proof. apply/rcry_cont/eval_cont. Qed.
+Definition OO_fun (X: cs) (x: X) := (point_evaluation cs_Sirp x) : \O(\O(X)).
 
-Definition OO_fun (X: cs) (x: X) := exist_c (OO_fun_val_cont x) : \O(\O(X)).
+Lemma OO_fun_cont (X: cs): (@OO_fun X) \is_continuous.
+Proof. exact/ptvl_cont. Qed.  
 
 Definition admissible (X: cs) := F2MF (@OO_fun X)\^-1 \has_continuous_realizer.
 

@@ -252,7 +252,7 @@ Lemma FsM_spec psi phi sf: \F_(shapesM psi) phi sf <->
 Proof.
 split => [sM q' | prp q' ]; last first.
 - have [Qn [a' [com ->]]] := prp q'; exists (size Qn).+1.
-  by rewrite /shapesM ((M_rec_inr_spec a' com.1).2 com.2) (bs_cmcn com).
+  by rewrite /shapesM ((U_rec_inr_spec a' com.1).2 com.2) (bs_cmcn com).
 have [n]:= sM q'; rewrite /shapesM.
 case: (U_rec_spec psi n phi q') => [eq | [a' eq]];rewrite eq//; case => <-.
 have [Qn [sze [cns gq]]]:= cns_gq psi n phi q'.
@@ -285,7 +285,7 @@ apply/ih=>//; [rewrite unfold_gq rec// | exact/cns_cons/cns].
 by exists Qn; do 2 split => //; apply/cns_cons/cns.
 Qed.
 
-Lemma FqM_mod_FM (psi: seq A * Q' -> seq Q + A') phi mf:
+Lemma FqM_mod_FU (psi: seq A * Q' -> seq Q + A') phi mf:
   \F_(queriesM psi) phi mf -> continuity_modulus \F_(U psi) phi mf.
 Proof.
 move => /FqM_spec mod q'.
@@ -336,7 +336,7 @@ split; last by rewrite -(gq_cns (cns_drop cns)) size_drop /= subSS.
 by rewrite -subSn //;apply/leq_trans; first apply/leq_subr.
 Qed.
 
-Lemma FsM_mod_FM (psi: seq A * Q' -> seq Q + A') phi sf: \F_(shapesM psi) phi sf ->
+Lemma FsM_mod_FU (psi: seq A * Q' -> seq Q + A') phi sf: \F_(shapesM psi) phi sf ->
   continuity_modulus (make_mf (fun psi => \F_(U psi) phi)) psi sf.
 Proof.
 move => /FsM_spec val q'; have [Qn [a' [com ->]]]:= val q'.

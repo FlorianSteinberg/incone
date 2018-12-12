@@ -153,10 +153,10 @@ exists (fun psi => \F_(queriesM psi)); exists (fun psi => \F_(shapesM psi)) => p
 split; first by rewrite FqM_dom.
 split; first by rewrite FsM_dom.
 split => [qf mod | sf mod].
-  split; first exact/FqM_mod_FM.
+  split; first exact/FqM_mod_FU.
   split; first exact/FqM_mod_FqM.
   exact/FqM_mod_FsM.
-split; first exact/FsM_mod_FM.
+split; first exact/FsM_mod_FU.
 split; first exact/FsM_mod_FqM.
 exact/FsM_mod_FsM.
 Qed.
@@ -165,7 +165,7 @@ Lemma FM_cont (psi: seq A * Q' -> seq Q + A'):
   \F_(U psi) \is_continuous_operator.
 Proof.
 rewrite cntop_spec => phi /FqM_dom [mf mod].
-by exists mf; apply/FqM_mod_FM.
+by exists mf; apply/FqM_mod_FU.
 Qed.
 
 Lemma FM_sing (psi: seq A * Q' -> seq Q + A'):
@@ -176,6 +176,6 @@ Lemma FM_val_cont (phi: B): (make_mf (fun psi (Fphi: B') => \F_(U psi) phi Fphi)
 Proof.
 rewrite cntop_spec => psi [Fphi val].
 have [ | sf val']:= (FsM_dom psi phi).1; first by exists Fphi.
-by exists sf; apply/FsM_mod_FM.
+by exists sf; apply/FsM_mod_FU.
 Qed.
 End classical_machines.

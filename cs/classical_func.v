@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs choice_dict.
-Require Import facts all_core cs smod prod sub func classical_cont classical_mach.
+Require Import facts all_core cs smod prod sub func classical_cont classical_mach Duop.
 Require Import FunctionalExtensionality ClassicalChoice.
 
 Set Implicit Arguments.
@@ -101,4 +101,31 @@ rewrite rlzr_F2MF => psiphi fx psiphinfx.
 have [ | [Fpsiphi val] prp]:= eval_rlzr_crct psiphinfx; first exact/F2MF_dom.
 split => [ | Fq [_ val']]; first by exists Fpsiphi; split; first by exists fx.
 by have [f'x' [nm ->]]:= prp Fq val'.                         
+Qed.
+
+Definition pt_eval (X Y: cs) (x: X) (f: X c-> Y):= (projT1 f) x.
+
+Lemma ptvl_val_cont (X Y: cs) (x: X): (@pt_eval X Y x) \is_continuous.
+Proof.
+  have [phi phinx]:= get_description x.
+  exists (\F_(U (D phi))).
+  rewrite rlzr_F2MF.
+  split => [psi f psinf | ]; last exact/FM_cont.
+  have [ | [Fphi /D_spec val] prp]:= psinf phi x phinx; first exact/F2MF_dom.
+  split => [ | Fphi' /D_spec val']; first by exists Fphi.
+  have [fa [Fphi'nfa]]:= prp Fphi' val'.
+  by rewrite /pt_eval => ->.
+Qed.
+
+Definition point_evaluation (X Y: cs) (x: X):= exist_c (@ptvl_val_cont X Y x).
+
+Lemma ptvl_cont (X Y: cs): (@point_evaluation X Y) \is_continuous.
+Proof.
+  exists (F2MF (@D (questions X) (questions Y) (answers X) (answers Y))).
+  rewrite F2MF_rlzr_F2MF; split => [phi x phinx psi f psinf _| ]; last exact/D_cntop.
+  have [ | [Fphi /D_spec val] prp]:= psinf phi x phinx; first exact/F2MF_dom.
+  split => [ | Fphi' /D_spec val']; first by exists (Fphi).
+  have [fa [Fphinfa]]:= prp Fphi' val'.
+  rewrite /point_evaluation/pt_eval/= => ->.
+  by exists fa.      
 Qed.

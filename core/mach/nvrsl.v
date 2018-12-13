@@ -1,6 +1,6 @@
 From mathcomp Require Import all_ssreflect.
 From rlzrs Require Import all_mf.
-Require Import all_cont FMop Umach Ucont classical_mach.
+Require Import all_cont FMop.
 Require Import Psatz FunctionalExtensionality.
 
 Set Implicit Arguments.
@@ -27,33 +27,55 @@ Module continuous_universal.
                             F \is_continuous_operator -> exists psi, (F_M psi) \tightens F;
                         FM_cont_spec: forall Q A Q' A',
                             exists FqM FsM,
-                              forall psi phi,
+                              (forall psi,
                                 dom (@F_M Q A Q' A' psi) \is_subset_of dom (FqM psi)
                                 /\
-                                dom (F_M psi) \is_subset_of dom (FsM psi)
+                                dom (F_M psi) \is_subset_of dom (FsM psi))
+                              /\
+                              (forall psi,
+                                (continuity_modulus (F_M psi)) \extends (FqM psi)
                                 /\
-                                (forall qf,
-                                    FqM psi phi qf ->
-                                    continuity_modulus (F_M psi) phi qf
-                                    /\
-                                    continuity_modulus (FqM psi) phi qf
-                                    /\
-                                    continuity_modulus (FsM psi) phi qf)
+                                (continuity_modulus (FqM psi)) \extends (FqM psi)
                                 /\
-                                (forall sf,
-                                    FsM psi phi sf ->
-                                    continuity_modulus
-                                      (make_mf (fun psi' => F_M psi' phi))
-                                      psi sf
-                                    /\
-                                    continuity_modulus
-                                      (make_mf (fun psi' => FqM psi phi))
-                                      psi sf
-                                    /\
-                                    continuity_modulus
-                                      (make_mf (fun psi' => FsM psi phi))
-                                      psi sf)
-                                       ;
-                              
-                      }.  
+                                (continuity_modulus (FsM psi)) \extends (FqM psi))
+                              /\
+                              (forall phi,
+                                  (continuity_modulus (make_mf (fun psi' => F_M psi' phi)))
+                                    \extends (make_mf (fun psi' => FsM psi' phi))
+                                  /\
+                                  (continuity_modulus (make_mf (fun psi' => F_M psi' phi)))
+                                    \extends (make_mf (fun psi' => FsM psi' phi))
+                                  /\
+                                  (continuity_modulus (make_mf (fun psi' => FsM psi' phi)))
+                                    \extends (make_mf (fun psi' => FsM psi' phi)));
+                        D: forall Q A Q' A', (Q -> A) ->>
+                                                (funQ (funQ Q A Q' A') (funA Q A Q' A') Q' A' ->
+                                                 funA (funQ Q A Q' A') (funA Q A Q' A') Q' A');
+                        D_spec: forall Q A Q' A' psi phi Dphi,
+                            @D Q A Q' A' phi Dphi -> (F_M Dphi psi) === F_M psi phi;
+                        D_cont: forall Q A Q' A', (@D Q A Q' A') \is_continuous_operator;
+                      }.
+
 End continuous_universal.                                             
+                        
+Notation F_M:= continuous_universal.F_M.
+Arguments F_M {t} {Q} {A} {Q'} {A'}.
+Notation FM_cont_spec:= continuous_universal.FM_cont_spec.
+
+Section continuous_universals.
+Context (Q A Q' A': Type).
+Notation B:= (Q -> A).
+Notation B':= (Q' -> A').
+Context (U: continuous_universal.type).
+Lemma FM_cont psi: (@F_M U Q A Q' A' psi) \is_continuous_operator.
+Proof.
+move => phi Fphi val.
+have [FqM [FsM [dm' [cont' _]]]]:= FM_cont_spec U Q A Q' A'.
+have [dm _]:= dm' psi; move: dm' => _.
+have [cont _]:= cont' psi; move: FsM cont' => _ _.
+have [ | qf mod]:= dm phi; first by exists Fphi.
+exists qf => q'.                                      
+have [a' crt]:= cont phi qf mod q'.
+by apply/crt_icf/crt.
+Qed.
+End continuous_universals.

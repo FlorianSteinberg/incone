@@ -45,7 +45,7 @@ Definition cs_prod_modest_set_mixin (X Y: cs):
  dictionary_mixin.type (interview.Pack (cs_prod_assembly_mixin X Y)).
 Proof. by split; exact/prod_rep_sing. Defined.
 
-Canonical cs_prod (X Y: cs) := @continuity_space.Pack _ _ (inl (someq X)) (somea X, somea Y) (sum_count (questions_countable X) (questions_countable Y)) (prod_count (answers_countable X) (answers_countable Y)) (dictionary.Pack (cs_prod_modest_set_mixin X Y)).
+Definition cs_prod (X Y: cs) := continuity_space.Pack (inl (someq X)) (somea X, somea Y) (sum_count (questions_countable X) (questions_countable Y)) (prod_count (answers_countable X) (answers_countable Y)) (dictionary.Pack (cs_prod_modest_set_mixin X Y)).
 End cs_product.
 Notation "X \*_cs Y" := (cs_prod X Y) (at level 50).
 Arguments lprj {Q} {Q'} {A} {A'}.

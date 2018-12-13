@@ -86,12 +86,12 @@ Qed.
 Definition cs_sum_modest_set_mixin (X Y: cs): dictionary_mixin.type (interview.Pack (cs_sum_assembly_mixin X Y)).
 Proof. split; exact/sum_rep_sing. Defined.
 
-Canonical cs_sum X Y := continuity_space.Pack
-                          (someq X, someq Y)
-                          (inl (somea X))
-                          (prod_count (questions_countable X) (questions_countable Y))
-                          (sum_count (answers_countable X) (answers_countable Y))
-	                  (dictionary.Pack (cs_sum_modest_set_mixin X Y)).
+Definition cs_sum X Y := continuity_space.Pack
+                           (someq X, someq Y)
+                           (inl (somea X))
+                           (prod_count (questions_countable X) (questions_countable Y))
+                           (sum_count (answers_countable X) (answers_countable Y))
+	                   (dictionary.Pack (cs_sum_modest_set_mixin X Y)).
 
 Definition cs_lslct X Y : names (cs_sum X Y) -> names X:=
   lslct (somea X) (someq Y).

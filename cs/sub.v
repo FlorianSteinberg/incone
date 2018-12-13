@@ -34,7 +34,7 @@ Definition cs_sub_modest_set_mixin X P:
 	dictionary_mixin.type (interview.Pack (@cs_sub_assembly_mixin X P)).
 Proof. split; exact/rep_sub_sing. Qed.
 
-Canonical cs_sub (X: cs) (P: mf_subset.type X) :=
+Definition cs_sub (X: cs) (P: mf_subset.type X) :=
   continuity_space.Pack
     (someq X)
     (somea X)

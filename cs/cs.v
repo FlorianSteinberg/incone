@@ -12,18 +12,20 @@ Structure type := Pack {
   Q: Type;
   A: Type;
   someq: Q;
-	somea: A;
-  Qcount: Q \is_countable;
-  Acount: A \is_countable;
-	X:> dictionary.type (Q -> A)
+  somea: A;
+  Q_count: Q \is_countable;
+  A_count: A \is_countable;
+  X:> dictionary.type (Q -> A)
 }.
 End continuity_space.
+Notation Q_count:= continuity_space.Q_count.
+Notation A_count:= continuity_space.A_count.
 Notation somea := continuity_space.somea.
 Notation someq := continuity_space.someq.
 Notation questions X:= (continuity_space.Q X).
-Notation questions_countable X := (continuity_space.Qcount X).
+Notation questions_countable X := (continuity_space.Q_count X).
 Notation answers X:= (continuity_space.A X).
-Notation answers_countable X := (continuity_space.Acount X).
+Notation answers_countable X := (continuity_space.A_count X).
 Notation names X := ((questions X) -> (answers X)).
 Notation rep X := (conversation (continuity_space.X X)).
 Notation delta := (rep _).

@@ -1,6 +1,7 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat.
 Require Import all_cs reals.
 Require Import Qreals Reals Psatz ClassicalChoice.
+Require Import Morphisms.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -20,7 +21,16 @@ Section metric_spaces.
   Definition limit := make_mf (fun xn x =>
     forall eps, 0 < eps -> exists N, forall m,
           (N <= m)%nat -> @dist M x (xn m) <= eps).
-  
+
+  Global Instance limit_prpr:
+    Proper (@eqfun M nat ==> @set_equiv M) limit.
+  Proof.
+    move => xn yn eq x.
+    split => lim eps eg0; have [N prp]:= lim eps eg0; exists N => m.
+    - by rewrite -(eq m); apply/prp.
+    by rewrite (eq m); apply/prp.
+  Qed.
+    
   Lemma lim_sing: limit \is_singlevalued.
   Proof.
     move => xn x x' limxnx limxnx'.

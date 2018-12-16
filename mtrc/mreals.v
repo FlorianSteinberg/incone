@@ -2,7 +2,7 @@
 the corresponding ones from the standard library. *)
 From mathcomp Require Import ssreflect ssrnat ssrbool ssrfun.
 From rlzrs Require Import all_mf.
-Require Import reals mtrc.
+Require Import reals mtrc cprd.
 Require Import Reals Psatz.
 
 Set Implicit Arguments.
@@ -44,4 +44,30 @@ Proof.
   move => xn; split => [Cauchy |  [x /lim_eff_lim []]]//.
   rewrite lim_eff_lim dom_restr_spec; split => //.
   exact/R_cmplt/cchy_fast_cchy.
+Qed.  
+
+Lemma limD xn yn (x y: R_met):
+  limit xn x -> limit yn y ->
+  limit (ptw_op Rplus xn yn :nat -> R_met) (x + y).
+Proof. by rewrite -Uncv_lim => lim lim'; apply/CV_plus. Qed.
+
+Lemma limB xn yn (x y: R_met):
+  limit xn x -> limit yn y ->
+  limit (ptw_op Rminus xn yn :nat -> R_met) (x - y).
+Proof. by rewrite -Uncv_lim => lim lim'; apply/CV_minus. Qed.
+
+Lemma limM xn yn (x y: R_met):
+  limit xn x -> limit yn y ->
+  limit (ptw_op Rmult xn yn: nat -> R_met) (x * y).
+Proof. by rewrite -Uncv_lim => lim lim'; apply/CV_mult. Qed.
+
+Lemma lim_pos xn (x: R_met):
+  limit xn x -> (forall n, 0 <= xn n) -> 0 <= x.
+Proof.
+  move => lim prp.
+  suff: -x/2 <= 0 by lra.
+  apply Rnot_lt_le => ineq.
+  have [N cnd]:= lim _ ineq.
+  have := cnd N (leqnn N); rewrite /=/R_dist/=.
+  have := prp N; split_Rabs; lra.
 Qed.

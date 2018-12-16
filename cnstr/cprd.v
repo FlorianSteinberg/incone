@@ -50,123 +50,31 @@ Proof. done. Qed.
 
 End USIGPROD.
 Notation "X '\^w'" :=
-  (cs_Iprod 0 nat_count X) (at level 35, format "X '\^w'").
-
-Definition lim X: X\^w ->> X:= make_mf (fun xn x =>
-  exists phin phi, phin \is_description_of xn
-                   /\
-                   phi \is_description_of x
-                   /\
-                   baire_limit (uncurry phin) phi).
-
-Section pointwise_operations.
-  Context I (somei: I) (I_count: I \is_countable).    
-    
-  Notation "X '\^' I" := (cs_Iprod somei I_count X) (at level 2, format "X '\^' I").
-
-  Definition ptw R S T (op: R -> S -> T) (rs: I -> R) (ss: I -> S) i:=
-    op (rs i) (ss i).
-
-  Lemma ptwA R (op: R -> R -> R): associative op -> associative (ptw op).
-  Proof.
-    by move => ass x y z; apply/functional_extensionality => n; apply/ass.
-  Qed.
-
-  Lemma ptwC R (op: R -> R -> R): commutative op -> commutative (ptw op).
-  Proof.
-    by move => ass x y; apply/functional_extensionality => n; apply/ass.
-  Qed.
-
-  Lemma ptwDl R (op op': R -> R -> R):
-    left_distributive op op' -> left_distributive (ptw op) (ptw op').
-  Proof.
-    by move => ass x y z; apply/functional_extensionality => n; apply/ass.
-  Qed.
-
-  Lemma ptwDr R (op op': R -> R -> R):
-    right_distributive op op' -> right_distributive (ptw op) (ptw op').
-  Proof.
-    by move => ass x y z; apply/functional_extensionality => n; apply/ass.
-  Qed.  
+  (cs_Iprod 0 nat_count X) (at level 35, format "X '\^w'").    
   
-  Definition curry R S T (f: R -> S -> T) rs := f rs.1 rs.2.
+Section isomorphisms.
+  Definition sig2fun (X: cs) (f: X\^w) := exist_c (nat_dscrt f): cs_nat c-> X.
 
-  Definition cptw R S T op := curry (@ptw R S T (uncurry op)).
-
-  Lemma cptw_sur R S T (op: R * S -> T):
-    op \is_surjective -> (cptw op) \is_surjective.
-  Proof.
-    move => sur ti.
-    have /choice [f prp]: forall i, exists rs, op rs = ti i by move => i; apply/sur.
-    exists (fun i =>  fst (f i), fun i => snd (f i)).
-    apply/functional_extensionality => i.
-    by rewrite -prp/cptw/curry/uncurry/ptw/=; case: (f i).
-  Qed.
-  
-  Lemma ptw_cont X (op: X \*_cs X -> X):
-    op \is_continuous -> (cptw op: X\^I \*_cs X\^I -> X\^I) \is_continuous.
-  Proof.
-    move => [F [/rlzr_F2MF Frop Fcont]].
-    pose np := (@name_pair X X: names X -> names X -> names (X \*_cs X)).
-    exists (make_mf (fun (phi: names (_\^I \*_cs (_\^I))) psi => forall n,
-	                 F (np (fun q => lprj phi (n, q)) (fun q => rprj phi (n, q))) (fun q => psi (n, q)))).
-    rewrite rlzr_F2MF; split => [phi [xn yn] [/= phinxn phinyn] | ].
-    - have nms n: (np (fun q : questions X => lprj phi (n, q))
-		      (fun q : questions X => rprj phi (n, q)))
-                    \is_description_of ((xn n, yn n): X \*_cs X).
-      + by split => /=; [apply/phinxn | apply/phinyn].
-      split => [ | psi FpsiFpsi n].
-      + have fd n:= (Frop (np (fun q => lprj phi (n, q))
-			      (fun q => rprj phi (n, q))) (xn n, yn n) (nms n)).1.
-        have [Fphi Fphiprp]:= choice _ fd.
-        by exists (fun nq => Fphi nq.1 nq.2) => n /=; apply Fphiprp.
-      have val n:= (Frop (np (fun q => lprj phi (n, q))
-		             (fun q => rprj phi (n, q)))
-                         (xn n, yn n) (nms n)).2.
-      by rewrite /ptw/=; apply/val.
-    apply cont_choice => phi Fphi /=FphiFphi [n q].
-    pose phin:= np (fun q => lprj phi (n, q)) (fun q => rprj phi (n, q)).
-    have [ | Lf mod]:= Fcont phin (fun q' => Fphi (n, q')); first exact/FphiFphi.
-    exists (map (fun q' => match q' with
-	                   | inl q'' => inl (n, q'')
-	                   | inr q'' => inr (n, q'')
-	                   end) (Lf q)) => psi /coin_lstn coin Fpsi eq.
-    apply/(mod q (fun q' => match q' with
-	                    | inl q'' => ((psi (inl (n, q''))).1, somea _)
-	                    | inr q'' => (somea _, (psi (inr (n, q''))).2)
-                            end) _ (fun q => Fpsi (n, q))); last by apply eq.
-    apply/coin_lstn => [[q' | q'] lstn].
-    + rewrite /phin/= -(coin (inl (n,q'))) /lprj//.
-      by elim: (Lf q) lstn => // a L ih /= [ -> | ]; [left | right; apply/ih].
-    rewrite /phin/= -(coin (inr (n,q'))) /rprj//.
-    by elim: (Lf q) lstn => // a L ih /= [ -> | ]; [left | right; apply/ih].
-  Qed.
-End pointwise_operations.
-
-Section isomorphism.
-Definition sig2fun (X: cs) (f: X\^w) := exist_c (nat_dscrt f): cs_nat c-> X.
-
-Definition sig2fun_rlzrf (X: cs) (phi: names (X\^w)) Lq' := match Lq'.1 with
+  Definition sig2fun_rlzrf (X: cs) (phi: names (X\^w)) Lq' := match Lq'.1 with
 	| nil => inl [:: tt]
 	| (n :: L) => inr (phi (n, Lq'.2))
 end.
 
-Definition sig2fun_rlzr (X: cs) := F2MF (@sig2fun_rlzrf X).
+  Definition sig2fun_rlzr (X: cs) := F2MF (@sig2fun_rlzrf X).
 
-Lemma sig2fun_rlzr_spec (X: cs): (@sig2fun_rlzr X) \realizes (F2MF (@sig2fun X)).
-Proof.
-rewrite F2MF_rlzr_F2MF => phi xn phinxn.
-rewrite /= rlzr_F2MF => nf /= n eq.
-split; first by exists (fun q => phi (n, q)) => q'; exists 2; rewrite /U/= eq.
-move => psi val.
-suff <-: (fun q => phi (n, q)) = psi by apply/phinxn.
-apply/functional_extensionality => q.
-have [m eq']:= val q; case: m eq' => //m; case: m => //m.
-have ->: U (sig2fun_rlzrf phi) m.+2 nf q = U (sig2fun_rlzrf phi) 2 nf q.
-- elim: m => // m; rewrite -addn1 -addn1 /U /=.
-  by case: (U_rec (sig2fun_rlzrf phi) (m + 1 + 1) nf q).
-by rewrite /U/= eq => [[]].
-Qed.
+  Lemma sig2fun_rlzr_spec (X: cs): (@sig2fun_rlzr X) \realizes (F2MF (@sig2fun X)).
+  Proof.
+    rewrite F2MF_rlzr_F2MF => phi xn phinxn.
+    rewrite /= rlzr_F2MF => nf /= n eq.
+    split => [ | psi val]; first by exists (fun q => phi (n, q)) => q'; exists 2; rewrite /U/= eq.
+    suff <-: (fun q => phi (n, q)) = psi by apply/phinxn.
+    apply/functional_extensionality => q.
+    have [m eq']:= val q; case: m eq' => //m; case: m => //m.
+    have ->: U (sig2fun_rlzrf phi) m.+2 nf q = U (sig2fun_rlzrf phi) 2 nf q.
+    - elim: m => // m; rewrite -addn1 -addn1 /U /=.
+      by case: (U_rec (sig2fun_rlzrf phi) (m + 1 + 1) nf q).
+    by rewrite /U/= eq => [[]].
+  Qed.
 
 Lemma sig2fun_rlzr_cntop (X: cs): (@sig2fun_rlzr X) \is_continuous_operator.
 Proof.
@@ -222,4 +130,179 @@ exists (exist_c (sig2fun_cont X)).
 exists (exist_c (fun2sig_cont X)).
 by split => [f | f]; last apply/eq_sub; apply functional_extensionality => n /=.
 Qed.
-End isomorphism.
+
+  Context I (somei: I) (I_count: I \is_countable).    
+    
+  Notation "X '\^' I" := (cs_Iprod somei I_count X) (at level 2, format "X '\^' I").
+
+End isomorphisms.
+
+Section pointwise.  
+  Context I (somei: I) (I_count: I \is_countable).    
+    
+  Notation "X '\^' I" := (cs_Iprod somei I_count X) (at level 2, format "X '\^' I").
+
+  Definition mf_ptw R T (f: R ->> T):= make_mf (fun rs ts =>
+    forall (i: I), f (rs i) (ts i)).
+
+  Lemma ptw_sur R T (f: R ->> T): f \is_cototal -> (mf_ptw f) \is_cototal.
+  Proof.
+    move => cotot ts.
+    have /choice [rs prp] := cotot.
+    exists (rs \o_f ts) => i; exact/prp.
+  Qed.
+
+  Lemma ptw_sing R T (f: R ->> T):
+    f \is_singlevalued -> (mf_ptw f) \is_singlevalued.
+  Proof.
+    move => sing rs ts t's val val'.
+    apply/functional_extensionality => i.
+    exact/sing/val'/val.
+  Qed.
+
+  Definition ptw_rlzr Q A Q' A' (F: (Q -> A) ->> (Q' -> A')) :=
+    make_mf (fun phin Fphin =>
+               forall (i: I), F (fun q => phin (i, q)) (fun q' => Fphin (i, q'))).
+
+  Lemma ptw_rlzr_cntop Q A Q' A' (F: (Q -> A) ->> (Q' -> A')):
+    F \is_continuous_operator -> (ptw_rlzr F) \is_continuous_operator.
+  Proof.
+    move => cont => phin Fphin val.
+    have /choice [Lf mod]//: forall i, exists Lf, forall q', certificate F (Lf q') (fun  q => phin (i, q)) q' (Fphin (i, q')).
+    - by move => i; apply/cont.    
+    exists (fun iq => [seq (iq.1, L) | L <- Lf iq.1 iq.2]).
+    move => [i q'] psin coin Fpsin val'.
+    apply/(mod i q' _ _ (fun q => Fpsin (i, q)))/val'.
+    by elim: (Lf i q') coin => //= q L ih []; split => //; apply/ih.
+  Qed.
+    
+  Lemma ptw_rlzr_spec (X Y: cs) (f: X ->> Y) F:
+    F \realizes f -> (ptw_rlzr F) \realizes (mf_ptw f: X\^I ->> Y\^i). 
+  Proof.
+    move => rlzr phin xs phinxs [ys val].
+    split => [ | Fphi val'].
+    - suff /choice [Fphi prp]: forall i, exists Fphi,
+            F (fun q => phin (i, q)) Fphi.
+      - by exists (fun iq => Fphi iq.1 iq.2).
+      move => i.
+      by have []//:= rlzr (fun q => phin (i, q)) (xs i); first by exists (ys i).
+    suff /choice [fa prp]: forall i, exists fai,
+                    (fun q' => Fphi (i, q')) \is_description_of fai
+                    /\
+                    f (xs i) fai. 
+    - by exists fa; split => i; have []:= prp i.
+    move => i.
+    have [ | | _ prp]//:= rlzr (fun q => (phin (i, q))) (xs i); first by exists (ys i).
+    have [ | fa]//:= prp (fun q' => Fphi (i, q')).
+    by exists fa.
+  Qed.
+
+  Lemma ptw_hcr (X Y: cs) (f: X ->> Y): f \has_continuous_realizer ->
+             (mf_ptw f : X\^I ->> Y\^I) \has_continuous_realizer.
+  Proof.
+    move => [F [rlzr cont]].
+    exists (ptw_rlzr F); split.
+    - exact/ptw_rlzr_spec.
+    exact/ptw_rlzr_cntop.
+  Qed.
+
+  Definition ptw R T (f: R -> T) (rs: I -> R) i := f (rs i).
+  
+  Lemma ptw_comp R T (f: R -> T) rs: (ptw f rs) =1 f \o_f rs.
+  Proof. done. Qed.
+
+  Lemma F2MF_ptw R T (f: R -> T):
+    mf_ptw (F2MF f) =~= F2MF (ptw f).
+  Proof.
+    move => rs ts /=; split => [prp | <-]//.
+    exact/functional_extensionality.
+  Qed.
+
+  Lemma ptw_cont (X Y: cs) (f: X -> Y):
+    f \is_continuous -> (ptw f: X\^I -> Y\^I) \is_continuous.
+  Proof.
+    move => cont.
+    rewrite /continuous -F2MF_ptw.
+    exact/ptw_hcr.
+  Qed.
+  
+  Definition ptw_op R S T (op: R -> S -> T) (rs: I -> R) (ss: I -> S) i:=
+    op (rs i) (ss i).
+
+  Lemma ptwA R (op: R -> R -> R): associative op -> associative (ptw_op op).
+  Proof.
+    by move => ass x y z; apply/functional_extensionality => n; apply/ass.
+  Qed.
+
+  Lemma ptwC R (op: R -> R -> R): commutative op -> commutative (ptw_op op).
+  Proof.
+    by move => ass x y; apply/functional_extensionality => n; apply/ass.
+  Qed.
+
+  Lemma ptwDl R (op op': R -> R -> R):
+    left_distributive op op' -> left_distributive (ptw_op op) (ptw_op op').
+  Proof.
+    by move => ass x y z; apply/functional_extensionality => n; apply/ass.
+  Qed.
+
+  Lemma ptwDr R (op op': R -> R -> R):
+    right_distributive op op' -> right_distributive (ptw_op op) (ptw_op op').
+  Proof.
+    by move => ass x y z; apply/functional_extensionality => n; apply/ass.
+  Qed.  
+  
+  Definition curry R S T (f: R -> S -> T) rs := f rs.1 rs.2.
+
+  Definition cptw_op (X Y Z: cs) (op: X \*_cs Y -> Z): X\^I \*_cs Y\^I -> Z\^I :=
+    curry (ptw_op (uncurry op)).
+
+  Lemma cptw_cont X (op: X \*_cs X -> X):
+    op \is_continuous -> (cptw_op op) \is_continuous.
+  Proof.
+    move => [F [/rlzr_F2MF Frop Fcont]].
+    pose np := (@name_pair X X: names X -> names X -> names (X \*_cs X)).
+    exists (make_mf (fun (phi: names (_\^I \*_cs (_\^I))) psi => forall n,
+	                 F (np (fun q => lprj phi (n, q)) (fun q => rprj phi (n, q))) (fun q => psi (n, q)))).
+    rewrite rlzr_F2MF; split => [phi [xn yn] [/= phinxn phinyn] | ].
+    - have nms n: (np (fun q : questions X => lprj phi (n, q))
+		      (fun q : questions X => rprj phi (n, q)))
+                    \is_description_of ((xn n, yn n): X \*_cs X).
+      + by split => /=; [apply/phinxn | apply/phinyn].
+      split => [ | psi FpsiFpsi n].
+      + have fd n:= (Frop (np (fun q => lprj phi (n, q))
+			      (fun q => rprj phi (n, q))) (xn n, yn n) (nms n)).1.
+        have [Fphi Fphiprp]:= choice _ fd.
+        by exists (fun nq => Fphi nq.1 nq.2) => n /=; apply Fphiprp.
+      have val n:= (Frop (np (fun q => lprj phi (n, q))
+		             (fun q => rprj phi (n, q)))
+                         (xn n, yn n) (nms n)).2.
+      by rewrite /ptw/=; apply/val.
+    apply cont_choice => phi Fphi /=FphiFphi [n q].
+    pose phin:= np (fun q => lprj phi (n, q)) (fun q => rprj phi (n, q)).
+    have [ | Lf mod]:= Fcont phin (fun q' => Fphi (n, q')); first exact/FphiFphi.
+    exists (map (fun q' => match q' with
+	                   | inl q'' => inl (n, q'')
+	                   | inr q'' => inr (n, q'')
+	                   end) (Lf q)) => psi /coin_lstn coin Fpsi eq.
+    apply/(mod q (fun q' => match q' with
+	                    | inl q'' => ((psi (inl (n, q''))).1, somea _)
+	                    | inr q'' => (somea _, (psi (inr (n, q''))).2)
+                            end) _ (fun q => Fpsi (n, q))); last by apply eq.
+    apply/coin_lstn => [[q' | q'] lstn].
+    + rewrite /phin/= -(coin (inl (n,q'))) /lprj//.
+      by elim: (Lf q) lstn => // a L ih /= [ -> | ]; [left | right; apply/ih].
+    rewrite /phin/= -(coin (inr (n,q'))) /rprj//.
+    by elim: (Lf q) lstn => // a L ih /= [ -> | ]; [left | right; apply/ih].
+  Qed.
+
+End pointwise.
+
+Section limit.
+  Definition lim X: X\^w ->> X:= make_mf (fun xn x =>
+    exists (phin: names (X\^w)) (phi: names X),
+      phin \is_description_of xn
+      /\
+      phi \is_description_of x
+      /\
+      baire_limit (uncurry phin) phi).
+End limit.

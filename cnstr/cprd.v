@@ -336,6 +336,10 @@ Section pointwise.
   Definition cptw_op (X Y Z: cs) (op: X \*_cs Y -> Z): X\^I \*_cs Y\^I -> Z\^I :=
     curry (ptw_op (uncurry op)).
 
+  Lemma cptw_ptw (X Y Z: cs) (op: X \*_cs Y -> Z):
+    (cptw_op op) = (@ptw (X \*_cs Y) Z op) \o_f (@cs_zip I somei I_count _ _).
+  Proof. done. Qed.
+  
   Lemma cptw_cont X (op: X \*_cs X -> X):
     op \is_continuous -> (cptw_op op) \is_continuous.
   Proof.
@@ -374,8 +378,10 @@ Section pointwise.
     rewrite /phin/= -(coin (inr (n,q'))) /rprj//.
     by elim: (Lf q) lstn => // a L ih /= [ -> | ]; [left | right; apply/ih].
   Qed.
-
 End pointwise.
+Notation cptwn_op := (@cptw_op nat 0%nat nat_count).
+Notation ptwn_op := (@ptw_op nat 0%nat nat_count).
+Notation ptwn := (@ptw nat 0%nat nat_count).
 
 Section limit.
   Definition lim X: X\^w ->> X:= make_mf (fun xn x =>

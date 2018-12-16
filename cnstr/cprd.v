@@ -305,4 +305,23 @@ Section limit.
       phi \is_description_of x
       /\
       baire_limit (uncurry phin) phi).
+
+  Definition sequentially_continuous (X Y: cs) (f : X -> Y):=
+    forall xn x, lim X xn x -> lim Y (ptw f xn) (f x).
+  Require Import seq_cont.
+
+  Lemma cont_scnt (X Y: cs) (f: X -> Y):
+    f \is_continuous -> sequentially_continuous f.
+  Proof.
+    move => [F [rlzr /cmtop_scnt cont]] xn x [phin [phi [phinxn [phinx lmt]]]].
+    have [ | [Fphin val] prp]:= ptw_rlzr_spec rlzr phinxn; first by rewrite F2MF_ptw F2MF_dom.
+    have [ | [Fphi val'] prp']:= rlzr phi x phinx; first exact/F2MF_dom.
+    exists Fphin; exists Fphi.
+    split => [i | ].
+    - have [fa [nm eq]]:= prp Fphin val.
+      by have <- :fa = ptw f xn by apply/functional_extensionality => j; rewrite -( eq j).
+    have [fa [nm ->]]:= prp' Fphi val'; split => //.
+    apply/cont/val'; first exact/lmt.
+    exact/val.
+  Qed.
 End limit.

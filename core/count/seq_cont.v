@@ -15,15 +15,15 @@ Notation B' := (Q' -> A').
 Context (F: B ->> B').
 
 Definition seq_cont :=
-	forall phi phin Fphin Fphi, lim phin phi -> (forall n, F (phin n) (Fphin n)) -> F phi Fphi ->
-		lim Fphin Fphi.
+	forall phi phin Fphin Fphi, baire_limit phin phi -> (forall n, F (phin n) (Fphin n)) -> F phi Fphi ->
+		baire_limit Fphin Fphi.
 
 Lemma seq_cont_sing: seq_cont -> F \is_singlevalued.
 Proof.
 move => cont phi Fphi Fphi' FphiFphi FphiFphi'.
 pose phin (n: nat) := phi.
 pose Fphin (n: nat) := Fphi'.
-have limF': lim Fphin Fphi' by move => L; exists 0 => m _; apply coin_ref.
+have limF': baire_limit Fphin Fphi' by move => L; exists 0 => m _; apply coin_ref.
 apply/(lim_sing _ limF').
 apply/cont; last exact FphiFphi; last by move => n; apply FphiFphi'.
 by move => L; exists 0 => m _; apply coin_ref.

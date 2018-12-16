@@ -1,6 +1,6 @@
 From mathcomp Require Import all_ssreflect all_algebra.
 Require Import FunctionalExtensionality.
-Require Import classical_count all_cs classical_mach reals Rstruct under.
+Require Import all_cs reals mtrc mreals Rstruct under.
 Require Import Reals Qreals Psatz ClassicalChoice.
 
 Import GRing.Theory.
@@ -43,6 +43,7 @@ end.
 End signed_digits.
 
 Section SDs.
+Notation lim_eff:= (efficient_limit R_met).
 Fixpoint SDs2Zn (sds: nat -> SD) n := match n with
 	| 0%nat => 0%Z
 	| m.+1 => (2 * SDs2Zn sds m + SD2Z (sds m))%Z
@@ -91,7 +92,7 @@ elim: n => [ | n ih].
 rewrite /SDs2Rn big_ord_recr/=.
 have p2lt: 0 < /2^n by apply /Rinv_0_lt_compat/pow_lt; lra.
 have p2lt': 0 < 2^n by apply /pow_lt; lra.
-apply triang.
+apply/Rle_trans; first exact/Rabs_triang.
 have ->: 1 - / (2 * (2 * 2 ^ n)) = 1 - /2^n.+1 + (/2^n.+1 -  / (2 * (2 * 2 ^ n))) by lra.
 apply Rplus_le_compat; first exact ih; rewrite !Rinv_mult_distr; try lra.
 by case: (u n.+1); rewrite /GRing.mul /= ?Rmult_0_l; split_Rabs; try lra.
@@ -125,23 +126,24 @@ rewrite !SDs2RSn; specialize (ih m ineq (fun i => sds i.+1)).
 have lt1:= pow_lt 2n; have lt2:= pow_lt 2 m; rewrite /= !Rinv_mult_distr; split_Rabs; try lra.
 Qed.
 
-Lemma Cauchy_crit_eff_SDs2Rn sds :	Cauchy_crit_eff (SDs2Rn sds).
+Lemma fchy_SDs2Rn sds : fast_Cauchy_sequence R_met (SDs2Rn sds).
 Proof.
-apply /Cauchy_crit_eff_suff => n m ineq.
-rewrite Rabs_minus_sym; have lt: 0 < /2^m by apply /Rinv_0_lt_compat /pow_lt; lra.
-by apply /Rle_trans; first apply Rabs_SDs2Rnm; try lra.
+move => n m; have lt: 0 < /2 ^ m by apply/Rinv_0_lt_compat/pow_lt; lra.
+have lt': 0 < /2 ^ n by apply/Rinv_0_lt_compat/pow_lt; lra.  
+case/orP: (leq_total n m) => ineq; first rewrite dist_sym;
+  by apply/Rle_trans; first apply/Rabs_SDs2Rnm => //; lra.
 Qed.
 
-Lemma Cauchy_crit_SDs2Rn sds :	Cauchy_crit (SDs2Rn sds).
-Proof. exact /Cauchy_crit_eff_Cauchy_crit /Cauchy_crit_eff_SDs2Rn. Qed.
+Lemma cchy_SDs2Rn sds :	Cauchy_sequence R_met (SDs2Rn sds).
+Proof. exact/cchy_fast_cchy/fchy_SDs2Rn. Qed.
 
-Definition SDs2R := lim \o (F2MF SDs2Rn).
+Definition SDs2R := @limit R_met \o (F2MF SDs2Rn).
 
 Lemma SDs2R_tot: SDs2R \is_total.
 Proof.
-rewrite /SDs2R comp_F2MF => sds.
-have [x /Uncv_lim xprp]:= R_complete _ (Cauchy_crit_SDs2Rn sds).
-by exists x.
+  rewrite /SDs2R comp_F2MF => sds.
+  have [x xprp]:= R_cmplt (cchy_SDs2Rn sds).
+  by exists x.
 Qed.
 
 Lemma SDs2R_sing: SDs2R \is_singlevalued.
@@ -149,11 +151,9 @@ Proof. by apply /comp_sing; [exact /lim_sing | exact /F2MF_sing]. Qed.
 
 Lemma SDs2R_lim_eff: SDs2R =~= lim_eff \o (F2MF SDs2Rn).
 Proof.
-rewrite lim_eff_Cauchy /SDs2R !comp_F2MF => sds x.
-split => [limx| [Cauchy limx]]; first by split; first exact: Cauchy_crit_eff_SDs2Rn.
-apply lim_exte_lim_eff.
-have [y limeffy]:= (Cauchy_conv (SDs2Rn sds)).1 Cauchy.
-by rewrite (@lim_sing (SDs2Rn sds) x y) => //; apply lim_exte_lim_eff.
+rewrite /SDs2R lim_eff_lim !comp_F2MF => sds x.
+split => [limx | [cchy limx]]//.
+by split; first by have := fchy_SDs2Rn sds.
 Qed.
 
 Lemma SDs2R_eff sds x: SDs2R sds x <-> lim_eff (SDs2Rn sds) x.
@@ -162,7 +162,7 @@ Proof. have:= SDs2R_lim_eff; rewrite comp_F2MF => prp; apply prp. Qed.
 Lemma SDs2R_UI u x: SDs2R u x -> -1 <= x <= 1.
 Proof.
 move => /SDs2R_eff val; move: (val 0%nat) => /=.
-rewrite /SDs2Rn big_ord0/= Rminus_0_l Rabs_Ropp; split_Rabs; lra.
+rewrite /SDs2Rn big_ord0/= /R_dist Rminus_0_r; split_Rabs; lra.
 Qed.
 End SDs.
 
@@ -339,6 +339,7 @@ Fixpoint sds n := match n with
 	| S (S (S n)) => sds n
 end.
 
+(*
 Lemma UI_to_UI_inc_correct sds x:
 	rep_UI sds x -> rep_UI_inc (UI_to_UI_inc sds) x.
 Proof.
@@ -347,21 +348,23 @@ have g0: 0 < 2 ^ size L by apply pow_lt; lra.
 have := sdsnx (size L).+1; rewrite Rabs_minus_sym Rinv_mult_distr; try lra.
 move => ineq2.
 rewrite /UI_to_UI_inc; case: ifP; case: Z_lt_dec => // lt _.
-	move/(Zlt_le_succ _ _)/IZR_le: lt.
-	rewrite /Z.succ plus_IZR mult_IZR SDs2Zn_SDs2Rn SDL2Z_SDL2R => /= lt.
-	have ineq3: (SDs2Rn sds (size L).+1) <= SDL2R L - /2* /2^size L.
-		apply: (Rmult_le_reg_r (2* 2^size L)); try lra.
-		rewrite [(_ - _) * _]Rmult_comm Rmult_minus_distr_l.
-		by rewrite -Rinv_mult_distr; try lra; rewrite Rinv_r; lra.
-	by split_Rabs; try lra.
+- move/(Zlt_le_succ _ _)/IZR_le: lt.
+  rewrite /Z.succ plus_IZR mult_IZR SDs2Zn_SDs2Rn SDL2Z_SDL2R => /= lt.
+  have ineq3: (SDs2Rn sds (size L).+1) <= SDL2R L - /2* /2^size L.
+  + apply: (Rmult_le_reg_r (2* 2^size L)); try lra.
+    rewrite [(_ - _) * _]Rmult_comm Rmult_minus_distr_l.
+    by rewrite -Rinv_mult_distr; try lra; rewrite Rinv_r; lra.
+    split_Rabs; try lra.
+    admit.
 case: ifP; case: Z_lt_dec => // gt _.
-	move/(Zlt_le_succ _ _)/IZR_le: gt.
-	rewrite /Z.succ plus_IZR mult_IZR SDs2Zn_SDs2Rn SDL2Z_SDL2R => /= gt.
-	have ineq3: (SDL2R L) <= SDs2Rn sds (size L).+1 - /2* /2^size L.
+- move/(Zlt_le_succ _ _)/IZR_le: gt.
+  rewrite /Z.succ plus_IZR mult_IZR SDs2Zn_SDs2Rn SDL2Z_SDL2R => /= gt.
+  + have ineq3: (SDL2R L) <= SDs2Rn sds (size L).+1 - /2* /2^size L.
 		apply: (Rmult_le_reg_r (2* 2^size L)); try lra.
 		rewrite [(_ - _) * _]Rmult_comm Rmult_minus_distr_l.
 		by rewrite -Rinv_mult_distr; try lra; rewrite Rinv_r; lra.
-	by split_Rabs; try lra.
+	        split_Rabs; try lra.
+                admit.
 have eq: (SDs2Zn sds (size L).+1 = 2 * SDL2Z L)%Z by lia.
 have:= IZR_eq _ _ eq.
 move: eq; rewrite SDs2Zn_SDs2Rn mult_IZR SDL2Z_SDL2R /= => _ eq.
@@ -369,7 +372,7 @@ have: (SDs2Rn sds (size L).+1 = SDL2R L).
 	apply: (Rmult_eq_reg_l (2 * 2 ^size L)); lra.
 by move <-; split_Rabs; try lra.
 Qed.
-
+*)
 (* Lemma UI_UI_inc_iso: wisomorphic rep_space_UI rep_space_UI_inc.
 Proof.
 do 2 exists ((fun x y => x = y)).
@@ -389,7 +392,7 @@ move: x => x; rewrite /=/GRing.zero /=. SDs2R_eff => unx.
 specialize (unx 1%nat); move: unx; rewrite /SDs2Rn big_ord1.
 by case: (sds 0%nat) => /=; rewrite /GRing.mul /=; split_Rabs; lra.
 Qed.*)
-
+(*
 Lemma SDs2R_tl sds x: SDs2R sds x -> SDs2R (fun n => sds n.+1) (2 * x - SD2R (sds 0%nat)).
 Proof.
 rewrite !SDs2R_eff => unx n; apply: (Rmult_le_reg_l (/2)); try lra.
@@ -404,7 +407,7 @@ congr (_ + _).
 have -> : bump 0 n = n.+1%nat by trivial.
 rewrite !Rinv_mult_distr; try lra.
 by rewrite /GRing.mul/=; try lra.
-Qed.
+Qed.*)
 End sd_coinduction.
 
 Section output_and_examples.
@@ -428,6 +431,7 @@ Qed.
 
 Definition rep_R := (F2MF ZUI2R) \o (rep (cs_prod cs_Z UI_sd_cs)).
 
+(*
 Lemma rep_R_sur: rep_R \is_cototal.
 Proof.
 move => x; have ineq: -1 <= x - up x <= 1 by have := archimed x; lra.
@@ -442,7 +446,7 @@ rewrite /=/prod_rep.
 have ->:= @lprj_pair cs_Z UI_sd_cs.
 by have ->:= @rprj_pair cs_Z UI_sd_cs.
 Qed.
-
+*)
 Lemma rep_R_sing: rep_R \is_singlevalued.
 Proof. apply/comp_sing; [apply: F2MF_sing | by have:=(@rep_sing _ (cs_Z \*_cs UI_sd_cs)) ]. Qed.
 

@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect all_algebra.
-Require Import all_cs reals c_reals sd_reals Rstruct under.
+Require Import all_cs reals Q_reals sd_reals Rstruct under.
 Require Import Reals Qreals Psatz ClassicalChoice.
 
 Import GRing.Theory.

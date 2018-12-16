@@ -26,12 +26,12 @@ all_core.v
 
 cs/cs.v
 cs/prod.v
+cs/sum.v
 cs/facts.v
 cs/sub.v
 cs/func.v
 cs/classical_func.v
 cs/iso.v
-cs/sum.v
 all_cs_base.v
 
 cnstr/dscrt.v
@@ -40,13 +40,19 @@ cnstr/cprd.v
 cnstr/sets.v
 all_cs.v
 
+mtrc/reals.v
+mtrc/mtrc.v
+mtrc/Qmtrc.v
+mtrc/mreals.v
+
 reals/Rstruct.v
 reals/under.v
-reals/reals.v
-reals/c_reals.v
+reals/Q_reals.v
 reals/sd_reals.v
 reals/sdvsc.v
 reals/Ireals.v
+
+
 xmpl/examples_continuity.v
 xmpl/example_cantor_space.v
 xmpl/examples_opens.v

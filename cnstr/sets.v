@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-Require Import all_cs classical_func dscrt cprd.
+Require Import all_cs_base classical_func dscrt cprd.
 Require Import Classical.
 
 Set Implicit Arguments.

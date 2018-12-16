@@ -193,15 +193,14 @@ Lemma img_subs phin P:
 	(image phin \is_subset_of P) <-> (forall n, P (phin n)).
 Proof. by split => H m; [apply/ H; exists m | move => [n ->]; apply H]. Qed.
 
-(* The convergence relation belonging to the topology is given as follows *)
-Definition lim :=
-	make_mf (fun phin (psi: B) => forall L, exists n, forall m, n <= m -> psi \and (phin m) \coincide_on L).
-Notation "psi '\is_limit_of' phin" := (lim phin psi) (at level 50).
+Definition baire_limit := make_mf (fun phin (psi: B) =>
+  forall L, exists n, forall m, n <= m -> psi \and (phin m) \coincide_on L).
+Notation "psi '\is_limit_of' phin" := (baire_limit phin psi) (at level 50).
 
-Lemma lim_const phi: lim (fun _ => phi) phi.
+Lemma lim_const phi: baire_limit (fun _ => phi) phi.
 Proof. move => L; exists 0 => m _; apply/coin_ref. Qed.
 
-Lemma lim_sing: lim \is_singlevalued.
+Lemma lim_sing: baire_limit \is_singlevalued.
 Proof.
 move => phin phi psi lim lim'; apply functional_extensionality => q.
 have [n /=prp]:= lim [:: q]; have [m /=prp']:= lim' [:: q].
@@ -210,10 +209,10 @@ by have [-> _]:= prp' (maxn n m) (leq_maxr n m).
 Qed.
 
 Lemma conv_cP P phin psi:
-	lim phin psi /\ (image phin \is_subset_of P) -> psi \from closure P.
+	baire_limit phin psi /\ (image phin \is_subset_of P) -> psi \from closure P.
 Proof.
 rewrite img_subs; case => conv elts L; have [n prop]:= conv L.
 by exists (phin n); split => //; apply (prop n).
 Qed.
 End sequences.
-Arguments lim {Q} {A}.
+Arguments baire_limit {Q} {A}.

@@ -334,5 +334,13 @@ Section metric_representation.
       by apply/lstn_iseg; exists n.+1.
     by rewrite -tpmn_half; apply/Rle_refl.
   Qed.
-  
+
+  Lemma ptw_op_scnt (op: cs_M \*_cs cs_M -> cs_M) xn x yn y:
+    op \is_continuous -> limit xn x -> limit yn y ->
+    limit (cptwn_op op (xn,yn)) (op (x,y)).
+  Proof.
+    move => /cont_scnt cont lmt lmt'.    
+    have ->: cptw_op op = ptw op \o_f (@cs_zip _ _ _ cs_M cs_M) by trivial.
+    - by rewrite lim_cs_lim; apply/cont; rewrite lim_prd -!lim_cs_lim.
+  Qed.
 End metric_representation.

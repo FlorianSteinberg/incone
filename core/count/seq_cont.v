@@ -1,6 +1,6 @@
-From mathcomp Require Import ssreflect.
+From mathcomp Require Import ssreflect ssrnat ssrbool.
 From rlzrs Require Import all_mf.
-Require Import baire.
+Require Import baire cont.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -15,7 +15,7 @@ Notation B' := (Q' -> A').
 Context (F: B ->> B').
 
 Definition seq_cont :=
-	forall phi phin Fphin Fphi, baire_limit phin phi -> (forall n, F (phin n) (Fphin n)) -> F phi Fphi ->
+	forall phin phi Fphin Fphi, baire_limit phin phi -> (forall n, F (phin n) (Fphin n)) -> F phi Fphi ->
 		baire_limit Fphin Fphi.
 
 Lemma seq_cont_sing: seq_cont -> F \is_singlevalued.
@@ -29,13 +29,16 @@ apply/cont; last exact FphiFphi; last by move => n; apply FphiFphi'.
 by move => L; exists 0 => m _; apply coin_ref.
 Qed.
 
-(*
-Lemma cont_seq_cont: F \is_continuous -> seq_cont.
+Lemma cmtop_scnt: F \is_continuous_operator -> seq_cont.
 Proof.
-move => [mf mod] phi phin Fphin Fphi lm prp FphiFphi L.
-elim: L => [ | q' L [n ih]]; first by exists 0.
-have:= mod phi Fphi FphiFphi q'; rewrite /cert.
-elim: (mf phi q') => [cnd | q K ihK cnd]; first by exists n; split; [apply/cnd | apply/ih].
-Admitted.
-*)
+move => cont phin phi Fphin Fphi lim vals val L.
+have [Lf mod]:= cont phi Fphi val.
+have [n prp]:= lim (gather Lf L).
+exists n => m ineq.
+elim: L prp => [ | q' L ih prp]//.
+split.
+- symmetry; apply/mod/vals.
+  by have /coin_cat []:= prp m ineq.
+by apply/ih => m' ineq'; have /coin_cat []:= prp m' ineq'.
+Qed.
 End sequential_continuity.

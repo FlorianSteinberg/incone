@@ -15,6 +15,7 @@ core/count/seq_cont.v
 core/count/classical_count.v
 
 core/mach/FMop.v
+core/mach/nvrsl.v
 core/mach/Umach.v
 core/mach/Ucont.v
 core/mach/Uuniv.v

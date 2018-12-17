@@ -380,8 +380,8 @@ Section pointwise.
   Qed.
 End pointwise.
 Notation cptwn_op := (@cptw_op nat 0%nat nat_count).
-Notation ptwn_op := (@ptw_op nat 0%nat nat_count).
-Notation ptwn := (@ptw nat 0%nat nat_count).
+Notation ptwn_op := (@ptw_op nat).
+Notation ptwn := (@ptw nat).
 
 Section limit.
   Definition lim X: X\^w ->> X:= make_mf (fun xn x =>

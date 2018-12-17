@@ -137,7 +137,9 @@ Qed.
 Lemma cchy_SDs2Rn sds :	Cauchy_sequence R_met (SDs2Rn sds).
 Proof. exact/cchy_fast_cchy/fchy_SDs2Rn. Qed.
 
-Definition SDs2R := @limit R_met \o (F2MF SDs2Rn).
+Notation limit:= (@metric_limit R_met).
+
+Definition SDs2R := limit \o (F2MF SDs2Rn).
 
 Lemma SDs2R_tot: SDs2R \is_total.
 Proof.

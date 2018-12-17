@@ -218,7 +218,7 @@ depends on the size of the inputs *)
   End multiplication.
 
   Section limit.
-    Notation lim:= (@limit R_met).
+    Notation lim:= (@metric_limit R_met).
     Notation lim_eff:= (@efficient_limit R_met).
 
     Lemma cnst_dscr q: (cnst q) \is_description_of (Q2R q: RQ).

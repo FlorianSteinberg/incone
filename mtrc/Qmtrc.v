@@ -180,7 +180,7 @@ Section rationals_and_metric_spaces.
     by move => eps eg0; apply/prp.
   Qed.
 
-  Lemma limQ_lim: limit_Q =~= limit.
+  Lemma limQ_lim: limit_Q =~= metric_limit.
   Proof.
     move => xn x; split => lim eps eg0; last exact/lim.
     have [q ineq]:= accf_Q2R_0 eg0.

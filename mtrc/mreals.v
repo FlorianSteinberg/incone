@@ -10,7 +10,9 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Local Open Scope R_scope.
 
-Lemma Uncv_lim: make_mf Un_cv =~= @limit R_met.
+Notation limit := (@metric_limit R_met).
+
+Lemma Uncv_lim: make_mf Un_cv =~= limit.
 Proof.
   move => xn x; split => ass eps epsg0.
   have [N Nprp]:= ass eps epsg0; exists N => n ineq.
@@ -70,4 +72,25 @@ Proof.
   have [N cnd]:= lim _ ineq.
   have := cnd N (leqnn N); rewrite /=/R_dist/=.
   have := prp N; split_Rabs; lra.
+Qed.
+
+Lemma lim_inc xn yn x y:
+  (forall i, xn i <= yn i) -> limit xn x -> limit yn y -> x <= y.
+Proof.
+  move => prp lim lim'.
+  have ineq: forall i, 0 <= yn i - xn i by move => i; have:= prp i; lra.
+  suff: 0 <= y - x by lra.
+  exact/lim_pos/ineq/limB.
+Qed.
+
+Definition scale (r: R) x (n: nat) := (r * (x n)).
+
+Lemma scale_ptw r: scale r =1 ptw_op Rmult (cnst r).
+Proof. done. Qed.
+
+Lemma lim_scale x r r': limit x r -> limit (scale r' x) (r' * r).
+Proof.
+  move => lim.
+  rewrite scale_ptw.
+  apply/limM/lim/lim_cnst.
 Qed.

@@ -18,12 +18,12 @@ Section metric_spaces.
   Arguments dist_sym {m}.
   Coercion Base: Metric_Space >-> Sortclass.
 
-  Definition limit := make_mf (fun xn x =>
+  Definition metric_limit := make_mf (fun xn x =>
     forall eps, 0 < eps -> exists N, forall m,
           (N <= m)%nat -> @dist M x (xn m) <= eps).
 
   Global Instance limit_prpr:
-    Proper (@eqfun M nat ==> @set_equiv M) limit.
+    Proper (@eqfun M nat ==> @set_equiv M) metric_limit.
   Proof.
     move => xn yn eq x.
     split => lim eps eg0; have [N prp]:= lim eps eg0; exists N => m.
@@ -31,7 +31,7 @@ Section metric_spaces.
     by rewrite (eq m); apply/prp.
   Qed.
     
-  Lemma lim_sing: limit \is_singlevalued.
+  Lemma lim_sing: metric_limit \is_singlevalued.
   Proof.
     move => xn x x' limxnx limxnx'.
     apply/dist_refl/cond_eq => eps epsg0.
@@ -48,7 +48,7 @@ Section metric_spaces.
     lra.
   Qed.
 
-  Lemma lim_cnst x: limit (cnst x) x.
+  Lemma lim_cnst x: metric_limit (cnst x) x.
   Proof.
     by exists 0%nat; rewrite /cnst (dist_refl x x).2// => m ineq; lra.
   Qed.
@@ -69,7 +69,7 @@ Section metric_spaces.
     exact/Rge_le/dist_pos.
   Qed.
 
-  Lemma lim2_lim: limit_tpmn =~= limit.
+  Lemma lim2_lim: limit_tpmn =~= metric_limit.
   Proof.
     move => xn x; split => [lim eps eg0 | lim n].
     - have [n ineq]:= accf_2pown eg0.
@@ -128,7 +128,7 @@ Arguments dist_tri {m} {x} {y}.
 Arguments dist_pos {m}.
 Arguments dist_refl {m}.
 Arguments dist_sym {m}.
-Arguments limit {M}.
+Arguments metric_limit {M}.
 
 Section efficient_convergence.
   Context (M: Metric_Space).
@@ -137,7 +137,7 @@ Section efficient_convergence.
     forall eps, 0 < eps -> exists N, forall n m,
           (N <= n)%nat -> (N <= m)%nat -> dist (xn n) (xn m) <= eps).
 
-  Definition complete := Cauchy_sequence \is_subset_of dom limit.
+  Definition complete := Cauchy_sequence \is_subset_of dom metric_limit.
   
   Definition fast_Cauchy_sequence := make_subset (fun (xn: nat -> M) =>
     forall n m, dist (xn n) (xn m) <= /2^n + /2^m).
@@ -195,7 +195,7 @@ Section efficient_convergence.
   Definition efficient_limit := make_mf (fun xn (x: M) =>
     forall n, dist x (xn n) <= /2^n).
 
-  Lemma lim_eff_lim: efficient_limit =~= limit|_(fast_Cauchy_sequence).
+  Lemma lim_eff_lim: efficient_limit =~= metric_limit|_(fast_Cauchy_sequence).
   Proof.
     move => xn x; split => [lim | [cchy lim] n].
     - split => [n m | eps epsg0].
@@ -222,13 +222,13 @@ Section efficient_convergence.
     by apply/pow_lt; lra.
   Qed.
     
-   Lemma lim_exte_lim_eff : limit \extends efficient_limit.
+   Lemma lim_exte_lim_eff : metric_limit \extends efficient_limit.
    Proof.
-    rewrite lim_eff_lim {2}[limit]restr_all.
+    rewrite lim_eff_lim {2}[metric_limit]restr_all.
     exact/exte_restr/subs_all.
   Qed.
 
-  Lemma lim_tight_lim_eff: limit \tightens efficient_limit.
+  Lemma lim_tight_lim_eff: metric_limit \tightens efficient_limit.
   Proof.
     apply sing_exte_tight; [exact/lim_sing | exact/lim_exte_lim_eff].
   Qed.
@@ -301,7 +301,7 @@ Section metric_representation.
     by apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
   Qed.
 
-  Lemma lim_cs_lim : limit =~= lim cs_M.
+  Lemma lim_cs_lim : metric_limit =~= @cs_limit cs_M.
   Proof.
     move => xn x.
     split => [/lim2_lim/choice [mu prp] | [phin [phi [phinxn [phinx lim]]]]].
@@ -336,8 +336,8 @@ Section metric_representation.
   Qed.
 
   Lemma ptw_op_scnt (op: cs_M \*_cs cs_M -> cs_M) xn x yn y:
-    op \is_continuous -> limit xn x -> limit yn y ->
-    limit (cptwn_op op (xn,yn)) (op (x,y)).
+    op \is_continuous -> metric_limit xn x -> metric_limit yn y ->
+    metric_limit (cptwn_op op (xn,yn)) (op (x,y)).
   Proof.
     move => /cont_scnt cont lmt lmt'.    
     have ->: cptw_op op = ptw op \o_f (@cs_zip _ _ _ cs_M cs_M) by trivial.

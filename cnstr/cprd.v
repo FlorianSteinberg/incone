@@ -384,7 +384,7 @@ Notation ptwn_op := (@ptw_op nat).
 Notation ptwn := (@ptw nat).
 
 Section limit.
-  Definition lim X: X\^w ->> X:= make_mf (fun xn x =>
+  Definition cs_limit X: X\^w ->> X:= make_mf (fun xn x =>
     exists (phin: names (X\^w)) (phi: names X),
       phin \is_description_of xn
       /\
@@ -393,9 +393,9 @@ Section limit.
       baire_limit (uncurry phin) phi).
   
   Lemma lim_prd (X Y: cs) xn x yn y:
-    lim (X \*_cs Y) (cs_zip (xn, yn)) (x, y)
+    cs_limit (X \*_cs Y) (cs_zip (xn, yn)) (x, y)
     <->
-    lim X xn x /\ lim Y yn y.
+    cs_limit X xn x /\ cs_limit Y yn y.
   Proof.
     split => [[phipsin [phipsi [nm [[lnm rnm] lmt]]]] |].
     - split.
@@ -433,7 +433,7 @@ Section limit.
   Qed.
 
   Definition sequentially_continuous (X Y: cs) (f : X -> Y):=
-    forall xn x, lim X xn x -> lim Y (ptw f xn) (f x).
+    forall xn x, cs_limit X xn x -> cs_limit Y (ptw f xn) (f x).
   Require Import seq_cont.
 
   Lemma cont_scnt (X Y: cs) (f: X -> Y):
@@ -451,3 +451,4 @@ Section limit.
     exact/val.
   Qed.
 End limit.
+Arguments cs_limit {X}.

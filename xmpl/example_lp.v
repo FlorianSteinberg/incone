@@ -221,7 +221,27 @@ Section lp.
   by apply/Rlt_le/ln_increasing; lra.
   Qed.
 
-  Lemma Rapw_inc x y: Rabs x < Rabs y ->  `|x`|^p <= `|y`|^p.
+  Lemma Rapw_inc x y: 0 < p -> Rabs x < Rabs y ->  `|x`|^p < `|y`|^p.
+  Proof.
+  rewrite /Rabs_power => pg0 ineq; case: ifP => /eqP.
+  - by case: ifP => [/eqP | /eqP _ _]; [move: ineq; split_Rabs; lra | exact/exp_pos].
+  case: ifP => /eqP; first by move: ineq; split_Rabs; lra.
+  rewrite /Rpower => neq neq'.
+  rewrite !(Rmult_comm p); apply/exp_increasing/Rmult_lt_compat_r => //.
+  by apply/ln_increasing; first by split_Rabs; lra.
+  Qed.
+  
+  Lemma Rapw_inc_le x y: 0 <= p -> Rabs x <= Rabs y ->  `|x`|^p <= `|y`|^p.
+  Proof.
+  case => [pg0 | <-]; last first.
+  - rewrite !Rapw_p0; case: (classic (y = 0)) => [eq | neq].
+    + rewrite eq => ineq; have ->: x = 0 by move: ineq; split_Rabs; lra.
+      by have -> /= : eqr 0 0 = true; [apply/eqP | apply/Rle_refl].
+    have ->/=: eqr y 0 = false by apply/eqP.
+    by case: (eqr x 0) => /=; lra.
+  case => [ineq | eq]; first exact/Rlt_le/Rapw_inc.
+  by rewrite -(Rapw_Rabs x) eq Rapw_Rabs; apply /Rle_refl.
+  Qed.
 
   Lemma Rapw_lt_inv x y: 0 < p -> `|x`|^p < `|y`|^p -> Rabs x < Rabs y.
   Proof.
@@ -247,9 +267,12 @@ Section lp.
   exact/(Rapw_le_inv pg0)/ppnrm_leq/nrm.2.
   Qed.
 
-  Lemma Rpower_ineq x y p q:
-    1 <= p -> 1 <= q -> 0 < x -> 0 < y -> Rpower x (/p) * Rpower y (/q) <= x/p + y/q.
-  Lemma Rapw_conv x y: 1 < p -> `|x/2 + y/2`|^p <= 1/2 * `|x + y`|^p.
+  Lemma Rpower_ineq x y q q':
+    1 <= p -> 1 <= q' -> 0 < x -> 0 < y -> Rpower x (/q') * Rpower y (/q) <= x/q' + y/q.
+  Proof.
+  Admitted.
+  
+  Lemma Rapw_conv x y: 1 < p -> `|(x + y)/2`|^p <= (`|x`|^p + `|y`|^p)/2.
   Proof.
   Admitted.
   
@@ -267,17 +290,13 @@ Section lp.
   rewrite /Rabs_power; case: ifP => /eqP neq; try lra.
   rewrite Rabs_pos_eq; try lra.
   by rewrite /Rminus Rpower_plus Rpower_Ropp Rpower_1; try lra; apply/Rle_refl.
-  Admitted.
-
-  Lemma pnrms_bnd x y:
-    has_ub (p_norm_seq x) -> has_ub (p_norm_seq y) ->
-    has_ub (p_norm_seq (x +_pw y)).
-  Proof.
-    move => [ub iub] [ub' iub'].    
-    
-    exists 
-
-    
+  apply/Rle_trans.
+  have ->: x + y = (2 * x + 2 * y) /2 by field.
+  apply/Rapw_conv => //.
+  lra.
+  Qed.
+  
+  
   Lemma pdomD x y:
     x \from dom p_norm -> y \from dom p_norm -> (x + y) \from dom p_norm.
   Proof.

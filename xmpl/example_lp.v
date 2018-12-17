@@ -1,7 +1,7 @@
 Require Import Reals Qreals Psatz Classical FunctionalExtensionality.
 From mathcomp Require Import all_ssreflect all_algebra.
 Require Import all_cs reals Q_reals mtrc mreals Rstruct.
-From Coquelicot Require Import Hierarchy.
+From Coquelicot Require Import Hierarchy Continuity.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -11,124 +11,21 @@ Local Open Scope ring_scope.
 Local Open Scope R_scope.
 Import GRing.Theory.
 
-Section lp.
-  Context (p: R).
-  Notation limit := (@limit R_met).
-
-  Definition Rpow x p := if eqr x 0 then 0 else Rpower x p.
-
-  Lemma Rpow_pos x q: 0 <= Rpow x q.
-  Proof.
-    rewrite /Rpow; case: ifP => [eq | ineq]; first exact/Rle_refl.
-    by rewrite/Rpower; apply/Rlt_le/exp_pos.
-  Qed.
-  
-  Definition p_norm_seq x n := \sum_(0 <= i < n) Rpow (Rabs (x i)) p.
-
-  Lemma pnrms_grw x: Un_growing (p_norm_seq x).
-  Proof.
-    move => n; have := Rpow_pos (Rabs (x n)) p.
-    by rewrite /p_norm_seq big_nat_recr/= /GRing.add/= //; lra.
-  Qed.
-
-  Lemma pnrms_pos x i: 0 <= p_norm_seq x i.
-  Proof.
-    elim: i => [ | i ih].
-    rewrite /p_norm_seq big_nil; exact/Rle_refl.
-    exact/Rle_trans/pnrms_grw.
-  Qed.
-    
-  Definition pow_p_norm := limit \o (F2MF p_norm_seq).
-  
-  Lemma ppnrm_lim x: pow_p_norm x ===
-     limit (fun n => \sum_(0 <= i < n) Rpow (Rabs (x i)) p).
-  Proof. by rewrite /pow_p_norm comp_F2MF. Qed.
-
-  Lemma ppnrm_sing : pow_p_norm \is_singlevalued.
-  Proof. exact/comp_sing/F2MF_sing/lim_sing. Qed.  
-
-  Lemma ppnrm_pos x r: pow_p_norm x r -> 0 <= r.
-  Proof.
-    by move => nrm; apply/lim_pos/pnrms_pos/x; rewrite -ppnrm_lim.
-  Qed.
-  
-  Lemma Rpow_inv x q: q <> 0 -> 0 <= x -> Rpow (Rpow x (/q)) q = x.
-  Proof.
-    move => neg ineq.
-    rewrite /Rpow.
-    case E: (eqr x 0).
-    move: E => /eqP E.
-    by case: ifP => /eqP neq.
-    move: E => /eqP E.
-    case: ifP => /eqP.
-    rewrite /Rpower => eq.
-    suff : 0 < 0 by lra.
-    rewrite -{2}eq.
-    apply/exp_pos.
-    move => ineq'.
-    rewrite /Rpower.
-    rewrite ln_exp -Rmult_assoc Rinv_r//.
-    rewrite Rmult_1_l exp_ln; lra.
-  Qed.
-
-  Definition p_norm:= make_mf (fun x r =>
-    (exists s, pow_p_norm x s) /\ forall s, pow_p_norm x s ->
-               (s = 0 -> r = 0) /\ (0 < s -> r = Rpow s (/p))).
-  
-  Lemma pnrm_pos x r: p <> 0 -> p_norm x r -> 0 <= r.
-  Proof.
-    move => neg [[s val] prp].
-    have []:= prp s val.
-    have : 0 <= s by apply/ppnrm_pos/val.
-    case => [ineq _ imp | ineq imp _]; last by rewrite imp //; apply/Rle_refl.
-    by rewrite imp//; apply/Rpow_pos.
-  Qed.
-  
-  Lemma dom_pnrm: p <> 0 -> dom p_norm === dom pow_p_norm.
-  Proof.
-    move => neq x.
-    split => [[r [[s val]]] | [r nrm]]; first by exists s.    
-    case: (ppnrm_pos nrm) => [ineq | eq].
-    - exists (Rpow r (/p)).
-      split => [ | s nrm']; first by exists r.
-      split => [eq | ineq']; last by rewrite (ppnrm_sing nrm nrm').
-      by rewrite (ppnrm_sing nrm nrm') in ineq; lra.
-    exists 0; split => [ | s nrm']; first by exists r.
-    by split => //; rewrite (ppnrm_sing nrm' nrm) -eq; lra.
-  Qed.
-         
-  Context (p_norm_f: (nat -> R) -> R).
-  Hypothesis p_norm_spec: p_norm_f \is_choice_for p_norm.
-
-  Notation "\| x \|_p" := (p_norm_f x) (format "'\|' x '\|_p'").
-  
+Section RN.
   Notation "x + y" := (ptwn_op Rplus x y).
 
   Definition RN_AbelianGroup_mixin: AbelianGroup.mixin_of (nat -> R).
   Proof.
-    exists (ptwn_op Rplus) (ptwn Ropp) (cnst 0).
-    exact/ptwC/Rplus_comm.
-    by apply/ptwA => x y z; rewrite Rplus_assoc.
-    move => x; apply/functional_extensionality => n.
-    by rewrite /ptw_op/cnst/= Rplus_0_r.
-    move => x; apply/functional_extensionality => n.
-    by rewrite /ptw/ptw_op/cnst /= Rplus_opp_r.
+    exists (ptwn_op Rplus) (ptwn Ropp) (cnst 0); first exact/ptwC/Rplus_comm.
+    - by apply/ptwA => x y z; rewrite Rplus_assoc.
+    - move => x; apply/functional_extensionality => n.
+      by rewrite /ptw_op/cnst/= Rplus_0_r.
+    - move => x; apply/functional_extensionality => n.
+      by rewrite /ptw/ptw_op/cnst /= Rplus_opp_r.
   Defined.
 
   Definition RN_AbelianGroup: AbelianGroup :=
     AbelianGroup.Pack (nat -> R) RN_AbelianGroup_mixin (nat -> R).
-
-  Definition scale (r: R) x (n: nat) := (r * (x n)).
-
-  Lemma scale_ptw r: scale r =1 ptw_op Rmult (cnst r).
-  Proof. done. Qed.
-
-  Lemma lim_scale x r r': limit x r -> limit (scale r' x) (r' * r).
-  Proof.
-    move => lim.
-    rewrite scale_ptw.
-    apply/limM/lim/lim_cnst.
-  Qed.
 
   Definition RN_ModuleSpace_mixin:
     ModuleSpace.mixin_of R_Ring RN_AbelianGroup.
@@ -143,34 +40,135 @@ Section lp.
     move => r r' x; apply/functional_extensionality => n.
     by rewrite /scale/plus/= Rmult_plus_distr_r.
   Qed.
+End RN.
 
-  Lemma Rpow_mult x y q: 0 <= x -> 0 <= y -> Rpow (x * y) q = Rpow x q * Rpow y q.
+Section lp.
+  Notation "x '+_pw' y" := (ptwn_op Rplus x y) (at level 40).
+  Context (p: R).
+  Notation limit := (@metric_limit R_met).
+
+  Definition Rabs_power r p := if eqr r 0 then 0 else Rpower (Rabs r) p.
+
+  Notation "`| r `|^ p" := (Rabs_power r p) (format "'`|' r '`|^' p", at level 35).
+
+  Lemma Rapw0 q: `|0`|^q = 0.
+  Proof. by rewrite /Rabs_power; case: ifP => /eqP //. Qed.
+
+  Lemma Rapw_p1 r: `|r`|^1 = Rabs r.
   Proof.
-    move => [ineq | <-]; last first.
-    - rewrite {2}/Rpow Rmult_0_l; case: ifP => /eqP eq//.
-      by rewrite {1}/Rpow; case: ifP => /eqP//; rewrite Rmult_0_l.
-    move => [ineq' | <-]; last first.
-    - rewrite {3}/Rpow Rmult_0_r; case: ifP => /eqP eq//.
-      by rewrite {1}/Rpow; case: ifP => /eqP//; rewrite Rmult_0_r.
-    rewrite /Rpow.
-    case: ifP => /eqP eq; first by case: (Rmult_integral _ _ eq); lra.
-    case: ifP => /eqP; try lra; case: ifP => /eqP; try lra.
-    by rewrite Rpower_mult_distr.
+  rewrite /Rabs_power.
+  case: ifP => [/eqP -> | /eqP neq]; first by rewrite Rabs_R0.
+  rewrite Rpower_1//; split_Rabs; lra.
+  Qed.
+  
+  Lemma Rapw_p0 r: `|r`|^0 = INR (~~ eqr r 0).
+  Proof.
+  rewrite /Rabs_power; case: ifP => // /eqP neq.
+  by rewrite Rpower_O //; split_Rabs; lra.
+  Qed.
+  
+  Lemma Rapw_pos r q: 0 <= `|r`|^q.
+  Proof.
+    rewrite /Rabs_power; case: ifP => [eq | ineq]; first exact/Rle_refl.
+    by rewrite/Rpower; apply/Rlt_le/exp_pos.
+  Qed.
+  
+  Definition p_norm_seq x n := \sum_(0 <= i < n) `|x i`|^p.
+
+  Lemma Rapw_Rabs r: `|Rabs r`|^p = `|r`|^p.
+  Proof.
+  rewrite /Rabs_power.
+  case: ifP => [/eqP eq | /eqP ineq]; first by have:= Rnorm0_eq0 eq; case: ifP => /eqP //.
+  case: ifP => [/eqP  eq| /eqP neq]; first by exfalso; apply ineq; rewrite eq Rabs_R0.
+  by rewrite Rabs_Rabsolu.
+  Qed.
+  
+  Lemma pnrms_grw x: Un_growing (p_norm_seq x).
+  Proof.
+    move => n; have := Rapw_pos (Rabs (x n)) p.
+    by rewrite /p_norm_seq big_nat_recr/= /GRing.add/= // Rapw_Rabs; lra.
+  Qed.
+
+  Lemma pnrms_pos x i: 0 <= p_norm_seq x i.
+  Proof.
+    elim: i => [ | i ih]; last exact/Rle_trans/pnrms_grw.
+    by rewrite /p_norm_seq big_nil; apply/Rle_refl.
+  Qed.
+    
+  Definition pow_p_norm := limit \o (F2MF p_norm_seq).
+  
+  Lemma ppnrm_lim x: pow_p_norm x ===
+     limit (fun n => \sum_(0 <= i < n) `|x i`|^p).
+  Proof. by rewrite /pow_p_norm comp_F2MF. Qed.
+
+  Lemma ppnrm_sing : pow_p_norm \is_singlevalued.
+  Proof. exact/comp_sing/F2MF_sing/lim_sing. Qed.  
+
+  Lemma ppnrm_pos x r: pow_p_norm x r -> 0 <= r.
+  Proof.
+    by move => nrm; apply/lim_pos/pnrms_pos/x; rewrite -ppnrm_lim.
+  Qed.
+  
+  Lemma Rapw_inv x q: q <> 0 -> `|`|x`|^(/q)`|^q = Rabs x.
+  Proof.
+  rewrite/Rabs_power => neg.
+  case E: (eqr x 0); move: E => /eqP.
+  - by case: ifP => [_ -> | /eqP] //; rewrite Rabs_R0.
+  case: ifP => /eqP.
+  - rewrite /Rpower => eq; suff : 0 < 0 by lra.
+    by rewrite -{2}eq; apply/exp_pos => ineq'.
+  rewrite /Rpower [X in q * ln (X)]Rabs_pos_eq; last exact/Rlt_le/exp_pos.
+  rewrite ln_exp -Rmult_assoc Rinv_r//Rmult_1_l => ineq ineq'.
+  by rewrite exp_ln; split_Rabs; lra.
+  Qed.
+
+  Definition p_norm:= make_mf (fun x r => 0 <= r /\ pow_p_norm x (`|r`|^p)).
+
+  Definition lp := dom p_norm.
+    
+  Lemma ppnrm_pnrm x r : p_norm x r <-> 0 <= r /\ pow_p_norm x (`|r`|^p).
+  Proof. done. Qed.
+  
+  Lemma pnrm_pos x r: p_norm x r -> 0 <= r.
+  Proof. by case. Qed.
+  
+  Lemma dom_pnrm: p <> 0 -> dom p_norm === dom pow_p_norm.
+  Proof.
+  move => neq x.
+  split => [[r [_ val]] | [r val]]; first by exists (`|r`|^p).
+  exists (`|r`|^(/p)); rewrite ppnrm_pnrm; split; first exact/Rapw_pos.
+  rewrite Rapw_inv // Rabs_pos_eq //.
+  exact/ppnrm_pos/val.
+  Qed.
+         
+  Context (p_norm_f: (nat -> R) -> R).
+  Hypothesis p_norm_spec: p_norm_f \is_choice_for p_norm.
+
+  Notation "\| x \|_p" := (p_norm_f x) (format "'\|' x '\|_p'").
+  
+  Lemma Rapw_mult x y q: `|x * y`|^q = `|x`|^q * `|y`|^q.
+  Proof.
+  rewrite /Rabs_power Rabs_mult.
+  case: ifP => [/eqP /Rmult_integral [] ->| /eqP /Rmult_neq_0_reg [ineq ineq']].
+    + by case: ifP => /eqP //; rewrite Rmult_0_l.
+  - case: ifP; first by rewrite Rmult_0_l.
+    by case: ifP => /eqP //; rewrite Rmult_0_r.
+  case: ifP => /eqP // _; case: ifP => /eqP //_.
+  by rewrite -Rpower_mult_distr //; split_Rabs; lra.
   Qed.
     
   Lemma pnrms_scale x r': 
-    p_norm_seq (scale r' x) = scale (Rpow (Rabs r') p) (p_norm_seq x).
+    p_norm_seq (scale r' x) = scale (`|r'`|^p) (p_norm_seq x).
   Proof.
     apply/functional_extensionality => n.
     elim: n => [ | n].
     - by rewrite /scale /p_norm_seq !big_nil Rmult_0_r.
     rewrite /scale/p_norm_seq !big_nat_recr/= // => ->.
-    rewrite Rmult_plus_distr_l.
-    by rewrite Rabs_mult Rpow_mult //; apply/Rabs_pos.
+    by rewrite Rmult_plus_distr_l Rapw_mult //; apply/Rabs_pos.
   Qed.
 
   Lemma ppnrm_scale x r r':
-    pow_p_norm x r -> pow_p_norm (scale r' x) (Rpow (Rabs r') p * r).
+    pow_p_norm x r -> pow_p_norm (scale r' x) (`|r'`|^p * r).
   Proof.
     move => nrm; rewrite ppnrm_lim.
     have := pnrms_scale x r'.
@@ -179,83 +177,101 @@ Section lp.
     by rewrite -ppnrm_lim.
   Qed.
 
-  Lemma Rpow_eq0 r q: Rpow r q = 0 ->  r = 0.
+  Lemma Rapw_eq0 r q: `|r`|^q = 0 ->  r = 0.
   Proof.
-    rewrite /Rpow; case: ifP =>/eqP // _.
-    rewrite /Rpower; have := exp_pos (q * ln r); lra.
+    rewrite /Rabs_power; case: ifP =>/eqP // _.
+    by rewrite /Rpower; have := exp_pos (q * ln (Rabs r)); lra.
   Qed.
-  
+
+  Lemma Rapw_inj r r' q: q <> 0 -> `|r`|^q = `|r' `|^q -> Rabs r = Rabs r'.
+  Proof.
+  rewrite {2}/Rabs_power => ineq.
+  case: ifP => [/eqP -> zr | neq]; first by rewrite (@Rapw_eq0 r q).
+  rewrite {1}/Rabs_power; case: ifP => [/eqP -> zr| /eqP neq']; last move: neq => /eqP neq.
+  - by rewrite (@Rapw_eq0 r' q) // /Rabs_power neq.
+  rewrite /Rpower => /exp_inv/Rmult_eq_reg_l [] // /ln_inv -> //; split_Rabs; lra.
+  Qed.
+
   Lemma pnrm_hom x r r': 
     p <> 0 -> p_norm x r -> p_norm (scale r' x) ((Rabs r') * r).
   Proof.
-    move => neq [[s nrm] prp].
-    case: (ppnrm_pos nrm) => [ineq | eq].
-    - split => [ | s' nrm'].
-      + by exists (Rpow (Rabs r') p * s); apply ppnrm_scale.
-      have nrm'':= ppnrm_scale r' nrm.
-      rewrite (ppnrm_sing nrm' nrm'').
-      split => [eq | ineq'].
-      + case: (Rmult_integral _ _ eq) => eq'; try lra.
-        by have -> := Rpow_eq0 eq'; rewrite Rmult_0_l.
-      rewrite Rpow_mult; try lra; last exact/Rpow_pos.
-      rewrite -{1}(Rinv_involutive p)//.
-      rewrite Rpow_inv; try exact/Rabs_pos; try by apply/Rinv_neq_0_compat.
-      by f_equal; have [_ ->]:= prp s nrm.
-    split => [ | s' nrm'].
-    - by exists (Rpow (Rabs r') p * s); apply/ppnrm_scale.
-    split => [eq' | ]; first by have [->]:= prp s nrm; rewrite // Rmult_0_r.
-    rewrite {2}(ppnrm_sing nrm' (ppnrm_scale r' nrm)).
-    rewrite Rpow_mult; try lra; last exact/Rpow_pos.
-    rewrite -{1}(Rinv_involutive p) // Rpow_inv; last exact/Rabs_pos.
-    - move => ineq; f_equal; have [-> // _]:= prp s nrm.
-      by rewrite -eq /Rpow; case: ifP => /eqP //.
-    by apply/Rinv_neq_0_compat.
+  move => neq [ineq nrm].
+  split; first by apply/Rmult_le_pos =>//; apply/Rabs_pos.
+  by rewrite Rapw_mult Rapw_Rabs; apply/ppnrm_scale.
   Qed.
     
-  Lemma grwD x y: Un_growing x -> Un_growing y -> Un_growing (x + y).
-  Proof.
-    move => grw grw' n; exact/Rplus_le_compat/grw'/grw.
-  Qed.
+  Lemma grwD x y: Un_growing x -> Un_growing y -> Un_growing (x +_pw y).
+  Proof. by move => grw grw' n; apply/Rplus_le_compat/grw'/grw. Qed.
   
   Notation "x - y" := (ptwn_op Rminus x y).
 
-  Lemma lim_inc xn yn x y:
-    (forall i, xn i <= yn i) -> limit xn x -> limit yn y -> x <= y.
+  Lemma pnrms_leq x r i: pow_p_norm x r -> p_norm_seq x i <= r.
+  Proof. by move => nrm; apply/growing_ineq/Uncv_lim/ppnrm_lim/nrm/pnrms_grw. Qed.
+
+  Lemma ppnrm_leq x r i: pow_p_norm x r -> `|x i`|^p <= r.
   Proof.
-    move => prp lim lim'.
-    have ineq: forall i, 0 <= yn i - xn i by move => i; have:= prp i; lra.
-    suff: 0 <= y - x by lra.
-    exact/lim_pos/ineq/limB.
+  move => nrm; apply/Rle_trans/pnrms_leq/nrm/i.+1.
+  have:= pnrms_pos x i; have:= Rapw_pos (x i) p.
+  by rewrite/p_norm_seq big_nat_recr//= /GRing.add/=; lra.
   Qed.
 
-  Lemma pnrms_leq x r i:
-    pow_p_norm x r -> p_norm_seq x i <= r.
+  Lemma ln_leq0 r: 1 <= r -> 0 <= ln r.
   Proof.
-    move => nrm; exact/growing_ineq/Uncv_lim/ppnrm_lim/nrm/pnrms_grw.
+  case => [ineq | <-]; rewrite -ln_1; last exact/Rle_refl.
+  by apply/Rlt_le/ln_increasing; lra.
   Qed.
 
-  Definition Nrm2Metr (N: NormedModule R_AbsRing): Metric_Space.
-  Proof.
-    exists N (fun x y => norm (minus x y)).
-    by move => x y; apply/Rle_ge/norm_ge_0.
-    by move => x y; rewrite -norm_opp opp_minus.
-    Search _ NormedModule.
-    move => x y; split => [eq | <-].
+  Lemma Rapw_inc x y: Rabs x < Rabs y ->  `|x`|^p <= `|y`|^p.
 
-    have:= norm_eq_zero _ eq.
-    
-    admit.
-    by rewrite minus_eq_zero norm_zero.
-    move => x y z.
-    suff ->: minus x y = plus (minus x z) (minus z y) by apply/norm_triangle.
-    rewrite {2 3}/minus.
-    by rewrite plus_assoc -(plus_assoc x) plus_opp_l plus_zero_r.
+  Lemma Rapw_lt_inv x y: 0 < p -> `|x`|^p < `|y`|^p -> Rabs x < Rabs y.
+  Proof.
+  rewrite /Rabs_power => pg0.
+  case: ifP => [/eqP -> | /eqP neq].
+  - by case: ifP => [/eqP -> | /eqP]; split_Rabs; lra.
+  case: ifP => [ | /eqP neq' /exp_lt_inv ineq].
+  - by rewrite /Rpower; first by have := exp_pos (p * ln (Rabs x)); lra.
+  apply/ln_lt_inv; try by split_Rabs; lra.
+  exact/Rmult_lt_reg_l/ineq.
+  Qed.
+                                         
+  Lemma Rapw_le_inv x y: 0 < p -> `|x`|^p <= `|y`|^p -> Rabs x <= Rabs y.
+  Proof.
+  move => pg0 [ineq | eq]; first by apply/Rlt_le/Rapw_lt_inv.
+  by rewrite (Rapw_inj _ eq); lra.
+  Qed.
+  
+  Lemma pnrm_leq x r i: 0 < p -> p_norm x r -> Rabs (x i) <= r.
+  Proof.
+  move => pg0 nrm.
+  rewrite -(Rabs_pos_eq r); last exact/pnrm_pos/nrm.
+  exact/(Rapw_le_inv pg0)/ppnrm_leq/nrm.2.
+  Qed.
+
+  Lemma Rpower_ineq x y p q:
+    1 <= p -> 1 <= q -> 0 < x -> 0 < y -> Rpower x (/p) * Rpower y (/q) <= x/p + y/q.
+  Lemma Rapw_conv x y: 1 < p -> `|x/2 + y/2`|^p <= 1/2 * `|x + y`|^p.
+  Proof.
+  Admitted.
+  
+  Lemma RapwD x y: 1 <= p ->  `|x + y`|^p <= Rpower 2 (p-1) * (`|x`|^p + `|y`|^p).
+  Proof.
+  case => [pg1 | <-]; last first.
+  - rewrite !Rapw_p1 /Rminus Rplus_opp_r Rpower_O; try lra.
+    rewrite Rmult_1_l; exact/Rabs_triang.
+  suff ineq: `|x + y`|^p <= `|2 * x`|^p / 2 + `|2 * y`|^p / 2.
+  apply/Rle_trans; first exact/ineq.
+  rewrite !Rapw_mult /Rdiv.
+  rewrite !Rmult_assoc !(Rmult_comm _ (/2)) -!Rmult_assoc.
+  rewrite -Rmult_plus_distr_l.
+  apply/Rmult_le_compat_r; first exact/Rplus_le_le_0_compat/Rapw_pos/Rapw_pos.
+  rewrite /Rabs_power; case: ifP => /eqP neq; try lra.
+  rewrite Rabs_pos_eq; try lra.
+  by rewrite /Rminus Rpower_plus Rpower_Ropp Rpower_1; try lra; apply/Rle_refl.
   Admitted.
 
-    
   Lemma pnrms_bnd x y:
     has_ub (p_norm_seq x) -> has_ub (p_norm_seq y) ->
-    has_ub (p_norm_seq (x + y)).
+    has_ub (p_norm_seq (x +_pw y)).
   Proof.
     move => [ub iub] [ub' iub'].    
     

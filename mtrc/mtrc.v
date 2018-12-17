@@ -53,9 +53,18 @@ Section metric_spaces.
     by exists 0%nat; rewrite /cnst (dist_refl x x).2// => m ineq; lra.
   Qed.
   
-  Definition limit_tpmn := make_mf (fun xn x =>
-    forall n, exists N, forall m, (N <= m)%nat -> @dist M x (xn m) <= /2 ^ n).
-
+  Lemma lim_tpmn xn x: metric_limit xn x <->
+    (forall n, exists N, forall m, (N <= m)%nat -> dist x (xn m) <= /2 ^ n).
+  Proof.
+  split => [lim n | lim eps eg0].
+  - have [ | N prp]:= lim (/2 ^ n); first by apply/Rinv_0_lt_compat/pow_lt; lra.
+    by exists N.
+  have [n ineq]:= accf_2pown eg0.
+  have [N prp]:= lim n.
+  exists N => m Nlm.
+  exact/Rlt_le/Rle_lt_trans/ineq.2/prp.
+  Qed.
+  
   Lemma cond_eq_tpmn x y:
     (forall n, @dist M x y <= / 2 ^ n) -> x = y.
   Proof.
@@ -68,18 +77,7 @@ Section metric_spaces.
     exact/prp.
     exact/Rge_le/dist_pos.
   Qed.
-
-  Lemma lim2_lim: limit_tpmn =~= metric_limit.
-  Proof.
-    move => xn x; split => [lim eps eg0 | lim n].
-    - have [n ineq]:= accf_2pown eg0.
-      have [N prp]:= lim n.
-      exists N => m Nlm.
-      exact/Rlt_le/Rle_lt_trans/ineq.2/prp.
-    have [ | N prp]:= lim (/2 ^ n); first by apply/Rinv_0_lt_compat/pow_lt; lra.
-    by exists N.
-  Qed.
-            
+           
   Definition dense_subset (A: subset M):=
     forall x eps, eps > 0 -> exists y, y \from A /\ dist x y <= eps.
 
@@ -159,12 +157,11 @@ Section efficient_convergence.
       try apply/pow_lt; try apply/Rle_pow/leP => //; try lra.
   Qed.
     
-  Lemma cchy_tpmn xn:
+  Lemma cchy_tpmn xn: Cauchy_sequence xn <->
     (forall k, exists N, forall n m,
-            (N <= n <= m)%nat -> dist (xn n) (xn m) <= /2^k) <->
-    Cauchy_sequence xn.
+            (N <= n <= m)%nat -> dist (xn n) (xn m) <= /2^k).
   Proof.
-    split => [ass eps epsg0 | cchy k]; last first.
+    split => [cchy k | ass eps epsg0].
     - have [ | N prp]:= cchy (/2 ^ k).
       + by apply/Rinv_0_lt_compat/pow_lt; lra.
       exists N => n m /andP [ineq ineq'].
@@ -304,7 +301,7 @@ Section metric_representation.
   Lemma lim_cs_lim : metric_limit =~= @cs_limit cs_M.
   Proof.
     move => xn x.
-    split => [/lim2_lim/choice [mu prp] | [phin [phi [phinxn [phinx lim]]]]].
+    split => [/lim_tpmn/choice [mu prp] | [phin [phi [phinxn [phinx lim]]]]].
     - have [phin phinxn]:= get_description (xn: cs_M\^w).
       have [phi phinx]:= get_description (x: cs_M).
       exists (fun mn => if (mu mn.2.+1 <= mn.1)%nat then phi mn.2.+1 else phin mn).
@@ -324,7 +321,7 @@ Section metric_representation.
       rewrite/uncurry/=; case: ifP => ineq' //.
       have: (mu n.+1 <= m)%nat by apply/leq_trans/ineq/leq_maxr.
       by rewrite ineq'.
-    apply/lim2_lim => n.
+    apply/lim_tpmn => n.
     have [N prp]:= lim (iseg (@id nat) n.+2).
     exists N => m ineq.
     have /coin_lstn prp':= prp m ineq.

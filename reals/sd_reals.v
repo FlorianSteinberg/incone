@@ -43,7 +43,6 @@ end.
 End signed_digits.
 
 Section SDs.
-Notation lim_eff:= (efficient_limit R_met).
 Fixpoint SDs2Zn (sds: nat -> SD) n := match n with
 	| 0%nat => 0%Z
 	| m.+1 => (2 * SDs2Zn sds m + SD2Z (sds m))%Z
@@ -126,20 +125,18 @@ rewrite !SDs2RSn; specialize (ih m ineq (fun i => sds i.+1)).
 have lt1:= pow_lt 2n; have lt2:= pow_lt 2 m; rewrite /= !Rinv_mult_distr; split_Rabs; try lra.
 Qed.
 
-Lemma fchy_SDs2Rn sds : fast_Cauchy_sequence R_met (SDs2Rn sds).
+Lemma fchy_SDs2Rn sds : fast_Cauchy_sequence (SDs2Rn sds).
 Proof.
 move => n m; have lt: 0 < /2 ^ m by apply/Rinv_0_lt_compat/pow_lt; lra.
 have lt': 0 < /2 ^ n by apply/Rinv_0_lt_compat/pow_lt; lra.  
-case/orP: (leq_total n m) => ineq; first rewrite dist_sym;
+case/orP: (leq_total n m) => ineq; first rewrite dst_sym;
   by apply/Rle_trans; first apply/Rabs_SDs2Rnm => //; lra.
 Qed.
 
-Lemma cchy_SDs2Rn sds :	Cauchy_sequence R_met (SDs2Rn sds).
-Proof. exact/cchy_fast_cchy/fchy_SDs2Rn. Qed.
+Lemma cchy_SDs2Rn sds :	Cauchy_sequence (SDs2Rn sds).
+Proof. exact/fchy_cchy/fchy_SDs2Rn. Qed.
 
-Notation limit:= (@metric_limit R_met).
-
-Definition SDs2R := limit \o (F2MF SDs2Rn).
+Definition SDs2R := metric_limit \o (F2MF SDs2Rn).
 
 Lemma SDs2R_tot: SDs2R \is_total.
 Proof.
@@ -151,9 +148,11 @@ Qed.
 Lemma SDs2R_sing: SDs2R \is_singlevalued.
 Proof. by apply /comp_sing; [exact /lim_sing | exact /F2MF_sing]. Qed.
 
+Notation lim_eff:= (@efficient_limit metric_R).
+
 Lemma SDs2R_lim_eff: SDs2R =~= lim_eff \o (F2MF SDs2Rn).
 Proof.
-rewrite /SDs2R lim_eff_lim !comp_F2MF => sds x.
+rewrite /SDs2R lim_eff_spec !comp_F2MF => sds x.
 split => [limx | [cchy limx]]//.
 by split; first by have := fchy_SDs2Rn sds.
 Qed.
@@ -164,7 +163,7 @@ Proof. have:= SDs2R_lim_eff; rewrite comp_F2MF => prp; apply prp. Qed.
 Lemma SDs2R_UI u x: SDs2R u x -> -1 <= x <= 1.
 Proof.
 move => /SDs2R_eff val; move: (val 0%nat) => /=.
-rewrite /SDs2Rn big_ord0/= /R_dist Rminus_0_r; split_Rabs; lra.
+rewrite /SDs2Rn big_ord0 /distance/= Rminus_0_r; split_Rabs; lra.
 Qed.
 End SDs.
 

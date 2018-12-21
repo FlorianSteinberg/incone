@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat eqtype.
-Require Import all_cs reals mtrc Qmtrc.
+Require Import all_cs reals mtrc mreals Qmtrc.
 Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
 
 Set Implicit Arguments.
@@ -11,7 +11,7 @@ Local Open Scope R_scope.
 Section reals_via_rational_approximations.
   Coercion Q2R: Q >-> R.
   Definition rep_RQ : (Q -> Q) ->> R := make_mf (
-    fun phi x => forall eps, 0 < Q2R eps-> Rabs(x-Q2R(phi eps)) <= Q2R eps).
+    fun phi x => forall eps, 0 < Q2R eps-> Rabs(x - Q2R(phi eps)) <= Q2R eps).
 
   Lemma rep_RQ_sur: rep_RQ \is_cototal.
   Proof.
@@ -218,8 +218,8 @@ depends on the size of the inputs *)
   End multiplication.
 
   Section limit.
-    Notation lim:= (@metric_limit R_met).
-    Notation lim_eff:= (@efficient_limit R_met).
+    Notation lim:= (@metric_limit metric_R).
+    Notation lim_eff:= (@efficient_limit metric_R).
 
     Lemma cnst_dscr q: (cnst q) \is_description_of (Q2R q: RQ).
     Proof. rewrite /cnst => eps; split_Rabs; lra. Qed.
@@ -232,13 +232,13 @@ depends on the size of the inputs *)
     Proof. move => n eps ineq /=; split_Rabs; lra. Qed.
 
     Lemma lim_cnst x: lim (cnst x) x.
-    Proof. exists 0%nat; rewrite /cnst/=/R_dist; split_Rabs; lra. Qed.
+    Proof. exists 0%nat; rewrite /cnst/distance/=/R_dist; split_Rabs; lra. Qed.
 
     Lemma lim_not_cont: ~(lim: RQ\^w ->> RQ) \has_continuous_realizer.
     Proof.
       move => [/= F [/= rlzr /cntop_spec cont]].
       pose xn := cnst (Q2R 0): RQ\^w.
-      have limxn0: lim xn (Q2R 0) by exists 0%nat; rewrite /xn/cnst/=/R_dist; split_Rabs; lra.
+      have limxn0: lim xn (Q2R 0) by exists 0%nat; rewrite /xn/cnst/distance/=/R_dist; split_Rabs; lra.
       have qnfdF: cnst 0%Q \from dom F.
       - by apply /(rlzr_dom rlzr); [exact/cnst_sqnc_dscr | exists (Q2R 0)].
       have [Lf Lmod]:= cont (cnst 0%Q) qnfdF.
@@ -253,7 +253,7 @@ depends on the size of the inputs *)
       have rnyn: rn \is_description_of yn by apply/Q_sqnc_dscr.
       have limyn3: lim yn 3.
       - exists (S m) => n /leP ineq; rewrite /yn.
-        by case: ifP => [/leP ineq' | ]; [lia | rewrite /=/R_dist; split_Rabs; lra].
+        by case: ifP => [/leP ineq' | ]; [lia | rewrite /distance/=; split_Rabs; lra].
       have [phi Frnphi]: rn \from dom F by apply /(rlzr_dom rlzr); first exact/rnyn; exists 3.
       have coin: (cnst 0%Q) \and rn \coincide_on L.
       - apply /coin_lstn => [[n eps] listin].
@@ -265,10 +265,10 @@ depends on the size of the inputs *)
         exact/coin_ref.
       have := Qeq_eqR (psi 1%Q) (phi 1%Q) eq.
       have psin0: psi \is_description_of (0: RQ).
-      - apply /(rlzr_val_sing _ rlzr)/Fqnpsi/lim_cnst; first exact/(@lim_sing R_met).
+      - apply /(rlzr_val_sing _ rlzr)/Fqnpsi/lim_cnst; first exact/lim_sing.
         by rewrite /cnst/=/Q2R /=; split_Rabs; lra.
       have phin3: phi \is_description_of (3: RQ).
-      - by apply/(rlzr_val_sing _ rlzr)/Frnphi/limyn3; first exact/(@lim_sing R_met).
+      - by apply/(rlzr_val_sing _ rlzr)/Frnphi/limyn3; first exact/lim_sing.
       have l01: 0 < Q2R 1 by rewrite /Q2R/=; lra.
       have:= psin0 1%Q l01; have:= phin3 1%Q l01.
       by rewrite {2 4}/Q2R/=; split_Rabs; lra.
@@ -345,7 +345,7 @@ Section metric_Qreals.
   Context (r: nat -> Q).
   Hypothesis r_dense: dense_sequence (Q2R \o_f r: nat -> R_met).
   
-  Definition Rm := cs_M r_dense.
+  Definition Rm := metric_cs r_dense.
   Definition Rm2RQ_rlzrf phi eps := r (phi (Pos_size (Qden eps))).
 
   Lemma Rm2RQ_rlzr_cntop: continuous_operator_f Rm2RQ_rlzrf.

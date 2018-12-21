@@ -7,22 +7,98 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Local Open Scope R_scope.
+Module MetricSpace.
+  Record mixin_of (M: Type) :=
+    Mixin {
+        d : M -> M -> R;
+        d_pos: forall x y: M, 0 <= d x y;
+        d_sym: forall x y: M, d x y = d y x;
+        dxx: forall x: M, d x x = 0;
+        d_eq: forall x y: M, d x y = 0 -> x = y;
+        d_trngl: forall x y z: M, d x y <= d x z + d z y;
+        }.
+  Notation class_of := mixin_of (only parsing).
+  
+  Section ClassDef.
+    Structure type := Pack {sort; _ : class_of sort; _: Type}.
+    Local Coercion sort: type >-> Sortclass.
+    Definition class (cT: type) := let: Pack _ c _ := cT return class_of cT in c.
+  End ClassDef.
 
+  Module Exports.
+    Coercion sort: type >-> Sortclass.
+    Bind Scope metric_scope with sort.
+    Notation MetricSpace := MetricSpace.type.
+  End Exports.
+
+End MetricSpace.
+
+Export MetricSpace.Exports.
+
+Delimit Scope metric_scope with met.
+Local Open Scope metric_scope.
+
+Coercion Base: Metric_Space >-> Sortclass.
+Definition distance M := MetricSpace.d (MetricSpace.class M).
+Arguments distance {M}.
+Notation d := distance.
 Notation subset := mf_subset.type.
-Section metric_spaces.
-  Context (M: Metric_Space).
-  Arguments dist {m}.
-  Arguments dist_tri {m} {x} {y}.
-  Arguments dist_pos {m}.
-  Arguments dist_refl {m}.
-  Arguments dist_sym {m}.
-  Coercion Base: Metric_Space >-> Sortclass.
 
+Section MetricSpaces.
+  Definition make_MetricSpace M (d: M -> M -> R)
+           (d_pos: forall x y: M, 0 <= d x y)
+           (d_sym: forall x y: M, d x y = d y x)
+           (dxx: forall x: M, d x x = 0)
+           (d_eq: forall x y: M, d x y = 0 -> x = y)
+           (d_trngl: forall x y z: M, d x y <= d x z + d z y): MetricSpace.
+  Proof.
+    apply/MetricSpace.Pack/M.
+    exists d.
+    exact/d_pos.
+    exact/d_sym.
+    exact/dxx.
+    exact/d_eq.
+    exact/d_trngl.
+  Defined.
+
+  Context (M: MetricSpace).
+  Implicit Types (x y z: M) (xn yn: nat -> M).
+
+  Lemma dst_pos x y: 0 <= d x y.
+  Proof. exact/MetricSpace.d_pos. Qed.
+
+  Lemma dst_sym x y: d x y = d y x.
+  Proof. exact/MetricSpace.d_sym. Qed.
+
+  Lemma dst_eq x y: d x y = 0 -> x = y.
+  Proof. exact/MetricSpace.d_eq. Qed.
+
+  Lemma dst_trngl x y z: d x y <= d x z + d z y.
+  Proof. exact/MetricSpace.d_trngl. Qed.
+  Arguments dst_trngl {x} {y}.
+  
+  Lemma dstxx x: d x x = 0.
+  Proof. exact/MetricSpace.dxx. Qed.
+    
+  Lemma dst_le x y z r r' q: d x z <= r -> d z y <= r' -> r + r' <= q -> d x y <= q.
+  Proof.
+    move => ineq ienq' add.
+    by apply/Rle_trans/add/Rle_trans/Rplus_le_compat; first exact/dst_trngl.
+  Qed.
+
+  Lemma dst_lt x y z r r' q: d x z <= r -> d z y <= r' -> r + r' < q -> d x y < q.
+  Proof.
+    move => ineq ienq' add.
+    by apply/Rle_lt_trans/add/Rle_trans/Rplus_le_compat; first exact/dst_trngl.
+  Qed.
+ 
   Definition metric_limit := make_mf (fun xn x =>
     forall eps, 0 < eps -> exists N, forall m,
-          (N <= m)%nat -> @dist M x (xn m) <= eps).
+          (N <= m)%nat -> d x (xn m) <= eps).
 
-  Global Instance limit_prpr:
+  Notation limit := metric_limit.
+  
+  Global Instance lim_prpr:
     Proper (@eqfun M nat ==> @set_equiv M) metric_limit.
   Proof.
     move => xn yn eq x.
@@ -31,30 +107,27 @@ Section metric_spaces.
     by rewrite (eq m); apply/prp.
   Qed.
     
-  Lemma lim_sing: metric_limit \is_singlevalued.
+  Lemma lim_sing: limit \is_singlevalued.
   Proof.
     move => xn x x' limxnx limxnx'.
-    apply/dist_refl/cond_eq => eps epsg0.
-    rewrite Rminus_0_r Rabs_pos_eq; last exact/Rge_le/dist_pos.
+    apply/dst_eq/cond_eq => eps epsg0.
+    rewrite Rminus_0_r Rabs_pos_eq; last exact/dst_pos.
     have [ | N Nprp]:= limxnx (eps/3); try lra.
     have [ | N' N'prp]:= limxnx' (eps/3); try lra.
     pose k:= maxn N N'.
-    apply/Rle_lt_trans; first exact/(dist_tri (xn k)).
-    have ->: eps = eps/2 + eps/2 by lra.
-    apply/Rplus_lt_compat; apply/Rle_lt_trans.
-    - + * by apply/Nprp; rewrite /k leq_maxl.
-        lra.
-      by rewrite dist_sym; apply /N'prp; rewrite/k leq_maxr.
+    apply/dst_lt; first exact/Nprp/leq_maxl/N'.
+    - rewrite dst_sym; apply/N'prp/leq_maxr.
     lra.
   Qed.
 
-  Lemma lim_cnst x: metric_limit (cnst x) x.
+  Lemma lim_cnst x: limit (cnst x) x.
   Proof.
-    by exists 0%nat; rewrite /cnst (dist_refl x x).2// => m ineq; lra.
+    exists 0%nat; rewrite/cnst dstxx; intros.
+    lra.
   Qed.
   
   Lemma lim_tpmn xn x: metric_limit xn x <->
-    (forall n, exists N, forall m, (N <= m)%nat -> dist x (xn m) <= /2 ^ n).
+    (forall n, exists N, forall m, (N <= m)%nat -> d x (xn m) <= /2 ^ n).
   Proof.
   split => [lim n | lim eps eg0].
   - have [ | N prp]:= lim (/2 ^ n); first by apply/Rinv_0_lt_compat/pow_lt; lra.
@@ -66,20 +139,16 @@ Section metric_spaces.
   Qed.
   
   Lemma cond_eq_tpmn x y:
-    (forall n, @dist M x y <= / 2 ^ n) -> x = y.
+    (forall n, d x y <= / 2 ^ n) -> x = y.
   Proof.
-    move => prp.
-    apply/dist_refl.
-    symmetry; apply/cond_eq_f.
-    - exact/accf_2pown.
-    move => n/= ineq.
-    rewrite /R_dist Rminus_0_l Rabs_Ropp Rabs_pos_eq.
-    exact/prp.
-    exact/Rge_le/dist_pos.
+    move => prp; apply/dst_eq; symmetry.
+    apply/cond_eq_f => [ | n ineq]; first exact/accf_2pown.
+    rewrite /R_dist Rminus_0_l Rabs_Ropp Rabs_pos_eq; first exact/prp.
+    exact/dst_pos.
   Qed.
            
   Definition dense_subset (A: subset M):=
-    forall x eps, eps > 0 -> exists y, y \from A /\ dist x y <= eps.
+    forall x eps, eps > 0 -> exists y, y \from A /\ d x y <= eps.
 
   Global Instance dns_prpr: Proper (@set_equiv M ==> iff) dense_subset.
   Proof.
@@ -89,7 +158,7 @@ Section metric_spaces.
   Qed.
     
   Lemma dense_tpmn (A: subset M):
-    dense_subset A <-> forall x n, exists y, y \from A /\ dist x y <= /2^n.
+    dense_subset A <-> forall x n, exists y, y \from A /\ d x y <= /2^n.
   Proof.
     split => [dns x n | dns x eps eg0]; first by apply/dns/Rlt_gt/Rinv_0_lt_compat/pow_lt; lra.
     have [n ineq]:= accf_2pown eg0.
@@ -99,7 +168,7 @@ Section metric_spaces.
   Qed.
 
   Definition dense_sequence (r: nat -> M) :=
-    forall x eps, 0 < eps -> exists n, dist x (r n) <= eps.
+    forall x eps, 0 < eps -> exists n, d x (r n) <= eps.
 
   Lemma dseq_dns (r: nat -> M):
     dense_sequence r <-> dense_subset (codom (F2MF r)). 
@@ -110,7 +179,7 @@ Section metric_spaces.
   Qed.
 
   Lemma dseq_tpmn (r: nat -> M):
-    dense_sequence r <-> forall x n, exists m, dist x (r m) <= /2^n.
+    dense_sequence r <-> forall x n, exists m, d x (r m) <= /2^n.
   Proof.
     split => [dns x n| dns x eps eg0]; first apply/dns.
     - by apply/Rinv_0_lt_compat/pow_lt; lra.
@@ -118,37 +187,41 @@ Section metric_spaces.
     have [m prp]:= dns x n.
     exists m.
     exact/Rlt_le/Rle_lt_trans/ineq.2/prp.
+  Qed.  
+End MetricSpaces.
+Arguments metric_limit {M}.
+Arguments dst_trngl {M} {x} {y}.
+Notation limit := metric_limit.
+
+Section Cauchy_sequences.
+  Context (M: MetricSpace).
+  Implicit Types (x y z: M) (xn yn: nat -> M).
+  
+  Definition Cauchy_sequence := make_subset (fun xn =>
+    forall eps, 0 < eps -> exists N, forall n m,
+          (N <= n)%nat -> (N <= m)%nat -> d (xn n) (xn m) <= eps).
+  
+  Lemma lim_cchy: dom metric_limit \is_subset_of Cauchy_sequence.
+  Proof.
+    move => xn [x lim] eps eg0.
+    have [ | N prp]:= lim (eps/2); first by lra.
+    exists N => n m ineq ineq'.
+    apply/dst_le;first by rewrite dst_sym; apply/prp.
+    - exact/prp.
+    lra.
   Qed.
   
-End metric_spaces.
-Arguments dist {m}.
-Arguments dist_tri {m} {x} {y}.
-Arguments dist_pos {m}.
-Arguments dist_refl {m}.
-Arguments dist_sym {m}.
-Arguments metric_limit {M}.
-
-Section efficient_convergence.
-  Context (M: Metric_Space).
-
-  Definition Cauchy_sequence := make_subset (fun (xn: nat -> M) =>
-    forall eps, 0 < eps -> exists N, forall n m,
-          (N <= n)%nat -> (N <= m)%nat -> dist (xn n) (xn m) <= eps).
-
   Definition complete := Cauchy_sequence \is_subset_of dom metric_limit.
   
   Definition fast_Cauchy_sequence := make_subset (fun (xn: nat -> M) =>
-    forall n m, dist (xn n) (xn m) <= /2^n + /2^m).
+    forall n m, d (xn n) (xn m) <= /2^n + /2^m).
 
   Lemma tpmn_half n: / 2 ^ n = / 2 ^ n.+1 + / 2 ^ n.+1.
-  Proof.
-    by have pos:= pow_lt 2 n; rewrite /= Rinv_mult_distr; lra.
-  Qed.
+  Proof. by have pos:= pow_lt 2 n; rewrite /= Rinv_mult_distr; lra. Qed.
   
-  Lemma cchy_fast_cchy xn:
-    fast_Cauchy_sequence xn -> Cauchy_sequence xn.
+  Lemma fchy_cchy: fast_Cauchy_sequence \is_subset_of Cauchy_sequence.
   Proof.
-    move => cchy eps epsg0.
+    move => xn cchy eps epsg0.
     have [N [_ ineq]]:= accf_2pown epsg0.
     exists N.+1 => n m nineq mineq.
     apply/Rlt_le/Rle_lt_trans; last exact/ineq.
@@ -159,7 +232,7 @@ Section efficient_convergence.
     
   Lemma cchy_tpmn xn: Cauchy_sequence xn <->
     (forall k, exists N, forall n m,
-            (N <= n <= m)%nat -> dist (xn n) (xn m) <= /2^k).
+            (N <= n <= m)%nat -> d (xn n) (xn m) <= /2^k).
   Proof.
     split => [cchy k | ass eps epsg0].
     - have [ | N prp]:= cchy (/2 ^ k).
@@ -171,10 +244,31 @@ Section efficient_convergence.
     exists N' => n m nineq mineq.
     case/orP: (leq_total n m) => ineq'.
     - by apply/Rle_trans; first exact/N'prp/andP.
-    by rewrite dist_sym; apply/Rle_trans; first apply/N'prp/andP.
+    by rewrite dst_sym; apply/Rle_trans; first apply/N'prp/andP.
   Qed.
 
-  Lemma cchy_fast_sseq xn:
+  Definition eventually_big mu:= forall (n: nat), exists N, forall m,
+          (N <= m)%nat -> (n <= mu m)%nat.
+
+  Lemma lim_evb xn mu (x: M): limit xn x -> eventually_big mu -> limit (xn \o_f mu) x.
+  Proof.
+    move => lim evb eps eg0.
+    have [N prp]:= lim eps eg0.
+    have [N' ineq]:= evb N.
+    exists N' => m ineq'.
+    exact/prp/ineq/ineq'. 
+  Qed.
+  
+  Lemma cchy_evb xn mu: Cauchy_sequence xn -> eventually_big mu -> Cauchy_sequence (xn \o_f mu).
+  Proof.
+    move => cchy evb eps eg0.
+    have [N prp]:= cchy eps eg0.
+    have [N' le]:= evb N.
+    exists N' => n m ineq ineq'; apply/prp/le; last exact/ineq'.
+    exact/le/ineq.
+  Qed.
+
+  Lemma cchy_fchy xn:
     Cauchy_sequence xn -> exists mu, fast_Cauchy_sequence (xn \o_f mu).
   Proof.
     move => /cchy_tpmn cchy.    
@@ -184,27 +278,26 @@ Section efficient_convergence.
     - apply/Rle_trans; first by apply/prp/andP.
       rewrite -[X in X <= _]Rplus_0_r; apply/Rplus_le_compat_l.
       by apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
-    rewrite dist_sym; apply/Rle_trans; first by apply/prp/andP.
+    rewrite dst_sym; apply/Rle_trans; first by apply/prp/andP.
     rewrite -[X in X <= _]Rplus_0_l; apply/Rplus_le_compat_r.
     by apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
   Qed.
 
   Definition efficient_limit := make_mf (fun xn (x: M) =>
-    forall n, dist x (xn n) <= /2^n).
+    forall n, d x (xn n) <= /2^n).
 
-  Lemma lim_eff_lim: efficient_limit =~= metric_limit|_(fast_Cauchy_sequence).
+  Lemma lim_eff_spec: efficient_limit =~= metric_limit|_(fast_Cauchy_sequence).
   Proof.
-    move => xn x; split => [lim | [cchy lim] n].
+    move => xn x; split => [lim | [fchy lim] n].
     - split => [n m | eps epsg0].
-      + apply /Rle_trans/Rplus_le_compat/lim; first apply/(dist_tri x).
-        by rewrite dist_sym; apply/lim.
+      apply/dst_le/Rle_refl/lim; first by rewrite dst_sym; apply/lim.
       have [n ineq]:= accf_2pown epsg0.
       exists n => m nlm.
       apply/Rlt_le/Rle_lt_trans/ineq.2/Rle_trans; first exact/lim.
       apply/Rinv_le_contravar; first by apply/pow_lt; lra.
       by apply/Rle_pow/leP => //; lra.
-    suff all: forall m, dist x (xn n) <= / 2 ^ n + / 2 ^ m.
-    - suff: dist x (xn n) - / 2 ^ n <= 0 by lra.
+    suff all: forall m, d x (xn n) <= / 2 ^ n + / 2 ^ m.
+    - suff: d x (xn n) - / 2 ^ n <= 0 by lra.
       apply/Rnot_lt_le => ineq.
       have [m ineq']:= accf_2pown ineq.
       by have := all m; lra.
@@ -212,105 +305,116 @@ Section efficient_convergence.
     have [ | N prp]:= lim (/2 ^ m.+1); first by apply/Rinv_0_lt_compat/pow_lt; lra.
     rewrite (tpmn_half m) -Rplus_assoc Rplus_comm.
     apply/Rle_trans/Rplus_le_compat.
-    - + by apply/(dist_tri (xn (maxn m.+1 N))).
+    - + by apply/(dst_trngl (xn (maxn m.+1 N))).
     - exact/prp/leq_maxr.
-    rewrite dist_sym; apply/Rle_trans; first exact/cchy.
+    rewrite dst_sym; apply/Rle_trans; first exact/fchy.
     apply/Rplus_le_compat_l/Rinv_le_contravar/Rle_pow/leP/leq_maxl; try lra.
     by apply/pow_lt; lra.
   Qed.
     
-   Lemma lim_exte_lim_eff : metric_limit \extends efficient_limit.
-   Proof.
-    rewrite lim_eff_lim {2}[metric_limit]restr_all.
+  Lemma lim_eff_lim : metric_limit \extends efficient_limit.
+  Proof.
+    rewrite lim_eff_spec {2}[metric_limit]restr_all.
     exact/exte_restr/subs_all.
   Qed.
 
+  Lemma fchy_lim_eff: complete ->
+    fast_Cauchy_sequence === dom efficient_limit.
+  Proof.
+    move => cmplt xn; split => [cchy | [x /lim_eff_spec []]]//.
+    rewrite lim_eff_spec dom_restr_spec; split => //.
+    exact/cmplt/fchy_cchy.
+  Qed.  
+
   Lemma lim_tight_lim_eff: metric_limit \tightens efficient_limit.
   Proof.
-    apply sing_exte_tight; [exact/lim_sing | exact/lim_exte_lim_eff].
+    apply sing_exte_tight; [exact/lim_sing | exact/lim_eff_lim].
   Qed.
 
   Lemma lim_eff_sing: efficient_limit \is_singlevalued.
   Proof.
-    by apply /exte_sing; first apply/ lim_exte_lim_eff; last apply/lim_sing.
+    by apply /exte_sing; first apply/ lim_eff_lim; last apply/lim_sing.
   Qed.
 
-  Lemma Cauchy_crit_eff_suff xn:
-    (forall n m, (n <= m)%nat -> dist (xn n) (xn m) <= /2^n + /2^m) ->
+  Lemma cchy_eff_suff xn:
+    (forall n m, (n <= m)%nat -> d (xn n) (xn m) <= /2^n + /2^m) ->
     fast_Cauchy_sequence xn.
   Proof.
     move => ass n m.
     case /orP: (leq_total n m) => ineq; first by apply ass.
-    by rewrite dist_sym Rplus_comm; apply ass.
+    by rewrite dst_sym Rplus_comm; apply ass.
   Qed.
+End Cauchy_sequences.
+Definition Cauchy_sequences := Cauchy_sequence.
+Arguments Cauchy_sequence {M}.
+Definition fast_Cauchy_sequences := fast_Cauchy_sequence.
+Arguments fast_Cauchy_sequence {M}.
+Arguments efficient_limit {M}.
 
-End efficient_convergence.
-  
 Section metric_representation.
-  Context (M: Metric_Space) (r: nat -> Base M). 
+  Context (M: MetricSpace) (r: nat -> M). 
   Hypothesis rdense: dense_sequence r.
 
-  Definition m_rep : (nat -> nat) ->> M := make_mf (fun phi x =>
-    forall n, dist x (r (phi n))<= /2^n).
+  Definition metric_representation : (nat -> nat) ->> M := make_mf (fun phi x =>
+    forall n, d x (r (phi n))<= /2^n).
 
-  Lemma m_rep_sur: m_rep \is_cototal.
+  Lemma mrep_sur: metric_representation \is_cototal.
   Proof.
     move => x; have /dseq_tpmn prp:= rdense.
     by have /choice:= prp x.
   Qed.
-  
-  Lemma m_rep_sing: m_rep \is_singlevalued.
+
+  Lemma mrep_spec phi: metric_representation phi === efficient_limit (r \o_f phi).
+  Proof. done. Qed.
+
+  Lemma mrep_sing: metric_representation \is_singlevalued.
   Proof.
     move => phi x y phinx phiny.
-    apply/dist_refl/cond_eq_f => [ | n _]; first exact/accf_2pown.
+    apply/dst_eq/cond_eq_f => [ | n _]; first exact/accf_2pown.
     rewrite /R_dist Rminus_0_r.
     apply/Rle_trans.
-    - rewrite Rabs_pos_eq; last by have:= dist_pos x y; lra.
-      apply/(dist_tri (r (phi n.+1))) .
+    - rewrite Rabs_pos_eq; last by have:= dst_pos x y; lra.
+      apply/(dst_trngl (r (phi n.+1))) .
     rewrite tpmn_half.
     apply/Rplus_le_compat; first exact/phinx.
-    by rewrite dist_sym; apply/phiny.
+    by rewrite dst_sym; apply/phiny.
   Qed.
 
-  Definition cs_M := continuity_space.Pack 0%nat 0%nat nat_count nat_count
-                                           (make_dict m_rep_sur m_rep_sing).
-  
+  Definition metric_cs := continuity_space.Pack 0%nat 0%nat nat_count nat_count
+                                           (make_dict mrep_sur mrep_sing).
+
   Lemma cnst_dscr n:
-    (cnst n) \is_description_of (r n: cs_M).
+    (cnst n) \is_description_of (r n: metric_cs).
   Proof.
-    rewrite /cnst => k.
-    have /dist_refl -> :=eq_refl (r n).
-    by apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
+    by rewrite /cnst /= dstxx => k; apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
   Qed.
 
-  Lemma cnst_sqnc_dscr n: (cnst n) \is_description_of (cnst (r n): cs_M\^w).
+  Lemma cnst_sqnc_dscr n: (cnst n) \is_description_of (cnst (r n): metric_cs\^w).
   Proof.
-    rewrite /cnst => k m.
-    have /dist_refl -> := eq_refl (r n).
+    rewrite /cnst /= dstxx => k m.
     by apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
   Qed.
   
   Lemma Q_sqnc_dscr qn:
-    (fun neps => qn neps.1) \is_description_of ((fun n => r (qn n)): cs_M\^w).
+    (fun neps => qn neps.1) \is_description_of ((fun n => r (qn n)): metric_cs\^w).
   Proof.
-    move => k m /=.
-    have /dist_refl -> := eq_refl (r (qn k)).
+    move => k m; rewrite dstxx.
     by apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
   Qed.
 
-  Lemma lim_cs_lim : metric_limit =~= @cs_limit cs_M.
+  Lemma lim_cs_lim : metric_limit =~= @cs_limit metric_cs.
   Proof.
     move => xn x.
     split => [/lim_tpmn/choice [mu prp] | [phin [phi [phinxn [phinx lim]]]]].
-    - have [phin phinxn]:= get_description (xn: cs_M\^w).
-      have [phi phinx]:= get_description (x: cs_M).
+    - have [phin phinxn]:= get_description (xn: metric_cs\^w).
+      have [phi phinx]:= get_description (x: metric_cs).
       exists (fun mn => if (mu mn.2.+1 <= mn.1)%nat then phi mn.2.+1 else phin mn).
       exists (fun n => phi n.+1).
       split => [m n | ].
       + case: ifP => /= ineq; last exact/phinxn.
-        apply/Rle_trans; first apply/(dist_tri x).
+        apply/Rle_trans; first apply/(dst_trngl x).
         rewrite tpmn_half; apply/Rplus_le_compat; last exact/phinx.
-        by rewrite dist_sym; apply/prp.
+        by rewrite dst_sym; apply/prp.
       split.
       - move => n; apply/Rle_trans; first exact/phinx.
         apply/Rinv_le_contravar/Rle_pow/leP => //; try lra.
@@ -325,19 +429,34 @@ Section metric_representation.
     have [N prp]:= lim (iseg (@id nat) n.+2).
     exists N => m ineq.
     have /coin_lstn prp':= prp m ineq.
-    apply/Rle_trans; first exact/(dist_tri (r (phi n.+1))).
+    apply/Rle_trans; first exact/(dst_trngl (r (phi n.+1))).
     apply/Rle_trans; first apply/Rplus_le_compat; first exact/phinx.
-    + rewrite dist_sym (prp' n.+1); first exact/phinxn.
+    + rewrite dst_sym (prp' n.+1); first exact/phinxn.
       by apply/lstn_iseg; exists n.+1.
     by rewrite -tpmn_half; apply/Rle_refl.
   Qed.
-
-  Lemma ptw_op_scnt (op: cs_M \*_cs cs_M -> cs_M) xn x yn y:
+  
+  Lemma ptw_op_scnt (op: metric_cs \*_cs metric_cs -> metric_cs) xn x yn y:
     op \is_continuous -> metric_limit xn x -> metric_limit yn y ->
     metric_limit (cptwn_op op (xn,yn)) (op (x,y)).
   Proof.
     move => /cont_scnt cont lmt lmt'.    
-    have ->: cptw_op op = ptw op \o_f (@cs_zip _ _ _ cs_M cs_M) by trivial.
+    have ->: cptw_op op = ptw op \o_f (@cs_zip _ _ _ metric_cs metric_cs) by trivial.
     - by rewrite lim_cs_lim; apply/cont; rewrite lim_prd -!lim_cs_lim.
   Qed.
 End metric_representation.
+
+Section sequential_continuity.
+  Definition sequentially_continuous (M N: MetricSpace) (f: M -> N):=
+    forall xn x, metric_limit xn x -> metric_limit (ptw f xn) (f x).
+
+  Context (M N: MetricSpace) (r: nat -> M) (q: nat -> N). 
+  Hypothesis rdense: dense_sequence r.
+  Hypothesis qdense: dense_sequence q.
+
+  Lemma cont_scnt f:
+    (f: metric_cs rdense -> metric_cs qdense) \is_continuous -> sequentially_continuous f.
+  Proof.
+    by move => cont xn x; rewrite !lim_cs_lim; apply/cont_scnt.
+  Qed.
+End sequential_continuity.

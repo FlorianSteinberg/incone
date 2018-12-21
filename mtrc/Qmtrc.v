@@ -1,7 +1,7 @@
 (* Compatibility with rationals from the standard library *)
 
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat eqtype.
-Require Import all_cs reals mtrc.
+Require Import all_cs reals mtrc mreals.
 Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
 
 Set Implicit Arguments.
@@ -10,8 +10,8 @@ Unset Printing Implicit Defensive.
 
 Import QArith.
 Local Open Scope R_scope.
+Local Open Scope metric_scope.
 
-Notation subset := mf_subset.type.
 Section rationals_as_reals.
   Coercion IZR: Z >-> R.
   Fixpoint Pos_size p :=
@@ -127,15 +127,17 @@ Section rationals_as_reals.
     have []:= base_Int_partQ r; rewrite plus_IZR; lra.
   Qed.
 
+  Notation subset := mf_subset.type.
+
   Lemma Q_dense:
-    dense_subset (codom (F2MF Q2R): subset R_met).
+    dense_subset (codom (F2MF Q2R): subset metric_R).
   Proof.
     move => x eps eg0.
     have [q [qg0 qle]]:= accf_Q2R_0 eg0.
     have ieps_pos : 0 < /(Q2R q) by apply: Rinv_0_lt_compat.
     pose aprx:= (inject_Z (Int_part (x / Q2R q)) * q)%Q.
     exists (Q2R aprx); split; first by exists aprx.
-    rewrite /=/R_dist/=; have []:= base_Int_part (x / Q2R q); intros.
+    rewrite /distance/=/R_dist/=; have []:= base_Int_part (x / Q2R q); intros.
     have ->: x - Q2R aprx = (x / Q2R q - Int_part (x/Q2R q)) * Q2R q.
     - by rewrite /aprx Q2R_mult {1}/Q2R/=; field; lra.
     rewrite Rabs_mult !Rabs_pos_eq; last rewrite /Rdiv; try lra.
@@ -154,10 +156,11 @@ Section rationals_as_reals.
 End rationals_as_reals.
 
 Section rationals_and_metric_spaces.
-  Context (M: Metric_Space).
-  
+  Context (M: MetricSpace).
+  Implicit Types (x y: M).
+  Notation subset:= mf_subset.type.
   Lemma dense_Q (A: subset M): dense_subset A <->
-    forall x eps, 0 < Q2R eps -> exists y, y \from A /\ dist x y <= Q2R eps.
+    forall x eps, 0 < Q2R eps -> exists y, y \from A /\ d x y <= Q2R eps.
   Proof.
     split => dns x eps eg0; first exact/dns.
     have [q ineq]:= accf_Q2R_0 eg0.
@@ -166,29 +169,21 @@ Section rationals_and_metric_spaces.
     exact/Rlt_le/Rle_lt_trans/ineq.2.
   Qed.
 
-  Definition limit_Q := make_mf (fun xn x =>
-    forall eps, 0 < Q2R eps -> exists N, forall m,
-          (N <= m)%nat -> @dist M x (xn m) <= Q2R eps).
-
   Lemma cond_eq_Q x y:
-    (forall q, @dist M x y <= Q2R q) -> x = y.
+    (forall q, d x y <= Q2R q) -> x = y.
   Proof.
-    move => prp; rewrite -dist_refl; symmetry.
-    apply/cond_eq_f; first apply/accf_Q2R_0.
-    rewrite/R_dist Rabs_minus_sym Rminus_0_r Rabs_pos_eq; last first.
-    - exact/Rge_le/dist_pos.
-    by move => eps eg0; apply/prp.
+    move => prp; apply/dst_eq/cond_eq_f; first exact/accf_Q2R_0.
+    intros; rewrite/R_dist Rabs_pos_eq Rminus_0_r; first exact/prp.
+    exact/dst_pos.
   Qed.
 
-  Lemma limQ_lim: limit_Q =~= metric_limit.
+  Lemma limQ xn x: limit xn x <->
+    forall eps, 0 < Q2R eps -> exists N, forall m, (N <= m)%nat -> d x (xn m) <= Q2R eps.
   Proof.
-    move => xn x; split => lim eps eg0; last exact/lim.
+    split => lim eps eg0; first exact/lim.
     have [q ineq]:= accf_Q2R_0 eg0.
     have [N prp]:= lim q ineq.1.
     exists N => m Nlm.
     exact/Rlt_le/Rle_lt_trans/ineq.2/prp.
   Qed.
-
-  Lemma limQ_sing: limit_Q \is_singlevalued.
-  Proof. rewrite limQ_lim; exact: lim_sing. Qed.
 End rationals_and_metric_spaces.

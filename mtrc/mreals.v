@@ -10,20 +10,36 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Local Open Scope R_scope.
 
-Definition R_MetricSpace_mixin: MetricSpace.mixin_of R.
-Proof.
-  exists (fun x y => Rabs (x - y)).
-  by intros; apply/Rge_le/(dist_pos R_met).
-  exact/(dist_sym R_met).
-  by intros; apply/(dist_refl R_met).
-  by intros; apply/(dist_refl R_met).
-  exact/(dist_tri R_met).
-Defined.  
 Local Open Scope metric_scope.
 
-From Coq Require Import ssrmatching.
+Definition M_S2MS_mixin (M: Metric_Space): MetricSpace.mixin_of (Base M).
+  apply/(MetricSpace.Mixin _ (dist_sym M) _ _ (dist_tri M)).
+  by move => x y; apply/Rge_le/dist_pos.
+  by move => x; rewrite dist_refl.
+  by move => x y eq; apply/dist_refl.
+Defined.
 
-Canonical metric_R:= MetricSpace.Pack R_MetricSpace_mixin R.
+Definition M_S2MS (M: Metric_Space): MetricSpace := MetricSpace.Pack (M_S2MS_mixin M) (Base M).
+
+Definition MS2M_S (M: MetricSpace): Metric_Space.
+  exists M d.
+  by move => x y; apply/Rle_ge/dst_pos.
+  exact/dst_sym.
+  move => x y; split => [eq | ->].
+  - exact/dst_eq.
+  exact/dstxx.
+  move => x y; exact/dst_trngl.
+Defined.
+
+(* This does not ues the function above to remove the necessity to rewrite /R_dist everytime. *)
+Definition R_MetricSpace_mixin: MetricSpace.mixin_of R.
+  apply/(@MetricSpace.Mixin _ (fun x y => Rabs (x - y)) _ (dist_sym R_met) _ _ (dist_tri R_met)).
+  by intros; apply/Rge_le/(dist_pos R_met).
+  by intros; apply/(dist_refl R_met).
+  by intros; apply/(dist_refl R_met).
+Defined.  
+
+Canonical metric_R:= MetricSpace.Pack R_MetricSpace_mixin (Base R_met).
 
 Lemma Uncv_lim: make_mf Un_cv =~= limit.
 Proof.

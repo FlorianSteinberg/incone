@@ -7,40 +7,31 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section cs_functions.
-Definition associate (X Y: cs):= make_mf (fun psi (f: X -> Y) =>
-                                            \F_(U psi) \realizes (F2MF f)).
-Arguments associate {X} {Y}.
+  Context (X Y: cs).
+  Definition associate := make_mf (fun psi (f: X -> Y) =>
+    (\F_(U psi): questions X ->> questions Y) \realizes (F2MF f)).
 
-Notation "X c-> Y" := (codom (@associate X Y)) (at level 2).
+  Notation "X c-> Y" := (codom associate) (at level 2).
 
-Definition function_representation (X Y: cs) := make_mf (fun psi (f: X c-> Y) =>
+  Definition function_representation := make_mf (fun psi (f: X c-> Y) =>
                                                         associate psi (projT1 f)).
 
-Lemma fun_rep_sur (X Y: cs): (function_representation X Y) \is_cototal.
-Proof. by move => [f [psi ass]]/=; exists psi. Qed.
+  Lemma fun_rep_sur: function_representation \is_cototal.
+  Proof. by move => [f [psi ass]]/=; exists psi. Qed.
 
-Definition cs_fun_assembly_mixin (X Y: cs) : interview_mixin.type
-	(seq (answers X) * questions Y -> seq (questions X) + (answers Y)) (X c-> Y).
-Proof. exists (function_representation X Y); exact/fun_rep_sur. Defined.
+  Lemma fun_rep_sing: function_representation \is_singlevalued.
+  Proof.
+    move => phi [f [psi ass]] [f' [psi' ass']] rlzr rlzr'.
+    exact/eq_sub/(mf_rlzr_f_sing rlzr rlzr').
+  Qed.
 
-Lemma fun_rep_sing (X Y : cs): (function_representation X Y) \is_singlevalued.
-Proof.
-move => phi [f [psi ass]] [f' [psi' ass']] rlzr rlzr'.
-exact/eq_sub/(mf_rlzr_f_sing rlzr rlzr').
-Qed.
-
-Definition cs_fun_modest_set_mixin (X Y: cs):
-	dictionary_mixin.type (interview.Pack (cs_fun_assembly_mixin X Y)).
-Proof. split; exact/fun_rep_sing. Defined.
-
-Canonical cs_fun X Y := continuity_space.Pack
-	((nil, someq Y))
-	(inr (somea Y))
-  (prod_count
-  	(list_count (answers_countable X))
-  	(questions_countable Y))
-  (sum_count (list_count (questions_countable X)) (answers_countable Y))
-	(dictionary.Pack (cs_fun_modest_set_mixin X Y)).
+  Canonical cs_fun_class:= @continuity_space.Class _ _ _
+    (interview.Mixin fun_rep_sur) (dictionary.Mixin fun_rep_sing) 
+    (continuity_space.Mixin 
+	((nil, someq Y)) (inr (somea Y))
+        (prod_count (list_count (A_count X)) (Q_count Y))
+        (sum_count (list_count (Q_count X)) (A_count Y))).
+  Canonical cs_fun := continuity_space.Pack cs_fun_class.
 End cs_functions.
 Notation "X c-> Y" := (cs_fun X Y) (at level 2).
 
@@ -57,7 +48,7 @@ Lemma eval_rlzr_val Q A Q' A' (psiphi: (seq A * Q') + Q -> (seq Q + A') * A):
 Proof. done. Qed.
   
 Lemma eval_rlzr_crct X Y:
-	eval_rlzr \realizes (F2MF evaluation: X c-> Y \*_cs X ->> Y).
+  (eval_rlzr: questions (X c-> Y \*_cs X) ->> questions Y) \realizes (F2MF evaluation).
 Proof.
 rewrite rlzr_F2MF => phi [[f fhcr] x] [/=phinf phinx].
 rewrite /function_representation/= in phinf.
@@ -72,7 +63,7 @@ Arguments eval_rlzr {Q} {Q'} {A} {A'}.
 Section associates.
 Require Import FunctionalExtensionality.
 Definition id_ass X Lq := match Lq.1: seq (answers X) with
-		| nil => inl ([::Lq.2:questions X])
+		| nil => inl ([::Lq.2:queries X])
 		| a:: L => inr (a: answers X)
 	end.
 
@@ -85,9 +76,9 @@ Qed.
 Lemma id_ass_spec X: associate X X (@id_ass X) id.
 Proof. exact/ntrvw.tight_rlzr/id_ass_eval/id_rlzr. Qed.
 
-Definition fst_ass X Y (Lq: seq (answers (X \*_cs Y)) * (questions X)) :=
+Definition fst_ass X Y (Lq: seq (answers (X \*_cs Y)) * (queries X)) :=
                           match Lq.1 with
-                          | nil => inl [::inl Lq.2 : _ + (questions Y)]
+                          | nil => inl [::inl Lq.2 : _ + (queries Y)]
                           | cons a K => inr a.1: (_ + answers X) 
                           end.
 
@@ -100,9 +91,9 @@ Qed.
 Lemma fst_ass_spec X Y: associate (X \*_cs Y) X (@fst_ass X Y) fst.
 Proof. exact/ntrvw.tight_rlzr/fst_ass_eval/fst_rlzr_spec. Qed.
 
-Definition snd_ass X Y (Lq: seq (answers (X \*_cs Y)) * (questions Y)) :=
+Definition snd_ass X Y (Lq: seq (answers (X \*_cs Y)) * (queries Y)) :=
                           match Lq.1 with
-                          | nil => inl [::inr Lq.2 : (questions X) + _]
+                          | nil => inl [::inr Lq.2 : (queries X) + _]
                           | cons a K => inr a.2: (_ + answers Y) 
                           end.
 

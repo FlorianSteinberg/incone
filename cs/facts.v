@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect seq.
-From rlzrs Require Import all_mf.
+From rlzrs Require Import all_mf all_rlzrs.
 Require Import cont cs prod.
 
 Set Implicit Arguments.

@@ -64,7 +64,7 @@ Lemma slct_sur Q A Q' A' someq somea someq' somea':
   (@slct Q A Q' A' someq someq' somea somea') \is_surjective.
 Proof. by move => [phi | phi]; [exists (linc phi) | exists (rinc phi)]. Qed.
 
-Definition sum_rep X Y :=
+Definition sum_rep (X Y: cs) :=
   ((rep X) +s+ (rep Y)) \o_R (F2MF (slct (someq X) (somea X) (someq Y) (somea Y))).
 
 Lemma sum_rep_sur (X Y: cs): (@sum_rep X Y) \is_cototal.
@@ -72,26 +72,20 @@ Proof.
 apply/rcmp_cotot.
 - exact/fsum_cotot/rep_sur/rep_sur.
 by rewrite -F2MF_cotot; apply/slct_sur.
-Qed.
-
-Definition cs_sum_assembly_mixin (X Y: cs): interview_mixin.type
-	(questions X * questions Y -> answers X + answers Y) (X + Y).
-Proof. exists (@sum_rep X Y); exact/sum_rep_sur. Defined.
+Qed.                                     
 
 Lemma sum_rep_sing (X Y: cs): (@sum_rep X Y) \is_singlevalued.
 Proof.
 exact/rcmp_sing/F2MF_sing/fsum_sing/rep_sing/rep_sing.
 Qed.
 
-Definition cs_sum_modest_set_mixin (X Y: cs): dictionary_mixin.type (interview.Pack (cs_sum_assembly_mixin X Y)).
-Proof. split; exact/sum_rep_sing. Defined.
-
-Definition cs_sum X Y := continuity_space.Pack
-                           (someq X, someq Y)
-                           (inl (somea X))
-                           (prod_count (questions_countable X) (questions_countable Y))
-                           (sum_count (answers_countable X) (answers_countable Y))
-	                   (dictionary.Pack (cs_sum_modest_set_mixin X Y)).
+Canonical cs_sum_class (X Y: cs) := @continuity_space.Class _ _ _
+  (interview.Mixin (@sum_rep_sur X Y)) (dictionary.Mixin (@sum_rep_sing X Y)) 
+  (continuity_space.Mixin
+     (someq X, someq Y) (inl (somea X))
+     (prod_count (Q_count X) (Q_count Y))
+     (sum_count (A_count X) (A_count Y))).
+Canonical cs_sum (X Y: cs) := continuity_space.Pack (@cs_sum_class X Y).
 
 Definition cs_lslct X Y : names (cs_sum X Y) -> names X:=
   lslct (somea X) (someq Y).
@@ -111,7 +105,7 @@ Arguments cs_slct {X} {Y}.
 Notation "X \+_cs Y" := (cs_sum X Y) (at level 35).
 
 Section SUMLEMMAS.
-Definition inl_rlzr (X Y: cs) : (names X ->> names (X \+_cs Y)) := F2MF linc.
+Definition inl_rlzr (X Y: cs) : (questions X ->> questions (X \+_cs Y)) := F2MF linc.
 Arguments inl_rlzr {X} {Y}.
 Arguments mf_inl {S} {T}.
 
@@ -123,7 +117,7 @@ Qed.
 Lemma inl_cont (X Y: cs): (@inl X Y: _ -> _ \+_cs _) \is_continuous.
 Proof. by exists inl_rlzr; split; [exact/inl_rlzr_spec | exact/linc_cntop]. Qed.
 
-Definition inr_rlzr (X Y: cs): (names Y ->> (names (X \+_cs Y))):= F2MF rinc.
+Definition inr_rlzr (X Y: cs): (questions Y ->> (questions (X \+_cs Y))):= F2MF rinc.
 Arguments inr_rlzr {X} {Y}.
 
 Lemma inr_rlzr_spec (X Y: cs): inr_rlzr \realizes (F2MF inr: Y ->> X \+_cs Y).
@@ -141,7 +135,7 @@ Definition paib (T: Type) xx:= match (xx: T + T) with
 	                       end.
 Arguments paib {T}.
 
-Definition paib_rlzr (X: cs): names (X \+_cs X) ->> names X:=
+Definition paib_rlzr (X: cs): questions (X \+_cs X) ->> questions X:=
   F2MF (@paib (names X) \o_f (slct (someq X) (somea X) (someq X) (somea X))).
 
 Lemma paib_rlzr_crct (X: cs): (paib_rlzr X) \realizes (F2MF paib: X \+_cs X ->> X).
@@ -161,8 +155,9 @@ Qed.
 Lemma paib_cont (X: cs): (@paib X: _ \+_cs _ -> _) \is_continuous.
 Proof. exists (paib_rlzr X); split; [exact/paib_rlzr_crct | exact/paib_rlzr_cntop]. Qed.
 
-Definition fsum_rlzr X Y X' Y' (F: (names X) ->> (names Y)) (G: (names X') ->> (names Y')) :=
-  (F2MF inc) \o (F +s+ G) \o (F2MF cs_slct) :_ ->> names (Y \+_cs Y'). 
+Definition fsum_rlzr X Y X' Y' (F: (names X) ->> (names Y)) (G: (names X') ->> (names Y')):
+  questions (X \+_cs X') ->> questions (Y \+_cs Y'):=
+  (F2MF inc) \o (F +s+ G) \o (F2MF cs_slct). 
 
 Lemma fsum_rlzr_spec (X Y X' Y': cs) F G (f: X ->> Y) (g: X' ->> Y'):
   F \realizes f -> G \realizes g ->

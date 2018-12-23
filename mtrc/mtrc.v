@@ -1,4 +1,5 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat.
+From rlzrs Require Import all_rlzrs.
 Require Import all_cs reals.
 Require Import Qreals Reals Psatz ClassicalChoice.
 Require Import Morphisms.
@@ -380,23 +381,22 @@ Section metric_representation.
     by rewrite dst_sym; apply/phiny.
   Qed.
 
-  Definition metric_cs := continuity_space.Pack 0%nat 0%nat nat_count nat_count
-                                           (make_dict mrep_sur mrep_sing).
+  Definition metric_cs := make_cs 0%nat 0%nat nat_count nat_count mrep_sur mrep_sing.
 
   Lemma cnst_dscr n:
-    (cnst n) \is_description_of (r n: metric_cs).
+    (cnst n) \describes (r n) wrt metric_cs.
   Proof.
     by rewrite /cnst /= dstxx => k; apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
   Qed.
 
-  Lemma cnst_sqnc_dscr n: (cnst n) \is_description_of (cnst (r n): metric_cs\^w).
+  Lemma cnst_sqnc_dscr n: (cnst n) \describes (cnst (r n)) wrt (metric_cs\^w).
   Proof.
     rewrite /cnst /= dstxx => k m.
     by apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
   Qed.
   
   Lemma Q_sqnc_dscr qn:
-    (fun neps => qn neps.1) \is_description_of ((fun n => r (qn n)): metric_cs\^w).
+    (fun neps => qn neps.1) \describes (fun n => r (qn n)) wrt (metric_cs\^w).
   Proof.
     move => k m; rewrite dstxx.
     by apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.

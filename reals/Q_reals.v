@@ -1,4 +1,5 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat eqtype.
+From rlzrs Require Import all_rlzrs.
 Require Import all_cs reals mtrc mreals Qmtrc.
 Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
 
@@ -37,17 +38,15 @@ Section reals_via_rational_approximations.
     by rewrite Q2R_div; try lra; rewrite {2 4}/Q2R/=; lra.
   Qed.
 
-  Definition RQ := continuity_space.Pack
-	             0%Q
-	             0%Q
-	             Q_countable
-	             Q_countable
-	             (make_dict rep_RQ_sur rep_RQ_sing).
+  Canonical RQ_class:= @continuity_space.Class _ _ _
+                         (interview.Mixin rep_RQ_sur) (dictionary.Mixin rep_RQ_sing)
+                         (continuity_space.Mixin 0%Q 0%Q Q_countable Q_countable).
+  Canonical RQ := continuity_space.Pack RQ_class.
   
   Section addition.
     Definition Ropp_rlzrf phi (eps: Q) := Qopp (phi eps).
     
-    Definition Ropp_rlzr := F2MF Ropp_rlzrf: names RQ ->> names RQ.
+    Definition Ropp_rlzr: questions RQ ->> questions RQ := F2MF Ropp_rlzrf.
     
     Lemma Ropp_rlzr_spec: Ropp_rlzr \realizes (F2MF Ropp: RQ ->> RQ).
     Proof.
@@ -69,7 +68,7 @@ Section reals_via_rational_approximations.
     Definition Rplus_rlzrf phi (eps: Q) :=
       (lprj phi (eps/(1+1)) + rprj phi (Qdiv eps (1+1)))%Q.
 
-    Definition Rplus_rlzr: names (RQ \*_cs RQ) ->> names RQ:= F2MF Rplus_rlzrf.
+    Definition Rplus_rlzr: questions (RQ \*_cs RQ) ->> questions RQ:= F2MF Rplus_rlzrf.
 
     Lemma Rplus_rlzr_spec:
       Rplus_rlzr \realizes (F2MF (fun x => Rplus x.1 x.2) : (RQ \*_cs RQ) ->> RQ).
@@ -146,7 +145,7 @@ depends on the size of the inputs *)
        *
        (rprj phi (eps / (1 + 1)/(rab (lprj phi)))))%Q.
     
-    Definition Rmult_rlzr : names (RQ \*_cs RQ) ->> names RQ:= F2MF Rmult_rlzrf.
+    Definition Rmult_rlzr : questions (RQ \*_cs RQ) ->> questions RQ:= F2MF Rmult_rlzrf.
     
     Lemma Rmult_rlzr_spec:
       Rmult_rlzr \realizes (F2MF (fun x => Rmult x.1 x.2):RQ \*_cs RQ ->> RQ).
@@ -221,14 +220,14 @@ depends on the size of the inputs *)
     Notation lim:= (@metric_limit metric_R).
     Notation lim_eff:= (@efficient_limit metric_R).
 
-    Lemma cnst_dscr q: (cnst q) \is_description_of (Q2R q: RQ).
+    Lemma cnst_dscr q: (cnst q) \describes (Q2R q) wrt RQ.
     Proof. rewrite /cnst => eps; split_Rabs; lra. Qed.
 
-    Lemma cnst_sqnc_dscr q: (cnst q) \is_description_of (cnst (Q2R q): RQ\^w).
+    Lemma cnst_sqnc_dscr q: (cnst q) \describes (cnst (Q2R q)) wrt (RQ\^w).
     Proof. rewrite /cnst => n eps ineq; split_Rabs; lra. Qed.
 
     Lemma Q_sqnc_dscr qn:
-      (fun neps => qn neps.1) \is_description_of ((fun n => Q2R (qn n)): RQ\^w).
+      (fun neps => qn neps.1) \describes (fun n => Q2R (qn n)) wrt (RQ\^w).
     Proof. move => n eps ineq /=; split_Rabs; lra. Qed.
 
     Lemma lim_cnst x: lim (cnst x) x.
@@ -250,7 +249,7 @@ depends on the size of the inputs *)
 	by case =>[-> | ineq]; apply/leq_trans; [ | apply/leq_maxl | apply/ih/ineq | apply/leq_maxr].
       pose yn:= (fun n => Q2R (if (n <= m)%nat then 0%Q else 3#1)): RQ\^w.
       pose rn (p: nat * Q) := if (p.1 <= m)%nat then 0%Q else 3#1.
-      have rnyn: rn \is_description_of yn by apply/Q_sqnc_dscr.
+      have rnyn: rn \describes yn wrt (RQ\^w) by apply/Q_sqnc_dscr.
       have limyn3: lim yn 3.
       - exists (S m) => n /leP ineq; rewrite /yn.
         by case: ifP => [/leP ineq' | ]; [lia | rewrite /distance/=; split_Rabs; lra].
@@ -264,10 +263,10 @@ depends on the size of the inputs *)
       - have [a' crt]:= Lmod 1%Q; rewrite (crt rn coin phi)// (crt (cnst 0%Q) _ psi) //.
         exact/coin_ref.
       have := Qeq_eqR (psi 1%Q) (phi 1%Q) eq.
-      have psin0: psi \is_description_of (0: RQ).
+      have psin0: psi \describes 0 wrt ( RQ).
       - apply /(rlzr_val_sing _ rlzr)/Fqnpsi/lim_cnst; first exact/lim_sing.
         by rewrite /cnst/=/Q2R /=; split_Rabs; lra.
-      have phin3: phi \is_description_of (3: RQ).
+      have phin3: phi \describes 3 wrt RQ.
       - by apply/(rlzr_val_sing _ rlzr)/Frnphi/limyn3; first exact/lim_sing.
       have l01: 0 < Q2R 1 by rewrite /Q2R/=; lra.
       have:= psin0 1%Q l01; have:= phin3 1%Q l01.
@@ -277,7 +276,7 @@ depends on the size of the inputs *)
     Definition lim_eff_rlzrf phin eps :=
       phin ((Pos_size (Qden eps)).+1, (eps * (1#2))%Q): Q.
     
-    Definition lim_eff_rlzr : (names (RQ\^w) ->> names RQ) := F2MF lim_eff_rlzrf.
+    Definition lim_eff_rlzr : questions (RQ\^w) ->> questions RQ := F2MF lim_eff_rlzrf.
     
     Lemma lim_eff_rlzrf_spec:
       lim_eff_rlzr \realizes (lim_eff: RQ\^w ->> RQ).
@@ -314,7 +313,7 @@ depends on the size of the inputs *)
     if Qlt_le_dec q (Qopp eps) then Some false else
       if Qlt_le_dec eps q then Some true else None.
   
-  Definition sign_rlzr := F2MF sign_rlzrf.
+  Definition sign_rlzr: questions RQ ->> questions cs_Kleeneans := F2MF sign_rlzrf.
   
   Lemma sign_rlzr_spec: sign_rlzr \realizes mf_sign.
   Proof.
@@ -355,7 +354,7 @@ Section metric_Qreals.
   Qed.
 
   Lemma Rm2RQ_rlzrf_spec:
-    (F2MF Rm2RQ_rlzrf) \realizes (mf_id: Rm ->> RQ).
+    (F2MF Rm2RQ_rlzrf: questions Rm ->> questions RQ) \realizes mf_id.
   Proof.
     apply/F2MF_rlzr_F2MF => phi x phinx eps eg0.
     rewrite /Rm2RQ_rlzrf.

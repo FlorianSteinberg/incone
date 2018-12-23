@@ -1,4 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun.
+From rlzrs Require Import all_rlzrs.
 Require Import all_core cs prod sum func classical_func facts.
 Require Import Morphisms.
 

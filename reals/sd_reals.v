@@ -1,4 +1,5 @@
 From mathcomp Require Import all_ssreflect all_algebra.
+From rlzrs Require Import all_rlzrs.
 Require Import FunctionalExtensionality.
 Require Import all_cs reals mtrc mreals Rstruct under.
 Require Import Reals Qreals Psatz ClassicalChoice.
@@ -280,18 +281,7 @@ have leq'': 0 < /2 ^ (size sdL) by apply Rinv_0_lt_compat; lra.
 by split_Rabs; try lra.
 Qed.
 
-Definition UI_inc_interview_mixin: interview_mixin.type (seq SD -> SD) UI.
-Proof. exists rep_UI_inc; exact/rep_UI_inc_sur. Defined.
-
-Definition UI_inc_interview:= interview.Pack UI_inc_interview_mixin.
-
-Definition UI_inc_dictionary_mixin: dictionary_mixin.type UI_inc_interview.
-Proof. split; exact rep_UI_inc_sing. Qed.
-
-Definition UI_inc_dictionary:= dictionary.Pack UI_inc_dictionary_mixin.
-
-Definition UI_inc :=
-continuity_space.Pack [::] zero (list_count SD_count) (SD_count) UI_inc_dictionary.
+Definition UI_inc := make_cs [::] zero (list_count SD_count) SD_count rep_UI_inc_sur rep_UI_inc_sing.
 
 Lemma rep_UI_sur: rep_UI \is_cototal.
 Proof.
@@ -301,22 +291,7 @@ exists (UI_inc_to_UI Lf).
 by apply UI_inc_to_UI_correct.
 Qed.
 
-Definition UI_interview_mixin: interview_mixin.type (nat -> SD) UI.
-Proof. exists rep_UI; exact rep_UI_sur. Defined.
-
-Definition UI_sd := interview.Pack UI_interview_mixin.
-
-Definition UI_dicitionary_mixin: dictionary_mixin.type UI_sd.
-Proof. split; exact rep_UI_sing. Qed.
-
-Canonical UI_sd_dictionary:= dictionary.Pack UI_dicitionary_mixin.
-
-Canonical UI_sd_cs := continuity_space.Pack
-	0%nat
-	zero
-	nat_count
-	SD_count
-	UI_sd_dictionary.
+Definition cs_UI:= make_cs 0%nat zero nat_count SD_count rep_UI_sur rep_UI_sing.
 End rep_UI.
 
 Section SD_and_SD_inc.
@@ -430,7 +405,9 @@ case => [p | ]; last by exists 0%nat.
 by exists (Pos.to_nat p).+1; rewrite /count_pos Pos2Nat.id.
 Qed.
 
-Definition rep_R := (F2MF ZUI2R) \o (rep (cs_prod cs_Z UI_sd_cs)).
+Definition cs_Z:= @cs_id Z (1%Z) Z_count.
+
+Definition rep_R := (F2MF ZUI2R) \o (@representation (cs_Z \*_cs cs_UI)).
 
 (*
 Lemma rep_R_sur: rep_R \is_cototal.
@@ -449,7 +426,7 @@ by have ->:= @rprj_pair cs_Z UI_sd_cs.
 Qed.
 *)
 Lemma rep_R_sing: rep_R \is_singlevalued.
-Proof. apply/comp_sing; [apply: F2MF_sing | by have:=(@rep_sing _ (cs_Z \*_cs UI_sd_cs)) ]. Qed.
+Proof. apply/comp_sing; [apply: F2MF_sing | by have:=(@rep_sing (cs_Z \*_cs cs_UI)) ]. Qed.
 
 (*
 Canonical cs_R := @continuity_space.Pack R _ _ rep_R (some_question _) (some_answer _) (countable_questions _) (countable_answers _) rep_R_is_rep.

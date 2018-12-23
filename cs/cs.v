@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun.
-From rlzrs Require Export all_mf all_rlzrs.
+From rlzrs Require Import all_mf all_rlzrs dict.
 Require Import all_core.
 Import Morphisms.
 
@@ -8,37 +8,81 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Module continuity_space.
-Structure type := Pack {
-  Q: Type;
-  A: Type;
-  someq: Q;
-  somea: A;
-  Q_count: Q \is_countable;
-  A_count: A \is_countable;
-  X:> dictionary.type (Q -> A)
-}.
+  Record mixin_of Q A :=
+    Mixin {
+        someq: Q;
+        somea: A;
+        Q_count: Q \is_countable;
+        A_count: A \is_countable;
+      }.
+  
+  Record class_of Q A X:=
+    Class {
+        I: interview.mixin_of (Q -> A) X;
+        D: dictionary.mixin_of (conversation I);
+        M: mixin_of Q A
+      }.
+        
+  Structure type := Pack {X; Q; A; mixin: class_of Q A X}. 
 End continuity_space.
-Notation Q_count:= continuity_space.Q_count.
-Notation A_count:= continuity_space.A_count.
-Notation somea := continuity_space.somea.
-Notation someq := continuity_space.someq.
-Notation questions X:= (continuity_space.Q X).
-Notation questions_countable X := (continuity_space.Q_count X).
-Notation answers X:= (continuity_space.A X).
-Notation answers_countable X := (continuity_space.A_count X).
-Notation names X := ((questions X) -> (answers X)).
-Notation rep X := (conversation (continuity_space.X X)).
-Notation delta := (rep _).
-Notation rep_sing := answer_unique.
-Notation rep_sur := only_respond.
-Notation get_description x:= (get_question x).
-Notation "phi '\is_description_of' x" := (x \is_response_to phi) (at level 2).
-Notation cs:= continuity_space.type.
-Coercion continuity_space.X: continuity_space.type >-> dictionary.type.
 
+Section continuity_spaces.
+  Local Notation cs:= continuity_space.type.
+  Local Coercion continuity_space.mixin: cs >-> continuity_space.class_of.
+  Canonical space_class (X: cs) := (@dictionary.Class _ (interview.Struc (continuity_space.I X)) (continuity_space.D X)).
+  Canonical space (X: cs) := dictionary.Pack (space_class X).
+  Local Coercion space: cs >-> dictionary.
+  Local Notation queries:= continuity_space.Q.
+  Local Notation answers := continuity_space.A.
+  
+  Lemma Q_count (X: cs): (queries X) \is_countable.
+  Proof. by case: X => X Q A [I D []]. Qed.
+
+  Lemma Q_inh (X: cs): inhabited (queries X).
+  Proof. by case: X => X Q A [I D []]. Qed.
+
+  Lemma A_count (X: cs): (answers X) \is_countable.
+  Proof. by case: X => X Q A [I D []]. Qed.
+
+  Lemma A_inh (X: cs): inhabited (answers X).
+  Proof. by case: X => X Q A [I D []]. Qed.
+  
+  Local Notation representation X:= (conversation X).
+
+  Lemma rep_sur (X: cs): (representation X) \is_cototal.
+  Proof. by case: X => X Q A [[]]. Qed.
+
+  Lemma rep_sing (X: cs): (representation X) \is_singlevalued.
+  Proof. by case : X => X Q A [I []]. Qed.
+
+  Definition make_cs X
+             Q A (q: Q) (a: A) (Qcnt: Q \is_countable) (Acnt: A \is_countable)
+             (rep: (Q -> A) ->> X) (sur: rep \is_cototal) (sing: rep \is_singlevalued):=
+    continuity_space.Pack (@continuity_space.Class _ _ _
+                             (interview.Mixin sur) (dictionary.Mixin sing)
+                             (continuity_space.Mixin q a Qcnt Acnt)).                      
+End continuity_spaces.
+Notation cs:= continuity_space.type.
+Coercion space: cs >-> dictionary.
+Coercion continuity_space.mixin: cs >-> continuity_space.class_of.
+Coercion continuity_space.M: continuity_space.class_of >-> continuity_space.mixin_of.
+Notation queries:= continuity_space.Q.
+Notation answers := continuity_space.A.
+Notation representation X:= (description X).
+Notation rep X := (representation X).
+Notation queries_countable := Q_count.
+Notation answers_countable := A_count.
+Notation names X := (queries X -> answers X).
+Notation delta phi x := (representation _ phi x).
+Notation "phi '\describes' x 'wrt' X" := (representation (X: cs) phi x) (at level 2).
+Notation "phi '\is_description_of' x" := (x \is_response_to phi) (at level 2).
+Notation get_description:= rep_sur.
+Notation someq:= continuity_space.someq.
+Notation somea:= continuity_space.somea.
+  
 Section continuity.
 Definition hcr (X Y : cs) (f : X ->> Y) :=
-	exists F, F \realizes f /\ F \is_continuous_operator.
+  exists F, F \realizes f /\ F \is_continuous_operator.
 Notation "f '\has_continuous_realizer'":= (hcr f) (at level 2).
 
 Global Instance hcr_prpr (X Y: cs):

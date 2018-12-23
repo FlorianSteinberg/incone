@@ -1,4 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun.
+From rlzrs Require Import all_rlzrs.
 Require Import all_core cs.
 Require Import ProofIrrelevance ProofIrrelevanceFacts.
 
@@ -7,38 +8,26 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section cs_subspace.
-Fact eq_sub T P (a b : {x : T | P x}) : a = b <-> projT1 a = projT1 b.
-Proof.
-split=> [->//|]; move: a b => [a Pa] [b Pb] /= eqab.
-case: _ / eqab in Pb *; congr (exist _ _ _).
-apply/proof_irrelevance.
-Qed.
+  Fact eq_sub T P (a b : {x : T | P x}) : a = b <-> projT1 a = projT1 b.
+  Proof.
+    split=> [->//|]; move: a b => [a Pa] [b Pb] /= eqab.
+    case: _ / eqab in Pb *; congr (exist _ _ _).
+    exact/proof_irrelevance.
+  Qed.
 
-Definition rep_sub (X: cs) (P: mf_subset.type X):= 
-	make_mf (fun phi (t: {x | P x}) => delta phi (sval t)).
+  Context (X: cs) (P: subset X).
+  Definition rep_sub:=  make_mf (fun phi (t: {x | P x}) => rep X phi (sval t)).
 
-Lemma rep_sub_sur (X: cs) P: (@rep_sub X P) \is_cototal.
-Proof. by move => [s Ps]; have [phi phins]:= get_description s; exists phi. Qed.
+  Lemma rep_sub_sur: rep_sub \is_cototal.
+  Proof. by move => [s Ps]; have [phi phins]:= get_description s; exists phi. Qed.
 
-Definition cs_sub_assembly_mixin (X: cs) (P: mf_subset.type X):
-	interview_mixin.type (questions X -> answers X) {x | P x}.
-Proof. exists (@rep_sub X P); exact/rep_sub_sur. Defined.
+  Lemma rep_sub_sing: rep_sub \is_singlevalued.
+  Proof.
+    move => phi [x Px] [y Py] rrdphix rrdphiy.
+    by apply eq_sub; apply (@rep_sing X phi x y).
+  Qed.
 
-Lemma rep_sub_sing (X: cs) P: (@rep_sub X P) \is_singlevalued.
-Proof.
-move => phi [x Px] [y Py] rrdphix rrdphiy.
-by apply eq_sub; apply (rep_sing phi x y).
-Qed.
-
-Definition cs_sub_modest_set_mixin X P:
-	dictionary_mixin.type (interview.Pack (@cs_sub_assembly_mixin X P)).
-Proof. split; exact/rep_sub_sing. Qed.
-
-Definition cs_sub (X: cs) (P: mf_subset.type X) :=
-  continuity_space.Pack
-    (someq X)
-    (somea X)
-    (questions_countable X)
-    (answers_countable X)
-    (dictionary.Pack (@cs_sub_modest_set_mixin X P)).
+  Definition cs_sub_class:= @continuity_space.Class _ _ _
+    (interview.Mixin rep_sub_sur) (dictionary.Mixin rep_sub_sing)
+    (continuity_space.Mixin (someq X) (somea X) (Q_count X) (A_count X)).
 End cs_subspace.

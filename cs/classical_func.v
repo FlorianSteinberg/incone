@@ -10,7 +10,7 @@ Unset Printing Implicit Defensive.
 Lemma ass_cont (X Y: cs) (f: X -> Y): f \from (codom (@associate X Y)) <-> f \is_continuous.
 Proof.
 split => [[psi /=rlzr] | [F [rlzr cont]]]; first by exists \F_(U psi); split; last exact/FM_cont.
-have [psi val]:= (M_universal (someq X) (somea X) (fun _ => somea Y) (questions_countable X) cont).
+have [psi val]:= (M_universal (someq X) (somea X) (fun _ => somea Y) (Q_count X) cont).
 by exists psi; exact/ntrvw.tight_rlzr/val.
 Qed.
 
@@ -44,11 +44,11 @@ Lemma cs_comp_spec (X Y Z: cs)(f: X c-> Y) (g: Y c-> Z): projT1 (g \o_cs f) =1 (
 Proof. done. Qed.
 
 Lemma eval_rlzr_cntop (X Y: cs):
-  (@eval_rlzr (questions X) (questions Y) (answers X) (answers Y))|_(dom (rep (X c-> Y \*_cs X))) \is_continuous_operator.
+  (@eval_rlzr (queries X) (queries Y) (answers X) (answers Y))|_(dom (rep (X c-> Y \*_cs X))) \is_continuous_operator.
 Proof.
 rewrite !cntop_spec => psiphi [Fpsiphi [[[f x] [psinf phinx]] /eval_rlzr_val val]].
 rewrite /= in psinf phinx; have phifd: (rprj psiphi) \from dom \F_(U (lprj psiphi)) by exists Fpsiphi.
-have [FqM [FsM prp]]:= @FM_cont_spec (questions X) (questions Y) (answers X) (answers Y).
+have [FqM [FsM prp]]:= @FM_cont_spec (queries X) (queries Y) (answers X) (answers Y).
 have [subs [subs' [c_prp _]]]:= prp (lprj psiphi) (rprj psiphi).
 have [qf qvl]:= subs (rprj psiphi) phifd.
 have [sf svl]:= subs' (rprj psiphi) phifd.
@@ -64,7 +64,7 @@ have: (lprj psiphi) \and (lprj psi'phi') \coincide_on (sf q').
 move: coin coin' => _ _ coin coin'.  
 rewrite det_restr => [[[f' x'] [/=psi'nf' phi'nx']]] Fpsi'phi'/eval_rlzr_val val'.
 rewrite /= in psi'nf' phi'nx'; pose psiphi':= name_pair (lprj psiphi) (rprj psi'phi').
-have psiphi'nfx': psiphi' \is_description_of ((f, x'): X c-> Y \*_cs X).
+have psiphi'nfx': psiphi' \describes (f, x') wrt (X c-> Y \*_cs X).
 - by trivial.
 have [Fpsiphi' val'']: psiphi' \from dom eval_rlzr.
 - by have []:= eval_rlzr_crct psiphi'nfx'; first exact/F2MF_dom.
@@ -95,7 +95,7 @@ Qed.
 
 Lemma eval_cont (X Y: cs): (@evaluation X Y) \is_continuous.
 Proof.
-exists (@eval_rlzr (questions X) (questions Y) (answers X) (answers Y))|_(dom (rep (X c-> Y \*_cs X))).
+exists (@eval_rlzr (queries X) (queries Y) (answers X) (answers Y))|_(dom (rep (X c-> Y \*_cs X))).
 split; last exact/eval_rlzr_cntop.
 rewrite rlzr_F2MF => psiphi fx psiphinfx.
 have [ | [Fpsiphi val] prp]:= eval_rlzr_crct psiphinfx; first exact/F2MF_dom.
@@ -121,7 +121,7 @@ Definition point_evaluation (X Y: cs) (x: X):= exist_c (@ptvl_val_cont X Y x).
 
 Lemma ptvl_cont (X Y: cs): (@point_evaluation X Y) \is_continuous.
 Proof.
-  exists (F2MF (@D (questions X) (questions Y) (answers X) (answers Y))).
+  exists (F2MF (@D (queries X) (queries Y) (answers X) (answers Y))).
   rewrite F2MF_rlzr_F2MF; split => [phi x phinx psi f psinf _| ]; last exact/D_cntop.
   have [ | [Fphi /D_spec val] prp]:= psinf phi x phinx; first exact/F2MF_dom.
   split => [ | Fphi' /D_spec val']; first by exists (Fphi).

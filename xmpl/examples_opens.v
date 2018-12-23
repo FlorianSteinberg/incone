@@ -1,5 +1,6 @@
 From Coq.micromega Require Import Psatz.
 From mathcomp Require Import all_ssreflect.
+From rlzrs Require Import all_rlzrs.
 Require Import all_cs sets classical_cont classical_func.
 Require Import ClassicalChoice.
 

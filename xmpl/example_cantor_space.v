@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun eqtype ssrbool seq ssrnat.
-From rlzrs Require Import choice_mf.
+From rlzrs Require Import all_rlzrs choice_mf.
 Require Import all_cs dscrt sets Classical.
 
 Set Implicit Arguments.
@@ -44,8 +44,8 @@ the Cantor space and the two point space are equipped with.**)
 Lemma nz_bool_not_cont: ~ nz_bool \has_continuous_realizer.
 Proof.
 move => [F [rlzr cont]].
-have nmb: xpred0 \is_description_of (false: cs_bool) by trivial.
-have nmc: xpred0 \is_description_of (xpred0 : Cantor) by trivial.
+have nmb: xpred0 \describes false wrt cs_bool by trivial.
+have nmc: xpred0 \describes xpred0 wrt Cantor by trivial.
 have [ | [Fxpred0 val] prp]:= rlzr xpred0 xpred0 nmc.
 - by exists false; split => // [[]].
 have [b [Fxnf [[]]]]//:= prp Fxpred0 val.
@@ -59,7 +59,7 @@ suff nz_valfalse: nz_bool chi false by have:= (nz_bool_sing nz_valtrue nz_valfal
 have [psi psinchi] := get_description (chi: Cantor).  
 have [ | [Fpsi val'] cnd]:= rlzr psi chi psinchi; first exact/nz_bool_tot.
 suff Fpsinf: Fpsi \is_description_of (false: cs_bool).
-- by have [b [Fpsinb ]]:= cnd Fpsi val'; have ->:= (rep_sing _ _ _ Fpsinb Fpsinf).  
+- by have [b [Fpsinb ]]:= cnd Fpsi val'; have ->:= (rep_sing Fpsinb Fpsinf).  
 rewrite /= -Fxnf; apply/mod/val'.
 apply/coin_lstn => [[n []]] lstn; rewrite psinchi.
 suff ineq: n <= N by rewrite /chi ineq.
@@ -86,8 +86,9 @@ Proof. by move => tot; have [[[n []] | [n []]]]//:= tot xpred0. Qed.
 
 (** But, it is continuous. Too prove this, it is necessary to explcitly work
 with the encodings **)
-Definition nzb_rlzr := make_mf(fun (psi: names Cantor) (b: names cs_bool) =>
-                               exists n, psi (n, tt) = true /\ b tt = true).
+Definition nzb_rlzr : questions Cantor ->> questions cs_bool :=
+  make_mf(fun (psi: names Cantor) (b: names cs_bool) =>
+            exists n, psi (n, tt) = true /\ b tt = true).
 
 Lemma nzb_rlzr_spec: nzb_rlzr \realizes nz_bool_p.
 Proof.
@@ -130,7 +131,8 @@ Qed.
 
 (** In contrast to the realizer of the partial function above, the realizer
 on Sirpinski-space can be written down explicitly and not only as a relation. **)
-Definition nzS_rlzr:= F2MF (fun (phi: names Cantor) (q: questions cs_Sirp) => phi (q, tt): answers cs_Sirp).
+Definition nzS_rlzr: questions Cantor ->> questions cs_Sirp
+  := F2MF (fun (phi: names Cantor) (q: queries cs_Sirp) => phi (q, tt): answers cs_Sirp).
 
 Lemma nzS_rlzr_spec: nzS_rlzr \realizes nz_Sirp.
 Proof.

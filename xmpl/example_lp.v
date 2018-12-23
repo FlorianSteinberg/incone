@@ -55,7 +55,7 @@ End RN.
 Section p_norm.
   Notation "x '+_pw' y" := (ptwn_op Rplus x y) (at level 40).
   Context (p: R).
-  Notation limit := (@metric_limit R_met).
+  Notation limit := (@metric_limit metric_R).
 
   Definition Rabs_power r p := if eqr r 0 then 0 else Rpower (Rabs r) p.
 
@@ -66,15 +66,15 @@ Section p_norm.
 
   Lemma Rapw_p1 r: `|r`|^1 = Rabs r.
   Proof.
-  rewrite /Rabs_power.
-  case: ifP => [/eqP -> | /eqP neq]; first by rewrite Rabs_R0.
-  rewrite Rpower_1//; split_Rabs; lra.
+    rewrite /Rabs_power.
+    case: ifP => [/eqP -> | /eqP neq]; first by rewrite Rabs_R0.
+    by rewrite Rpower_1//; split_Rabs; lra.
   Qed.
   
   Lemma Rapw_p0 r: `|r`|^0 = INR (~~ eqr r 0).
   Proof.
-  rewrite /Rabs_power; case: ifP => // /eqP neq.
-  by rewrite Rpower_O //; split_Rabs; lra.
+    rewrite /Rabs_power; case: ifP => // /eqP neq.
+      by rewrite Rpower_O //; split_Rabs; lra.
   Qed.
   
   Lemma Rapw_pos r q: 0 <= `|r`|^q.
@@ -447,11 +447,6 @@ Section lp.
     move => [x nrm].
     exact/eq_sub/(@plus_opp_r RN_AbelianGroup).
   Defined.
-
-  Definition ModuleSpace_sig (M: ModuleSpace) (A: subset M):
-    (forall x y, x \from A -> y \from A -> (plus x y) \from A) -> ModuleSpace.
-
-  
   
   Definition lp_AbelianGroup:= AbelianGroup.Pack lp lp_AbelianGroup_mixin lp.
 
@@ -464,13 +459,11 @@ Section lp.
   Qed.
 
   Definition lp_scale (r: R_Ring) (x: lp_AbelianGroup): lp_AbelianGroup.
-  Proof.
     move: x => [x nrm].
-    apply/exist/lp_scal/nrm/r.
+    exact/exist/lp_scal/nrm/r.
   Defined.
 
   Definition lp_ModuleSpace_mixin: ModuleSpace.mixin_of R_Ring lp_AbelianGroup.
-  Proof.
     exists lp_scale.
     move => r r' [x nrm].
     exact/eq_sub/(@scal_assoc _ RN_ModuleSpace).
@@ -483,9 +476,8 @@ Section lp.
   Defined.
 
   Definition lp_ModuleSpace_class: ModuleSpace.class_of R_Ring lp.
-  Proof.
     exists lp_AbelianGroup_mixin.
-    apply/lp_ModuleSpace_mixin.
+    exact/lp_ModuleSpace_mixin.
   Defined.
 
   Definition lp_ModuleSpace: ModuleSpace R_Ring :=
@@ -505,15 +497,8 @@ Section lp.
     move => [x nrm] [y nrm'] r.
     rewrite /=.
     rewrite -opp_minus => ineq.
-    have := p_norm_spec nrm.
-    minus_sym.
-    exact/pnrm0.
-    rewrite /=
-    split; first exact/Rlt_le.
-    
-    
-    rewrite /=.
-    Definition lp_met : Metric_Space.
+
+    Definition lp_met : MetricSpace.
   Proof.
     exists (dom p_norm) (fun (x y: dom p_norm) => \|projT1 x - projT1 y\|_p).
     move => [x [r lmt]] [y [r' lmt']] /=.

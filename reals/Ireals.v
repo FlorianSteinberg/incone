@@ -1,4 +1,5 @@
 From mathcomp Require Import all_ssreflect.
+From rlzrs Require Import all_rlzrs.
 Require Import all_cs_base classical_mach reals.
 Require Import Reals Psatz FunctionalExtensionality ClassicalChoice.
 From Interval Require Import Interval_specific_ops Interval_bigint_carrier.
@@ -104,11 +105,6 @@ apply Rmult_le_compat; try lra.
 by apply /Rlt_le/Rinv_0_lt_compat; lra.
 Qed.
 
-Definition IR_interview_mixin : interview_mixin.type (nat -> ID) R.
-Proof. exists rep_R; exact/rep_R_sur. Defined.
-
-Definition IR_interview := interview.Pack IR_interview_mixin.
-
 Lemma Float_to_R m e:
 	D2R (Float (BigZ.of_Z m) (BigZ.of_Z e)) = IZR m * powerRZ 2 e.
 Proof. by rewrite D2R_Float !BigZ.spec_of_Z. Qed.
@@ -132,16 +128,13 @@ case: u; first by case: l.
 by case: l => // um ue lm le; rewrite !D2R_SFBI2toX; split_Rabs; lra.
 Qed.
 
-Definition IR_dictionary_mixin: dictionary_mixin.type IR_interview.
-Proof. split; exact/rep_R_sing. Qed.
-
-Definition IR := dictionary.Pack IR_dictionary_mixin.
-
 Lemma ID_count: ID \is_countable.
 Proof.
 Admitted.
 
-Canonical IR_cs := continuity_space.Pack 0%nat I0 nat_count ID_count IR.
+Definition Iall:= @Interval_interval_float.Ibnd D Fnan Fnan. 
+
+Definition IR:= make_cs 0%nat Iall nat_count ID_count rep_R_sur rep_R_sing.
 
 Definition nat2p n := SFBI2.PtoP (Pos.of_nat n).
 
@@ -168,11 +161,11 @@ split; first admit.
 rewrite /upper /lower !SFBI2_add_correct /=.
 Admitted.
 
-Definition Rplus_rlzrf (phi: names (cs_prod IR_cs IR_cs)) (n: questions IR_cs):= I.add (nat2p n) (lprj phi n) (rprj phi n).
+Definition Rplus_rlzrf (phi: names (IR \*_cs IR)) (n: queries IR):= I.add (nat2p n) (lprj phi n) (rprj phi n).
 
-Definition Rplus_rlzr := F2MF Rplus_rlzrf.
+Definition Rplus_rlzr: questions (IR \*_cs IR) ->> questions IR := F2MF Rplus_rlzrf.
 
-Lemma Rplus_rlzr_spec : Rplus_rlzr \realizes (F2MF (fun xy => Rplus xy.1 xy.2): IR_cs \*_cs IR_cs ->> IR_cs).
+Lemma Rplus_rlzr_spec : Rplus_rlzr \realizes (F2MF (fun xy => Rplus xy.1 xy.2)).
 Proof.
 rewrite F2MF_rlzr_F2MF => phi [x y] [/=[xephin convx] [yephin convy]].
 split => n; first by apply/add_correct_R; [apply xephin | apply yephin].

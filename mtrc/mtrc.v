@@ -18,11 +18,14 @@ Module MetricSpace.
         d_eq: forall x y: M, d x y = 0 -> x = y;
         d_trngl: forall x y z: M, d x y <= d x z + d z y;
         }.
-  Notation class_of := mixin_of (only parsing).
-  
+
   Section ClassDef.
+    Notation class_of := mixin_of (only parsing).
+  
     Structure type := Pack {sort; _ : class_of sort; _: Type}.
+
     Local Coercion sort: type >-> Sortclass.
+
     Definition class (cT: type) := let: Pack _ c _ := cT return class_of cT in c.
   End ClassDef.
 
@@ -47,11 +50,11 @@ Notation subset := mf_subset.type.
 
 Section MetricSpaces.
   Definition make_MetricSpace M (d: M -> M -> R)
-           (d_pos: forall x y: M, 0 <= d x y)
-           (d_sym: forall x y: M, d x y = d y x)
-           (dxx: forall x: M, d x x = 0)
-           (d_eq: forall x y: M, d x y = 0 -> x = y)
-           (d_trngl: forall x y z: M, d x y <= d x z + d z y): MetricSpace.
+             (d_pos: forall x y: M, 0 <= d x y)
+             (d_sym: forall x y: M, d x y = d y x)
+             (dxx: forall x: M, d x x = 0)
+             (d_eq: forall x y: M, d x y = 0 -> x = y)
+             (d_trngl: forall x y z: M, d x y <= d x z + d z y): MetricSpace.
   Proof.
     apply/MetricSpace.Pack/M.
     exists d.
@@ -61,7 +64,7 @@ Section MetricSpaces.
     exact/d_eq.
     exact/d_trngl.
   Defined.
-
+  
   Context (M: MetricSpace).
   Implicit Types (x y z: M) (xn yn: nat -> M).
 
@@ -454,8 +457,8 @@ Section sequential_continuity.
   Hypothesis rdense: dense_sequence r.
   Hypothesis qdense: dense_sequence q.
 
-  Lemma cont_scnt f:
-    (f: metric_cs rdense -> metric_cs qdense) \is_continuous -> sequentially_continuous f.
+  Lemma cont_scnt (f: metric_cs rdense -> metric_cs qdense):
+    f \is_continuous -> sequentially_continuous f.
   Proof.
     by move => cont xn x; rewrite !lim_cs_lim; apply/cont_scnt.
   Qed.

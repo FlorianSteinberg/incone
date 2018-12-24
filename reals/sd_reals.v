@@ -27,11 +27,11 @@ Canonical SD_eqType := Equality.Pack SD_eqClass Type.
 
 Lemma SD_count: SD \is_countable.
 Proof.
-apply/fun_count.
+apply/enum_count.
 exists (fun n => match n with
-	 | 0%nat => minusone
-	 | S 0 => zero
-	 | S (S n) => one
+	 | 0%nat => Some minusone
+	 | S 0 => Some zero
+	 | S (S n) => Some one
          end).
 by case; [exists 0%nat | exists 1%nat | exists 2%nat].
 Qed.

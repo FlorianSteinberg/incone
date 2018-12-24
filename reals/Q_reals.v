@@ -40,7 +40,7 @@ Section reals_via_rational_approximations.
 
   Canonical RQ_class:= @continuity_space.Class _ _ _
                          (interview.Mixin rep_RQ_sur) (dictionary.Mixin rep_RQ_sing)
-                         (continuity_space.Mixin 0%Q 0%Q Q_countable Q_countable).
+                         (continuity_space.Mixin 0%Q 0%Q count.Q_count count.Q_count).
   Canonical RQ := continuity_space.Pack RQ_class.
   
   Section addition.

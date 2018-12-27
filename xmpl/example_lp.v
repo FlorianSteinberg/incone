@@ -1,7 +1,7 @@
 Require Import Reals Qreals Psatz Classical FunctionalExtensionality.
 From mathcomp Require Import all_ssreflect all_algebra.
 Require Import all_cs reals Q_reals mtrc mreals Rstruct.
-From Coquelicot Require Import Hierarchy Continuity.
+From Coquelicot Require Import Coquelicot.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -83,17 +83,152 @@ Section p_norm.
     by rewrite/Rpower; apply/Rlt_le/exp_pos.
   Qed.
 
+  Lemma Rapw_lt r q: r <> 0 -> 0 < `|r`|^q.
+  Proof.
+    rewrite /Rabs_power => ineq.
+    have ->: eqr r 0 = false by apply/eqP.
+    exact/exp_pos.
+  Qed.
+
   Lemma Rapw_Rabs r: `|Rabs r`|^p = `|r`|^p.
   Proof.
-  rewrite /Rabs_power.
-  case: ifP => [/eqP eq | /eqP ineq]; first by have:= Rnorm0_eq0 eq; case: ifP => /eqP //.
-  case: ifP => [/eqP  eq| /eqP neq]; first by exfalso; apply ineq; rewrite eq Rabs_R0.
-  by rewrite Rabs_Rabsolu.
+    rewrite /Rabs_power.
+    case: ifP => [/eqP eq | /eqP ineq]; first by have:= Rnorm0_eq0 eq; case: ifP => /eqP //.
+    case: ifP => [/eqP  eq| /eqP neq]; first by exfalso; apply ineq; rewrite eq Rabs_R0.
+    by rewrite Rabs_Rabsolu.
   Qed.
 
   Lemma RapwN r: `|-r`|^p = `|r`|^p.
   Proof. by rewrite -(Rapw_Rabs r) -Rabs_Ropp Rapw_Rabs. Qed.
-    
+
+  Lemma Rapw_eq0 r q: `|r`|^q = 0 ->  r = 0.
+  Proof.
+    rewrite /Rabs_power; case: ifP =>/eqP // _.
+    by rewrite /Rpower; have := exp_pos (q * ln (Rabs r)); lra.
+  Qed.
+
+  Lemma Rapw_inj r r' q: q <> 0 -> `|r`|^q = `|r' `|^q -> Rabs r = Rabs r'.
+  Proof.
+    rewrite {2}/Rabs_power => ineq.
+    case: ifP => [/eqP -> zr | neq]; first by rewrite (@Rapw_eq0 r q).
+    rewrite {1}/Rabs_power; case: ifP => [/eqP -> zr| /eqP neq']; last move: neq => /eqP neq.
+    - by rewrite (@Rapw_eq0 r' q) // /Rabs_power neq.
+    rewrite /Rpower => /exp_inv/Rmult_eq_reg_l [] // /ln_inv -> //; split_Rabs; lra.
+  Qed.
+
+    Lemma Rapw_mult x y q: `|x * y`|^q = `|x`|^q * `|y`|^q.
+  Proof.
+  rewrite /Rabs_power Rabs_mult.
+  case: ifP => [/eqP /Rmult_integral [] ->| /eqP /Rmult_neq_0_reg [ineq ineq']].
+    + by case: ifP => /eqP //; rewrite Rmult_0_l.
+  - case: ifP; first by rewrite Rmult_0_l.
+    by case: ifP => /eqP //; rewrite Rmult_0_r.
+  case: ifP => /eqP // _; case: ifP => /eqP //_.
+  by rewrite -Rpower_mult_distr //; split_Rabs; lra.
+  Qed.
+
+  Lemma Rapw_inc x y q: 0 < q -> Rabs x < Rabs y ->  `|x`|^q < `|y`|^q.
+  Proof.
+    rewrite /Rabs_power => pg0 ineq; case: ifP => /eqP.
+    - by case: ifP => [/eqP | /eqP _ _]; [move: ineq; split_Rabs; lra | exact/exp_pos].
+    case: ifP => /eqP; first by move: ineq; split_Rabs; lra.
+    rewrite /Rpower => neq neq'.
+    rewrite !(Rmult_comm q); apply/exp_increasing/Rmult_lt_compat_r => //.
+    by apply/ln_increasing; first by split_Rabs; lra.
+  Qed.
+  
+  Lemma Rapw_inc_le x y: 0 <= p -> Rabs x <= Rabs y ->  `|x`|^p <= `|y`|^p.
+  Proof.
+  case => [pg0 | <-]; last first.
+  - rewrite !Rapw_p0; case: (classic (y = 0)) => [eq | neq].
+    + rewrite eq => ineq; have ->: x = 0 by move: ineq; split_Rabs; lra.
+      by have -> /= : eqr 0 0 = true; [apply/eqP | apply/Rle_refl].
+    have ->/=: eqr y 0 = false by apply/eqP.
+    by case: (eqr x 0) => /=; lra.
+  case => [ineq | eq]; first exact/Rlt_le/Rapw_inc.
+  by rewrite -(Rapw_Rabs x) eq Rapw_Rabs; apply /Rle_refl.
+  Qed.
+
+  Lemma Rapw_lt_inv x y: 0 < p -> `|x`|^p < `|y`|^p -> Rabs x < Rabs y.
+  Proof.
+  rewrite /Rabs_power => pg0.
+  case: ifP => [/eqP -> | /eqP neq].
+  - by case: ifP => [/eqP -> | /eqP]; split_Rabs; lra.
+  case: ifP => [ | /eqP neq' /exp_lt_inv ineq].
+  - by rewrite /Rpower; first by have := exp_pos (p * ln (Rabs x)); lra.
+  apply/ln_lt_inv; try by split_Rabs; lra.
+  exact/Rmult_lt_reg_l/ineq.
+  Qed.
+                                         
+  Lemma Rapw_le_inv x y: 0 < p -> `|x`|^p <= `|y`|^p -> Rabs x <= Rabs y.
+  Proof.
+  move => pg0 [ineq | eq]; first by apply/Rlt_le/Rapw_lt_inv.
+  by rewrite (Rapw_inj _ eq); lra.
+  Qed.
+
+  Lemma Rapw_inv x q: q <> 0 -> `|`|x`|^(/q)`|^q = Rabs x.
+  Proof.
+  rewrite/Rabs_power => neg.
+  case E: (eqr x 0); move: E => /eqP.
+  - by case: ifP => [_ -> | /eqP] //; rewrite Rabs_R0.
+  case: ifP => /eqP.
+  - rewrite /Rpower => eq; suff : 0 < 0 by lra.
+    by rewrite -{2}eq; apply/exp_pos => ineq'.
+  rewrite /Rpower [X in q * ln (X)]Rabs_pos_eq; last exact/Rlt_le/exp_pos.
+  rewrite ln_exp -Rmult_assoc Rinv_r//Rmult_1_l => ineq ineq'.
+  by rewrite exp_ln; split_Rabs; lra.
+  Qed.
+
+  Lemma Rpower_cont q x: 0 < x -> continuous (Rpower^~ q) x.
+  Proof.
+    move => ineq.
+    apply/(continuous_comp (fun x => q * ln x) exp).
+    - apply/continuous_mult; first exact/continuous_const.
+      apply/continuity_pt_filterlim/derivable_continuous_pt.
+      exists (/x).
+      exact/derivable_pt_lim_ln.
+    exact/continuity_pt_filterlim/derivable_continuous_pt/derivable_pt_exp.
+  Qed.
+
+  Lemma Rapw_cont q x: 0 < q -> continuous (fun x => Rabs_power x q) x.
+  Proof.
+    move => gt.
+    case: (total_order_T 0 x) => [[ineq | <-] | ineq].
+    - + apply/continuity_pt_filterlim.
+        apply/(continuity_pt_ext_loc (fun x => Rpower x q)).
+        * have pos: 0 < x /2 by lra.
+          exists (mkposreal _ pos) => y /=.
+          rewrite /ball/=/AbsRing_ball/=/abs/=/minus/=/plus/=/opp/=/Rabs_power => ineq'.
+          have ->: eqr y 0 = false by apply/eqP; split_Rabs; lra.
+          by rewrite Rabs_pos_eq//; split_Rabs;lra.
+        exact/continuity_pt_filterlim/Rpower_cont.
+    - move => A [[eps ineq]].
+      rewrite Rapw0 => bll.
+      rewrite /filtermap /=.
+      have pos: 0 < `|eps`|^(/q) by apply/Rapw_lt; lra.
+      exists (mkposreal _ pos) => y bll'; apply/bll; move: bll'.
+      rewrite /ball /=/AbsRing_ball/abs/=!minus_zero_r => bll'.
+      rewrite Rabs_pos_eq; last exact/Rapw_pos.
+      apply/Rlt_le_trans.
+      - apply/Rapw_inc => //.
+        rewrite -(Rabs_pos_eq (`|eps`|^/q)) in bll'; last exact/Rapw_pos.
+        exact/bll'.
+      rewrite Rapw_inv; try lra.
+      by rewrite Rabs_pos_eq; try lra.
+    apply/continuity_pt_filterlim.
+    apply/(continuity_pt_ext_loc (fun x => Rpower (-x) q)).
+    - have pos: 0 < (- x) /2 by lra.
+      exists (mkposreal _ pos) => y /=.
+      rewrite /ball/=/AbsRing_ball/=/abs/=/minus/=/plus/=/opp/=/Rabs_power => ineq'.
+      have ->: eqr y 0 = false by apply/eqP; split_Rabs; lra.
+      rewrite -{2}(Ropp_involutive y) Rabs_Ropp.
+      by rewrite Rabs_pos_eq//; split_Rabs;lra.
+    apply/continuity_pt_filterlim.
+    apply/(continuous_comp Ropp (fun x => Rpower x q)).
+    - exact/continuous_opp.
+    by apply/Rpower_cont; lra.
+  Qed.
+  
   Definition p_norm_seq x n := \sum_(0 <= i < n) `|x i`|^p.
   
   Lemma pnrmsS x n : p_norm_seq x n.+1 = p_norm_seq x n + `|x n`|^p.
@@ -154,21 +289,8 @@ Section p_norm.
     by move => nrm; apply/lim_pos/pnrms_pos/x; rewrite -ppnrm_lim.
   Qed.
   
-  Lemma Rapw_inv x q: q <> 0 -> `|`|x`|^(/q)`|^q = Rabs x.
-  Proof.
-  rewrite/Rabs_power => neg.
-  case E: (eqr x 0); move: E => /eqP.
-  - by case: ifP => [_ -> | /eqP] //; rewrite Rabs_R0.
-  case: ifP => /eqP.
-  - rewrite /Rpower => eq; suff : 0 < 0 by lra.
-    by rewrite -{2}eq; apply/exp_pos => ineq'.
-  rewrite /Rpower [X in q * ln (X)]Rabs_pos_eq; last exact/Rlt_le/exp_pos.
-  rewrite ln_exp -Rmult_assoc Rinv_r//Rmult_1_l => ineq ineq'.
-  by rewrite exp_ln; split_Rabs; lra.
-  Qed.
-
   Definition p_norm:= make_mf (fun x r => 0 <= r /\ pow_p_norm x (`|r`|^p)).
-   
+
   Lemma ppnrm_pnrm x r : p_norm x r <-> 0 <= r /\ pow_p_norm x (`|r`|^p).
   Proof. done. Qed.
 
@@ -183,7 +305,31 @@ Section p_norm.
     
   Lemma pnrm_pos x r: p_norm x r -> 0 <= r.
   Proof. by case. Qed.
-  
+
+  Lemma pnrm_lim x: 0 < p -> p_norm x ===
+     limit (fun n => `|p_norm_seq x n`|^(/p)).
+  Proof.
+    move => pos r; split => [nrm | lmt].
+    - have neq: /p <> 0.
+      + suff: 0 < /p by lra.
+        exact/Rinv_0_lt_compat.
+      rewrite -(Rabs_pos_eq r); last exact/pnrm_pos/nrm.
+      rewrite -(Rapw_inv r neq) Rinv_involutive; last lra.
+      rewrite -Uncv_lim.
+      apply/(continuity_seq (fun x => Rabs_power x (/p)) (p_norm_seq x)).
+      + exact/continuity_pt_filterlim/Rapw_cont/Rinv_0_lt_compat.
+      move: nrm => [_ ].
+      by rewrite ppnrm_lim -Uncv_lim.
+    split; first by apply/lim_pos => [ | n/=]; [exact/lmt | exact/Rapw_pos].
+    rewrite ppnrm_lim.
+    have eq: p_norm_seq x =1 fun n => `|`|p_norm_seq x n`|^(/p)`|^p.
+    - by move => n/=; rewrite Rapw_inv; try lra; rewrite Rabs_pos_eq //; apply/pnrms_pos.
+    apply/lim_prpr; first exact/eq.
+    rewrite -(Uncv_lim); move: lmt => /Uncv_lim lmt.
+    apply/(continuity_seq (Rabs_power^~ p) ) => //.
+    exact/continuity_pt_filterlim/Rapw_cont.
+  Qed.
+
   Lemma dom_pnrm: p <> 0 -> dom p_norm === dom pow_p_norm.
   Proof.
   move => neq x.
@@ -192,18 +338,7 @@ Section p_norm.
   rewrite Rapw_inv // Rabs_pos_eq //.
   exact/ppnrm_pos/val.
   Qed.
-  
-  Lemma Rapw_mult x y q: `|x * y`|^q = `|x`|^q * `|y`|^q.
-  Proof.
-  rewrite /Rabs_power Rabs_mult.
-  case: ifP => [/eqP /Rmult_integral [] ->| /eqP /Rmult_neq_0_reg [ineq ineq']].
-    + by case: ifP => /eqP //; rewrite Rmult_0_l.
-  - case: ifP; first by rewrite Rmult_0_l.
-    by case: ifP => /eqP //; rewrite Rmult_0_r.
-  case: ifP => /eqP // _; case: ifP => /eqP //_.
-  by rewrite -Rpower_mult_distr //; split_Rabs; lra.
-  Qed.
-    
+      
   Lemma pnrms_scale x r': 
     p_norm_seq (scale r' x) = scale (`|r'`|^p) (p_norm_seq x).
   Proof.
@@ -222,21 +357,6 @@ Section p_norm.
     rewrite {1}/p_norm_seq => ->.
     apply/limM; first exact/lim_cnst.
     by rewrite -ppnrm_lim.
-  Qed.
-
-  Lemma Rapw_eq0 r q: `|r`|^q = 0 ->  r = 0.
-  Proof.
-    rewrite /Rabs_power; case: ifP =>/eqP // _.
-    by rewrite /Rpower; have := exp_pos (q * ln (Rabs r)); lra.
-  Qed.
-
-  Lemma Rapw_inj r r' q: q <> 0 -> `|r`|^q = `|r' `|^q -> Rabs r = Rabs r'.
-  Proof.
-  rewrite {2}/Rabs_power => ineq.
-  case: ifP => [/eqP -> zr | neq]; first by rewrite (@Rapw_eq0 r q).
-  rewrite {1}/Rabs_power; case: ifP => [/eqP -> zr| /eqP neq']; last move: neq => /eqP neq.
-  - by rewrite (@Rapw_eq0 r' q) // /Rabs_power neq.
-  rewrite /Rpower => /exp_inv/Rmult_eq_reg_l [] // /ln_inv -> //; split_Rabs; lra.
   Qed.
 
   Lemma pnrm_sing: p <> 0 -> p_norm \is_singlevalued.
@@ -275,45 +395,6 @@ Section p_norm.
   Proof.
   case => [ineq | <-]; rewrite -ln_1; last exact/Rle_refl.
   by apply/Rlt_le/ln_increasing; lra.
-  Qed.
-
-  Lemma Rapw_inc x y: 0 < p -> Rabs x < Rabs y ->  `|x`|^p < `|y`|^p.
-  Proof.
-  rewrite /Rabs_power => pg0 ineq; case: ifP => /eqP.
-  - by case: ifP => [/eqP | /eqP _ _]; [move: ineq; split_Rabs; lra | exact/exp_pos].
-  case: ifP => /eqP; first by move: ineq; split_Rabs; lra.
-  rewrite /Rpower => neq neq'.
-  rewrite !(Rmult_comm p); apply/exp_increasing/Rmult_lt_compat_r => //.
-  by apply/ln_increasing; first by split_Rabs; lra.
-  Qed.
-  
-  Lemma Rapw_inc_le x y: 0 <= p -> Rabs x <= Rabs y ->  `|x`|^p <= `|y`|^p.
-  Proof.
-  case => [pg0 | <-]; last first.
-  - rewrite !Rapw_p0; case: (classic (y = 0)) => [eq | neq].
-    + rewrite eq => ineq; have ->: x = 0 by move: ineq; split_Rabs; lra.
-      by have -> /= : eqr 0 0 = true; [apply/eqP | apply/Rle_refl].
-    have ->/=: eqr y 0 = false by apply/eqP.
-    by case: (eqr x 0) => /=; lra.
-  case => [ineq | eq]; first exact/Rlt_le/Rapw_inc.
-  by rewrite -(Rapw_Rabs x) eq Rapw_Rabs; apply /Rle_refl.
-  Qed.
-
-  Lemma Rapw_lt_inv x y: 0 < p -> `|x`|^p < `|y`|^p -> Rabs x < Rabs y.
-  Proof.
-  rewrite /Rabs_power => pg0.
-  case: ifP => [/eqP -> | /eqP neq].
-  - by case: ifP => [/eqP -> | /eqP]; split_Rabs; lra.
-  case: ifP => [ | /eqP neq' /exp_lt_inv ineq].
-  - by rewrite /Rpower; first by have := exp_pos (p * ln (Rabs x)); lra.
-  apply/ln_lt_inv; try by split_Rabs; lra.
-  exact/Rmult_lt_reg_l/ineq.
-  Qed.
-                                         
-  Lemma Rapw_le_inv x y: 0 < p -> `|x`|^p <= `|y`|^p -> Rabs x <= Rabs y.
-  Proof.
-  move => pg0 [ineq | eq]; first by apply/Rlt_le/Rapw_lt_inv.
-  by rewrite (Rapw_inj _ eq); lra.
   Qed.
   
   Lemma pnrm_leq x r i: 0 < p -> p_norm x r -> Rabs (x i) <= r.
@@ -370,13 +451,20 @@ End p_norm.
 
 Section lp.
   Context p (p_spec: 1 <= p).        
-  Context (p_norm_f: (nat -> R) -> R).
-  Notation norm := (p_norm p).
-  Hypothesis p_norm_spec: p_norm_f \is_choice_for norm.
-  Notation "\| x \|_p" := (p_norm_f x) (format "'\|' x '\|_p'").
-  Definition lp := dom norm.
+  Definition lp := dom (p_norm p).
+  Definition norm x:= iota (p_norm p x).  
+  Notation "\| x \|_p" := (norm x) (format "'\|' x '\|_p'").
   Notation "x +_pw y" := (ptwn_op Rplus x y) (at level 45).
-  
+
+  Lemma norm_spec x: x \from lp -> (p_norm p) x (norm x).
+  Proof.
+    move => [r nrm].
+    have []:= @iota_correct R_AbsRing R_CompleteNormedModule (fun r => (p_norm p) x r).
+    - exists r; split => // r' nrm'.
+      by rewrite (pnrm_sing _ nrm nrm') //; lra.
+    by move => ineq prp; rewrite /norm.
+  Qed.
+
   Lemma pdomD x y:
     x \from lp -> y \from lp -> (x +_pw y) \from lp.
   Proof.
@@ -413,9 +501,8 @@ Section lp.
   Qed.
 
   Definition lp_opp (x: lp): lp.
-  Proof.
     move: x => [x nrm].
-    apply/exist/lpN/nrm.
+    exact/exist/lpN/nrm.
   Defined.
 
   Lemma lp0: (fun _ => 0) \from lp.
@@ -436,7 +523,6 @@ Section lp.
   Defined.
   
   Definition lp_AbelianGroup_mixin: AbelianGroup.mixin_of lp.
-  Proof.
     exists lp_plus lp_opp lp_zero. 
     move => [x nrm] [y nrm'].
     exact/eq_sub/(@plus_comm RN_AbelianGroup).
@@ -484,22 +570,31 @@ Section lp.
     ModuleSpace.Pack R_Ring lp lp_ModuleSpace_class lp.
 
   Notation "x -_pw y" := (@minus RN_AbelianGroup x y) (at level 34).    
-  
+
   Definition lp_NormedModuleAux_class: NormedModuleAux.class_of R_AbsRing lp.
   Proof.
     split; first exact/lp_ModuleSpace_class.
     exists (fun (x: lp) r (y: lp) => \|projT1 x -_pw projT1 y\|_p <= r).
     move => [x nrm] [r rg0].
-    rewrite minus_eq_zero.
-    have nrm':= p_norm_spec (pnrm0 p).
+    rewrite minus_eq_zero /=.
+    suff: \|(fun _ => 0)\|_p = 0 by rewrite /zero/=/cnst/= => ->; lra.
+    apply/pnrm_sing; [ | apply/norm_spec | ]; try lra.
+    - exact/lp0.
+    exact/pnrm0.
+    move => x y e ineq.
+    rewrite -opp_minus.
+    
+    
+    have nrm':= pnrm_spec (pnrm0 p).
     rewrite (pnrm_sing _ nrm' (pnrm0 p)); try lra.
     exact/Rlt_le.
     move => [x nrm] [y nrm'] r.
     rewrite /=.
     rewrite -opp_minus => ineq.
-
-    Definition lp_met : MetricSpace.
-  Proof.
+    Search _ 
+    
+  Definition lp_met : MetricSpace.
+    Proof.
     exists (dom p_norm) (fun (x y: dom p_norm) => \|projT1 x - projT1 y\|_p).
     move => [x [r lmt]] [y [r' lmt']] /=.
     apply/Rle_ge.

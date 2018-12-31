@@ -1,6 +1,6 @@
-From mathcomp Require Import ssreflect ssrnat ssrbool choice eqtype ssrfun.
+From mathcomp Require Import ssreflect ssrnat ssrbool choice eqtype ssrfun seq.
 From rlzrs Require Import all_mf choice_mf.
-Require Import classical_cont iseg count.
+Require Import baire cont seq_cont classical_cont iseg count.
 Require Import ClassicalChoice.
 
 Set Implicit Arguments.
@@ -57,4 +57,52 @@ exists (fun n => match pcnt n with
          | Some t => t
          end).
 by move => t; have [n eq]:= sur t; exists n; rewrite eq.
-Qed. 
+Qed.
+
+Lemma scnt_cntop Q A Q' A' (F: (Q -> A) ->> (Q' -> A')):
+  Q \is_countable -> sequentially_continuous F -> F \is_continuous_operator.
+Proof.
+  move => [cnt' [sing cotot]].
+  case: (classic (inhabited Q)) => [[someq] | neg]; last first.
+  - move => scnt phi Fphi val; exists (fun _ => nil) => q' phi' coin Fphi' val'.
+    suff lmt: baire_limit (fun _ => Fphi') Fphi.
+    + by have [n prp]:= lmt [:: q']; have []//:= prp n.
+    apply/scnt/val; last by move => n; apply/val'.
+    move => L; exists 0 => m ineq.
+    elim: L => // q.
+    by exfalso; apply/neg/inhabits/q.
+  have [cnt icf]:= exists_choice cnt' someq.
+  have sur: cnt \is_surjective.
+  - move => q; have [n val]:= cotot q.
+    by exists n; apply/sing/val/icf/val.
+  have [sec ms]:= exists_minsec sur.  
+  move => scnt phi Fphi val.
+  suff: forall q', exists L, certificate F L phi q' (Fphi q') by apply/choice.
+  move => q'.
+  apply/not_all_not_ex => prp.
+  have /choice [phin phinprp]: forall n, exists psi,
+        phi \and psi \coincide_on (iseg cnt n)
+        /\
+        psi \from dom F
+        /\
+        forall Fpsi, F psi Fpsi -> Fpsi q' <> Fphi q'.
+  - move => n.
+    have /not_all_ex_not [psi cnd]:= prp (iseg cnt n).
+    exists psi.
+    split; first exact/(not_imply_elim _ _ cnd).
+    split => [ | Fpsi val' eq].
+    + have /not_all_ex_not [Fpsi cnd']:= (not_imply_elim2 _ _ cnd).
+      by exists Fpsi; apply/(not_imply_elim _ _ cnd').
+    apply/cnd => coin Fpsi' val''.
+    by rewrite (scnt_sing scnt val'' val').
+  have lmt: baire_limit phin phi.
+  - move => L; exists (max_elt sec L) => m ineq.
+    apply/coin_subl/(phinprp m).1.
+    exact/subl_trans/iseg_subl/ineq/iseg_melt.
+  have /choice [Fphin lmts]: forall n, exists Fphi, F (phin n) Fphi.
+  - by move => n; have [_ []]:= phinprp n.
+  have [N eq]:= scnt phi phin Fphin Fphi lmt lmts val [:: q'].
+  have [_ [_ prp']]:= phinprp N.
+  apply/prp'; first exact/lmts.
+  by have []//:= eq N.
+Qed.

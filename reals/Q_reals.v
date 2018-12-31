@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat eqtype.
 From rlzrs Require Import all_rlzrs.
-Require Import all_cs reals mtrc mreals Qmtrc.
+Require Import all_cs reals mtrc mstrd Qmtrc cs_mtrc.
 Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
 
 Set Implicit Arguments.

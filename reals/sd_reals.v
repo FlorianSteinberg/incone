@@ -1,7 +1,7 @@
 From mathcomp Require Import all_ssreflect all_algebra.
 From rlzrs Require Import all_rlzrs.
 Require Import FunctionalExtensionality.
-Require Import all_cs reals mtrc mreals Rstruct under.
+Require Import all_cs reals mtrc mstrd Rstruct under.
 Require Import Reals Qreals Psatz ClassicalChoice.
 
 Import GRing.Theory.

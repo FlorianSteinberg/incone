@@ -43,8 +43,10 @@ all_cs.v
 
 mtrc/reals.v
 mtrc/mtrc.v
-mtrc/mreals.v
+mtrc/mstrd.v
+mtrc/cs_mtrc.v
 mtrc/Qmtrc.v
+mtrc/mclct.v
 
 reals/Rstruct.v
 reals/under.v

@@ -1,7 +1,7 @@
 (* Compatibility with rationals from the standard library *)
 
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat eqtype.
-Require Import all_cs reals mtrc mreals.
+Require Import all_cs reals mtrc mstrd.
 Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
 
 Set Implicit Arguments.

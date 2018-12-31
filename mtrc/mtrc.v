@@ -355,111 +355,57 @@ Definition fast_Cauchy_sequences := fast_Cauchy_sequence.
 Arguments fast_Cauchy_sequence {M}.
 Arguments efficient_limit {M}.
 
-Section metric_representation.
-  Context (M: MetricSpace) (r: nat -> M). 
-  Hypothesis rdense: dense_sequence r.
+Section continuity.
+  Definition continuity_point (M N: MetricSpace) (f: M -> N) x :=
+    forall eps, 0 < eps -> exists delta, 0 < delta /\ forall y, d x y <= delta -> d (f x) (f y) <= eps.
 
-  Definition metric_representation : (nat -> nat) ->> M := make_mf (fun phi x =>
-    forall n, d x (r (phi n))<= /2^n).
+  Definition continuity_points (M N: MetricSpace) (f: M -> N) :=
+    make_subset (fun x => continuity_point f x).
 
-  Lemma mrep_sur: metric_representation \is_cototal.
-  Proof.
-    move => x; have /dseq_tpmn prp:= rdense.
-    by have /choice:= prp x.
-  Qed.
+  Definition continuous (M N: MetricSpace) (f: M -> N):=
+    forall x, continuity_point f x.
 
-  Lemma mrep_spec phi: metric_representation phi === efficient_limit (r \o_f phi).
-  Proof. done. Qed.
+  Definition sequential_continuity_point (M N: MetricSpace) (f: M -> N) x:=
+    forall xn, metric_limit xn x -> metric_limit (ptw f xn) (f x).
 
-  Lemma mrep_sing: metric_representation \is_singlevalued.
-  Proof.
-    move => phi x y phinx phiny.
-    apply/dst_eq/cond_eq_f => [ | n _]; first exact/accf_2pown.
-    rewrite /R_dist Rminus_0_r.
-    apply/Rle_trans.
-    - rewrite Rabs_pos_eq; last by have:= dst_pos x y; lra.
-      apply/(dst_trngl (r (phi n.+1))) .
-    rewrite tpmn_half.
-    apply/Rplus_le_compat; first exact/phinx.
-    by rewrite dst_sym; apply/phiny.
-  Qed.
-
-  Definition metric_cs := make_cs 0%nat 0%nat nat_count nat_count mrep_sur mrep_sing.
-
-  Lemma cnst_dscr n:
-    (cnst n) \describes (r n) wrt metric_cs.
-  Proof.
-    by rewrite /cnst /= dstxx => k; apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
-  Qed.
-
-  Lemma cnst_sqnc_dscr n: (cnst n) \describes (cnst (r n)) wrt (metric_cs\^w).
-  Proof.
-    rewrite /cnst /= dstxx => k m.
-    by apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
-  Qed.
-  
-  Lemma Q_sqnc_dscr qn:
-    (fun neps => qn neps.1) \describes (fun n => r (qn n)) wrt (metric_cs\^w).
-  Proof.
-    move => k m; rewrite dstxx.
-    by apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
-  Qed.
-
-  Lemma lim_cs_lim : metric_limit =~= @cs_limit metric_cs.
-  Proof.
-    move => xn x.
-    split => [/lim_tpmn/choice [mu prp] | [phin [phi [phinxn [phinx lim]]]]].
-    - have [phin phinxn]:= get_description (xn: metric_cs\^w).
-      have [phi phinx]:= get_description (x: metric_cs).
-      exists (fun mn => if (mu mn.2.+1 <= mn.1)%nat then phi mn.2.+1 else phin mn).
-      exists (fun n => phi n.+1).
-      split => [m n | ].
-      + case: ifP => /= ineq; last exact/phinxn.
-        apply/Rle_trans; first apply/(dst_trngl x).
-        rewrite tpmn_half; apply/Rplus_le_compat; last exact/phinx.
-        by rewrite dst_sym; apply/prp.
-      split.
-      - move => n; apply/Rle_trans; first exact/phinx.
-        apply/Rinv_le_contravar/Rle_pow/leP => //; try lra.
-        by apply/pow_lt; lra.
-      elim => [ | n L [N prp']]; first by exists 0%nat.
-      exists (maxn N (mu n.+1)) => m ineq /=.
-      split; last exact/prp'/leq_trans/ineq/leq_maxl.
-      rewrite/uncurry/=; case: ifP => ineq' //.
-      have: (mu n.+1 <= m)%nat by apply/leq_trans/ineq/leq_maxr.
-      by rewrite ineq'.
-    apply/lim_tpmn => n.
-    have [N prp]:= lim (iseg (@id nat) n.+2).
-    exists N => m ineq.
-    have /coin_lstn prp':= prp m ineq.
-    apply/Rle_trans; first exact/(dst_trngl (r (phi n.+1))).
-    apply/Rle_trans; first apply/Rplus_le_compat; first exact/phinx.
-    + rewrite dst_sym (prp' n.+1); first exact/phinxn.
-      by apply/lstn_iseg; exists n.+1.
-    by rewrite -tpmn_half; apply/Rle_refl.
-  Qed.
-  
-  Lemma ptw_op_scnt (op: metric_cs \*_cs metric_cs -> metric_cs) xn x yn y:
-    op \is_continuous -> metric_limit xn x -> metric_limit yn y ->
-    metric_limit (cptwn_op op (xn,yn)) (op (x,y)).
-  Proof.
-    move => /cont_scnt cont lmt lmt'.    
-    have ->: cptw_op op = ptw op \o_f (@cs_zip _ _ _ metric_cs metric_cs) by trivial.
-    - by rewrite lim_cs_lim; apply/cont; rewrite lim_prd -!lim_cs_lim.
-  Qed.
-End metric_representation.
-
-Section sequential_continuity.
   Definition sequentially_continuous (M N: MetricSpace) (f: M -> N):=
-    forall xn x, metric_limit xn x -> metric_limit (ptw f xn) (f x).
-
-  Context (M N: MetricSpace) (r: nat -> M) (q: nat -> N). 
-  Hypothesis rdense: dense_sequence r.
-  Hypothesis qdense: dense_sequence q.
-
-  Lemma cont_scnt (f: metric_cs rdense -> metric_cs qdense):
-    f \is_continuous -> sequentially_continuous f.
+    forall x, sequential_continuity_point f x.
+  
+  Lemma cntp_scntp (M N: MetricSpace) (f: M -> N) x:
+    continuity_point f x -> sequential_continuity_point f x.
   Proof.
-    by move => cont xn x; rewrite !lim_cs_lim; apply/cont_scnt.
+    move => cont xn lmt eps eg0.
+    have [delta [dg0 prp]]:= cont eps eg0.
+    have [N' cnd]:= lmt delta dg0.
+    exists N' => m ineq.
+    exact/prp/cnd.
   Qed.
-End sequential_continuity.
+
+  Lemma cont_scnt (M N: MetricSpace) (f: M -> N): continuous f -> sequentially_continuous f.
+  Proof. by move => cont x; apply/cntp_scntp. Qed.
+
+  Require Import ChoiceFacts.
+  Lemma scnt_cont (M N: MetricSpace) (f: M -> N):
+    FunctionalCountableChoice_on M -> sequentially_continuous f -> continuous f.
+  Proof.
+    move => choice scnt x eps eg0.
+    apply/not_all_not_ex => prp.
+    have /choice [xn xnprp]: forall n, exists y, d x y <= /2^n /\ eps < d (f x) (f y).
+    - move => n; have /not_and_or [ | cnd]:= (prp (/2 ^ n)).
+      + by have : 0 < /2^n by apply/Rinv_0_lt_compat/pow_lt; lra.
+      apply/not_all_not_ex => asd.
+      apply/cnd => y dst.
+      have /not_and_or [ineq | ineq]:= asd y; last exact/Rnot_lt_le.
+      lra.
+    have lmt: limit xn x.
+    - rewrite lim_tpmn => n.
+      exists n => m ineq; have [le _]:= xnprp m.
+      apply/Rle_trans; first exact/le.
+      apply/Rinv_le_contravar/Rle_pow; try lra; first by apply/pow_lt; lra.
+      exact/leP.
+    have [K cnd]:= scnt x xn lmt eps eg0.
+    have []:= xnprp K.
+    suff: d (f x ) (f (xn K)) <= eps by lra.
+    exact/cnd.
+  Qed.
+End continuity.

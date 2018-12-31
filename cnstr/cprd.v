@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrnat ssrbool.
 From rlzrs Require Import all_rlzrs.
-Require Import classical_count classical_cont classical_mach classical_func all_cs_base dscrt.
+Require Import classical_count classical_cont classical_mach classical_func all_cs_base dscrt seq_cont sub.
 Require Import FunctionalExtensionality ClassicalChoice ChoiceFacts.
 
 Set Implicit Arguments.
@@ -11,7 +11,7 @@ Section USIGPROD.
   Context (X: cs) (I: Type).
   Definition rep_Iprod := make_mf (fun phi (xn: I -> X) =>
     forall i, (fun p => (phi (i,p))) \describes (xn i) wrt X).
-
+  
   Lemma rep_Iprod_sur: rep_Iprod \is_cototal.
   Proof.
     move => xn.
@@ -40,7 +40,7 @@ Section USIGPROD.
 End USIGPROD.
 Notation "X '\^w'" :=
   (cs_Iprod X 0 nat_count) (at level 35, format "X '\^w'").    
-  
+
 Section isomorphisms.
   Context (I: Type) (somei: I) (I_count: I \is_countable).
   Notation cs_I:= (@cs_id I somei I_count).
@@ -422,23 +422,33 @@ Section limit.
     by have [ | ->]:= coin m; first by apply/leq_trans/ineq/leq_maxr.
   Qed.
 
+  Definition sequential_continuity_point (X Y: cs) (f: X -> Y) x:=
+    forall xn, cs_limit X xn x -> cs_limit Y (ptw f xn) (f x).
+
+  Definition sequential_continuity_points (X Y: cs) (f: X -> Y):=
+    make_subset (fun x => sequential_continuity_point f x).
+  
   Definition sequentially_continuous (X Y: cs) (f : X -> Y):=
-    forall xn x, cs_limit X xn x -> cs_limit Y (ptw f xn) (f x).
-  Require Import seq_cont.
+    forall x, sequential_continuity_point f x.
+
+  Lemma rlzr_scnt (X Y: cs) (f: X -> Y) F:
+    FunctionalCountableChoice_on (questions Y) ->
+    F \realizes (F2MF f) -> seq_cont.sequentially_continuous F -> sequentially_continuous f.
+  Proof.
+    move => choice /rlzr_F2MF rlzr cont x xn [phin [phi [phinxn [phinx lmt]]]].
+    have [[Fphi val] prp]:= rlzr _ _ phinx.
+    have /choice [Fphin vals]: forall n, exists Fphin, F (fun q => phin (n, q)) Fphin.
+    - move => n; have [[Fphin vals] _]:= rlzr _ _ (phinxn n).
+      by exists Fphin; apply/vals.               
+    exists (curry Fphin); exists Fphi; split.
+      move => n; have [_ prps]:= rlzr _ _ (phinxn n).
+      exact/prps/vals.
+    split; first exact/prp.
+    exact/cont/val/vals/lmt.
+  Qed.
 
   Lemma cont_scnt (X Y: cs) (f: X -> Y):
-    f \is_continuous -> sequentially_continuous f.
-  Proof.
-    move => [F [rlzr /cmtop_scnt cont]] xn x [phin [phi [phinxn [phinx lmt]]]].
-    have [ | [Fphin val] prp]:= ptw_rlzr_spec rlzr phinxn; first by rewrite F2MF_ptw F2MF_dom.
-    have [ | [Fphi val'] prp']:= rlzr phi x phinx; first exact/F2MF_dom.
-    exists Fphin; exists Fphi.
-    split => [i | ].
-    - have [fa [nm eq]]:= prp Fphin val.
-      by have <- :fa = ptw f xn by apply/functional_extensionality => j; rewrite -( eq j).
-    have [fa [nm ->]]:= prp' Fphi val'; split => //.
-    apply/cont/val'; first exact/lmt.
-    exact/val.
-  Qed.
+    FunctionalCountableChoice_on (questions Y) -> f \is_continuous -> sequentially_continuous f.
+  Proof. move => choice [F [rlzr /cntop_scnt cont]]; exact/rlzr_scnt/cont. Qed.
 End limit.
 Arguments cs_limit {X}.

@@ -2,8 +2,8 @@
 the corresponding ones from the standard library. *)
 From mathcomp Require Import ssreflect ssrnat ssrbool ssrfun.
 From rlzrs Require Import all_mf.
-Require Import reals mtrc cprd.
-Require Import Reals Psatz.
+Require Import reals mtrc cprd sub.
+Require Import Reals Ranalysis Psatz.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -19,7 +19,7 @@ Definition M_S2MS_mixin (M: Metric_Space): MetricSpace.mixin_of (Base M).
   by move => x y eq; apply/dist_refl.
 Defined.
 
-Definition M_S2MS (M: Metric_Space): MetricSpace := MetricSpace.Pack (M_S2MS_mixin M) (Base M).
+Canonical M_S2MS (M: Metric_Space): MetricSpace := MetricSpace.Pack (M_S2MS_mixin M) (Base M).
 
 Definition MS2M_S (M: MetricSpace): Metric_Space.
   exists M d.
@@ -30,6 +30,8 @@ Definition MS2M_S (M: MetricSpace): Metric_Space.
   exact/dstxx.
   move => x y; exact/dst_trngl.
 Defined.
+
+Canonical MS2M_Sc M := MS2M_S M.
 
 (* This does not ues the function above to remove the necessity to rewrite /R_dist everytime. *)
 Definition R_MetricSpace_mixin: MetricSpace.mixin_of R.
@@ -67,6 +69,52 @@ Proof.
   move => xn /cchy_crit cchy.
   have [x /Uncv_lim lim]:= R_complete xn cchy.
   by exists x.
+Qed.
+
+Definition subspace_class (M: MetricSpace) (A: subset M): MetricSpace.mixin_of A.
+  exists (fun x y => d (sval x) (sval y)).
+  - by move => x y; apply/dst_pos.
+  - by move => x y; apply/dst_sym.
+  - by move => x; apply/dstxx.
+  - by move => x y dst; apply/eq_sub/dst_eq.
+  - by move => x y z; apply/dst_trngl.
+Defined.
+
+Canonical subspace (M: MetricSpace) (A: subset M):= MetricSpace.Pack (subspace_class A) A.
+
+Lemma cntp_limin (M N: MetricSpace) (f: M -> N) x:
+  continuity_point f x <-> limit_in (MS2M_S M) (MS2M_S N) f All x (f x).
+Proof.
+  split => [cont eps eg0 | lmt eps eg0].
+  - have e2g0: 0 < eps/2 by lra.
+    have [delta [dg0 prp]]:= cont (eps/2) e2g0.
+    exists delta; split => // x' [_ dst].
+    apply/Rle_lt_trans.
+    + rewrite /dist /= dst_sym; apply/prp/Rlt_le.
+      by rewrite dst_sym; apply/dst.
+    lra.
+  have [delta [dg0 prp]]:= lmt eps eg0.
+  exists (delta/2); split; first lra; move => y dst.
+  rewrite dst_sym; apply/Rlt_le.
+  by apply/prp; split => //; rewrite /dist /= dst_sym; lra.
+Qed.
+
+Lemma cont_limin (M N: MetricSpace) (A: subset M) (f: M -> N) (x: A):
+  continuity_point (fun (x': A) => f (projT1 x')) x <-> limit_in (MS2M_S M) (MS2M_S N) f A (projT1 x) (f (projT1 x)).
+Proof.
+  split => [cont eps eg0 | lmt eps eg0].
+  - have e2g0: 0 < eps/2 by lra.
+    have [delta [dg0 /=prp]]:= cont (eps/2) e2g0.
+    exists delta; rewrite /dist/=.
+    split => // y [Ay dst]; apply/Rle_lt_trans.
+    + rewrite dst_sym; have ->: y = sval (exist _ _ Ay) by trivial.
+      by apply/prp; rewrite dst_sym; apply/Rlt_le.
+    lra.
+  have [delta [dg0 /=prp]]:= lmt eps eg0.
+  exists (delta/2); split; first lra; move => [y Ay]; rewrite {1}/d /= => dst.
+  apply/Rlt_le; rewrite dst_sym; apply/prp.
+  split => //=; rewrite dst_sym.
+  by apply/Rle_lt_trans; first exact/dst; lra.
 Qed.
 
 Lemma limD xn yn x y:

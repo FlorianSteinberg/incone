@@ -99,9 +99,9 @@ rewrite -catA addnS -(@seg_recr n)//; last by apply/leqW/leq_addr.
 Qed.
 
 Fixpoint iseg n:= match n with
-	| 0 => nil
-	| S n' => [:: cnt n' & iseg n']
-end.
+	          | 0 => nil
+	          | S n' => [:: cnt n' & iseg n']
+                  end.
 
 Lemma iseg_seg n: iseg n.+1 = segment 0 n.
 Proof. by rewrite /segment; elim: n => // n; rewrite /= !add0n => ->. Qed.
@@ -200,6 +200,7 @@ Lemma iseg_melt K: minimal_section cnt sec -> K \is_sublist_of (iseg (max_elt K)
 Proof. by move => [cncl min] q lstn; apply/iseg_subl/lstn_iseg_S/cncl/lstn_melt. Qed.
 End initial_segments.
 
+Definition init_seg:= iseg id.
 Lemma iseg_eq T (cnt cnt':nat -> T) n:
   iseg cnt n = iseg cnt' n <-> (forall i, i< n -> cnt i = cnt' i). 
 Proof.

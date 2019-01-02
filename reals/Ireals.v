@@ -116,7 +116,7 @@ Lemma rep_R_sing: rep_R \is_singlevalued.
 Proof.
 move => In x x' [xeIn convIn] [x'eIn _].
 apply cond_eq => e eg0.
-have [n [_ ineq]]:= accf_2pown eg0.
+have [n [_ ineq]]:= accf_tpmn eg0.
 have [N prop]:= convIn n.
 have ineq': (N <= N)%nat by trivial.
 have [Ibnd dI]:= (prop N ineq').

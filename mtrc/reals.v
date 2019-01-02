@@ -51,7 +51,7 @@ elim: m => [ | m [n /leP ih]]; first by exists 0%nat; apply /leP => /=; lia.
 exists n.+1; apply /leP => /=; lia.
 Qed.
 
-Lemma accf_2pown: acc_f_zero_plus (fun n => /2^n).
+Lemma accf_tpmn: acc_f_zero_plus (fun n => /2^n).
 Proof.
 move => r rgt0; pose z := Z.to_nat (up (1/r)).
 have [n /leP nprp]:= pwr2gtz z; have g0: 0 < 2^n by apply pow_lt; lra.
@@ -66,19 +66,3 @@ have ->: 2 = INR 2 by trivial.
 by rewrite -pow_INR; apply lt_INR => /=; lia.
 Qed.
 End accumulation.
-
-(*
-Lemma Uncv_lim: make_mf Un_cv =~= lim.
-Proof.
-move => xn x; split => ass eps epsg0.
-	have [N Nprp]:= ass eps epsg0; exists N => n ineq.
-	apply Rlt_le; rewrite Rabs_minus_sym.
-	by rewrite /R_dist in Nprp; apply /Nprp/leP.
-have [ | N Nprp]:= ass (eps/2); try lra; exists N => n ineq.
-rewrite /R_dist Rabs_minus_sym; apply /Rle_lt_trans; first by apply /Nprp /leP.
-lra.
-Qed.
-
-
-End accumulation.
-*)

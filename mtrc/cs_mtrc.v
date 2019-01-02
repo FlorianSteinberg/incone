@@ -8,6 +8,9 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Local Open Scope R_scope.
+Print Scopes.
+
+Axiom nat_choice: FunctionalCountableChoice_on nat.
 
 Section metric_representation.
   Context (M: MetricSpace) (r: nat -> M). 
@@ -15,11 +18,11 @@ Section metric_representation.
 
   Definition metric_representation : (nat -> nat) ->> M := make_mf (fun phi x =>
     forall n, d x (r (phi n))<= /2^n).
-
+  
   Lemma mrep_sur: metric_representation \is_cototal.
   Proof.
     move => x; have /dseq_tpmn prp:= rdense.
-    by have /choice:= prp x.
+    by have /nat_choice:= prp x.
   Qed.
 
   Lemma mrep_spec phi: metric_representation phi === efficient_limit (r \o_f phi).
@@ -28,7 +31,7 @@ Section metric_representation.
   Lemma mrep_sing: metric_representation \is_singlevalued.
   Proof.
     move => phi x y phinx phiny.
-    apply/dst_eq/cond_eq_f => [ | n _]; first exact/accf_2pown.
+    apply/dst_eq/cond_eq_f => [ | n _]; first exact/accf_tpmn.
     rewrite /R_dist Rminus_0_r.
     apply/Rle_trans.
     - rewrite Rabs_pos_eq; last by have:= dst_pos x y; lra.
@@ -59,7 +62,8 @@ Section metric_representation.
     by apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
   Qed.
 
-  Lemma lim_cs_lim : metric_limit =~= @cs_limit metric_cs.
+  Notation cs_limit:= cprd.limit.
+  Lemma lim_cs_lim : limit =~= @cs_limit metric_cs.
   Proof.
     move => xn x.
     split => [/lim_tpmn/choice [mu prp] | [phin [phi [phinxn [phinx lim]]]]].
@@ -129,4 +133,47 @@ Section continuity.
     move => rlzr cont x xn; rewrite !lim_cs_lim.
     exact/rlzr_scnt/cont/rlzr/choice.
   Qed.
+
+  Lemma cs_cont_cont (f: metric_cs rdense -> metric_cs qdense):
+    f \is_continuous -> continuous f.
+  Proof.
+    move => [F [/rlzr_F2MF rlzr cont]] x eps epsg0.
+    have [phi' phinx]:= get_description (x: metric_cs rdense).
+    pose phi n:= phi' n.+1.
+    have [ | [Fphi val] prp]:= rlzr phi x.
+    - move => n; apply/Rle_trans; first exact/phinx.
+      apply/Rinv_le_contravar/Rle_pow/leP => //; try lra.
+      by apply/pow_lt; lra.
+    have [Lf md]:= cont phi Fphi val.
+    have [ | n [_ ineq]]:= @accf_tpmn (eps/2); first by lra.
+    pose K := foldr maxn 0%nat (Lf n).
+    exists (/2^(foldr maxn 0%nat (Lf n)).+1).
+    split => [ | y dst]; first by apply/Rinv_0_lt_compat/pow_lt; lra.
+    have [psi' psi'ny]:= get_description (y: metric_cs rdense).
+    pose psi k := if (k < (foldr maxn 0%nat (Lf n)).+1)%nat then phi k else psi' k.
+    have [ | [Fpsi val'] prp']:= rlzr psi y.
+    - rewrite /psi => k.
+      case E: (k < (foldr maxn 0 (Lf n)).+1)%nat; [ | apply psi'ny].
+      apply/dst_le; first by rewrite dst_sym; apply/dst.
+      + exact/phinx.
+      rewrite [X in _ <= X]tpmn_half.
+      by apply/Rplus_le_compat; apply/Rinv_le_contravar/Rle_pow/leP => //; try apply/pow_lt; try lra.
+    suff eq: Fpsi n = Fphi n.
+    - apply/dst_le; first by apply/prp/n; first exact/val.
+      + by rewrite -eq dst_sym; apply/prp'.
+      lra.
+    apply/md/val'; rewrite /psi.
+    apply/coin_lstn => k.
+    elim: (Lf n) => // m L ih /= [<- | lstn].
+    - suff ->: (m < (maxn m (foldr maxn 0 L)).+1)%nat by trivial.
+      by have:= leq_maxl m (foldr maxn 0%nat L).
+    rewrite {1}ih //.
+    case: ifP => [ineq' |].
+    - by have ->: (k < (maxn m (foldr maxn 0 L)).+1)%nat by apply/leq_trans; [apply/ineq' | apply/leq_maxr].
+    case: ifP => // ineq' /negP ineq''.
+    exfalso; apply/ineq''; move: lstn.
+    elim L => // a L' ih' /=[ <- | lstn]; first by have:= leq_maxl a (foldr maxn 0 L')%nat.
+    by apply/leq_trans; first exact/ih'; have := leq_maxr a (foldr maxn 0 L')%nat.
+  Qed.
+  Print Assumptions cs_cont_cont.
 End continuity.

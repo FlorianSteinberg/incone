@@ -1,8 +1,9 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat.
 From rlzrs Require Import all_rlzrs.
 Require Import all_cs reals.
-Require Import Qreals Reals Psatz ClassicalChoice.
+Require Import Qreals Reals Psatz Classical ChoiceFacts.
 Require Import Morphisms.
+Axiom choice: FunctionalCountableChoice.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -136,7 +137,7 @@ Section MetricSpaces.
   split => [lim n | lim eps eg0].
   - have [ | N prp]:= lim (/2 ^ n); first by apply/Rinv_0_lt_compat/pow_lt; lra.
     by exists N.
-  have [n ineq]:= accf_2pown eg0.
+  have [n ineq]:= accf_tpmn eg0.
   have [N prp]:= lim n.
   exists N => m Nlm.
   exact/Rlt_le/Rle_lt_trans/ineq.2/prp.
@@ -146,7 +147,7 @@ Section MetricSpaces.
     (forall n, d x y <= / 2 ^ n) -> x = y.
   Proof.
     move => prp; apply/dst_eq; symmetry.
-    apply/cond_eq_f => [ | n ineq]; first exact/accf_2pown.
+    apply/cond_eq_f => [ | n ineq]; first exact/accf_tpmn.
     rewrite /R_dist Rminus_0_l Rabs_Ropp Rabs_pos_eq; first exact/prp.
     exact/dst_pos.
   Qed.
@@ -165,7 +166,7 @@ Section MetricSpaces.
     dense_subset A <-> forall x n, exists y, y \from A /\ d x y <= /2^n.
   Proof.
     split => [dns x n | dns x eps eg0]; first by apply/dns/Rlt_gt/Rinv_0_lt_compat/pow_lt; lra.
-    have [n ineq]:= accf_2pown eg0.
+    have [n ineq]:= accf_tpmn eg0.
     have [y []]:= dns x n.
     exists y; split => //.
     exact/Rlt_le/Rle_lt_trans/ineq.2.
@@ -187,7 +188,7 @@ Section MetricSpaces.
   Proof.
     split => [dns x n| dns x eps eg0]; first apply/dns.
     - by apply/Rinv_0_lt_compat/pow_lt; lra.
-    have [n ineq]:= accf_2pown eg0.
+    have [n ineq]:= accf_tpmn eg0.
     have [m prp]:= dns x n.
     exists m.
     exact/Rlt_le/Rle_lt_trans/ineq.2/prp.
@@ -226,7 +227,7 @@ Section Cauchy_sequences.
   Lemma fchy_cchy: fast_Cauchy_sequence \is_subset_of Cauchy_sequence.
   Proof.
     move => xn cchy eps epsg0.
-    have [N [_ ineq]]:= accf_2pown epsg0.
+    have [N [_ ineq]]:= accf_tpmn epsg0.
     exists N.+1 => n m nineq mineq.
     apply/Rlt_le/Rle_lt_trans; last exact/ineq.
     apply /Rle_trans; [exact/cchy | rewrite (tpmn_half N)].
@@ -243,7 +244,7 @@ Section Cauchy_sequences.
       + by apply/Rinv_0_lt_compat/pow_lt; lra.
       exists N => n m /andP [ineq ineq'].
       exact/prp/leq_trans/ineq'.
-    have [N [g0 /Rlt_le ineq]]:= accf_2pown epsg0.
+    have [N [g0 /Rlt_le ineq]]:= accf_tpmn epsg0.
     have [N' N'prp]:= ass N.
     exists N' => n m nineq mineq.
     case/orP: (leq_total n m) => ineq'.
@@ -289,13 +290,13 @@ Section Cauchy_sequences.
 
   Definition efficient_limit := make_mf (fun xn (x: M) =>
     forall n, d x (xn n) <= /2^n).
-
+  
   Lemma lim_eff_spec: efficient_limit =~= metric_limit|_(fast_Cauchy_sequence).
   Proof.
     move => xn x; split => [lim | [fchy lim] n].
     - split => [n m | eps epsg0].
       apply/dst_le/Rle_refl/lim; first by rewrite dst_sym; apply/lim.
-      have [n ineq]:= accf_2pown epsg0.
+      have [n ineq]:= accf_tpmn epsg0.
       exists n => m nlm.
       apply/Rlt_le/Rle_lt_trans/ineq.2/Rle_trans; first exact/lim.
       apply/Rinv_le_contravar; first by apply/pow_lt; lra.
@@ -303,7 +304,7 @@ Section Cauchy_sequences.
     suff all: forall m, d x (xn n) <= / 2 ^ n + / 2 ^ m.
     - suff: d x (xn n) - / 2 ^ n <= 0 by lra.
       apply/Rnot_lt_le => ineq.
-      have [m ineq']:= accf_2pown ineq.
+      have [m ineq']:= accf_tpmn ineq.
       by have := all m; lra.
     move => m.  
     have [ | N prp]:= lim (/2 ^ m.+1); first by apply/Rinv_0_lt_compat/pow_lt; lra.
@@ -384,11 +385,10 @@ Section continuity.
   Lemma cont_scnt (M N: MetricSpace) (f: M -> N): continuous f -> sequentially_continuous f.
   Proof. by move => cont x; apply/cntp_scntp. Qed.
 
-  Require Import ChoiceFacts.
   Lemma scnt_cont (M N: MetricSpace) (f: M -> N):
-    FunctionalCountableChoice_on M -> sequentially_continuous f -> continuous f.
-  Proof.
-    move => choice scnt x eps eg0.
+    sequentially_continuous f -> continuous f.
+  Proof.    
+    move => scnt x eps eg0.
     apply/not_all_not_ex => prp.
     have /choice [xn xnprp]: forall n, exists y, d x y <= /2^n /\ eps < d (f x) (f y).
     - move => n; have /not_and_or [ | cnd]:= (prp (/2 ^ n)).
@@ -409,3 +409,4 @@ Section continuity.
     exact/cnd.
   Qed.
 End continuity.
+  

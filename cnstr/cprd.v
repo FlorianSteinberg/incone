@@ -374,18 +374,19 @@ Notation ptwn_op := (@ptw_op nat).
 Notation ptwn := (@ptw nat).
 
 Section limit.
-  Definition cs_limit X: X\^w ->> X:= make_mf (fun xn x =>
+  Definition limit X: X\^w ->> X:= make_mf (fun xn x =>
     exists phin phi,
       phin \describes xn wrt (X\^w)
       /\
       phi \describes x wrt X
       /\
       baire_limit (uncurry phin) phi).
+  Arguments limit {X}.
   
   Lemma lim_prd (X Y: cs) xn x yn y:
-    cs_limit (X \*_cs Y) (cs_zip (xn, yn)) (x, y)
+    limit (cs_zip (xn, yn)) (x, y)
     <->
-    cs_limit X xn x /\ cs_limit Y yn y.
+    @limit X xn x /\ @limit Y yn y.
   Proof.
     split => [[phipsin [phipsi [nm [[lnm rnm] lmt]]]] |].
     - split.
@@ -423,7 +424,7 @@ Section limit.
   Qed.
 
   Definition sequential_continuity_point (X Y: cs) (f: X -> Y) x:=
-    forall xn, cs_limit X xn x -> cs_limit Y (ptw f xn) (f x).
+    forall xn, limit xn x -> limit (ptw f xn) (f x).
 
   Definition sequential_continuity_points (X Y: cs) (f: X -> Y):=
     make_subset (fun x => sequential_continuity_point f x).
@@ -451,4 +452,4 @@ Section limit.
     FunctionalCountableChoice_on (questions Y) -> f \is_continuous -> sequentially_continuous f.
   Proof. move => choice [F [rlzr /cntop_scnt cont]]; exact/rlzr_scnt/cont. Qed.
 End limit.
-Arguments cs_limit {X}.
+Arguments limit {X}.

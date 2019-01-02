@@ -2,7 +2,7 @@
 the corresponding ones from the standard library. *)
 From mathcomp Require Import ssreflect ssrnat ssrbool ssrfun.
 From rlzrs Require Import all_mf.
-Require Import reals mtrc cprd sub.
+Require Import reals cprd mtrc sub.
 Require Import Reals Ranalysis Psatz.
 
 Set Implicit Arguments.

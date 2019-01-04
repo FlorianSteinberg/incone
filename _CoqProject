@@ -1,55 +1,55 @@
 -R . incone
 
-core/count/iseg.v
-core/count/count.v
-all_count.v
+baire_spaces/countability/iseg.v
+baire_spaces/countability/count.v
+baire_spaces/all_count.v
 
-core/cont/baire.v
-core/cont/smod.v
-core/cont/cont.v
-core/cont/minm.v
-core/cont/classical_cont.v
-all_cont.v
+baire_spaces/baire.v
+baire_spaces/continuity/smod.v
+baire_spaces/continuity/cont.v
+baire_spaces/continuity/minm.v
+baire_spaces/continuity/classical_cont.v
+baire_spaces/all_cont.v
 
-core/count/seq_cont.v
-core/count/classical_count.v
+baire_spaces/countability/seq_cont.v
+baire_spaces/countability/classical_count.v
 
-core/mach/FMop.v
-core/mach/nvrsl.v
-core/mach/Umach.v
-core/mach/Ucont.v
-core/mach/Uuniv.v
-core/mach/Duop.v
-core/mach/classical_mach.v
-all_mach.v
+baire_spaces/dualities/FMop.v
+baire_spaces/dualities/nvrsl.v
+baire_spaces/dualities/Umach.v
+baire_spaces/dualities/Ucont.v
+baire_spaces/dualities/Uuniv.v
+baire_spaces/dualities/Duop.v
+baire_spaces/dualities/classical_mach.v
+baire_spaces/all_mach.v
 
 all_core.v
 
-cs/cs.v
-cs/prod.v
-cs/sum.v
-cs/facts.v
-cs/sub.v
-cs/func.v
-cs/classical_func.v
-cs/iso.v
+continuity_spaces/cs.v
+continuity_spaces/prod.v
+continuity_spaces/sum.v
+continuity_spaces/facts.v
+continuity_spaces/sub.v
+continuity_spaces/func.v
+continuity_spaces/classical_func.v
+continuity_spaces/iso.v
 all_cs_base.v
 
-cnstr/dscrt.v
-cnstr/opt.v
-cnstr/cprd.v
-cnstr/cs_mtrc.v
-cnstr/sets.v
+continuity_spaces/cnstr/dscrt.v
+continuity_spaces/cnstr/opt.v
+continuity_spaces/cnstr/cprd.v
+continuity_spaces/cnstr/cs_mtrc.v
+continuity_spaces/cnstr/sets.v
 all_cs.v
 
-reals/Rstruct.v
-reals/under.v
-reals/Q_reals.v
-reals/sd_reals.v
-reals/sdvsc.v
-reals/Ireals.v
+examples/reals/Rstruct.v
+examples/reals/under.v
+examples/reals/Q_reals.v
+examples/reals/sd_reals.v
+examples/reals/sdvsc.v
+examples/reals/Ireals.v
 
 
-xmpl/examples_continuity.v
-xmpl/example_cantor_space.v
-xmpl/examples_opens.v
+examples/examples_continuity.v
+examples/examples_cantor_space.v
+examples/examples_opens.v

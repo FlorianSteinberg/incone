@@ -1,8 +1,10 @@
 Require Import Reals Qreals Psatz Classical FunctionalExtensionality.
 From mathcomp Require Import all_ssreflect all_algebra.
-Require Import all_cs reals Q_reals mtrc mstrd cs_mtrc Rstruct mclct.
+From rlzrs Require Import all_mf.
+Require Import iseg.
+From metric Require Import pointwise reals metric standard coquelicot.
 From Coquelicot Require Import Coquelicot.
-From Younginequality Require Import youngsinequality Rapw_cont.
+From Younginequality Require Import Rstruct youngsinequality.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -56,7 +58,7 @@ End RN.
 Section p_norm.
   Notation "x '+_pw' y" := (ptwn_op Rplus x y) (at level 40).
   Context (p: R).
-  Notation limit := (@metric_limit metric_R).
+  Notation limit := (@limit metric_R).
   Notation "`| r `|^ p" := (Rabs_power r p) (format "'`|' r '`|^' p", at level 35).
     
   Section p_norm_sequence.
@@ -314,12 +316,12 @@ Notation "\| x |" := (p_norm x) (at level 2, format "'\|' x '|'").
 
 Section lp.
   Section lp_AbelianGroup.
-    Context p (p_spec: 1 <= p).        
+    Context (p: R).        
     Notation "x +_pw y" := (ptwn_op Rplus x y) (at level 45).
     
-    Lemma Rapw_conv x y: 1 < p -> `|(x + y)/2`|^p <= (`|x`|^p + `|y`|^p)/2.
+    Lemma Rapw_cnvx x y: 1 < p -> `|(x + y)/2`|^p <= (`|x`|^p + `|y`|^p)/2.
     Proof.
-      move => ineq. 
+      move => ineq.
     Admitted.
 
     Lemma RapwD x y: 1 <= p ->  `|x + y`|^p <= Rpower 2 (p-1) * (`|x`|^p + `|y`|^p).
@@ -332,13 +334,12 @@ Section lp.
         rewrite !Rapw_mult /Rdiv !Rmult_assoc !(Rmult_comm _ (/2)) -!Rmult_assoc.
         rewrite -Rmult_plus_distr_l.
         apply/Rmult_le_compat_r; first exact/Rplus_le_le_0_compat/Rapw_pos/Rapw_pos.
-        rewrite /Rabs_power; case: ifP => /eqP neq; try lra.
-        + rewrite Rmult_0_l; apply/Rlt_le/exp_pos.
+        rewrite /Rabs_power; case: ifP => /eqP neq; try lra.        
         rewrite Rabs_pos_eq; try lra.
         by rewrite /Rminus Rpower_plus Rpower_Ropp Rpower_1; try lra; apply/Rle_refl.
       apply/Rle_trans.
-      have ->: x + y = (2 * x + 2 * y) /2 by field.
-      apply/Rapw_conv => //.
+      have ->: x + y = (2 * x + 2 * y) /2 by field. 
+      apply/Rapw_cnvx => //.
       lra.
     Qed.
 
@@ -355,17 +356,18 @@ Section lp.
       lra.
     Qed.
 
-    Lemma lpdomD x y:
+    Lemma lpdomD x y: 1 <= p ->
       x \from (l_ p) -> y \from (l_ p) -> (x +_pw y) \from (l_ p).
     Proof.
-      move => [r nrm] [r' nrm'].
+      move => pspec [r nrm] [r' nrm'].
       exists (Rpower 2 (p - 1) * (r + r')) => _ [i ->].
       apply/Rle_trans; first exact/pnrms_bnd.
       apply/Rmult_le_compat_l; first exact/Rlt_le/exp_pos.
       by apply/Rplus_le_compat/nrm'; [apply/nrm; exists i | exists i].
     Qed.
 
-    Definition lp_plus (x y: l_ p): l_ p:= exist _ _ (lpdomD (projT2 x) (projT2 y)).
+    Context (pspec: 1 <= p).
+    Definition lp_plus (x y: l_ p): l_ p:= exist _ _ (lpdomD pspec (projT2 x) (projT2 y)).
     
     Definition lp_AbelianGroup_mixin: AbelianGroup.mixin_of l_ p.
       exists lp_plus (@lp_opp p) (@lp_zero p). 
@@ -416,7 +418,7 @@ Section lp.
   End lp_ModuleSpace.
 
   Section lp_NormedModule.      
-    Lemma hoelder's_inequality x y p q: 1 <= p -> 1 <= q -> /p + /q = 1 ->
+    Lemma Hoelder's_inequality x y p q: 1 <= p -> 1 <= q -> /p + /q = 1 ->
       x \from l_ p -> y \from l_ q -> (ptw_op Rmult x y) \from l_ 1.
     Proof.
       move => pspec qspec h lpx lqy.
@@ -489,33 +491,35 @@ Section lp.
       apply/Rle_trans; first exact/Young's_inequality/h.
       rewrite !Rapw_Rabs; exact/Rle_refl.
     Qed.
+
+    Context p (pspec: 1 <= p).
     
-    Lemma minkowski's_inequality x y:
-      \|plus x y\|_p <= \|x\|_p + \|y\|_p.
+    Lemma Minkowski's_inequality (x y: lp_ModuleSpace pspec):
+      \|plus x y| <= \|x| + \|y|.
     Proof.
     Admitted.
 
-    Lemma norm_scale r x: \|lp_scale r x\|_p = Rabs r * \|x\|_p.
+    Lemma norm_scale r (x: lp_ModuleSpace pspec): \|lp_scale r x| = Rabs r * \|x|.
     Proof. by apply/norm_eq/pnrm_hom/norm_spec; lra. Qed.
 
     Definition lp_NormedModuleAux_class: NormedModuleAux.class_of R_AbsRing l_ p.
     Proof.
       split; first exact/lp_ModuleSpace_class.
-      exists (fun (x: l_ p) r (y: l_ p) => \|minus x y\|_p < r).
+      exists (fun (x: lp_ModuleSpace pspec) r (y: lp_ModuleSpace pspec) => \|minus x y| < r).
       - move => [x nrm] [r rg0].
         rewrite minus_eq_zero /=.
-        suff: \|zero\|_p = 0 by rewrite /zero/=/cnst/= => ->; lra.
+        suff: \|@zero (lp_ModuleSpace pspec)| = 0 by rewrite /zero/=/cnst/= => ->; lra.
         by apply/norm_eq/pnrm0; lra.
       - by move => x y e ineq; rewrite -opp_minus norm_opp //; lra.
       move => x y z r r' nrm nrm'.
-      apply/Rle_lt_trans/Rplus_lt_compat/nrm'/nrm/Rle_trans/minkowski's_inequality.
+      apply/Rle_lt_trans/Rplus_lt_compat/nrm'/nrm/Rle_trans/Minkowski's_inequality.
       rewrite plus_assoc -(plus_assoc x) plus_opp_l plus_zero_r.
       exact/Rle_refl.
     Defined.
 
     Definition lp_NormedModule_class: NormedModule.class_of R_AbsRing l_ p.
       exists lp_NormedModuleAux_class; exists (@p_norm p) 1.
-      - exact/minkowski's_inequality.
+      - exact/Minkowski's_inequality.
       - by move => r x; rewrite norm_scale; apply/Rle_refl.
       - move => x y eps ineq; rewrite /ball /=.
         by rewrite -opp_minus norm_opp; try lra.
@@ -609,10 +613,10 @@ Section lp.
     Qed.
 
     Definition fundamental_system (F: nat -> V) := fundamental_subset (codom (F2MF F)).
-    
   End Fundamental_systems.
     
   Section standard_basis.
+    Context p (pspec: 1 <= p).
     Definition e (i: nat): RN_ModuleSpace:= fun j => if (i == j)%nat then R1 else R0.
 
     Lemma Rapw1: `|1`|^p = 1.
@@ -643,17 +647,36 @@ Section lp.
       by case: (i < j)%nat; lra.
     Qed.
 
-    Definition sbs i: lp_NormedModule:= exist _ _ (lp_e i).
+    Notation lp := (lp_NormedModule pspec).
+    Definition sbs i: lp:= exist _ _ (lp_e i).
 
     Canonical Ml (G: AbelianGroup): Monoid.law (@zero G) :=
       Monoid.Law plus_assoc plus_zero_l plus_zero_r.
 
+    Notation "x - y" := (minus x y).
+    Notation "\| x |" := (norm x).
+
+    Lemma lim_norm xn (x: lp_NormedModule pspec):
+      limit xn x <-> limit (fun n => norm (minus x (xn n))) 0.
+    Proof.
+      split => lim eps eg0; have [N prp]:= lim eps eg0; exists N => m ineq.
+      - rewrite /d/= Rminus_0_l Rabs_Ropp Rabs_pos_eq; last by apply/norm_pos; lra.
+        exact/prp.
+      have := prp m ineq.
+      by rewrite /d/= Rminus_0_l Rabs_Ropp Rabs_pos_eq; last by apply/norm_pos; lra.
+    Qed.
+
     Lemma sbs_lim x:
       limit (fun n => \big[plus/zero]_(0 <= i < n) scal (sval x i) (sbs i)) x.
     Proof.
+      apply/lim_norm.
       
+      have := pnrm_lim.
       
-    Lemma fsys_sbs: fundamental_system (sbs: nat -> lp_NormedModule).
+      rewrite /limit /= => eps eg0.
+    rewrite /d /=.
+      
+    Lemma fsys_sbs: fundamental_system (sbs: nat -> lp).
     Proof.
       move => x eps eg0.
       have neq: p <> 0 by lra.
@@ -661,7 +684,7 @@ Section lp.
       rewrite ppnrm_pnrm ppnrm_lim; case => _ lmt.
       have epg0: 0 < Rabs_power eps p by apply/Rapw_lt; lra.
       have [N prp]:= lmt (`|eps`|^p) epg0.
-      exists (\big[plus/zero]_(0 <= i < N) scal (sval x i) (sbs i : lp_NormedModule)).
+      exists (\big[plus/zero]_(0 <= i < N) scal (sval x i) (sbs i : lp)).
       split.
       - have eltsbs i: (sbs i) \from codom (F2MF sbs) by exists i.
         exists (map (fun i => (sval x i, exist _ _ (eltsbs i))) (iseg id N)).
@@ -669,6 +692,28 @@ Section lp.
         elim: (N) => [ | n ih] ; first by rewrite big_nil.
         by rewrite /= big_cons big_nat_recr //= plus_comm ih.
       rewrite /d /= /norm/=.
+      rewrite -[X in X <= _]Rabs_pos_eq; last exact/norm_pos.
+      rewrite -(Rabs_pos_eq eps); try lra.
+      apply (@Rapw_le_inv p); try lra.
+      apply/Rle_trans/prp; last by have: (N <= N)%nat by trivial.
+      suff ->: \|minus x (\big[plus/zero]_(0<= i < N) scal (sval x i) (sbs i))|
+        =
+        `|d (`|\|x|`|^p) (p_norm_seq p (projT1 x) N.+1)`|^/p.
+      rewrite Rapw_inv; try lra.
+      rewrite Rabs_pos_eq; last exact/dst_pos.
+      exact/Rle_refl.
+      apply/norm_eq; try lra.
+      rewrite /d/=/ptwn_op/ptwn/=.
+      apply/ppnrm_pnrm; split; first exact/Rapw_pos.
+      rewrite Rapw_inv; try lra.
+      rewrite Rabs_pos_eq; last exact/Rabs_pos.
+      rewrite /d/=.
+      eapply/Req_le.
+      
+      Search _ (_ = _ -> _ <= _).
+      Search _ Rabs_power.
       rewrite /d /= in prp.
+      
+
       apply/Rle_trans/(prp N)=>//.
       Search _ "tri" "inv".

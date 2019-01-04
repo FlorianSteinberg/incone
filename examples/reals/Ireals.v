@@ -1,6 +1,7 @@
 From mathcomp Require Import all_ssreflect.
 From rlzrs Require Import all_rlzrs.
-Require Import all_cs_base classical_mach reals.
+From metric Require Import reals.
+Require Import all_cs_base classical_mach.
 Require Import Reals Psatz FunctionalExtensionality ClassicalChoice.
 From Interval Require Import Interval_specific_ops Interval_bigint_carrier.
 From Interval Require Import Interval_interval_float_full Interval_interval.

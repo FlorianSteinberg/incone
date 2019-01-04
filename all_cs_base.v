@@ -1,8 +1,8 @@
 Require Export all_core.
-Require Export cs.cs.
-Require Export cs.sub.
-Require Export cs.prod.
-Require Export cs.facts.
-Require Export cs.sum.
-Require Export cs.func.
-Require Export cs.iso.
+Require Export continuity_spaces.cs
+        continuity_spaces.sub
+        continuity_spaces.prod
+        continuity_spaces.facts
+        continuity_spaces.sum
+        continuity_spaces.func
+        continuity_spaces.iso.

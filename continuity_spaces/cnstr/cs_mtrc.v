@@ -1,14 +1,18 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat.
 From rlzrs Require Import all_rlzrs.
+From metric Require Import reals pointwise metric.
 Require Import all_cs.
-From metric Require Import pointwise reals metric standard.
 Require Import Qreals Reals Psatz ClassicalChoice ChoiceFacts.
 Require Import Morphisms.
+Local Open Scope cs_scope.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Local Open Scope R_scope.
+Local Open Scope cs_scope.
+Notation metric_limit:= metric.limit.
+Notation "x \is_metric_limit_of xn" := (metric_limit xn x) (at level 2): cs_scope.
 Section metric_representation.
   Context (M: MetricSpace) (r: nat -> M). 
   Hypothesis rdense: dense_sequence r.
@@ -41,29 +45,28 @@ Section metric_representation.
   Definition metric_cs := make_cs 0%nat 0%nat nat_count nat_count mrep_sur mrep_sing.
 
   Lemma cnst_dscr n:
-    (cnst n) \describes (r n) wrt metric_cs.
+    (cnst n) \describes (r n) \wrt metric_cs.
   Proof.
     by rewrite /cnst /= dstxx => k; apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
   Qed.
 
-  Lemma cnst_sqnc_dscr n: (cnst n) \describes (cnst (r n)) wrt (metric_cs\^w).
+  Lemma cnst_sqnc_dscr n: (cnst n) \describes (cnst (r n)) \wrt (metric_cs\^w).
   Proof.
     rewrite /cnst /= dstxx => k m.
     by apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
   Qed.
   
   Lemma Q_sqnc_dscr qn:
-    (fun neps => qn neps.1) \describes (fun n => r (qn n)) wrt (metric_cs\^w).
+    (fun neps => qn neps.1) \describes (fun n => r (qn n)) \wrt (metric_cs\^w).
   Proof.
     move => k m; rewrite dstxx.
     by apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
   Qed.
 
-  Notation cs_limit:= cprd.limit.
-  Lemma lim_cs_lim : limit =~= @cs_limit metric_cs.
+  Lemma lim_mlim : @limit metric_cs =~= metric_limit.
   Proof.
     move => xn x.
-    split => [/lim_tpmn/choice [mu prp] | [phin [phi [phinxn [phinx lim]]]]].
+    split; last first => [/lim_tpmn/choice [mu prp] | [phin [phi [phinxn [phinx lim]]]]].
     - have [phin phinxn]:= get_description (xn: metric_cs\^w).
       have [phi phinx]:= get_description (x: metric_cs).
       exists (fun mn => if (mu mn.2.+1 <= mn.1)%nat then phi mn.2.+1 else phin mn).
@@ -99,40 +102,31 @@ Section continuity.
   Context (M N: MetricSpace) (r: nat -> M) (q: nat -> N). 
   Hypothesis rdense: dense_sequence r.
   Hypothesis qdense: dense_sequence q.
-  Hypothesis choice: FunctionalCountableChoice_on (nat -> nat).
-
-  Lemma scnt_cs_scnt (f: metric_cs rdense -> metric_cs qdense):
-    sequentially_continuous f <-> cprd.sequentially_continuous f.
+  Lemma scnt_mscnt (f: metric_cs rdense -> metric_cs qdense):
+    f \is_sequentially_continuous <-> (f \is_sequentially_continuous)%met.
   Proof.
     split => [cont x xn | cont x xn].
-    - by rewrite -!lim_cs_lim; apply/cont.
-    by rewrite !lim_cs_lim; apply/cont.
+    - by rewrite -!lim_mlim; apply/cont.
+    by rewrite !lim_mlim; apply/cont.
   Qed.
 
-  Lemma cs_cont_scnt (f: metric_cs rdense -> metric_cs qdense):
-    f \is_continuous -> sequentially_continuous f.
-  Proof. by move => cont; apply/scnt_cs_scnt/cprd.cont_scnt/cont/choice. Qed.
-
-  Lemma ptw_op_scnt (K: MetricSpace) s (sdense: dense_sequence s)
+  Lemma ptw_op_scnt (K: MetricSpace) s (sdense: @dense_sequence K s)
         (op: metric_cs rdense \*_cs metric_cs qdense -> metric_cs sdense) xn x yn y:
-    op \is_continuous -> @limit M xn x -> @limit N yn y ->
-    @limit K (cptwn_op op (xn,yn)) (op (x,y)).
+    op \is_continuous -> x \is_limit_of xn -> y \is_limit_of yn ->
+    (op (x, y)) \is_limit_of (cptwn_op op (xn,yn)).
   Proof.
-    move => /cprd.cont_scnt cont lmt lmt'.    
+    move => /cont_scnt cont lmt lmt'.    
     have ->: cptw_op op = ptw op \o_f (@cs_zip _ _ _ (metric_cs rdense) (metric_cs qdense)) by trivial.
-    rewrite lim_cs_lim; apply/cont; first exact/choice.
-    by rewrite lim_prd -!lim_cs_lim.
+    apply/cont; first exact/choice.
+    by rewrite lim_prd.
   Qed.
 
   Lemma rlzr_scnt (f: metric_cs rdense -> metric_cs qdense) F:
-    F \realizes (F2MF f) -> seq_cont.sequentially_continuous F -> sequentially_continuous f.
-  Proof.
-    move => rlzr cont x xn; rewrite !lim_cs_lim.
-    exact/rlzr_scnt/cont/rlzr/choice.
-  Qed.
+    F \realizes (F2MF f) -> F \is_sequentially_continuous_operator -> f \is_sequentially_continuous.
+  Proof. by move => rlzr cont x xn; apply/rlzr_scnt/cont/rlzr/choice. Qed.
 
-  Lemma cs_cont_cont (f: metric_cs rdense -> metric_cs qdense):
-    f \is_continuous -> continuous f.
+  Lemma cont_mcont (f: metric_cs rdense -> metric_cs qdense):
+    f \is_continuous -> (f \is_continuous)%met.
   Proof.
     move => [F [/rlzr_F2MF rlzr cont]] x eps epsg0.
     have [phi' phinx]:= get_description (x: metric_cs rdense).
@@ -172,5 +166,4 @@ Section continuity.
     elim L => // a L' ih' /=[ <- | lstn]; first by have:= leq_maxl a (foldr maxn 0 L')%nat.
     by apply/leq_trans; first exact/ih'; have := leq_maxr a (foldr maxn 0 L')%nat.
   Qed.
-  Print Assumptions cs_cont_cont.
 End continuity.

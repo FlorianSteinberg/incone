@@ -6,26 +6,26 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Section BASIC_LEMMAS.
+Local Open Scope cs_scope.
+Section facts.
+  Lemma id_hcr (X: cs): (@mf_id X) \has_continuous_realizer.
+  Proof.
+    exists mf_id; split; first by rewrite F2MF_rlzr_F2MF.
+    by apply cont_F2MF => phi; exists (fun q => [:: q]) => psi q' [-> ].
+  Qed.
 
-Lemma id_hcr (X: cs): (@mf_id X) \has_continuous_realizer.
-Proof.
-exists mf_id; split; first by rewrite F2MF_rlzr_F2MF.
-by apply cntop_F2MF => phi; exists (fun q => [:: q]) => psi q' [-> ].
-Qed.
+  Lemma id_cont (X: cs): (@id X) \is_continuous.
+  Proof. exact/id_hcr. Qed.
 
-Lemma id_cont (X: cs): (@id X) \is_continuous.
-Proof. exact/id_hcr. Qed.
+  Lemma diag_hcr (X: cs):
+    (mf_diag: X ->> cs_prod _ _) \has_continuous_realizer.
+  Proof.
+    exists (F2MF (fun phi => name_pair phi phi)); split; first by rewrite F2MF_rlzr_F2MF.
+    apply cont_F2MF => phi.
+    exists (fun qq' => match qq' with | inl q => [:: q] | inr q' => [:: q'] end) => [[q' psi | q' psi]] [];
+    by rewrite /name_pair => ->.
+  Qed.
 
-Lemma diag_hcr (X: cs):
-	(mf_diag: X ->> cs_prod _ _) \has_continuous_realizer.
-Proof.
-exists (F2MF (fun phi => name_pair phi phi)); split; first by rewrite F2MF_rlzr_F2MF.
-apply cntop_F2MF => phi.
-exists (fun qq' => match qq' with | inl q => [:: q] | inr q' => [:: q'] end) => [[q' psi | q' psi]] [];
-by rewrite /name_pair => ->.
-Qed.
-
-Lemma diag_cont (X: cs): (@diag X: _ -> _ \*_cs _) \is_continuous.
-Proof. exact/diag_hcr. Qed.
-End BASIC_LEMMAS.
+  Lemma diag_cont (X: cs): (@diag X: _ -> _ \*_cs _) \is_continuous.
+  Proof. exact/diag_hcr. Qed.
+End facts.

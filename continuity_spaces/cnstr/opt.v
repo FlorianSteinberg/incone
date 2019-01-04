@@ -11,7 +11,7 @@ Section OPTIONSPACES.
   Context (X: cs).
   Definition rep_opt:= make_mf (fun phi (ox: option X) =>
                match ox with
-               | some x => exists psi, phi =1 Some \o_f psi /\ psi \describes x wrt X
+               | some x => exists psi, phi =1 Some \o_f psi /\ psi \describes x \wrt X
                | None => phi =1 cnst None
                end).
 
@@ -44,7 +44,7 @@ Section OPTIONSPACES.
   Proof.
     exists (F2MF (fun phi => Some \o_f phi)).
     split; first by rewrite F2MF_rlzr_F2MF => phi; exists phi.
-    by rewrite cntop_F2MF => phi; exists (fun q => cons q nil) => q psi [/=<-].
+    by rewrite cont_F2MF => phi; exists (fun q => cons q nil) => q psi [/=<-].
   Qed.
 
   Lemma opt_rec_cont (Y: cs) (y: Y) (f: X -> Y):
@@ -94,8 +94,8 @@ Section OPTIONSPACES.
                                                   | inr x => Some x
                                                   end) \is_continuous.
     - apply/sum_rec_cont/Some_cont.
-      exists (mf_cnst (fun _ => None)).
-      by split; [exact/cnst_rlzr | apply/cnst_cntop].
+      exists (mf_cnst (cnst None)).
+      by split; [exact/cnst_rlzr | rewrite cont_F2MF; apply/cnst_cont].
     exists (exist_c stocont).
     by split; case => //; case.
   Qed.
@@ -107,7 +107,7 @@ Section OPTIONSPACES.
                                | None => somea X
                                | Some a => a
                                end)).
-    split; last by apply/cntop_F2MF => phi; exists (fun q => [:: q]) => q' phi' [ ->].
+    split; last by apply/cont_F2MF => phi; exists (fun q => [:: q]) => q' phi' [ ->].
     rewrite F2MF_rlzr => phi [x [psi [eq psinx]] _ | phinN []] //.
     exists x; split => //.
     suff ->: (fun q => match phi q with | Some a => a | None => somea X end) = psi by trivial.

@@ -1,6 +1,7 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrnat ssrbool.
 From rlzrs Require Import all_rlzrs.
 Require Import classical_count classical_cont classical_mach classical_func all_cs_base dscrt seq_cont sub.
+From metric Require Import pointwise.
 Require Import FunctionalExtensionality ClassicalChoice ChoiceFacts.
 
 Set Implicit Arguments.
@@ -10,13 +11,13 @@ Unset Printing Implicit Defensive.
 Section USIGPROD.
   Context (X: cs) (I: Type).
   Definition rep_Iprod := make_mf (fun phi (xn: I -> X) =>
-    forall i, (fun p => (phi (i,p))) \describes (xn i) wrt X).
+    forall i, (fun p => (phi (i,p))) \describes (xn i) \wrt X).
   
   Lemma rep_Iprod_sur: rep_Iprod \is_cototal.
   Proof.
     move => xn.
-    pose R n phi:= phi \is_description_of (xn n).
-    have [ | phi phiprp]:= choice R; last by exists (fun p => phi p.1 p.2).
+    pose R n phi:= phi \describes (xn n) \wrt X.
+    have [ | phi phiprp]:= @choice _ _ R; last by exists (fun p => phi p.1 p.2).
     by move => n; have [phi phinx]:= (get_description (xn n)); exists phi.
   Qed.
 
@@ -35,7 +36,7 @@ Section USIGPROD.
   Canonical cs_Iprod := continuity_space.Pack cs_Iprod_class.
                   
   Lemma Iprd_base (an: cs_Iprod) (phi: names cs_Iprod):
-    phi \describes an wrt cs_Iprod <-> forall i, (fun q => phi (i,q)) \describes (an i) wrt X.
+    phi \describes an \wrt cs_Iprod <-> forall i, (fun q => phi (i,q)) \describes (an i) \wrt X.
   Proof. done. Qed.
 End USIGPROD.
 Notation "X '\^w'" :=
@@ -73,7 +74,7 @@ Section isomorphisms.
 
   Lemma sig2fun_rlzr_cntop: sig2fun_rlzr \is_continuous_operator.
   Proof.
-    rewrite F2MF_cont_choice => phi Lq'.
+    rewrite cont_F2MF F2MF_cont_choice => phi Lq'.
     case E: Lq'.1 => [ | n L]; first by exists [::] => psi _; rewrite /sig2fun_rlzrf E.
     by exists ([:: (n, Lq'.2)]); rewrite /sig2fun_rlzrf E => psi [->].
   Qed.
@@ -141,14 +142,16 @@ Section isomorphisms.
     | inr q' => phipsi (inr (iqq'.1, q'))
     end.
 
+  Local Open Scope baire_scope.
   Lemma zip_rlzr_cntop Q A Q' A':
-    continuous_operator_f (@zip_rlzrf Q A Q' A').
+    (@zip_rlzrf Q A Q' A') \is_continuous_function.
   Proof.
     move => phi.
     exists (fun iqq' => [::match iqq'.2 with | inl q => inl (iqq'.1,q) | inr q' => inr (iqq'.1, q') end]).
     by rewrite /zip_rlzrf; move => [i [q | q']] psi [/= ->].
   Qed.
-
+  Local Close Scope baire_scope.
+  
   Definition zip_rlzr: questions (X\^I \*_cs Y\^I) ->> questions ((X \*_cs Y)\^I):=
     F2MF (@zip_rlzrf _ _ _ _).
   
@@ -162,7 +165,7 @@ Section isomorphisms.
 
   Lemma zip_cont: cs_zip \is_continuous.
   Proof.
-    by exists zip_rlzr; split; [exact/zip_rlzr_spec | exact/cntop_F2MF/zip_rlzr_cntop].
+    by exists zip_rlzr; split; [exact/zip_rlzr_spec | exact/cont_F2MF/zip_rlzr_cntop].
   Qed.
               
   Definition cs_unzip (xyn: (X \*_cs Y)\^I): X\^I \*_cs Y\^I:=
@@ -174,13 +177,15 @@ Section isomorphisms.
     | inr iq' => phipsi (iq'.1, inr iq'.2)
     end.
 
+  Local Open Scope baire_scope.
   Lemma nzip_rlzr_cntop Q A Q' A':
-    continuous_operator_f (@nzip_rlzrf Q A Q' A').
+    (@nzip_rlzrf Q A Q' A') \is_continuous_function.
   Proof.
     move => phi.
     exists (fun iqiq' => [::match iqiq' with | inl iq => (iq.1, inl iq.2) | inr iq' => (iq'.1, inr iq'.2) end]).
     by rewrite /nzip_rlzrf; move => [iq | iq'] psi [/= ->].
   Qed.
+  Local Close Scope baire_scope.
 
   Definition nzip_rlzr: questions ((X \*_cs Y)\^I) ->> questions (X\^I \*_cs Y\^I):=
     F2MF (@nzip_rlzrf _ _ _ _).
@@ -194,7 +199,7 @@ Section isomorphisms.
 
   Lemma nzip_cont: cs_unzip \is_continuous.
   Proof.
-    by exists nzip_rlzr; split; [exact/nzip_rlzr_spec | exact/cntop_F2MF/nzip_rlzr_cntop].
+    by exists nzip_rlzr; split; [exact/nzip_rlzr_spec | exact/cont_F2MF/nzip_rlzr_cntop].
   Qed.
 
   Lemma cprd_prd: (X\^I \*_cs Y\^I) ~=~ ((X \*_cs Y)\^I).
@@ -257,7 +262,7 @@ Section pointwise.
       move => i.
       by have []//:= rlzr (fun q => phin (i, q)) (xs i); first by exists (ys i).
     suff /choice [fa prp]: forall i, exists fai,
-                    (fun q' => Fphi (i, q')) \describes fai wrt Y
+                    (fun q' => Fphi (i, q')) \describes fai \wrt Y
                     /\
                     f (xs i) fai. 
     - by exists fa; split => i; have []:= prp i.
@@ -340,7 +345,7 @@ Section pointwise.
     rewrite rlzr_F2MF; split => [phi [xn yn] [/= phinxn phinyn] | ].
     - have nms n: (np (fun q : queries X => lprj phi (n, q))
 		      (fun q : queries X => rprj phi (n, q)))
-                    \describes (xn n, yn n) wrt (X \*_cs X).
+                    \describes (xn n, yn n) \wrt (X \*_cs X).
       + by split => /=; [apply/phinxn | apply/phinyn].
       split => [ | psi FpsiFpsi n].
       + have fd n:= (Frop (np (fun q => lprj phi (n, q))
@@ -373,20 +378,21 @@ Notation cptwn_op := (@cptw_op nat 0%nat nat_count).
 Notation ptwn_op := (@ptw_op nat).
 Notation ptwn := (@ptw nat).
 
-Section limit.
+Section limits.
   Definition limit X: X\^w ->> X:= make_mf (fun xn x =>
     exists phin phi,
-      phin \describes xn wrt (X\^w)
+      phin \describes xn \wrt (X\^w)
       /\
-      phi \describes x wrt X
+      phi \describes x \wrt X
       /\
-      baire_limit (uncurry phin) phi).
+      (phi \is_limit_of (uncurry phin))%baire).
   Arguments limit {X}.
-  
-  Lemma lim_prd (X Y: cs) xn x yn y:
-    limit (cs_zip (xn, yn)) (x, y)
+  Local Notation "x \is_limit_of xn" := (limit xn x).
+
+  Lemma lim_prd (X Y: cs) xn (x: X) yn (y: Y):
+    (x, y) \is_limit_of (cs_zip (xn, yn))
     <->
-    @limit X xn x /\ @limit Y yn y.
+    x \is_limit_of xn /\ y \is_limit_of yn.
   Proof.
     split => [[phipsin [phipsi [nm [[lnm rnm] lmt]]]] |].
     - split.
@@ -424,17 +430,21 @@ Section limit.
   Qed.
 
   Definition sequential_continuity_point (X Y: cs) (f: X -> Y) x:=
-    forall xn, limit xn x -> limit (ptw f xn) (f x).
-
+    forall xn, x \is_limit_of xn -> (f x) \is_limit_of (ptw f xn).
+  Local Notation "f \is_sequentially_continuous_in x" := (sequential_continuity_point f x).
+  
   Definition sequential_continuity_points (X Y: cs) (f: X -> Y):=
     make_subset (fun x => sequential_continuity_point f x).
   
   Definition sequentially_continuous (X Y: cs) (f : X -> Y):=
     forall x, sequential_continuity_point f x.
-
+  Local Notation "f \is_sequentially_continuous" := (sequentially_continuous f).
+  Local Notation "F \is_sequentially_continuous_operator":= (seq_cont.sequentially_continuous F) (at level 30).
+  
   Lemma rlzr_scnt (X Y: cs) (f: X -> Y) F:
     FunctionalCountableChoice_on (questions Y) ->
-    F \realizes (F2MF f) -> seq_cont.sequentially_continuous F -> sequentially_continuous f.
+    F \realizes (F2MF f) -> F \is_sequentially_continuous_operator ->
+    f \is_sequentially_continuous.
   Proof.
     move => choice /rlzr_F2MF rlzr cont x xn [phin [phi [phinxn [phinx lmt]]]].
     have [[Fphi val] prp]:= rlzr _ _ phinx.
@@ -450,6 +460,10 @@ Section limit.
 
   Lemma cont_scnt (X Y: cs) (f: X -> Y):
     FunctionalCountableChoice_on (questions Y) -> f \is_continuous -> sequentially_continuous f.
-  Proof. move => choice [F [rlzr /cntop_scnt cont]]; exact/rlzr_scnt/cont. Qed.
-End limit.
+  Proof. move => choice [F [rlzr /cont_scnt cont]]; exact/rlzr_scnt/cont. Qed.
+End limits.
 Arguments limit {X}.
+Notation "x \is_limit_of xn" := (limit xn x): cs_scope.
+Notation "f \is_sequentially_continuous_in x" := (sequential_continuity_point f x): cs_scope.
+Notation "f \is_sequentially_continuous" := (sequentially_continuous f): cs_scope.
+Notation "F \is_sequentially_continuous_operator":= (seq_cont.sequentially_continuous F) (at level 2): cs_scope.

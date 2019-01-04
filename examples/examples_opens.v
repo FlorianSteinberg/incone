@@ -18,14 +18,14 @@ Lemma all_open X: exists (O: \O(X)), (O2SS O) === All.
 Proof.
 suff cont: (fun (_: X) => top: cs_Sirp) \is_continuous by exists (exist_c cont).
 exists (F2MF (fun phi q => true)).  
-by split; [apply/F2MF_rlzr_F2MF; split => //; exists 0 | apply cnst_cntop].
+by split; [apply/F2MF_rlzr_F2MF; split => //; exists 0 | rewrite cont_F2MF; apply cnst_cont].
 Qed.
 
 Lemma empty_open X: exists (O: \O(X)), (O2SS O) === empty.
 Proof.
 suff cont: (fun (_: X) => bot: cs_Sirp) \is_continuous by exists (exist_c cont).
 exists (F2MF (fun phi q => false)).  
-by split; [apply/F2MF_rlzr_F2MF; split => [[] | ] | apply cnst_cntop].
+by split; [apply/F2MF_rlzr_F2MF; split => [[] | ] | rewrite cont_F2MF; apply cnst_cont].
 Qed.
   
 Notation "\A( X )" := (opens X) (at level 2, format "'\A(' X ')'").

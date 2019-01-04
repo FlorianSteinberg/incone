@@ -15,7 +15,6 @@ Proof.
 Qed.
 
 Section subspace.
-
   Context (X: cs) (P: subset X).
   Definition rep_sub:=  make_mf (fun phi (t: {x | P x}) => rep X phi (sval t)).
 
@@ -36,6 +35,7 @@ Section subspace.
 End subspace.
 
 Section subspaces.
+  Local Open Scope cs_scope.
   Definition sub_fun S T (A: subset S) (f: S -> T) (a: A) := f (sval a).
   Arguments sub_fun {S} {T} (A).
   
@@ -57,4 +57,4 @@ Section subspaces.
   Lemma sub_cont (X Y: cs) (A: subset X) (f: X -> Y):
     f \is_continuous -> (@sub_fun X Y A f) \is_continuous.
   Proof. exact/sub_hcr. Qed.
-End subspaces.   
+End subspaces.

@@ -44,8 +44,8 @@ the Cantor space and the two point space are equipped with.**)
 Lemma nz_bool_not_cont: ~ nz_bool \has_continuous_realizer.
 Proof.
 move => [F [rlzr cont]].
-have nmb: xpred0 \describes false wrt cs_bool by trivial.
-have nmc: xpred0 \describes xpred0 wrt Cantor by trivial.
+have nmb: xpred0 \describes false \wrt cs_bool by trivial.
+have nmc: xpred0 \describes xpred0 \wrt Cantor by trivial.
 have [ | [Fxpred0 val] prp]:= rlzr xpred0 xpred0 nmc.
 - by exists false; split => // [[]].
 have [b [Fxnf [[]]]]//:= prp Fxpred0 val.
@@ -58,7 +58,7 @@ have nz_valtrue: nz_bool chi true by split => // _; exists N.+1; rewrite /chi lt
 suff nz_valfalse: nz_bool chi false by have:= (nz_bool_sing nz_valtrue nz_valfalse).
 have [psi psinchi] := get_description (chi: Cantor).  
 have [ | [Fpsi val'] cnd]:= rlzr psi chi psinchi; first exact/nz_bool_tot.
-suff Fpsinf: Fpsi \is_description_of (false: cs_bool).
+suff Fpsinf: Fpsi \describes (false: cs_bool) \wrt _.
 - by have [b [Fpsinb ]]:= cnd Fpsi val'; have ->:= (rep_sing Fpsinb Fpsinf).  
 rewrite /= -Fxnf; apply/mod/val'.
 apply/coin_lstn => [[n []]] lstn; rewrite psinchi.
@@ -146,7 +146,7 @@ Qed.
 
 Lemma nz_rlzr_cntop: nzS_rlzr \is_continuous_operator.
 Proof.
-by rewrite cntop_F2MF => phi; exists (fun q => [:: (q, tt)]) => psi q [ -> _].  
+by rewrite cont_F2MF => phi; exists (fun q => [:: (q, tt)]) => psi q [ -> _].  
 Qed.
   
 Lemma nz_Sirp_cont: nz_Sirp \has_continuous_realizer.

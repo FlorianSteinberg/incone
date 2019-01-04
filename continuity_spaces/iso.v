@@ -7,6 +7,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+Local Open Scope cs_scope.
 Section isomorphisms.
 Definition isomorphism (X Y: cs) (f: X c-> Y) :=
 	exists (g: Y c-> X), cancel (projT1 f) (projT1 g) /\ cancel (projT1 g) (projT1 f).

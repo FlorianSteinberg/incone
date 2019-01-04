@@ -59,13 +59,14 @@ exists (fun n => match pcnt n with
 by move => t; have [n eq]:= sur t; exists n; rewrite eq.
 Qed.
 
-Lemma scnt_cntop Q A Q' A' (F: (Q -> A) ->> (Q' -> A')):
-  Q \is_countable -> sequentially_continuous F -> F \is_continuous_operator.
+Local Open Scope baire_scope.
+Lemma scnt_cont Q A Q' A' (F: (Q -> A) ->> (Q' -> A')):
+  Q \is_countable -> F \is_sequentially_continuous -> F \is_continuous.
 Proof.
   move => [cnt' [sing cotot]].
   case: (classic (inhabited Q)) => [[someq] | neg]; last first.
   - move => scnt phi Fphi val; exists (fun _ => nil) => q' phi' coin Fphi' val'.
-    suff lmt: baire_limit (fun _ => Fphi') Fphi.
+    suff lmt: Fphi \is_limit_of (cnst Fphi').
     + by have [n prp]:= lmt [:: q']; have []//:= prp n.
     apply/scnt/val; last by move => n; apply/val'.
     move => L; exists 0 => m ineq.
@@ -95,7 +96,7 @@ Proof.
       by exists Fpsi; apply/(not_imply_elim _ _ cnd').
     apply/cnd => coin Fpsi' val''.
     by rewrite (scnt_sing scnt val'' val').
-  have lmt: baire_limit phin phi.
+  have lmt: phi \is_limit_of phin.
   - move => L; exists (max_elt sec L) => m ineq.
     apply/coin_subl/(phinprp m).1.
     exact/subl_trans/iseg_subl/ineq/iseg_melt.

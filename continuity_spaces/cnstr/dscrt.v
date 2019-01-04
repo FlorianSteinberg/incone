@@ -7,6 +7,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+Local Open Scope cs_scope.
 Section discreteness.
   Definition discrete (X: cs) := forall (Y: cs) (f: X -> Y), f \is_continuous.
 
@@ -44,11 +45,11 @@ Section cs_id.
     discrete cs_id.
   Proof.
     move => Y f.
-    pose R:= make_mf (fun phi psi => psi \is_description_of (f (phi tt))).
+    pose R:= make_mf (fun phi psi => psi \describes (f (phi tt)) \wrt Y).
     have Rtot: R \is_total by move => phi; apply/rep_sur.
     have [F icf]:= choice _ Rtot.
     exists (F2MF F); split; first by rewrite F2MF_rlzr_F2MF => fn n <-/=; apply/icf.
-    rewrite F2MF_cont_choice => phi q'; exists [::tt] => psi [eq _].
+    rewrite cont_F2MF F2MF_cont_choice => phi q'; exists [::tt] => psi [eq _].
     by have ->: phi = psi by apply functional_extensionality => str; elim str.
   Qed.
 End cs_id.
@@ -74,7 +75,7 @@ Lemma unit_fun_rlzr_spec (X: cs) : (@unit_fun_rlzr X) \realizes (F2MF (@unit_fun
 Proof. by rewrite F2MF_rlzr_F2MF. Qed.
 
 Lemma unit_fun_rlzr_cntop (X: cs): (@unit_fun_rlzr X) \is_continuous_operator.
-Proof. by rewrite cntop_F2MF; exists (fun _ => nil). Qed.
+Proof. by rewrite cont_F2MF; exists (fun _ => nil). Qed.
 
 Lemma unit_fun_cont (X: cs): (@unit_fun X) \is_continuous.
 Proof.
@@ -122,7 +123,7 @@ Section NATURALS.
   Proof.
     exists (F2MF (fun phi q =>S (phi q))).
     split; first by rewrite F2MF_rlzr => /= n phi -> [m]; by exists m.
-    by rewrite cntop_F2MF => phi; exists (fun _ => [:: tt]) => str psi []; elim: str => ->.
+    by rewrite cont_F2MF => phi; exists (fun _ => [:: tt]) => str psi []; elim: str => ->.
   Qed.
 
   Lemma nat_dscrt (X: cs) (f: cs_nat -> X): f \is_continuous.
@@ -133,6 +134,6 @@ Section NATURALS.
   Proof.
     exists (F2MF (fun phi q => f (phi (inl tt)).1 (phi (inr tt)).2)).
     split; first by rewrite F2MF_rlzr_F2MF => phi [n m] [/= <- <-].
-    by rewrite cntop_F2MF => phi; exists (fun _ => [:: inl tt; inr tt]) => psi str [-> [->]].
+    by rewrite cont_F2MF => phi; exists (fun _ => [:: inl tt; inr tt]) => psi str [-> [->]].
   Qed.
 End NATURALS.

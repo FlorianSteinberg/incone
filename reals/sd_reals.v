@@ -1,7 +1,8 @@
 From mathcomp Require Import all_ssreflect all_algebra.
 From rlzrs Require Import all_rlzrs.
 Require Import FunctionalExtensionality.
-Require Import all_cs reals mtrc mstrd Rstruct under.
+Require Import all_cs Rstruct under.
+From metric Require Import reals metric standard.
 Require Import Reals Qreals Psatz ClassicalChoice.
 
 Import GRing.Theory.
@@ -137,7 +138,7 @@ Qed.
 Lemma cchy_SDs2Rn sds :	Cauchy_sequence (SDs2Rn sds).
 Proof. exact/fchy_cchy/fchy_SDs2Rn. Qed.
 
-Definition SDs2R := metric_limit \o (F2MF SDs2Rn).
+Definition SDs2R := limit \o (F2MF SDs2Rn).
 
 Lemma SDs2R_tot: SDs2R \is_total.
 Proof.

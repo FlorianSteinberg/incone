@@ -1,6 +1,7 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat.
 From rlzrs Require Import all_rlzrs.
-Require Import all_cs reals mtrc mstrd.
+Require Import all_cs.
+From metric Require Import pointwise reals metric standard.
 Require Import Qreals Reals Psatz ClassicalChoice ChoiceFacts.
 Require Import Morphisms.
 
@@ -8,10 +9,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Local Open Scope R_scope.
-Print Scopes.
-
-Axiom nat_choice: FunctionalCountableChoice_on nat.
-
 Section metric_representation.
   Context (M: MetricSpace) (r: nat -> M). 
   Hypothesis rdense: dense_sequence r.
@@ -118,8 +115,8 @@ Section continuity.
 
   Lemma ptw_op_scnt (K: MetricSpace) s (sdense: dense_sequence s)
         (op: metric_cs rdense \*_cs metric_cs qdense -> metric_cs sdense) xn x yn y:
-    op \is_continuous -> @metric_limit M xn x -> @metric_limit N yn y ->
-    @metric_limit K (cptwn_op op (xn,yn)) (op (x,y)).
+    op \is_continuous -> @limit M xn x -> @limit N yn y ->
+    @limit K (cptwn_op op (xn,yn)) (op (x,y)).
   Proof.
     move => /cprd.cont_scnt cont lmt lmt'.    
     have ->: cptw_op op = ptw op \o_f (@cs_zip _ _ _ (metric_cs rdense) (metric_cs qdense)) by trivial.

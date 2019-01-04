@@ -1,6 +1,7 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat eqtype.
 From rlzrs Require Import all_rlzrs.
-Require Import all_cs reals mtrc mstrd Qmtrc cs_mtrc.
+Require Import all_cs cs_mtrc.
+From metric Require Import reals metric standard Qmetric.
 Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
 
 Set Implicit Arguments.
@@ -217,7 +218,7 @@ depends on the size of the inputs *)
   End multiplication.
 
   Section limit.
-    Notation lim:= (@metric_limit metric_R).
+    Notation lim:= (@limit metric_R).
     Notation lim_eff:= (@efficient_limit metric_R).
 
     Lemma cnst_dscr q: (cnst q) \describes (Q2R q) wrt RQ.

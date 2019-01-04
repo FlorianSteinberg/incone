@@ -38,15 +38,9 @@ all_cs_base.v
 cnstr/dscrt.v
 cnstr/opt.v
 cnstr/cprd.v
+cnstr/cs_mtrc.v
 cnstr/sets.v
 all_cs.v
-
-mtrc/reals.v
-mtrc/mtrc.v
-mtrc/mstrd.v
-mtrc/cs_mtrc.v
-mtrc/Qmtrc.v
-mtrc/mclct.v
 
 reals/Rstruct.v
 reals/under.v

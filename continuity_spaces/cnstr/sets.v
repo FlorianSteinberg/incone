@@ -1,152 +1,185 @@
 From mathcomp Require Import all_ssreflect.
 From rlzrs Require Import all_rlzrs.
 Require Import all_cs_base classical_func dscrt cprd.
-Require Import Classical.
+Require Import Classical Morphisms.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Section SIERPINSKISPACE.
-Inductive Sirp := top | bot.
+Section Sirpinskispace.
+  Definition Sirp := (option unit).
 
-Definition rep_Sirp := make_mf (fun phi s => (exists n:nat, phi n = true) <-> s = top).
+  Definition rep_Sirp := make_mf (fun phi s => (exists n:nat, phi n = true) <-> s = Some tt).
 
-Lemma rep_Sirp_sur: rep_Sirp \is_cototal.
-Proof.
-case; first by exists (fun _ => true); split => // _; exists 0.
-by exists (fun _ => false); split => //; case.
-Qed.
-
-Lemma rep_Sirp_sing: rep_Sirp \is_singlevalued.
-Proof.
-move => phi s s' [imp imp'] [pmi pmi'].
-case: s imp imp' => [_ []// n val | prp _]; first by case: s' pmi pmi' => [_ []// | -> //]; exists n.
-by case: s' pmi pmi' => // _[]// n val; apply prp; exists n.
-Qed.
-
-Canonical cs_Sirp_class:= @continuity_space.Class _ _ _
-  (interview.Mixin rep_Sirp_sur) (dictionary.Mixin rep_Sirp_sing)
-  (continuity_space.Mixin 0%nat false nat_count bool_count).
-
-Canonical cs_Sirp:= continuity_space.Pack cs_Sirp_class.
-End SIERPINSKISPACE.
-
-Section Kleeneans.
-Inductive Kleeneans := false_K | true_K | bot_K.
-
-Definition rep_K := make_mf (fun phi (t: Kleeneans) =>
-	match t with
-		| false_K => exists (n: nat), phi n = Some false /\ forall m, m < n -> phi m = None
-		| true_K => exists (n: nat), phi n = Some true /\ forall m, m < n -> phi m = None
-		| bot_K => forall n, phi n = None
-	end).
-
-Lemma rep_K_sur: rep_K \is_cototal.
-Proof.
-by case; [exists (fun _ => Some false) | exists (fun _ => Some true) | exists (fun _ => None)]; try exists 0.
-Qed.
-
-Lemma rep_K_sing: rep_K \is_singlevalued.
-Proof.
-move => phi t t'.
-case: t; case t' => //; try (move => [n [eq prp]] prp'; by rewrite prp' in eq);
-  try (move => prp; case => n []; by rewrite prp); move => [n [eq prp]] [m []].
-- case/orP: (leq_total m n) => ineq; rewrite leq_eqVlt in ineq.
-  - by case/orP: ineq => [/eqP -> | ineq]; [rewrite eq | rewrite prp].
-  by case/orP: ineq => [/eqP <- | ineq eq' prp']; [rewrite eq | rewrite prp' in eq].
-case/orP: (leq_total m n) => ineq; rewrite leq_eqVlt in ineq.
-- by case/orP: ineq => [/eqP -> | ineq]; [rewrite eq | rewrite prp].
-by case/orP: ineq => [/eqP <- | ineq eq' prp']; [rewrite eq | rewrite prp' in eq].
-Qed.
-
-Canonical cs_Kleeneans_class:= @continuity_space.Class _ _ _
-  (interview.Mixin rep_K_sur) (dictionary.Mixin rep_K_sing)
-  (continuity_space.Mixin 0%nat None nat_count (option_count bool_count)).
-Canonical cs_Kleeneans:= continuity_space.Pack cs_Kleeneans_class.
-End Kleeneans.
-
-Section Opens.
-  Definition opens (X: cs):= X c-> cs_Sirp.
-  Notation "\O( X )" := (opens X) (at level 2, format "'\O(' X ')'").
-  
-  Definition OO_fun (X: cs) (x: X) := (point_evaluation cs_Sirp x) : \O(\O(X)).
-
-  Lemma OO_fun_cont (X: cs): (@OO_fun X) \is_continuous.
-  Proof. exact/ptvl_cont. Qed.  
-  
-  Definition admissible (X: cs) := F2MF (@OO_fun X)\^-1 \has_continuous_realizer.
-
-  Lemma ON_iso_Sirpw : \O(cs_nat) ~=~ (cs_Sirp\^w).
-  Proof. by rewrite/opens sig_iso_fun; apply iso_ref. Qed.
-
-  Definition O2SS X (O: \O(X)) := make_subset (fun x => projT1 O x = top).
-
-  Lemma all_open X: exists (O: \O(X)), (O2SS O) === All.
+  Lemma rep_Sirp_sur: rep_Sirp \is_cototal.
   Proof.
-    suff cont: (fun (_: X) => top: cs_Sirp) \is_continuous by exists (exist_c cont).
-    exists (F2MF (fun phi q => true)).  
+    case => [[] | ].
+    - by exists (cnst true); split => // _; exists 0.
+    by exists (cnst false); split => //; case.
+  Qed.
+
+  Lemma rep_Sirp_sing: rep_Sirp \is_singlevalued.
+  Proof.
+    move => phi s s' [imp imp'] [pmi pmi'].
+    case E: s => [[]]; first by symmetry; apply/pmi/imp'.
+    by case E': s' => [[]]; first by rewrite -E; apply/imp/pmi'.
+  Qed. 
+
+  Canonical cs_Sirp_class:= @continuity_space.Class _ _ _
+    (interview.Mixin rep_Sirp_sur) (dictionary.Mixin rep_Sirp_sing)
+    (continuity_space.Mixin 0%nat false nat_count bool_count).
+
+  Canonical cs_Sirp:= continuity_space.Pack cs_Sirp_class.
+  Local Notation top := (Some tt: Sirp).
+  Local Notation bot := (None: Sirp).
+
+  Context (X: Type).
+
+  Definition CF2SS (chi: X -> cs_Sirp) := make_subset (fun (t: X) => chi t = top).
+
+  Lemma CF2SS_spec chrf: CF2SS chrf === dom (PF2MF (chrf)).
+  Proof. by move => x /=; case: (chrf x) => [[]]//; split => //; [exists tt | case]. Qed.
+
+  Definition characteristic_function (A: subset X) :=
+    make_mf (fun x (s: cs_Sirp) => s = top <-> x \from A).
+  Local Notation "'chi_' A":= (characteristic_function A) (at level 2, format "'chi_' A").
+
+  Global Instance chrf_prpr: Proper (@set_equiv X ==> @equiv X cs_Sirp) characteristic_function.
+  Proof. by move => O U eq x s /=; rewrite eq. Qed.
+
+  Lemma chrf_sing A: chi_ A \is_singlevalued.
+  Proof.
+    move => x s s' /= [imp imp'] [pmi pmi'].
+    case E: s => [[]]; symmetry; first exact/pmi'/imp.
+    by case E': s' => [[]]//; rewrite -E; symmetry; apply/imp'/pmi.
+  Qed.
+
+  Lemma chrf_tot A: chi_ A \is_total.
+  Proof. by move => x; case: (classic (x \from A)); [exists top | exists bot]. Qed.
+
+  Lemma chrf_CF2SS chrf: chi_ (CF2SS chrf) =~= F2MF chrf.
+  Proof.
+    move => x [[] | ] /=; first by split => [[->] | ]//.
+    by split => [[] | ->]//; case: (chrf x) => // [[_ prp]]; symmetry; apply/prp.
+  Qed.
+
+  Lemma SF2SS_chrf A f: F2MF f =~= chi_ A -> CF2SS f === A.
+  Proof. by move => eq x /=; have /=-> := eq x top; split => [<- | ]//. Qed.
+End Sirpinskispace.
+Notation top := (Some tt).
+Notation bot := (@None unit).
+Notation "'chi_' A":= (characteristic_function A) (at level 2, format "'chi_' A").
+
+Section Opens_and_closeds.
+  Context (X: cs).
+
+  Definition cs_opens:= X c-> cs_Sirp.
+  Notation "\O( X )" := cs_opens (at level 2, format "'\O(' X ')'").
+  
+  Definition O2SS (O: \O(X)) := CF2SS (sval O).
+
+  Lemma O2SS_spec O: O2SS O === dom (PF2MF (sval O)).
+  Proof. exact/CF2SS_spec. Qed.
+
+  Definition open O := exists (O': \O(X)), O === O2SS O'.
+
+  Global Instance open_prpr: Proper (@set_equiv X ==> iff) open.
+  Proof.
+    move => O U eq; split => [[O' eq'] | [O' eq']]; exists O'.
+    - by rewrite -eq.
+    by rewrite eq.
+  Qed.
+  
+  Lemma open_open (O: \O(X)): open (O2SS O).
+  Proof. by exists O. Qed.
+    
+  Lemma chrf_open (O: subset X):
+    open O <-> chi_ O \has_continuous_realizer.
+  Proof.
+    split => [[U ->] | cont].
+    - by rewrite chrf_CF2SS; move: U => [U /ass_cont cont/=].
+    have [ | chrf eq]:= (choice_mf.fun_spec (chi_ O) top).2.
+    - by split; [apply/chrf_sing | apply/chrf_tot].
+    rewrite <-eq in cont; exists (exist_c cont) => x.
+    split => [Ox/= | [[/= eq']]]; first by apply/eq.
+    by apply/((eq x top).1 eq').1.
+  Qed.
+
+  Lemma all_open: open (@All X).
+  Proof.
+    suff cont: (cnst top: X -> cs_Sirp) \is_continuous by exists (exist_c cont).
+    exists (mf_cnst (cnst true)).  
     by split; [apply/F2MF_rlzr_F2MF; split => //; exists 0 | rewrite cont_F2MF; apply cnst_cont].
   Qed.
 
-  Lemma empty_open X: exists (O: \O(X)), (O2SS O) === empty.
+  Lemma empty_open: open (@empty X).
   Proof.
-    suff cont: (fun (_: X) => bot: cs_Sirp) \is_continuous by exists (exist_c cont).
+    suff cont: (cnst bot: X -> cs_Sirp) \is_continuous.
+    - by exists (exist_c cont) => x; split; last case.
     exists (F2MF (fun phi q => false)).  
     by split; [apply/F2MF_rlzr_F2MF; split => [[] | ] | rewrite cont_F2MF; apply cnst_cont].
   Qed.
-End Opens.
-Notation "\O( X )" := (opens X) (at level 2, format "'\O(' X ')'").
 
-Section Closeds.  
-  Definition complement X (A: X -> Sirp) x :=
+  Definition complement (A: X -> Sirp) x := 
     match A x with
-    | top => bot
-    | bot => top
+    | Some _ => bot
+    | None => top
     end.
-
-  Arguments complement {X}.
-  Lemma complement_involutive X: involutive (@complement X).
+  
+  Lemma complement_involutive: involutive complement.
   Proof.
-    move => A; rewrite /complement.
-    apply/functional_extensionality => x.  
-    by case: (A x).
+    move => A; apply/functional_extensionality => x.
+    by rewrite /complement; case: (A x) => //; case.
   Qed.
 
-  Definition closeds (X: cs):= make_subset (fun (A: X -> cs_Sirp) =>
-                                              (complement A) \is_continuous).
-
-  Lemma clos_open (X: cs) A: A \from (closeds X) <-> exists (O: \O(X)), projT1 O = complement A.
+  Definition closeds:= make_subset (fun (A: X -> cs_Sirp) => (complement A) \is_continuous).
+  
+  Lemma clos_open A: A \from closeds <-> exists (O: \O(X)), projT1 O = complement A.
   Proof. by split => [cont | [[O /ass_cont Ocont/=] <-]]; first by exists (exist_c cont). Qed.
 
-  Definition rep_clsd X := make_mf (fun phi (A: closeds X) =>
-                                      associate X cs_Sirp phi (complement (projT1 A))).
+  Definition rep_clsd := make_mf (fun phi (A: closeds) =>
+                                    associate X cs_Sirp phi (complement (projT1 A))).
 
-  Lemma rep_clsd_sur X: (@rep_clsd X) \is_cototal.
+  Lemma rep_clsd_sur: rep_clsd \is_cototal.
   Proof. by move => [A /ass_cont [psi ass]/=]; exists psi. Qed.
   
-  Lemma rep_clsd_sing X: (@rep_clsd X) \is_singlevalued.
+  Lemma rep_clsd_sing: rep_clsd \is_singlevalued.
   Proof.
     move => phi A A' /= phinA phinA'; apply/eq_sub => /=.
     rewrite -(complement_involutive (sval A)) -(complement_involutive (sval A')).
     by have ->:= choice_dict.mf_rlzr_f_sing phinA phinA'.
   Qed.  
 
-  Definition cs_closeds X := make_cs (someq \O(X))
-                                     (somea \O(X))
-                                     (Q_count \O(X))
-                                     (A_count \O(X))
-                                     (@rep_clsd_sur X)
-                                     (@rep_clsd_sing X).
+  Definition cs_closeds:= make_cs (someq \O(X))
+                                  (somea \O(X))
+                                  (Q_count \O(X))
+                                  (A_count \O(X))
+                                  rep_clsd_sur
+                                  rep_clsd_sing.
 
-  Local Notation "\A( X )" := (cs_closeds X) (at level 2, format "'\A(' X ')'").
+  Local Notation "\A(X)" := cs_closeds.
 
-  Lemma complement_closed X (O: \O(X)): complement (sval O) \from closeds X.
+  Definition A2SS (A: \A(X)) := CF2SS (sval A).
+
+  Lemma A2SS_spec A: A2SS A === dom (PF2MF (sval A)).
+  Proof. exact/CF2SS_spec. Qed.
+  
+  Definition closed (A: subset X) := exists (A': \A(X)), A === A2SS A'.
+
+  Global Instance clsd_prpr: Proper (@set_equiv X ==> iff) closed.
+  Proof.
+    move => A B eq; split => [[A' eq'] | [A' eq']]; exists A'.
+    - by rewrite -eq'; symmetry.
+    by rewrite -eq'.
+  Qed.
+
+  Lemma complement_closed (O: \O(X)): complement (sval O) \from closeds.
   Proof. by move: O => [O /ass_cont /=]; rewrite complement_involutive. Qed.
 
-  Definition complement_opens X (O: \O(X)): \A(X) := exist _ _ (complement_closed O).
+  Definition complement_opens (O: \O(X)): \A(X) := exist _ _ (complement_closed O).
 
-  Lemma cmplO_cont X: (@complement_opens X) \is_continuous.
+  Lemma cmplO_cont: complement_opens \is_continuous.
   Proof.
     exists mf_id.
     split; last by apply /cont_F2MF => phi; exists (fun n => [:: n]) => q' psi [].
@@ -158,12 +191,12 @@ Section Closeds.
     by rewrite complement_involutive.
   Qed.
 
-  Lemma complement_open X (A: \A(X)): (complement (sval A)) \is_continuous.
+  Lemma complement_open (A: \A(X)): (complement (sval A)) \is_continuous.
   Proof. by case: A. Qed.
 
-  Definition complement_closeds X (A: \A(X)): \O(X) := exist_c (complement_open A).
+  Definition complement_closeds (A: \A(X)): \O(X) := exist_c (complement_open A).
   
-  Lemma cmplA_cont X: (@complement_closeds X) \is_continuous.
+  Lemma cmplA_cont: complement_closeds \is_continuous.
   Proof.
     exists mf_id.
     split; last by apply/cont_F2MF => phi; exists (fun n => [:: n]) => q' psi [].
@@ -171,36 +204,84 @@ Section Closeds.
     by have [ | dm prp]:= psinA phi x phinx; first by exists (complement (sval A) x).
   Qed.
   
-  Lemma clsd_iso_open X: \O(X) ~=~ \A(X).
+  Lemma clsd_iso_open: \O(X) ~=~ \A(X).
   Proof.
-    exists (exist_c (cmplO_cont X)).
-    exists (exist_c (cmplA_cont X)).
+    exists (exist_c cmplO_cont).
+    exists (exist_c cmplA_cont).
     by split => O; apply/eq_sub/complement_involutive.
   Qed.
 
-  Definition A2SS X (f: \A(X)) := make_subset (fun x => projT1 f x = top).
-
-  Lemma all_closed X: exists (A: \A(X)), (A2SS A) === All.
-  Proof.  
-    have [A eq]:= empty_open X.
-    exists (complement_opens A) => x; split => // _ /=.
-    rewrite /complement.
-    have [/=]:= eq x.
-    by case: (sval A x).
-  Qed.
-
-  Lemma empty_closed X: exists (A: \A(X)), (A2SS A) === empty.
+  Lemma all_clsd: closed All.
   Proof.
-    have [A eq]:= all_open X.
-    exists (complement_opens A) => x; split => //=.
-    rewrite /complement; have /=[]:= eq x; case: (sval A x) => // _ prp _.
-    by have: bot = top by apply/prp.
+    have [A eq]:= empty_open.
+    exists (complement_opens A) => x; split => // _ /=.
+    by rewrite /complement; have /=:= eq x; case: (sval A x) => [[[]]]//.
   Qed.
-End Closeds.
-Notation "\A( X )" := (cs_closeds X) (at level 2, format "'\A(' X ')'").
-Arguments complement {X}.
 
-Section Open_subsets_of_nat.  
+  Lemma empty_clsd: closed empty.
+  Proof.
+    have [A eq]:= all_open.
+    exists (complement_opens A) => x; split => //= [[[]]].
+    by rewrite /complement; have [->]:= eq x.
+  Qed.
+End Opens_and_closeds.
+Notation "\O( X )" := (cs_opens X) (at level 2, format "'\O(' X ')'").
+Arguments open {X}.
+Arguments O2SS {X}.
+Arguments complement {X}.
+Notation "\A( X )" := (cs_closeds X) (at level 2, format "'\A(' X ')'").
+Arguments A2SS {X}.
+Arguments closed {X}.
+
+Section admissibility.
+  Definition OO_fun (X: cs) (x: X) := (point_evaluation cs_Sirp x) : \O(\O(X)).
+
+  Lemma OO_fun_cont (X: cs): (@OO_fun X) \is_continuous.
+  Proof. exact/ptvl_cont. Qed.  
+  
+  Definition admissible (X: cs) := F2MF (@OO_fun X)\^-1 \has_continuous_realizer.
+End admissibility.
+
+Section Kleeneans.
+  Inductive Kleeneans := false_K | true_K | bot_K.
+
+  Definition rep_K :=
+    make_mf (fun phi (t: Kleeneans) =>
+	       match t with
+	       | false_K => exists (n: nat), phi n = Some false /\ forall m, m < n -> phi m = None
+	       | true_K => exists (n: nat), phi n = Some true /\ forall m, m < n -> phi m = None
+	       | bot_K => forall n, phi n = None
+	       end).
+  
+  Lemma rep_K_sur: rep_K \is_cototal.
+  Proof.
+      by case; [exists (fun _ => Some false) | exists (fun _ => Some true) | exists (fun _ => None)]; try exists 0.
+  Qed.
+  
+  Lemma rep_K_sing: rep_K \is_singlevalued.
+  Proof.
+    move => phi t t'.
+    case: t; case t' => //; try (move => [n [eq prp]] prp'; by rewrite prp' in eq);
+      try (move => prp; case => n []; by rewrite prp); move => [n [eq prp]] [m []].
+    - case/orP: (leq_total m n) => ineq; rewrite leq_eqVlt in ineq.
+      + by case/orP: ineq => [/eqP -> | ineq]; [rewrite eq | rewrite prp].
+      by case/orP: ineq => [/eqP <- | ineq eq' prp']; [rewrite eq | rewrite prp' in eq].
+    case/orP: (leq_total m n) => ineq; rewrite leq_eqVlt in ineq.
+    - by case/orP: ineq => [/eqP -> | ineq]; [rewrite eq | rewrite prp].
+    by case/orP: ineq => [/eqP <- | ineq eq' prp']; [rewrite eq | rewrite prp' in eq].
+  Qed.
+
+  Canonical cs_Kleeneans_class:= @continuity_space.Class _ _ _
+    (interview.Mixin rep_K_sur) (dictionary.Mixin rep_K_sing)
+    (continuity_space.Mixin 0%nat None nat_count (option_count bool_count)).
+  Canonical cs_Kleeneans:= continuity_space.Pack cs_Kleeneans_class.
+End Kleeneans.
+
+Section Open_subsets_of_nat.
+
+  Lemma ON_iso_Sirpw : \O(cs_nat) ~=~ (cs_Sirp\^w).
+  Proof. by rewrite/cs_opens sig_iso_fun; apply/iso_ref. Qed.
+
   Definition rep_ON := make_mf(fun (phi: nat -> nat) (A: nat -> Sirp) =>
                                forall n, A n = top <-> exists m, phi m = n.+1).
 
@@ -209,7 +290,7 @@ Section Open_subsets_of_nat.
     move => A /=.
     exists (fun n => if A n is top then n.+1 else 0) => n.
     split => [eq | [m]]; first by exists n; rewrite eq.
-    by case E: (A m) => [] => [[<-] | ].
+    by case E: (A m) => [[]] => [[<-] | ].                                     
   Qed.
 
   Lemma rep_ON_sing: rep_ON \is_singlevalued.
@@ -218,7 +299,7 @@ Section Open_subsets_of_nat.
     apply/functional_extensionality => n.
     have := phinA n.
     have <-:= phinB n.
-    case: (A n); case: (B n) => // eq; last exact/eq.
+    case: (A n) => [[]]; case: (B n) => [[]] // eq; last exact/eq.
     by symmetry; apply/eq.
   Qed.
 
@@ -234,7 +315,7 @@ Section Open_subsets_of_nat.
     apply/F2MF_rlzr_F2MF => phi A phinA n.
     have := phinA n.
     case: (A n).
-    - case => [[]// m /eqP eq _].
+    - case => [[[]]// m /eqP eq _].
       split => // _; exists m; rewrite /ON2Sw_rlzrf /=.
       by rewrite eq.
     case => [_ prp].
@@ -262,7 +343,7 @@ Section Open_subsets_of_nat.
   Proof.
     rewrite F2MF_rlzr_F2MF => phi A phinA n.
     have := phinA n.
-    case: (A n).
+    case: (A n) => [[]].
     - case => [_ []// m eq]; split => // _.
       exists (pickle (n, m)).
       by rewrite /Sw2ON_rlzrf pickleK eq.
@@ -302,7 +383,7 @@ Section Closed_subsets_of_nat.
     - split; last by rewrite F2MF_dom; apply/subs_all.
       exists (complement A); split => [n | ]; last exact/complement_involutive.
       by have <-:= phinA n; rewrite /complement; case : (A n).
-    by have <-:= phincA n; rewrite /complement; case : (cA n).
+    by have <-:= phincA n; rewrite /complement; case : (cA n) => [[]].
   Qed.
 
   Lemma involutive_sur T (f: T -> T): involutive f -> f \is_surjective.

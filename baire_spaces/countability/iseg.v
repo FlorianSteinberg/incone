@@ -200,18 +200,96 @@ Lemma iseg_melt K: minimal_section cnt sec -> K \is_sublist_of (iseg (max_elt K)
 Proof. by move => [cncl min] q lstn; apply/iseg_subl/lstn_iseg_S/cncl/lstn_melt. Qed.
 End initial_segments.
 
-Definition init_seg:= iseg id.
-Lemma iseg_eq T (cnt cnt':nat -> T) n:
-  iseg cnt n = iseg cnt' n <-> (forall i, i< n -> cnt i = cnt' i). 
-Proof.
-split.
-elim: n => // n ih /= [eq eq'] i.
-by rewrite leq_eqVlt; case/orP => [/eqP [->] | ]; last exact/ih.
-elim: n => // n ih prp /=.
-rewrite ih => [ | i ineq]; first f_equal; apply/prp => //.
-exact/leqW.
-Qed.
+Require Import Psatz.
 
+Section naturals.
+  (* Most code from this section was provided by Vincent *)
+  Context (p: nat -> bool).
+
+  Let Fixpoint searchU m k : nat :=
+    match k with
+    | 0 => m
+    | k'.+1 => let n := m - k in if p n then n else searchU m k'
+    end.
+
+  Let searchU_correct m k :
+    p m -> p (searchU m k).
+  Proof.
+    move => hm.
+      by elim: k => // n ih /=; case: ifP.
+  Qed.
+  
+  Let searchU_le m k :
+    searchU m k <= m.
+  Proof.
+    elim: k => // n ih /=; case: ifP => // _.
+    rewrite /subn /subn_rec; apply /leP; lia.
+  Qed.
+
+  Let searchU_minimal m k :
+    (forall n, p n -> m - k <= n) -> forall n, p n -> searchU m k <= n.
+  Proof.
+    elim: k.
+    - move => h n /=; rewrite -(subn0 m); exact: h.
+      move => k ih h n /=; case: ifP.
+    - move => _; exact: h.
+      move => hk; apply: ih => i hi.
+      case: (i =P m - k.+1).
+      move => eq.
+      rewrite -eq in hk.
+      by rewrite hk in hi.
+    move: (h i hi).
+    by rewrite /subn /subn_rec => /leP prp cnd; apply/leP; lia.
+  Qed.
+
+  Let searchU_eq m k:
+    (forall n, p n -> m < n) -> searchU m k = m.
+  Proof.
+    elim: k => //k ih prp /=.
+    case: ifP => [pm | neg]; last exact/ih/prp.
+    have:= prp (m-k.+1) pm.
+    by rewrite ltn_subRL -{2}(add0n m) ltn_add2r.
+  Qed.
+    
+  Definition search n := searchU n n.
+
+  Lemma search_correct n: p n -> p (search n).
+  Proof. exact: searchU_correct. Qed.
+
+  Lemma search_le n: search n <= n.
+  Proof. exact: searchU_le. Qed.
+
+  Lemma search_min n m:	p m -> search n <= m.
+  Proof.
+    apply searchU_minimal => k pk.
+    rewrite /subn/subn_rec; apply/leP; lia.
+  Qed.
+
+  Lemma search_eq n: (forall m, p m -> n < m) -> search n = n.
+  Proof. exact/searchU_eq. Qed.
+    
+  Lemma worder_nat:
+    (exists n, p n) -> exists n, p n /\ forall m, p m -> n <= m.
+  Proof.
+    move => [m pm].
+    exists (search m ).
+    split; first exact: search_correct.
+    exact: search_min.
+  Qed.
+
+  Definition init_seg:= iseg id.
+  Lemma iseg_eq T (cnt cnt':nat -> T) n:
+    iseg cnt n = iseg cnt' n <-> (forall i, i< n -> cnt i = cnt' i). 
+  Proof.
+    split.
+    elim: n => // n ih /= [eq eq'] i.
+      by rewrite leq_eqVlt; case/orP => [/eqP [->] | ]; last exact/ih.
+    elim: n => // n ih prp /=.
+    rewrite ih => [ | i ineq]; first f_equal; apply/prp => //.
+    exact/leqW.
+  Qed.
+End naturals.
+  
 Section countTypes.
 Context (Q: countType) (noq: Q) (noq_spec: pickle noq = 0).
 

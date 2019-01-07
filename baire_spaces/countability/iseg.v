@@ -216,9 +216,9 @@ Section naturals.
     p m -> p (searchU m k).
   Proof.
     move => hm.
-      by elim: k => // n ih /=; case: ifP.
+    by elim: k => // n ih /=; case: ifP.
   Qed.
-  
+    
   Let searchU_le m k :
     searchU m k <= m.
   Proof.
@@ -255,7 +255,7 @@ Section naturals.
 
   Lemma search_correct n: p n -> p (search n).
   Proof. exact: searchU_correct. Qed.
-
+    
   Lemma search_le n: search n <= n.
   Proof. exact: searchU_le. Qed.
 
@@ -291,17 +291,17 @@ Section naturals.
 End naturals.
   
 Section countTypes.
-Context (Q: countType) (noq: Q) (noq_spec: pickle noq = 0).
+  Context (Q: countType) (noq: Q) (noq_spec: pickle noq = 0).
 
-Definition inverse_pickle n:= match pickle_inv Q n with
-	| Some q => q
-	| None => noq
-end.
+  Definition inverse_pickle n:= match pickle_inv Q n with
+	                        | Some q => q
+	                        | None => noq
+                                end.
 
-Lemma min_ip: minimal_section inverse_pickle pickle.
-Proof.
-rewrite /inverse_pickle; split => [q | q n <-]; first by rewrite pickleK_inv.
-case E: pickle_inv => [a  | ]; last by rewrite noq_spec.
-by have := pickle_invK Q n; rewrite /oapp E => <-.
+  Lemma min_ip: minimal_section inverse_pickle pickle.
+  Proof.
+    rewrite /inverse_pickle; split => [q | q n <-]; first by rewrite pickleK_inv.
+    case E: pickle_inv => [a  | ]; last by rewrite noq_spec.
+    by have := pickle_invK Q n; rewrite /oapp E => <-.
 Qed.
 End countTypes.

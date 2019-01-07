@@ -212,6 +212,23 @@ Section naturals.
     | k'.+1 => let n := m - k in if p n then n else searchU m k'
     end.
 
+  Let searchU_find m k:
+    k <= m -> searchU m k = if has p (iota (m - k) k) then find p (iota (m - k) k) + (m - k) else m.
+  Proof.
+    elim: k => // k ih ineq.    
+    rewrite [LHS]/= ih; last exact/leq_trans/ineq.
+    case: ifP => [pmk | ].
+    - case: ifP => [_ | ]//; first by rewrite /= pmk add0n.
+      rewrite /= => /orP neg.
+      by exfalso; apply/neg; left.
+    move => pmk.
+    rewrite /= subnSK //.
+    case: ifP => hs.
+    - case: ifP => [_ | /orP neg]; last by exfalso; apply/neg; right.
+      by rewrite pmk addSn -addnS subnSK//.
+    case: ifP => // /orP; first by rewrite pmk; case.
+  Qed.
+    
   Let searchU_correct m k :
     p m -> p (searchU m k).
   Proof.
@@ -265,9 +282,24 @@ Section naturals.
     rewrite /subn/subn_rec; apply/leP; lia.
   Qed.
 
+  Lemma not_has_find T q (s: seq T): ~~ has q s -> find q s = size s.
+  Proof.
+    rewrite has_find => ass.
+    suff /leP ineq: size s <= find q s by have /leP ineq':= find_size q s; lia.
+    by rewrite leqNgt.
+  Qed.
+
+  Lemma srch_find n: search n = find p (iota 0 n).
+  Proof.
+    rewrite /search searchU_find; last exact/leqnn.
+    rewrite subnn addn0; case: ifP => //.
+    elim: n => // n ih neg.    
+    by rewrite not_has_find; [rewrite size_iota | rewrite neg].
+  Qed.
+    
   Lemma search_eq n: (forall m, p m -> n < m) -> search n = n.
   Proof. exact/searchU_eq. Qed.
-    
+
   Lemma worder_nat:
     (exists n, p n) -> exists n, p n /\ forall m, p m -> n <= m.
   Proof.
@@ -289,7 +321,16 @@ Section naturals.
     exact/leqW.
   Qed.
 End naturals.
-  
+
+  Lemma search_ext (p p': pred nat) n:
+    (forall k, (k < n)%nat -> p k = p' k) -> search p n = search p' n.
+  Proof.
+    rewrite !srch_find => ass.
+    apply/eq_in_find => k.
+    rewrite mem_iota add0n => /andP [_ ineq].
+    exact/ass.
+  Qed.
+
 Section countTypes.
   Context (Q: countType) (noq: Q) (noq_spec: pickle noq = 0).
 

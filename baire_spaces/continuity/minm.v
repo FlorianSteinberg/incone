@@ -1,7 +1,6 @@
 From mathcomp Require Import ssreflect ssrnat ssrbool eqtype.
 From rlzrs Require Import all_mf.
 Require Import baire cont iseg.
-Require Import Psatz.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

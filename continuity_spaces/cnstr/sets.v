@@ -66,10 +66,48 @@ Section Sirpinskispace.
 
   Lemma SF2SS_chrf A f: F2MF f =~= chi_ A -> CF2SS f === A.
   Proof. by move => eq x /=; have /=-> := eq x top; split => [<- | ]//. Qed.
-End Sirpinskispace.
+
+  Definition P2CF T p (t: T):=
+    match p t with
+    | true => top
+    | false => bot
+    end.
+
+  Definition CF2P T (chi: T -> Sirp) t:=
+    match chi t with
+    | Some _ => true
+    | None => false
+    end.
+
+  Lemma P2CFK T: cancel (@P2CF T) (@CF2P T).
+  Proof.
+    move => chi; apply/functional_extensionality => t.
+    by rewrite /P2CF /CF2P; case: ifP.
+  Qed.
+
+  Lemma CF2PK T: cancel (@CF2P T) (@P2CF T).
+  Proof.
+    move => chi; apply/functional_extensionality => t.
+    by rewrite /P2CF /CF2P; case: (chi t) => // [[]].
+  Qed.
+
+  Definition complement T (A: pred T) t := 
+    match A t with
+    | true  => false
+    | false => true
+    end.
+
+  Lemma complement_involutive T: involutive (@complement T).
+  Proof.
+    move => A; apply/functional_extensionality => x.
+    by rewrite /complement; case: (A x) => //; case.
+  Qed.
+  End Sirpinskispace.
 Notation top := (Some tt).
 Notation bot := (@None unit).
 Notation "'chi_' A":= (characteristic_function A) (at level 2, format "'chi_' A").
+Arguments P2CF {T}.
+Arguments CF2P {T}.
 
 Section Opens_and_closeds.
   Context (X: cs).
@@ -121,34 +159,25 @@ Section Opens_and_closeds.
     by split; [apply/F2MF_rlzr_F2MF; split => [[] | ] | rewrite cont_F2MF; apply cnst_cont].
   Qed.
 
-  Definition complement (A: X -> Sirp) x := 
-    match A x with
-    | Some _ => bot
-    | None => top
-    end.
+  Definition closeds:= make_subset (fun (A: X -> cs_Sirp) =>
+                                      (P2CF (complement A)) \from codom (associate X cs_Sirp)).
   
-  Lemma complement_involutive: involutive complement.
-  Proof.
-    move => A; apply/functional_extensionality => x.
-    by rewrite /complement; case: (A x) => //; case.
-  Qed.
-
-  Definition closeds:= make_subset (fun (A: X -> cs_Sirp) => (complement A) \is_continuous).
-  
-  Lemma clos_open A: A \from closeds <-> exists (O: \O(X)), projT1 O = complement A.
-  Proof. by split => [cont | [[O /ass_cont Ocont/=] <-]]; first by exists (exist_c cont). Qed.
+  Lemma clos_open A: A \from closeds <-> exists (O: \O(X)), projT1 O = P2CF (complement A).
+  Proof. by split => [/ass_cont cont | [[O Ocont/=] <-]] //; exists (exist_c cont). Qed.
 
   Definition rep_clsd := make_mf (fun phi (A: closeds) =>
-                                    associate X cs_Sirp phi (complement (projT1 A))).
+                                    associate X cs_Sirp phi (P2CF (complement (projT1 A)))).
 
   Lemma rep_clsd_sur: rep_clsd \is_cototal.
-  Proof. by move => [A /ass_cont [psi ass]/=]; exists psi. Qed.
+  Proof. by move => [A [psi ass]/=]; exists psi. Qed.
   
   Lemma rep_clsd_sing: rep_clsd \is_singlevalued.
   Proof.
     move => phi A A' /= phinA phinA'; apply/eq_sub => /=.
-    rewrite -(complement_involutive (sval A)) -(complement_involutive (sval A')).
-    by have ->:= choice_dict.mf_rlzr_f_sing phinA phinA'.
+    rewrite -(CF2PK (sval A)) -(CF2PK (sval A')).
+    rewrite -(complement_involutive (CF2P (sval A))) -(complement_involutive (CF2P (sval A'))).
+    f_equal; f_equal; rewrite -[LHS]P2CFK -[RHS]P2CFK.
+    by have ->:= choice_dict.mf_rlzr_f_sing phinA phinA'.    
   Qed.  
 
   Definition cs_closeds:= make_cs (someq \O(X))
@@ -174,8 +203,15 @@ Section Opens_and_closeds.
     by rewrite -eq'.
   Qed.
 
-  Lemma complement_closed (O: \O(X)): complement (sval O) \from closeds.
-  Proof. by move: O => [O /ass_cont /=]; rewrite complement_involutive. Qed.
+  Lemma P2CF_cmpl T (O: T -> Sirp):
+    P2CF (complement (fun x => P2CF (complement (fun y => O y)) x)) = O.
+  Proof.
+    rewrite /P2CF/complement /=.
+    by apply/functional_extensionality => x; do 4 case: ifP => //; case: (O x) => // [[]].
+  Qed.
+  
+  Lemma complement_closed (O: \O(X)): P2CF (complement (sval O)) \from closeds.
+  Proof. by case: O => [O ass /=]; rewrite P2CF_cmpl. Qed.
 
   Definition complement_opens (O: \O(X)): \A(X) := exist _ _ (complement_closed O).
 
@@ -188,11 +224,11 @@ Section Opens_and_closeds.
     split => // Fphi val.
     have [s [Fphins /= eq]]:= prp Fphi val.
     exists s; split => //=; rewrite -eq.
-    by rewrite complement_involutive.
+    by rewrite P2CF_cmpl.
   Qed.
 
-  Lemma complement_open (A: \A(X)): (complement (sval A)) \is_continuous.
-  Proof. by case: A. Qed.
+  Lemma complement_open (A: \A(X)): (P2CF (complement (sval A))) \is_continuous.
+  Proof. by case: A => [A /= /ass_cont]. Qed.
 
   Definition complement_closeds (A: \A(X)): \O(X) := exist_c (complement_open A).
   
@@ -201,37 +237,39 @@ Section Opens_and_closeds.
     exists mf_id.
     split; last by apply/cont_F2MF => phi; exists (fun n => [:: n]) => q' psi [].
     apply/F2MF_rlzr_F2MF => psi A psinA phi x phinx fd.
-    by have [ | dm prp]:= psinA phi x phinx; first by exists (complement (sval A) x).
+    by have [ | dm prp]:= psinA phi x phinx; first by exists (P2CF (complement (sval A)) x).
   Qed.
   
   Lemma clsd_iso_open: \O(X) ~=~ \A(X).
   Proof.
     exists (exist_c cmplO_cont).
     exists (exist_c cmplA_cont).
-    by split => O; apply/eq_sub/complement_involutive.
+    by split => O; apply/eq_sub/P2CF_cmpl.
   Qed.
 
   Lemma all_clsd: closed All.
   Proof.
     have [A eq]:= empty_open.
     exists (complement_opens A) => x; split => // _ /=.
-    by rewrite /complement; have /=:= eq x; case: (sval A x) => [[[]]]//.
+    by rewrite /P2CF/complement; have /=:= eq x; case: (sval A x) => [[[]]]//.
   Qed.
 
   Lemma empty_clsd: closed empty.
   Proof.
     have [A eq]:= all_open.
     exists (complement_opens A) => x; split => //= [[[]]].
-    by rewrite /complement; have [->]:= eq x.
+    by rewrite /P2CF/complement; have [->]:= eq x.
   Qed.
 End Opens_and_closeds.
 Notation "\O( X )" := (cs_opens X) (at level 2, format "'\O(' X ')'").
 Arguments open {X}.
 Arguments O2SS {X}.
-Arguments complement {X}.
+Arguments complement {T}.
 Notation "\A( X )" := (cs_closeds X) (at level 2, format "'\A(' X ')'").
 Arguments A2SS {X}.
 Arguments closed {X}.
+Arguments complement_opens {X}.
+Arguments complement_closeds {X}.
 
 Section admissibility.
   Definition OO_fun (X: cs) (x: X) := (point_evaluation cs_Sirp x) : \O(\O(X)).
@@ -282,15 +320,15 @@ Section Open_subsets_of_nat.
   Lemma ON_iso_Sirpw : \O(cs_nat) ~=~ (cs_Sirp\^w).
   Proof. by rewrite/cs_opens sig_iso_fun; apply/iso_ref. Qed.
 
-  Definition rep_ON := make_mf(fun (phi: nat -> nat) (A: nat -> Sirp) =>
-                               forall n, A n = top <-> exists m, phi m = n.+1).
+  Definition rep_ON := make_mf(fun (phi: nat -> nat) (p: pred nat) =>
+                               forall n, p n <-> exists m, phi m = n.+1).
 
   Lemma rep_ON_sur: rep_ON \is_cototal.
   Proof.
-    move => A /=.
-    exists (fun n => if A n is top then n.+1 else 0) => n.
+    move => p /=.
+    exists (fun n => if p n then n.+1 else 0) => n.
     split => [eq | [m]]; first by exists n; rewrite eq.
-    by case E: (A m) => [[]] => [[<-] | ].                                     
+    by case E: (p m) => [[]] => [[<-] | ].                                     
   Qed.
 
   Lemma rep_ON_sing: rep_ON \is_singlevalued.
@@ -299,7 +337,7 @@ Section Open_subsets_of_nat.
     apply/functional_extensionality => n.
     have := phinA n.
     have <-:= phinB n.
-    case: (A n) => [[]]; case: (B n) => [[]] // eq; last exact/eq.
+    case: (A n); case: (B n) => // eq; last exact/eq.
     by symmetry; apply/eq.
   Qed.
 
@@ -308,19 +346,20 @@ Section Open_subsets_of_nat.
   Definition ON2Sw_rlzrf (phi: nat -> nat) (nm: nat * nat):= ((phi nm.2) == nm.1.+1).
 
   Definition ON2Sw_rlzr:= F2MF ON2Sw_rlzrf: names cs_ON ->> names (cs_Sirp\^w).
-
+  
   Lemma ON2Sw_rlzr_spec:
-    ON2Sw_rlzr \realizes mf_id.
+    ON2Sw_rlzr \realizes (F2MF (@P2CF nat)).
   Proof.
     apply/F2MF_rlzr_F2MF => phi A phinA n.
-    have := phinA n.
+    have := phinA n; rewrite /P2CF.
     case: (A n).
-    - case => [[[]]// m /eqP eq _].
+    - case => [[]// m /eqP eq _].
       split => // _; exists m; rewrite /ON2Sw_rlzrf /=.
       by rewrite eq.
     case => [_ prp].
     rewrite /ON2Sw_rlzrf /=.
     split => // [[m /= /eqP eq]].
+    suff: false by trivial.
     by apply/prp; exists m.
   Qed.  
 
@@ -337,18 +376,19 @@ Section Open_subsets_of_nat.
     end.
 
   Definition Sw2ON_rlzr:= F2MF Sw2ON_rlzrf : names (cs_Sirp\^w) ->> names cs_ON.
-  
+             
   Lemma Sw2ON_rlzr_spec:
-    Sw2ON_rlzr \realizes mf_id.
+    Sw2ON_rlzr \realizes (F2MF (@CF2P nat)).
   Proof.
     rewrite F2MF_rlzr_F2MF => phi A phinA n.
-    have := phinA n.
+    have := phinA n; rewrite/CF2P.
     case: (A n) => [[]].
     - case => [_ []// m eq]; split => // _.
       exists (pickle (n, m)).
       by rewrite /Sw2ON_rlzrf pickleK eq.
     case => prp _; rewrite /Sw2ON_rlzrf; split => // [[m]].
     case: (unpickle m) => // [[m' k]] eq.
+    suff: bot = top by trivial.
     by apply/prp; exists k; move: eq; case: ifP => // pr [<-].
   Qed.
 
@@ -360,22 +400,24 @@ Section Open_subsets_of_nat.
     by case: (unpickle n) => // nm [->].
   Qed.  
  
-  Lemma ON2Sw_cont: (id: cs_ON -> cs_Sirp\^w) \is_continuous.
+  Lemma ON2Sw_cont: (@P2CF nat: cs_ON -> cs_Sirp\^w) \is_continuous.
   Proof. by exists ON2Sw_rlzr; split; [apply/ON2Sw_rlzr_spec | apply/ON2Sw_rlzr_cntop]. Qed.
 
-  Lemma Sw2ON_cont: (id: cs_Sirp\^w -> cs_ON) \is_continuous. 
+  Lemma Sw2ON_cont: (@CF2P nat: cs_Sirp\^w -> cs_ON) \is_continuous. 
   Proof. by exists Sw2ON_rlzr; split; [apply/Sw2ON_rlzr_spec | apply/Sw2AN_rlzr_cntop]. Qed.
 
   Lemma ON_iso_Sw: cs_ON ~=~ (cs_Sirp\^w).
-  Proof. by exists (exist_c ON2Sw_cont); exists (exist_c Sw2ON_cont). Qed.
+  Proof.
+    by exists (exist_c ON2Sw_cont); exists (exist_c Sw2ON_cont); split; [apply P2CFK | apply CF2PK].
+  Qed.
 
   Lemma ON_iso_Onat: cs_ON ~=~ \O(cs_nat).
   Proof. by rewrite ON_iso_Sw; apply/sig_iso_fun. Qed.
 End Open_subsets_of_nat.
 
 Section Closed_subsets_of_nat.
-  Definition rep_AN := make_mf(fun (phi: nat -> nat) (A: nat -> Sirp) =>
-                                 forall n, A n = bot <-> exists m, phi m = n.+1).
+  Definition rep_AN := make_mf(fun (phi: nat -> nat) (A: pred nat) =>
+                                 forall n, ~~ A n <-> exists m, phi m = n.+1).
 
   Lemma rep_AN_spec : rep_AN =~= (F2MF complement) \o rep_ON.
   Proof.
@@ -383,7 +425,7 @@ Section Closed_subsets_of_nat.
     - split; last by rewrite F2MF_dom; apply/subs_all.
       exists (complement A); split => [n | ]; last exact/complement_involutive.
       by have <-:= phinA n; rewrite /complement; case : (A n).
-    by have <-:= phincA n; rewrite /complement; case : (cA n) => [[]].
+    by have <-:= phincA n; rewrite /complement; case : (cA n).
   Qed.
 
   Lemma involutive_sur T (f: T -> T): involutive f -> f \is_surjective.
@@ -416,12 +458,31 @@ Section Closed_subsets_of_nat.
     apply/F2MF_rlzr_F2MF => phi O phinO.
     by apply/rep_AN_spec; split; [exists O | rewrite F2MF_dom; apply/subs_all].
   Qed.
-
+ 
   Lemma AN_iso_Anat: cs_AN ~=~ \A(cs_nat).
   Proof.
     rewrite -clsd_iso_open -ON_iso_Onat.
     exists (exist_c cmpl_cont).
     exists (exist_c cont_cmpl).
     by split; apply/complement_involutive.
+  Qed.
+
+  Lemma Anat2AN_cont: (sval : \A(cs_nat) -> cs_AN) \is_continuous.
+  Proof.
+    rewrite /continuous -(comp_id_r (F2MF _)).
+    have <-: F2MF (complement_opens \o_f complement_closeds) =~= @mf_id \A(cs_nat).
+    - by split => <-//; apply/eq_sub/functional_extensionality => x/=; rewrite P2CF_cmpl.
+    rewrite -F2MF_comp_F2MF -comp_assoc.
+    apply/comp_hcr; first exact/cmplA_cont.
+    rewrite /continuous -(comp_id_l (F2MF _)).
+    have <-: F2MF (complement \o_f complement) =~= @mf_id cs_AN.
+    - by move => p A /=; rewrite complement_involutive.
+    rewrite -F2MF_comp_F2MF !comp_assoc.
+    apply/(@comp_hcr _ cs_ON); last exact/cont_cmpl.
+    suff ->: F2MF (@complement cs_nat) \o (F2MF (fun e n => isSome (sval e n)) \o F2MF complement_opens) =~= (F2MF CF2P) \o F2MF sval.
+    - by apply/(@comp_hcr _ (cs_Sirp\^w))/Sw2ON_cont/fun2sig_cont.
+    move => x y; rewrite !comp_F2MF /=; split => <-.
+    - by rewrite -{1}(P2CF_cmpl (sval x)) P2CFK.
+    by rewrite -{2}(P2CF_cmpl (sval x)) P2CFK.
   Qed.
 End Closed_subsets_of_nat.

@@ -84,13 +84,11 @@ Section isomorphisms.
     by exists sig2fun_rlzr; split; [apply/sig2fun_rlzr_spec | apply/sig2fun_rlzr_cntop].
   Qed.
 
-  Definition fun2sig (xn: cs_I c-> X):= projT1 xn: X\^I.
-
   Definition fun2sig_rlzr: questions (cs_I c-> X) ->> questions (X\^I):=
     make_mf (fun (psi: names cs_I c-> X) phi =>
 	       forall n, \F_(U psi) (fun _ => n) (fun q => phi (n, q))).
 
-  Lemma fun2sig_rlzr_spec: fun2sig_rlzr \realizes (F2MF fun2sig).
+  Lemma fun2sig_rlzr_spec: fun2sig_rlzr \realizes (F2MF sval).
   Proof.
     rewrite rlzr_F2MF => psi xn /rlzr_F2MF rlzr.
     split => [ | phin Fpsiphi n].
@@ -115,7 +113,7 @@ Section isomorphisms.
     exact/(mod q' psi' coin (fun q => Fpsi' (n, q)))/val.
   Qed.
 
-  Lemma fun2sig_cont: fun2sig \is_continuous.
+  Lemma fun2sig_cont: (sval: cs_I c-> X -> X\^I) \is_continuous.
   Proof.
     exists fun2sig_rlzr; split; [exact/fun2sig_rlzr_spec | exact/fun2sig_rlzr_cntop].
   Qed.
@@ -217,23 +215,6 @@ Section pointwise.
   
   Notation "X '\^I'" := (@cs_Iprod X I somei I_count) (at level 2, format "X '\^I'").
 
-  Definition mf_ptw R T (f: R ->> T):= make_mf (fun rs ts =>
-    forall (i: I), f (rs i) (ts i)).
-
-  Lemma ptw_sur R T (f: R ->> T): f \is_cototal -> (mf_ptw f) \is_cototal.
-  Proof.
-    move => cotot ts.
-    have /choice [rs prp] := cotot.
-    exists (rs \o_f ts) => i; exact/prp.
-  Qed.
-
-  Lemma ptw_sing R T (f: R ->> T):
-    f \is_singlevalued -> (mf_ptw f) \is_singlevalued.
-  Proof.
-    move => sing rs ts t's val val'.
-    apply/functional_extensionality => i.
-    exact/sing/val'/val.
-  Qed.
 
   Definition ptw_rlzr Q A Q' A' (F: (Q -> A) ->> (Q' -> A')) :=
     make_mf (fun phin Fphin =>
@@ -252,7 +233,7 @@ Section pointwise.
   Qed.
 
   Lemma ptw_rlzr_spec (X Y: cs) (f: X ->> Y) F:
-    F \realizes f -> (ptw_rlzr F:questions (X\^I) ->> questions (Y\^I)) \realizes (mf_ptw f). 
+    F \realizes f -> (ptw_rlzr F:questions (X\^I) ->> questions (Y\^I)) \realizes (mf_ptw I f). 
   Proof.
     move => rlzr phin xs phinxs [ys val].
     split => [ | Fphi val'].
@@ -273,7 +254,7 @@ Section pointwise.
   Qed.
 
   Lemma ptw_hcr (X Y: cs) (f: X ->> Y): f \has_continuous_realizer ->
-             (mf_ptw f : X\^I ->> Y\^I) \has_continuous_realizer.
+             (mf_ptw I f : X\^I ->> Y\^I) \has_continuous_realizer.
   Proof.
     move => [F [rlzr cont]].
     exists (ptw_rlzr F); split.
@@ -287,7 +268,7 @@ Section pointwise.
   Proof. done. Qed.
 
   Lemma F2MF_ptw R T (f: R -> T):
-    mf_ptw (F2MF f) =~= F2MF (ptw f).
+    mf_ptw I (F2MF f) =~= F2MF (ptw f).
   Proof.
     move => rs ts /=; split => [prp | <-]//.
     exact/functional_extensionality.
@@ -300,32 +281,7 @@ Section pointwise.
     rewrite /continuous -F2MF_ptw.
     exact/ptw_hcr.
   Qed.
-  
-  Definition ptw_op R S T (op: R -> S -> T) (rs: I -> R) (ss: I -> S) i:=
-    op (rs i) (ss i).
-
-  Lemma ptwA R (op: R -> R -> R): associative op -> associative (ptw_op op).
-  Proof.
-    by move => ass x y z; apply/functional_extensionality => n; apply/ass.
-  Qed.
-
-  Lemma ptwC R (op: R -> R -> R): commutative op -> commutative (ptw_op op).
-  Proof.
-    by move => ass x y; apply/functional_extensionality => n; apply/ass.
-  Qed.
-
-  Lemma ptwDl R (op op': R -> R -> R):
-    left_distributive op op' -> left_distributive (ptw_op op) (ptw_op op').
-  Proof.
-    by move => ass x y z; apply/functional_extensionality => n; apply/ass.
-  Qed.
-
-  Lemma ptwDr R (op op': R -> R -> R):
-    right_distributive op op' -> right_distributive (ptw_op op) (ptw_op op').
-  Proof.
-    by move => ass x y z; apply/functional_extensionality => n; apply/ass.
-  Qed.  
-  
+    
   Definition curry R S T (f: R -> S -> T) rs := f rs.1 rs.2.
 
   Definition cptw_op (X Y Z: cs) (op: X \*_cs Y -> Z): X\^I \*_cs Y\^I -> Z\^I :=

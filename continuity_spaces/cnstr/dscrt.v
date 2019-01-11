@@ -23,6 +23,7 @@ Section discreteness.
     by rewrite F2MF_comp_F2MF; apply/dscrt.
   Qed.
 End discreteness.
+Notation "X \is_discrete" := (discrete X) (at level 40).
 
 Section cs_id.
   Context (S: Type).
@@ -53,6 +54,14 @@ Section cs_id.
     by have ->: phi = psi by apply functional_extensionality => str; elim str.
   Qed.
 End cs_id.
+
+Lemma dscrt_id (X: cs) (x: X) (Xcount: X \is_countable):
+  X \is_discrete -> X ~=~ (cs_id x Xcount).
+Proof.
+  move => dscrt.
+  exists (exist_c (dscrt (cs_id x Xcount) id)).
+  by exists (exist_c (@cs_id_dscrt X x Xcount X id)).
+Qed.
 
 Section TERMINAL.
 Canonical cs_unit_class:= cs_id_class tt unit_count.

@@ -406,7 +406,24 @@ Section Open_subsets_of_nat.
   Lemma Sw2ON_cont: (@CF2P nat: cs_Sirp\^w -> cs_ON) \is_continuous. 
   Proof. by exists Sw2ON_rlzr; split; [apply/Sw2ON_rlzr_spec | apply/Sw2AN_rlzr_cntop]. Qed.
 
-  Lemma ON_iso_Sw: cs_ON ~=~ (cs_Sirp\^w).
+  Definition Onat2ON:= CF2P \o_f sval: \O(cs_nat) -> cs_ON.
+
+  Lemma Onat2ON_cont: Onat2ON \is_continuous.
+  Proof.
+    rewrite /continuous -F2MF_comp_F2MF.
+    exact/(@comp_hcr _ (cs_Sirp\^w))/Sw2ON_cont/fun2sig_cont.
+  Qed.
+
+  Definition ON2Onat : cs_ON -> \O(cs_nat):= (@sig2fun _ 0 nat_count cs_Sirp) \o_f P2CF.
+
+  Lemma ON2Onat_cont: ON2Onat \is_continuous.
+  Proof.
+    rewrite /continuous -F2MF_comp_F2MF.
+    exact/(@comp_hcr _ (cs_Sirp\^w))/sig2fun_cont/ON2Sw_cont.    
+  Qed.
+
+    
+    Lemma ON_iso_Sw: cs_ON ~=~ (cs_Sirp\^w).
   Proof.
     by exists (exist_c ON2Sw_cont); exists (exist_c Sw2ON_cont); split; [apply P2CFK | apply CF2PK].
   Qed.
@@ -467,7 +484,9 @@ Section Closed_subsets_of_nat.
     by split; apply/complement_involutive.
   Qed.
 
-  Lemma Anat2AN_cont: (sval : \A(cs_nat) -> cs_AN) \is_continuous.
+  Definition Anat2AN := sval: \A(cs_nat) -> cs_AN.
+
+  Lemma Anat2AN_cont: Anat2AN \is_continuous.
   Proof.
     rewrite /continuous -(comp_id_r (F2MF _)).
     have <-: F2MF (complement_opens \o_f complement_closeds) =~= @mf_id \A(cs_nat).
@@ -485,4 +504,30 @@ Section Closed_subsets_of_nat.
     - by rewrite -{1}(P2CF_cmpl (sval x)) P2CFK.
     by rewrite -{2}(P2CF_cmpl (sval x)) P2CFK.
   Qed.
+
+  Definition AN2Anat (p: cs_AN): \A(cs_nat).
+    exists (P2CF p); apply/ass_cont/nat_dscrt.
+  Defined.
+  
+  Check AN2Anat.
+  Lemma AN2Anat_cont: AN2Anat \is_continuous.
+  Proof.
+    rewrite /continuous -(comp_id_l (F2MF _)).
+    have <-: F2MF (complement_opens \o_f complement_closeds) =~= @mf_id \A(cs_nat).
+    - by split => <-//; apply/eq_sub/functional_extensionality => x/=; rewrite P2CF_cmpl.
+    rewrite -F2MF_comp_F2MF comp_assoc.
+    apply/comp_hcr; last exact/cmplO_cont.
+    rewrite -(comp_id_r (F2MF AN2Anat)).
+    have <-: F2MF (complement \o_f complement) =~= @mf_id cs_AN.
+    - by move => p A /=; rewrite complement_involutive.
+    rewrite -F2MF_comp_F2MF -!comp_assoc.
+    apply/(@comp_hcr _ cs_ON); first exact/cmpl_cont.
+    suff ->: (F2MF complement_closeds \o F2MF AN2Anat) \o F2MF complement =~= F2MF ON2Onat.
+    - by apply/ON2Onat_cont.
+    move => x y; rewrite !comp_F2MF /=; split => <-.
+    - apply/eq_sub/functional_extensionality => n /=.
+      by rewrite /P2CF/complement; case: ifP => //.
+    apply/eq_sub/functional_extensionality => n /=.
+    by rewrite /P2CF/complement; do 4 case: ifP => //.
+  Qed.    
 End Closed_subsets_of_nat.

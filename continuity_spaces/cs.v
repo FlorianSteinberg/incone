@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun.
 From rlzrs Require Import all_mf all_rlzrs dict.
-Require Import all_core.
+Require Import all_baire.
 Import Morphisms.
 
 Set Implicit Arguments.

@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs choice_dict.
-Require Import facts all_core cs smod prod sub func classical_cont classical_mach Duop.
+Require Import facts all_baire cs smod prod sub func classical_cont classical_mach Duop.
 Require Import FunctionalExtensionality Classical.
 
 Set Implicit Arguments.
@@ -24,9 +24,9 @@ Lemma prod_uprp_cont (X Y Z: cs) (f: Z c-> X) (g: Z c-> Y):
     /\
     (forall z, (projT1 F z).2 = (projT1 g) z).
 Proof.
-  set F :Z -> X \*_cs Y := (projT1 f **_f projT1 g) \o_f diag.
+  set F :Z -> X \*_cs Y := (projT1 f **_f projT1 g) \o_f mf.diag.
   have Fcont: F \is_continuous.
-  - exact/(cont_comp _ (diag_cont Z))/fprd_cont/ass_cont/(projT2 g)/ass_cont/(projT2 f).
+  - exact/(cont_comp _ (facts.diag_cont Z))/fprd_cont/ass_cont/(projT2 g)/ass_cont/(projT2 f).
   exists (exist_c Fcont); split => // G [] eq eq'.
   apply/eq_sub/functional_extensionality => z; symmetry.
   exact/injective_projections/eq'/eq.

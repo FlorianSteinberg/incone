@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs choice_dict.
-Require Import all_core cs prod sub facts Duop.
+Require Import all_baire cs prod sub facts Duop.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

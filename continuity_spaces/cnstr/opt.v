@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs.
-Require Import all_core all_cs_base classical_count classical_func cs dscrt.
+Require Import all_cs_base classical_count classical_func cs dscrt.
 Require Import FunctionalExtensionality.
 
 Set Implicit Arguments.

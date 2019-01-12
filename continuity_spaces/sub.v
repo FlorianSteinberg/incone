@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun.
 From rlzrs Require Import all_rlzrs.
-Require Import all_core cs.
+Require Import all_baire cs.
 Require Import ProofIrrelevance ProofIrrelevanceFacts.
 
 Set Implicit Arguments.

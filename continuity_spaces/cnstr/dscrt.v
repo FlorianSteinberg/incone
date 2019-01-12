@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq choice.
 From rlzrs Require Import all_rlzrs.
-Require Import all_core all_cs_base func classical_func classical_cont.
+Require Import all_cs_base func classical_func classical_cont.
 Require Import Morphisms FunctionalExtensionality ClassicalChoice.
 
 Set Implicit Arguments.

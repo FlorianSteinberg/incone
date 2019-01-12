@@ -1,4 +1,4 @@
-Require Export all_core.
+Require Export all_baire.
 Require Export continuity_spaces.cs
         continuity_spaces.sub
         continuity_spaces.prod

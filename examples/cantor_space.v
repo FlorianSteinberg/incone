@@ -6,7 +6,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(** Cantor space can be defined as the infinte coproduct of the two point
+(** Cantor space can be defined as the infinte product of the two point
 space **)
 Definition Cantor:=  cs_bool\^w.
 
@@ -18,53 +18,53 @@ Definition nz_bool := make_mf (fun (p: Cantor) (s: cs_bool) =>
 (** The function defined above is indeed a function, i.e. it is singlevalued **)
 Lemma nz_bool_sing: nz_bool \is_singlevalued.
 Proof.
-move => p [[ | [[ | n eq _ [_ ->]]]] | []]//; first by exists n.
-by move => [_ prp [ex _]]//; apply/prp/ex.
+  move => p [[ | [[ | n eq _ [_ ->]]]] | []]//.
+    by exists n.
+  by move => [_ prp [ex _]]//; apply/prp/ex.
 Qed.
 
 (** And total **)
 Lemma nz_bool_tot: nz_bool \is_total.
 Proof.
-move => p.
-case: (classic (exists n, p n = true)).
-- by exists true.
-by exists false.
+  move => p.
+  case: (classic (exists n, p n = true)).
+  - by exists true.
+  by exists false.
 Qed.
 
 Lemma nz_fun: nz_bool \is_function.
 Proof.
-apply/fun_spec; first exact/true.
-split; [exact/nz_bool_sing | exact/nz_bool_tot].
+  apply/(fun_spec _ true).
+  by split; [apply/nz_bool_sing | apply/nz_bool_tot].
 Qed.
 
 (**However, as a function to the discrete two point space, this function is
-not continuous.
-Here, the notion of continuity comes from representations that
-the Cantor space and the two point space are equipped with.**)
+not continuous. Here, the notion of continuity comes from representations
+that the Cantor space and the two point space are equipped with.**)
 Lemma nz_bool_not_cont: ~ nz_bool \has_continuous_realizer.
 Proof.
-move => [F [rlzr cont]].
-have nmb: xpred0 \describes false \wrt cs_bool by trivial.
-have nmc: xpred0 \describes xpred0 \wrt Cantor by trivial.
-have [ | [Fxpred0 val] prp]:= rlzr xpred0 xpred0 nmc.
-- by exists false; split => // [[]].
-have [b [Fxnf [[]]]]//:= prp Fxpred0 val.
-apply/negP => eq'; have eq: b = false by case: b eq' Fxnf.
-move: eq' => _; rewrite eq // in Fxnf; move: b eq => _ _.
-have [mf mod]:= cont xpred0 Fxpred0 val.
-set N:= foldr maxn 0 (map fst (mf tt)).
-pose chi n := if n <= N then false else true.
-have nz_valtrue: nz_bool chi true by split => // _; exists N.+1; rewrite /chi ltnn.
-suff nz_valfalse: nz_bool chi false by have:= (nz_bool_sing nz_valtrue nz_valfalse).
-have [psi psinchi] := get_description (chi: Cantor).  
-have [ | [Fpsi val'] cnd]:= rlzr psi chi psinchi; first exact/nz_bool_tot.
-suff Fpsinf: Fpsi \describes (false: cs_bool) \wrt _.
-- by have [b [Fpsinb ]]:= cnd Fpsi val'; have ->:= (rep_sing Fpsinb Fpsinf).  
-rewrite /= -Fxnf; apply/mod/val'.
-apply/coin_lstn => [[n []]] lstn; rewrite psinchi.
-suff ineq: n <= N by rewrite /chi ineq.
-rewrite /N; elim: (mf tt) lstn => //k L ih /= [->/= | lstn]; first exact/leq_maxl.
-exact/leq_trans/leq_maxr/ih.
+  move => [F [rlzr cont]].
+  have nmb: xpred0 \describes false \wrt cs_bool by trivial.
+  have nmc: xpred0 \describes xpred0 \wrt Cantor by trivial.
+  have [ | [Fxpred0 val] prp]:= rlzr xpred0 xpred0 nmc.
+  - by exists false; split => // [[]].
+  have [b [Fxnf [[]]]]//:= prp Fxpred0 val.
+  apply/negP => eq'; have eq: b = false by case: b eq' Fxnf.
+  move: eq' => _; rewrite eq // in Fxnf; move: b eq => _ _.
+  have [mf mod]:= cont xpred0 Fxpred0 val.
+  set N:= foldr maxn 0 (map fst (mf tt)).
+  pose chi n := if n <= N then false else true.
+  have nz_valtrue: nz_bool chi true by split => // _; exists N.+1; rewrite /chi ltnn.
+  suff nz_valfalse: nz_bool chi false by have:= (nz_bool_sing nz_valtrue nz_valfalse).
+  have [psi psinchi] := get_description (chi: Cantor).  
+  have [ | [Fpsi val'] cnd]:= rlzr psi chi psinchi; first exact/nz_bool_tot.
+  suff Fpsinf: Fpsi \describes (false: cs_bool) \wrt _.
+  - by have [b [Fpsinb ]]:= cnd Fpsi val'; have ->:= (rep_sing Fpsinb Fpsinf).  
+  rewrite /= -Fxnf; apply/mod/val'.
+  apply/coin_lstn => [[n []]] lstn; rewrite psinchi.
+  suff ineq: n <= N by rewrite /chi ineq.
+  rewrite /N; elim: (mf tt) lstn => //k L ih /= [->/= | lstn]; first exact/leq_maxl.
+  exact/leq_trans/leq_maxr/ih.
 Qed.
 
 (**There are several ways to define continuous versions of this function.
@@ -77,7 +77,7 @@ Definition nz_bool_p := make_mf (fun (chi: Cantor) (b: cs_bool) =>
 (** This function is still singlevalued **)
 Lemma nz_bool_p_sing: nz_bool_p \is_singlevalued.
 Proof.
-by move => chi [[ | _ [n []]] | [[n []] | ]]//.
+  by move => chi [[ | _ [n []]] | [[n []] | ]]//.
 Qed.
 
 (** But not total anymore **)
@@ -92,20 +92,20 @@ Definition nzb_rlzr : questions Cantor ->> questions cs_bool :=
 
 Lemma nzb_rlzr_spec: nzb_rlzr \realizes nz_bool_p.
 Proof.
-move => psi chi psinchi [b [n [eq eq']]].
-split => [ | Fpsi [k [vq vq']]]; first by exists (fun _ => true); exists n; rewrite psinchi.
-by exists true; split; last exists n. 
+  move => psi chi psinchi [b [n [eq eq']]].
+  split => [ | Fpsi [k [vq vq']]]; first by exists (fun _ => true); exists n; rewrite psinchi.
+  by exists true; split; last exists n. 
 Qed.
 
 Lemma nzb_rlzr_cntop: nzb_rlzr \is_continuous_operator.
 Proof.
-move => psi b [_ [_ eq']].
-by exists (fun _ => [::]) => [[]] psi' _ b' [_ [_ ->]].
+  move => psi b [_ [_ eq']].
+  by exists (fun _ => [::]) => [[]] psi' _ b' [_ [_ ->]].
 Qed.            
 
 Lemma nz_bool_p_cont: nz_bool_p \has_continuous_realizer.
 Proof.
-by exists nzb_rlzr; split; [exact/nzb_rlzr_spec | exact/nzb_rlzr_cntop].
+  by exists nzb_rlzr; split; [exact/nzb_rlzr_spec | exact/nzb_rlzr_cntop].
 Qed.
 
 (** Another way to make the function continuous is to use Sirpinski space.
@@ -125,8 +125,8 @@ Qed.
 
 Lemma nz_Sirp_sing: nz_Sirp \is_singlevalued.
 Proof.
-move => p [[ | [[ | n eq _ [_ ->]]]] | []]//; first by exists n.
-by move => [_ prp [ex _]]//; apply/prp/ex.
+  move => p [[[[] | [[ | n eq _ [_ ->]]]]] | []]//; first by exists n.
+  by move => [[_ prp [ex _]]]//; apply/prp/ex.
 Qed.
 
 (** In contrast to the realizer of the partial function above, the realizer
@@ -136,17 +136,17 @@ Definition nzS_rlzr: questions Cantor ->> questions cs_Sirp
 
 Lemma nzS_rlzr_spec: nzS_rlzr \realizes nz_Sirp.
 Proof.
-rewrite F2MF_rlzr => phi chi phinchi _.  
-case: (classic (exists n, chi n = true)) => [[n eq] | ass].
-- exists top; split; last by split => // _; exists n.
-  by split => // _; exists n; rewrite phinchi.
-exists bot; split; [split => // [[n eq]] | by split].
-by exfalso; apply/ass; exists n; rewrite -phinchi.
+  rewrite F2MF_rlzr => phi chi phinchi _.  
+  case: (classic (exists n, chi n = true)) => [[n eq] | ass].
+  - exists top; split; last by split => // _; exists n.
+    by split => // _; exists n; rewrite phinchi.
+  exists bot; split; [split => // [[n eq]] | by split].
+  by exfalso; apply/ass; exists n; rewrite -phinchi.
 Qed.
 
 Lemma nz_rlzr_cntop: nzS_rlzr \is_continuous_operator.
 Proof.
-by rewrite cont_F2MF => phi; exists (fun q => [:: (q, tt)]) => psi q [ -> _].  
+  by rewrite cont_F2MF => phi; exists (fun q => [:: (q, tt)]) => psi q [ -> _].  
 Qed.
   
 Lemma nz_Sirp_cont: nz_Sirp \has_continuous_realizer.

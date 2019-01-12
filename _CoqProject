@@ -11,6 +11,7 @@ baire_spaces/continuity/minm.v
 baire_spaces/continuity/classical_cont.v
 baire_spaces/all_cont.v
 
+baire_spaces/constructions/baire_prod.v
 baire_spaces/countability/seq_cont.v
 baire_spaces/countability/classical_count.v
 
@@ -52,4 +53,4 @@ examples/reals/Ireals.v
 
 examples/continuous_search.v
 examples/closed_choice.v
-examples/examples_cantor_space.v
+examples/cantor_space.v

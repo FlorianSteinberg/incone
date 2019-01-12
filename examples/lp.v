@@ -675,7 +675,7 @@ Section lp.
       
       rewrite /limit /= => eps eg0.
     rewrite /d /=.
-      
+    
     Lemma fsys_sbs: fundamental_system (sbs: nat -> lp).
     Proof.
       move => x eps eg0.

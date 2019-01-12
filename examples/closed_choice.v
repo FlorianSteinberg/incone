@@ -1,4 +1,12 @@
-From Coq.micromega Require Import Psatz.
+(** This file proves that closed choice on the natural numbers is discontinuous.
+    The proof is done with respect to the representation of closed subsets of 
+    the naturals that uses enumerations of the complement as names. The corresponding
+    space is defined in the library, called cs_AN and the library also contains a
+    proof that cs_AN is isomorphic to A(nat) (the later represents a closed subset by
+    a name of the characteristic function of the complement as continuous function to
+    Sirpinski space). **)
+
+Require Import Psatz.
 From mathcomp Require Import all_ssreflect.
 From rlzrs Require Import all_rlzrs.
 Require Import all_cs sets classical_cont classical_func.

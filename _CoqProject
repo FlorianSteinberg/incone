@@ -23,7 +23,8 @@ baire_spaces/dualities/Duop.v
 baire_spaces/dualities/classical_mach.v
 baire_spaces/all_mach.v
 
-all_core.v
+baire_spaces/baire_metric.v
+all_baire.v
 
 continuity_spaces/cs.v
 continuity_spaces/prod.v
@@ -49,7 +50,6 @@ examples/reals/sd_reals.v
 examples/reals/sdvsc.v
 examples/reals/Ireals.v
 
-
-examples/examples_continuity.v
+examples/continuous_search.v
+examples/closed_choice.v
 examples/examples_cantor_space.v
-examples/examples_opens.v

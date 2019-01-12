@@ -3,8 +3,8 @@ a space that can be thought about continuity on. *)
 From mathcomp Require Import all_ssreflect.
 From metric Require Import reals metric standard.
 From Coquelicot Require Import Coquelicot.
-Require Import all_core classical_cont.
-Require Import Reals ClassicalChoice Psatz.
+Require Import all_core classical_cont classical_count seq_cont.
+Require Import Reals Psatz.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -105,8 +105,11 @@ Section baire_distance.
     exact/search_correct.
   Qed.
 
+  Lemma bvls_inc phi psi n m:
+    (n <= m)%nat -> (baire_val_seq (phi, psi) n <= baire_val_seq (phi, psi) m)%nat.
+  Proof. exact/search_inc. Qed.
 
-  Lemma lemma phi psi i n:
+  Lemma bvls_lt phi psi i n:
     (i <= n)%nat -> (i < baire_val_seq (phi, psi) n)%nat -> phi (cnt i) = psi (cnt i).
   Proof.
     rewrite ltnNge => iln /negP ineq.
@@ -114,7 +117,7 @@ Section baire_distance.
     exact/ineq/search_min.
   Qed.
 
-    Lemma bvls_trngl phi psi psi' n:
+  Lemma bvls_trngl phi psi psi' n:
      (minn (baire_val_seq (phi, psi') n) (baire_val_seq (psi', psi) n) <= baire_val_seq (phi, psi) n)%nat.
   Proof.    
     case eq: (baire_val_seq (phi, psi) n == n).
@@ -130,8 +133,8 @@ Section baire_distance.
     - apply/(@search_correct_le (fun i => phi (cnt i) != psi (cnt i))).
       apply/neq'.
       exact/leq_trans/mln.
-    have eq: phi (cnt k) = psi' (cnt k) by apply/lemma/ineq/search_le.
-    have eq': psi' (cnt k) = psi (cnt k) by apply/lemma/ineq'/search_le.
+    have eq: phi (cnt k) = psi' (cnt k) by apply/bvls_lt/ineq/search_le.
+    have eq': psi' (cnt k) = psi (cnt k) by apply/bvls_lt/ineq'/search_le.
     by apply/bvneq/eqP; rewrite eq eq'.
   Qed.
       
@@ -241,24 +244,86 @@ Section baire_distance.
     exact/Rmax_le_Rplus/tpmn_pos/tpmn_pos.
   Qed.
 
+  Lemma search_lt p n: (search p n < n)%nat -> p (search p n).
+  Proof.
+    rewrite {1}search_find -{2}(size_iota 0 n) -has_find => /hasP [m].
+    rewrite mem_iota add0n => /andP [_ mln] pm.
+    apply/search_correct_le; first exact/pm.
+    by apply/leq_trans/mln.
+  Qed.
+    
+  Lemma dst_dscrt phi psi n:
+    (baire_val_seq (phi, psi) n < n)%nat -> baire_distance phi psi = /2^(baire_val_seq (phi, psi) n).
+  Proof.
+    move => ineq.
+    apply/cond_eq => eps /accf_tpmn [m [g0 mle]].
+    apply/Rle_lt_trans/mle.
+    have:= bdst_spec phi psi (maxn n m).
+    have ->: baire_val_seq (phi, psi) (maxn n m) = baire_val_seq (phi, psi) n.
+    - have /=prp:= search_lt ineq.
+      rewrite /baire_val_seq/= -(search_eq _ (bvls_geq phi psi n)) //.
+      have ineq': (baire_val_seq (phi, psi) n <= maxn n m)%nat by apply/leq_trans/leq_maxl/leq_trans/ineq.
+      rewrite -(search_eq _ ineq') //.
+    have /tpmnP:= leq_maxr n m.
+    rewrite /d /baire_val_seq /=; lra.
+  Qed.
+    
+  Lemma dst_coin phi psi n: baire_distance phi psi <= /2^n <->
+                            phi \and psi \coincide_on (iseg cnt n).
+  Proof.
+    case lt: (baire_val_seq (phi, psi) n < n)%nat.
+    - have ->:= dst_dscrt lt.
+      split => [/tpmnP | /bvls_eq_coin coin]; first by rewrite leqNgt lt.
+      by apply/tpmnP; rewrite coin.
+    move: lt; rewrite ltnNge => /leP/leP ineq.
+    have eq: baire_val_seq (phi, psi) n = n.
+    - by apply/eqP; rewrite eqn_leq; apply/andP; split; first exact/bvls_geq.
+    split => [dst | coin]; first exact/bvls_eq_coin.
+    apply/cond_leq => eps /accf_tpmn [m [_ mle]].
+    have:= bdst_spec phi psi (maxn n m.+1).
+    rewrite /d/= => ineq'.
+    have leq: baire_distance phi psi <= /2^baire_val_seq (phi, psi) (maxn n m.+1) + /2^maxn n m.+1.
+    - by split_Rabs; lra.
+    apply/Rle_trans; first exact/leq.
+    apply/Rplus_le_compat; first by apply/tpmnP; rewrite -{1}eq; apply/search_inc/leq_maxl.
+    apply/Rle_trans/Rlt_le/mle.
+    exact/tpmnP/leq_trans/leq_maxr.
+  Qed.
+
   Definition metric_baire_mixin: MetricSpace.mixin_of B :=
     MetricSpace.Mixin dst_pos dst_sym dstxx dst_eq dst_trngl.
 
   Canonical metric_baire: MetricSpace := MetricSpace.Pack metric_baire_mixin B.
 
-  Require Import classical_count.
+Section continuity.
+  Context (sec: Q -> nat).
+  Hypothesis (ms: minimal_section cnt sec).
+  Notation melt := (max_elt sec).
+  
   Lemma lim_lim: (@metric.limit metric_baire) =~= baire.limit.
   Proof.
-    have [sec ms]:= exists_minsec sur.
-    pose melt:= max_elt sec.
-    move => xn x.
-    split => [lmt L | lmt eps eg0].
+    move => phin phi.
+    split => [lmt L | lmt eps /accf_tpmn [n [_ nle]]].
     - have [ | N prp]:= lmt (/2^(melt L)); first by apply/Rinv_0_lt_compat/pow_lt; lra.
       exists N => m ineq.
-      apply/coin_subl/coin_iseg/coin_bvls.
-      apply/iseg_melt/ms.
-      exact/leqnn.
-      have : /2^(baire_val_seq (x, xn m) (melt L)) = /2^ (melt L).
-  Admitted.
-      
-  Lemma cont_cont (F: B -> B): F \is_continuous_function <-> (F \is_continuous)%met.
+      apply/coin_subl/dst_coin/prp/ineq.
+      exact/iseg_melt.
+    have [N prp]:= lmt (iseg cnt n).
+    exists N => m ineq.
+    exact/Rle_trans/Rlt_le/nle/dst_coin/prp.
+  Qed.
+
+  Lemma cont_f_cont (F: B -> B): F \is_continuous_function <-> (F \is_continuous)%met.
+  Proof.
+    split => [/cont_F2MF cont | cont].
+    - apply/metric.scnt_cont => phi phin.
+      rewrite lim_lim => lmt.
+      by apply/(cont_scnt cont); first exact/lmt.
+    apply/cont_F2MF/scnt_cont.
+    - by exists (F2MF cnt); split; [apply/F2MF_sing | rewrite -F2MF_cotot].
+    move => phi phin Fphin Fphi .
+    rewrite -lim_lim => lmt eq <-.
+    have ->: Fphin = pointwise.ptw F phin by apply/functional_extensionality => n; rewrite -eq.
+    exact/(metric.cont_scnt cont).
+  Qed.
+End continuity.

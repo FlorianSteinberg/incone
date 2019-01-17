@@ -4,7 +4,7 @@ From rlzrs Require Import all_mf.
 Require Import iseg.
 From metric Require Import pointwise reals metric standard coquelicot.
 From Coquelicot Require Import Coquelicot.
-From Younginequality Require Import Rstruct youngsinequality.
+From Younginequality Require Import Rstruct youngsinequality concave.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -34,19 +34,18 @@ Section RN.
     ModuleSpace.mixin_of R_Ring RN_AbelianGroup.
   Proof.
     exists scale.
-    move => r r' x; apply/functional_extensionality => n.
-    by rewrite /scale/mult/= Rmult_assoc.
-    move => x; apply/functional_extensionality => n.
-    by rewrite /scale/one/= Rmult_1_l.
-    move => r x y; apply/functional_extensionality => n.
-    by rewrite /scale/plus/=/ptw_op Rmult_plus_distr_l.
+    - move => r r' x; apply/functional_extensionality => n.
+      by rewrite /scale/mult/= Rmult_assoc.
+    - move => x; apply/functional_extensionality => n.
+      by rewrite /scale/one/= Rmult_1_l.
+    - move => r x y; apply/functional_extensionality => n.
+      by rewrite /scale/plus/=/ptw_op Rmult_plus_distr_l.
     move => r r' x; apply/functional_extensionality => n.
     by rewrite /scale/plus/= Rmult_plus_distr_r.
   Defined.
 
   Definition RN_ModuleSpace_class:
     ModuleSpace.class_of R_Ring RN_AbelianGroup.
-  Proof.
     exists (RN_AbelianGroup_mixin).
     apply/RN_ModuleSpace_mixin.
   Defined.
@@ -318,30 +317,6 @@ Section lp.
   Section lp_AbelianGroup.
     Context (p: R).        
     Notation "x +_pw y" := (ptwn_op Rplus x y) (at level 45).
-    
-    Lemma Rapw_cnvx x y: 1 < p -> `|(x + y)/2`|^p <= (`|x`|^p + `|y`|^p)/2.
-    Proof.
-      move => ineq.
-    Admitted.
-
-    Lemma RapwD x y: 1 <= p ->  `|x + y`|^p <= Rpower 2 (p-1) * (`|x`|^p + `|y`|^p).
-    Proof.
-      case => [pg1 | <-]; last first.
-      - rewrite !Rapw_p1 /Rminus Rplus_opp_r Rpower_O; try lra.
-        by rewrite Rmult_1_l; exact/Rabs_triang.
-      suff ineq: `|x + y`|^p <= `|2 * x`|^p / 2 + `|2 * y`|^p / 2.
-      - apply/Rle_trans; first exact/ineq.
-        rewrite !Rapw_mult /Rdiv !Rmult_assoc !(Rmult_comm _ (/2)) -!Rmult_assoc.
-        rewrite -Rmult_plus_distr_l.
-        apply/Rmult_le_compat_r; first exact/Rplus_le_le_0_compat/Rapw_pos/Rapw_pos.
-        rewrite /Rabs_power; case: ifP => /eqP neq; try lra.        
-        rewrite Rabs_pos_eq; try lra.
-        by rewrite /Rminus Rpower_plus Rpower_Ropp Rpower_1; try lra; apply/Rle_refl.
-      apply/Rle_trans.
-      have ->: x + y = (2 * x + 2 * y) /2 by field. 
-      apply/Rapw_cnvx => //.
-      lra.
-    Qed.
 
     Lemma pnrms_bnd x y i: 1 <= p ->
                            p_norm_seq p (x +_pw y) i
@@ -417,9 +392,10 @@ Section lp.
       ModuleSpace.Pack R_Ring l_ p lp_ModuleSpace_class l_ p.
   End lp_ModuleSpace.
 
-  Section lp_NormedModule.      
+  Section lp_NormedModule.
+    Local Notation "x *_pw y" := (ptw_op Rmult x y) (at level 3).
     Lemma Hoelder's_inequality x y p q: 1 <= p -> 1 <= q -> /p + /q = 1 ->
-      x \from l_ p -> y \from l_ q -> (ptw_op Rmult x y) \from l_ 1.
+      x \from l_ p -> y \from l_ q -> (x *_pw y) \from l_ 1.
     Proof.
       move => pspec qspec h lpx lqy.
       pose x':= exist _ _ lpx: lp_ModuleSpace pspec.
@@ -497,6 +473,7 @@ Section lp.
     Lemma Minkowski's_inequality (x y: lp_ModuleSpace pspec):
       \|plus x y| <= \|x| + \|y|.
     Proof.
+      
     Admitted.
 
     Lemma norm_scale r (x: lp_ModuleSpace pspec): \|lp_scale r x| = Rabs r * \|x|.
@@ -516,7 +493,8 @@ Section lp.
       rewrite plus_assoc -(plus_assoc x) plus_opp_l plus_zero_r.
       exact/Rle_refl.
     Defined.
-
+    Print Assumptions lp_NormedModuleAux_class.
+    
     Definition lp_NormedModule_class: NormedModule.class_of R_AbsRing l_ p.
       exists lp_NormedModuleAux_class; exists (@p_norm p) 1.
       - exact/Minkowski's_inequality.
@@ -536,23 +514,29 @@ Section lp.
 
   Section Fundamental_systems.
     Context (K: AbsRing) (V: NormedModule K).
+   
+    Definition in_span (E: subset V) x :=
+      exists (L: seq (K * E)), x = \big[plus/zero]_(av <- L) scal av.1 (sval av.2).
+    
+    Definition span (E: subset V) := make_subset (in_span E).
 
-    Definition span (E: subset V) := make_subset (
-      fun x => exists (L: seq (K * E)), x = \big[plus/zero]_(av <- L) scal av.1 (projT1 av.2)).
-
-    Lemma spn0 E: span E zero.
+    Lemma span0 E: span E zero.
     Proof. by exists [::]; rewrite big_nil. Qed.      
 
-    Definition span_over (A: subset K) (E: subset V):= make_subset (
-      fun x => exists (L: seq (A * E)), x = \big[plus/zero]_(av <- L) scal (projT1 av.1) (projT1 av.2)).
+    Definition in_span_over (A: subset K) (E: subset V) x:= 
+      exists (L: seq (A * E)), x = \big[plus/zero]_(av <- L) scal (projT1 av.1) (projT1 av.2).
+    
+    Definition span_over A E := make_subset (in_span_over A E).
 
-    Lemma spno0 A E: span_over A E zero.
+    Notation "\span_of E \over A" := (span_over A E) (at level 30).
+    
+    Lemma spno0 A E: zero \from span_over A E.
     Proof. by exists [::]; rewrite big_nil. Qed.
       
-    Lemma spno_refl (A: subset K) (E: subset V) v:
-      A one -> E v -> span_over A E v.
+    Lemma spno_subs (A: subset K) (E: subset V):
+      one \from A -> E \is_subset_of \span_of E \over A.
     Proof.
-      move => Aone Ev.
+      move => Aone v Ev.
       pose one':= exist A one Aone.
       pose v' := exist E v Ev.
       exists [:: (one', v')].
@@ -571,8 +555,8 @@ Section lp.
       by exists ((r,v) :: L'); rewrite !big_cons eq.
     Qed.
 
-    Lemma spn_refl (E: subset V) v: E v -> span E v.
-    Proof. by move => Ev; rewrite spno_all; apply/spno_refl. Qed.
+    Lemma span_subs (E: subset V): E \is_subset_of span E.
+    Proof. by move => Ev; rewrite spno_all; apply/spno_subs. Qed.
     
     Definition fundamental_subset E := dense_subset (span E).
 
@@ -618,10 +602,6 @@ Section lp.
   Section standard_basis.
     Context p (pspec: 1 <= p).
     Definition e (i: nat): RN_ModuleSpace:= fun j => if (i == j)%nat then R1 else R0.
-
-    Lemma Rapw1: `|1`|^p = 1.
-    Proof.
-    Admitted.
     
     Lemma pnrms_e i j: p_norm_seq p (e i) j = if (i < j)%nat then R1 else R0.
     Proof.

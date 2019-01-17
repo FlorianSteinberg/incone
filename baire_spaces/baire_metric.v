@@ -5,7 +5,7 @@
 From mathcomp Require Import all_ssreflect.
 From metric Require Import reals metric standard.
 From Coquelicot Require Import Coquelicot.
-Require Import all_count all_cont baire iseg classical_cont classical_count seq_cont.
+Require Import all_count all_cont baire iseg classical_cont classical_count seq_cont sub.
 Require Import Reals Psatz.
 
 Set Implicit Arguments.
@@ -334,7 +334,34 @@ Section continuity.
     have ->: Fphin = pointwise.ptw F phin by apply/functional_extensionality => n; rewrite -eq.
     exact/(metric.cont_scnt cont).
   Qed.
-  End continuity.
 
+  Lemma cont_cont (F: B ->> B) f: F =~= (F2MF f)|_(dom F) ->
+     F \is_continuous <-> ((@sub_fun _ _ (dom F) f) \is_continuous)%met.
+  Proof.
+    move => eq; split => [/cont_scnt cont | /metric.cont_scnt cont].
+    - apply/metric.scnt_cont => phi phin lmt; rewrite lim_lim.
+      apply/cont; first by rewrite -lim_lim; apply/lmt.
+      - move => n /=; rewrite /pointwise.ptw /sub_fun/=.
+        case: (phin n) => /= psin [Fpsin val].
+        by have /= [_ ->]:= (eq psin Fpsin).1 val.
+      case: (phi) => /= psi [Fpsi val]; rewrite /sub_fun/=.
+      by have /= [_ ->]:= (eq psi Fpsi).1 val.
+    apply/scnt_cont => [ | phi phin Fphin Fphi /lim_lim lmt valn val].
+    - exists (F2MF cnt); split; first exact/F2MF_sing.
+      by rewrite -F2MF_cotot; apply/sur.
+    apply/lim_lim.
+    have [phifd <-]:= (eq phi Fphi).1 val.
+    have ->: Fphin = pointwise.ptw f phin.
+    - apply/ functional_extensionality => n.
+      by have [phinfd <-]:= (eq (phin n) (Fphin n)).1 (valn n).
+    pose psi := exist _ _ phifd.
+    have phinfd: forall n, (phin n) \from dom F by move => n; exists (Fphin n).                  
+    pose psin n := exist _ _ (phinfd n).                                          
+    move => eps eg0.
+    have [N prp]:= cont (exist _ _ phifd) psin lmt eps eg0.
+    exists N => m ineq.
+    by have := prp m ineq.
+  Qed.
+  End continuity.
 End baire_metric.
  

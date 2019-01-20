@@ -49,8 +49,8 @@ examples/reals/under.v
 examples/reals/Q_reals.v
 examples/reals/sd_reals.v
 examples/reals/sdvsc.v
-examples/reals/Ireals.v
 
 examples/continuous_search.v
 examples/closed_choice.v
 examples/cantor_space.v
+examples/lp.v

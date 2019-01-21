@@ -30,6 +30,12 @@ Section L2SS.
     split => [[ | /ih []] | ]; [left; left | left; right | right | ] => //.
     by rewrite /= in ih; rewrite ih => [[[] | ]]; [left | right; left | right; right ].
   Qed.
+
+  Lemma L2SS_rev K: L2SS K === L2SS (rev K).
+  Proof.
+    elim: K => // a K ih a' /=; rewrite /rev/=catrevE lstn_app.
+    by split => [[-> /= | /ih lstn] | [/ih lstn | []//]]; [right; left | left | right | left].
+  Qed.
 End L2SS.
 
 Section coincide.

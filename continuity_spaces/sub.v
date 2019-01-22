@@ -1,5 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun.
 From rlzrs Require Import all_rlzrs.
+From metric Require Import metric.
 Require Import all_baire cs.
 Require Import ProofIrrelevance ProofIrrelevanceFacts.
 
@@ -35,17 +36,7 @@ Section subspace.
 End subspace.
 
 Section subspaces.
-  Local Open Scope cs_scope.
-  Definition sub_fun S T (A: subset S) (f: S -> T) (a: A) := f (sval a).
-  Arguments sub_fun {S} {T} (A).
-  
-  Definition sub_mf S T (A: subset S) (f: S ->> T) :=
-    make_mf (fun (a: A) y => f (sval a) y).
-
-  Lemma sub_F2MF S T (A: subset S) (f: S -> T):
-    F2MF (sub_fun A f) =~= sub_mf A (F2MF f).
-  Proof. done. Qed.
-  
+  Local Open Scope cs_scope.  
   Lemma sub_hcr (X Y: cs) (A: subset X) (f: X ->> Y):
     f \has_continuous_realizer -> (@sub_mf X Y A f) \has_continuous_realizer.
   Proof.

@@ -1,7 +1,7 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat.
 From rlzrs Require Import all_rlzrs.
 From metric Require Import reals pointwise metric.
-Require Import all_cs.
+Require Import all_cs_base cprd.
 Require Import Qreals Reals Psatz ClassicalChoice ChoiceFacts.
 Require Import Morphisms.
 Local Open Scope cs_scope.

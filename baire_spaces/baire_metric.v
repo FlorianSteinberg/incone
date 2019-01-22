@@ -5,7 +5,7 @@
 From mathcomp Require Import all_ssreflect.
 From metric Require Import reals metric standard.
 From Coquelicot Require Import Coquelicot.
-Require Import all_count all_cont baire iseg classical_cont classical_count seq_cont sub.
+Require Import all_count all_cont baire iseg classical_cont classical_count seq_cont.
 Require Import Reals Psatz.
 
 Set Implicit Arguments.

@@ -16,22 +16,15 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section closed_choice_on_the_naturals.
-
-  Definition nonempty (X: cs) (A: \A(X)) := exists x, x \from A2SS A.
   
-  Definition nonemptiesA X:= make_subset (@nonempty X).
+  Definition closed_choice_on X := make_mf (@A2SS X).
 
-  Definition nonemptyA X := make_subset (fun (A: \A(X)) => exists x, x \from A2SS A).
-
-  Definition closed_choice_on X := (make_mf A2SS)|_(nonemptyA X).
-
-  Definition CN: cs_AN ->> cs_nat := make_mf (fun (A: pred nat) n => A n /\ exists m, A m = top).
+  Definition nonempties X:= dom (closed_choice_on X).
+  
+  Definition CN: cs_AN ->> cs_nat := make_mf (fun (A: pred nat) n => A n).
 
   Lemma CN_CN'_val A: closed_choice_on cs_nat  A === CN (sval A).
-  Proof.
-    move => n; split => [[[m Am] /= eq] | [elt _]]; first by split; last exists n; rewrite eq.
-    by split; first exists n; move: elt => /=; case: (sval A n) => [[]].
-  Qed.
+  Proof. by move => n; split => /= [eq | ]; [rewrite eq | case: (sval A n) => [[]]]. Qed.
 
   Lemma CN_CN': closed_choice_on cs_nat =~= CN \o F2MF Anat2AN.
   Proof.
@@ -90,7 +83,7 @@ Section closed_choice_on_the_naturals.
     apply/CN_CN'_hcr => [[F [rlzr cont]]].
     pose sing0:= (fun n => if n == 0 then top else bot): cs_AN.
     have [phi phin0]:= get_description sing0.
-    have [ | [Fphi val] prp] := rlzr _ _ phin0; first by exists 0; split; last exists 0.
+    have [ | [Fphi val] prp] := rlzr _ _ phin0; first by exists 0.
     have [L /= mod]:= cont phi Fphi val.
     pose phi' n := if n \in (L tt) then phi n else 1.
     have coin: (phi \and phi' \coincide_on (L tt))%baire.
@@ -109,20 +102,19 @@ Section closed_choice_on_the_naturals.
       + by left; apply/mapP; exists n.
       by right; apply/eqP.
     have [ | [Fphi' val'] prp']:= rlzr _ _ phi'nA.
-    - exists (\max_(n <- (L tt)) (phi n).+1).+1.
-      have Am: A (\max_(n <- L tt) (phi n).+1).+1.
-      + apply/negbNE/negP => /phi'nA [m].
-        rewrite /phi'.
-        case: ifP => [/inP lstn eq | /inP lstn eq] //.
-        have:= bigmax_lt phi lstn.
-        rewrite eq ltnNge => /negP ineq.
-        exact/ineq/leqW.
-      by split; last exists (\max_(n <- (L tt)) (phi n).+1).+1.
+    - exists (\max_(n <- (L tt)) (phi n).+1).+1 => //.
+      suff Am: A (\max_(n <- L tt) (phi n).+1).+1 by trivial.
+      apply/negbNE/negP => /phi'nA [m].
+      rewrite /phi'.
+      case: ifP => [/inP lstn eq | /inP lstn eq] //.
+      have:= bigmax_lt phi lstn.
+      rewrite eq ltnNge => /negP ineq.
+      exact/ineq/leqW.
     have valeq: Fphi' tt = Fphi tt by apply/mod/val'/coin.
     have eq1: Fphi tt = 0.
-    - by have [n [-> []]]:= prp Fphi val; rewrite /sing0; case: ifP => // /eqP ->//.
+    - by have [n [-> ]]:= prp Fphi val; rewrite /sing0 /=; case: ifP => // /eqP.
     have : Fphi' tt <> 0.
-    - have [n [-> [/negP ex _ eq']]]:= prp' Fphi' val'.
+    - have [n [-> [/negP ex eq']]]:= prp' Fphi' val'.
       apply/ex/negP/phi'nA.
       exists (\max_(n <- L tt) n.+1).
       rewrite /phi' eq'.

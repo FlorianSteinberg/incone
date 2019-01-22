@@ -54,6 +54,9 @@ Section RN.
     ModuleSpace.Pack R_Ring RN_AbelianGroup RN_ModuleSpace_class (nat -> R).
 
   Definition mult (x y: RN_ModuleSpace): RN_ModuleSpace := (ptw_op Rmult x y).
+
+  Canonical Ml (G: AbelianGroup): Monoid.law (@zero G) :=
+    Monoid.Law plus_assoc plus_zero_l plus_zero_r.
 End RN.
 Notation "x *_pw y" := (mult x y) (at level 3).
 
@@ -904,7 +907,6 @@ Section lp.
       rewrite plus_assoc -(plus_assoc x) plus_opp_l plus_zero_r.
       exact/Rle_refl.
     Defined.
-    Print Assumptions lp_NormedModuleAux_class.
     
     Definition lp_NormedModule_class: NormedModule.class_of R_AbsRing l_ p.
       exists lp_NormedModuleAux_class; exists (@p_norm p) 1.
@@ -1034,22 +1036,23 @@ Section lp.
       case: ifP; last by rewrite Rapw0 addr0.
       by rewrite leq_eqVlt => /orP [/eqP [] | ineq]//; exfalso; apply/jli.
     Qed.
-(*
-    Lemma pnrms_e' (x: RN_ModuleSpace) j: 0 < p ->
+
+    (*
+    Lemma norm_plus_e x lambda i:
+      Rbar_lt \|plus x (scal lambda (e i))\|_p p_infty ->
+        `|\|plus x (scal lambda (e i))\|_p`|^p = `|\|x\|_p`|^p -`|x i`|^p + `|x i - lambda`|^p.
+    Proof.
+    Admitted.
+
+    Lemma pnrms_e' x j: 0 < p ->
       `|p_norm_seq p x j`|^(/p) = \|\big[plus/zero]_(0 <= i < j) x *_pw (e i) \|_p.
     Proof.                                                                        
-      move=> plt.
+      move=> plt; have plt': 0 < /p by apply/Rinv_0_lt_compat.
+      rewrite -[RHS]Rabs_pos_eq; last exact/ipnrm_pos.
+      rewrite -[RHS](@Rapw_inv _ (/p)); try lra; f_equal; rewrite Rinv_involutive; try lra.
       elim: j => [ | j ih]; first by rewrite /p_norm_seq !big_nil ipnrm0; try lra; rewrite Rapw0.
-      rewrite pnrmsS (ipnrm_ppnrm_eq plt (r := p_norm_seq p x j + `|x j`|^p)) //.
-
-      
-      rewrite big_nat_recr.
-      apply ipnrm_ppnrm_eq.
-      rewrite (ipnrm_ppnrm_eq).
-      
-      apply/ipnrm_ppnrm.
-      
-      rewrite big_nat_recr.
+      rewrite pnrmsS big_nat_recr//= e_mult norm_plus_e.
+      rewrite Rplus_assoc; f_equal => //.
 
 
 
@@ -1063,9 +1066,6 @@ Section lp.
 
     Notation lp := (lp_NormedModule pspec).
     Definition sbs i: lp:= exist _ _ (lp_e i).
-
-    Canonical Ml (G: AbelianGroup): Monoid.law (@zero G) :=
-      Monoid.Law plus_assoc plus_zero_l plus_zero_r.
 
     Notation "x - y" := (minus x y).
     Notation "\| x |" := (norm x).
@@ -1124,4 +1124,6 @@ Section lp.
 
       apply/Rle_trans/(prp N)=>//.
       Search _ "tri" "inv".
-      *)
+     *)
+    End standard_basis.
+  End lp.

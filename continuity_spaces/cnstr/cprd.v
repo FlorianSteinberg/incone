@@ -38,6 +38,45 @@ Section USIGPROD.
   Lemma Iprd_base (an: cs_Iprod) (phi: names cs_Iprod):
     phi \describes an \wrt cs_Iprod <-> forall i, (fun q => phi (i,q)) \describes (an i) \wrt X.
   Proof. done. Qed.
+
+  Lemma cprd_rlzr (Z: cs) (f: I -> Z -> X) F:
+    (forall i, (F i) \realizes (F2MF (f i))) ->
+    (make_mf (fun phi psi => forall i, F i phi (fun q => (psi (i, q)))):_ ->> names cs_Iprod)
+      \realizes
+      (F2MF (fun z => f^~ z)).
+  Proof.
+    move => rlzr; apply/rlzr_F2MF => /= phi z phinz.
+    split => [ | Fphi val i]; last first.
+    - by have /rlzr_F2MF rlzr':= rlzr i; have [_ prp]:= rlzr' _ _ phinz; apply/prp/val.
+    suff /choice [tphi_i tphi_ic] :
+      forall i, exists phi_i, phi_i \describes ((f i) z) \wrt X /\ F i phi phi_i.
+    - by exists (fun nq => tphi_i nq.1 nq.2) => n; have []:= tphi_ic n.
+    move => i; have /rlzr_F2MF rlzr':= (rlzr i).
+    have [[phi_i val] prp]:= rlzr' _ _ phinz.
+    by exists phi_i; split; first apply/prp.            
+  Qed.
+              
+  Lemma cprd_uprp_cont (Z : cs) (f : I -> Z c-> X):
+    exists (F : Z c-> cs_Iprod), forall z i, sval F z i = sval (f i) z.
+  Proof.
+    suff fcont: ((fun z => (fun n => sval (f n) z)) : (Z -> cs_Iprod)) \is_continuous.
+    - by exists (exist_c fcont).
+    have /choice [F Fprp]: forall i, (sval (f i)) \is_continuous.
+    - by move => i; apply/ass_cont; case: (f i).
+    have rlzr: forall i, (F i) \realizes (F2MF (sval (f i))) by apply Fprp.
+    have cont: forall i, (F i) \is_continuous_operator by apply Fprp.
+    exists (make_mf (fun phi psi => forall i, (F i) phi (fun q => (psi (i,q))))).
+    split => [ | phi Fphi val /=]; first exact/cprd_rlzr.
+    have /choice[tLf mod]:
+      forall i, exists Lf, forall Fphi,
+            (F i) phi Fphi -> forall q', certificate (F i) (Lf q') phi q' (Fphi q').
+    - move => i; have [Lf mod]:= cont i phi (fun q => Fphi (i, q)) (val i).
+      exists Lf => Fphi' val' q'.
+      suff <-: (fun q => Fphi (i, q)) = Fphi' by apply/mod.
+      exact/cont_sing/val'/val/cont.
+    exists (fun iq => tLf iq.1 iq.2) => [[i q] psi coin Fpsi val'].
+    by have := mod i (fun q => Fphi (i,q)) (val i) q psi coin (fun q => Fpsi (i, q)) (val' i).
+ Qed.
 End USIGPROD.
 Notation "X '\^w'" :=
   (cs_Iprod X 0 nat_count) (at level 35, format "X '\^w'").    

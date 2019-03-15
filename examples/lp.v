@@ -476,13 +476,13 @@ Section p_norm.
   Section lp_norm.
     Definition lp := make_subset (fun x => has_ub (p_norm_seq x)).    
     Definition p_norm (x: lp):= iota (mf_p_norm (projT1 x)).
-    Notation "\| x \|_p" := (p_norm x) (format "'\|' x '\|_p'").
+    Local Notation "\| x |" := (p_norm x) (format "'\|' x '|'").
     Hypothesis pn0: p <> 0.
       
     Lemma lp_spec: lp === dom mf_p_norm.
     Proof. by move => x; rewrite dom_lp. Qed.
     
-    Lemma norm_spec (x: lp): mf_p_norm (sval x) (\|x\|_p).
+    Lemma norm_spec (x: lp): mf_p_norm (sval x) (\|x|).
     Proof.
       move: x => [x lp].
       have [r nrm]:= (lp_spec x).1 lp.
@@ -491,21 +491,21 @@ Section p_norm.
       by rewrite (pnrm_sing _ nrm nrm') //; lra.
     Qed.
     
-    Lemma norm_eq (x: lp) r: mf_p_norm (projT1 x) r -> \|x\|_p = r.
+    Lemma norm_eq (x: lp) r: mf_p_norm (projT1 x) r -> \|x| = r.
     Proof. by move => nrm; apply/pnrm_sing/nrm/norm_spec. Qed.
 
     Lemma norm_ipnrm x: 0 < p ->
-      \|x\|_p = infty_p_norm (sval x).
+      \|x| = infty_p_norm (sval x).
     Proof.
       move => plt; apply/norm_eq.
       move: x => [ /=x /lp_spec [r nrm]].
       by have ->:= (ipnrm_pnrm x r plt).1 nrm.
     Qed.
       
-    Lemma norm_pos (x: lp): 0 <= \|x\|_p.
+    Lemma norm_pos (x: lp): 0 <= \|x|.
     Proof. exact/pnrm_pos/norm_spec. Qed.
 
-    Lemma norm_eq0 (x: lp): 0 < p -> \|x\|_p = 0 -> sval x = cnst 0.
+    Lemma norm_eq0 (x: lp): 0 < p -> \|x| = 0 -> sval x = cnst 0.
     Proof.
       move => pspec eq.
       apply/functional_extensionality => n.
@@ -526,7 +526,7 @@ Section p_norm.
     Definition lp_zero: lp.
     Proof. by exists (fun _ => 0); apply/lp0. Defined.
     
-    Lemma norm0: \|lp_zero\|_p = 0.
+    Lemma norm0: \|lp_zero| = 0.
     Proof. exact/norm_eq/pnrm0. Qed.
 
     Lemma lpN x:
@@ -538,7 +538,7 @@ Section p_norm.
     
     Definition lp_opp (x: lp): lp := exist _ _ (lpN (projT2 x)).
 
-    Lemma norm_opp x: \| lp_opp x \|_p = \|x\|_p.
+    Lemma norm_opp x: \| lp_opp x | = \|x|.
     Proof.
       apply/norm_eq.
       rewrite -(pnrmN (sval x)).
@@ -628,8 +628,9 @@ Section lp.
       ModuleSpace.Pack R_Ring l_ p lp_ModuleSpace_class l_ p.
   End lp_ModuleSpace.
 
+  Notation "'\|' x '|'" := (p_norm x) (format "'\|' x '|'", at level 2).
+
   Section lp_NormedModule.
-    Local Notation "\| x |" := (p_norm x) (at level 2, format "'\|' x '|'").
     Local Notation "x <=_ y" := (Rbar_le x y) (at level 35).
     Local Notation "x *_ y" := (Rbar_mult x y) (at level 25).
     Lemma scal_mult_l x y a: scal a (x *_pw y) = (scal a x) *_pw y.
@@ -762,6 +763,7 @@ Section lp.
     Qed.
 
     Notation "x +_pw y":= (@plus RN_ModuleSpace x y) (at level 35).
+    
     Notation "x +_ y" := (Rbar_plus x y) (at level 25).
     Lemma Minkowski's_inequality_mf x y p norm_x norm_y:
       1 <= p -> 
@@ -923,6 +925,12 @@ Section lp.
     Defined.
 
     Canonical lp_NormedModule:= NormedModule.Pack R_AbsRing l_ p lp_NormedModule_class l_ p.
+
+    Lemma norm_coef (x: lp_NormedModule) i: Rabs (sval x i) <= \|x|.
+    Proof. by apply/pnrm_coef/norm_spec; lra. Qed.
+      
+    Lemma norm_diff_coef (x y: lp_NormedModule) i: Rabs (sval x i - sval y i) <= \|minus x y|.
+    Proof. by suff ->: sval x i - sval y i = sval (minus x y) i by apply/norm_coef. Qed.
   End lp_NormedModule.
 
   Section Fundamental_systems.
@@ -1037,48 +1045,281 @@ Section lp.
       by rewrite leq_eqVlt => /orP [/eqP [] | ineq]//; exfalso; apply/jli.
     Qed.
 
-    (*
-    Lemma norm_plus_e x lambda i:
-      Rbar_lt \|plus x (scal lambda (e i))\|_p p_infty ->
-        `|\|plus x (scal lambda (e i))\|_p`|^p = `|\|x\|_p`|^p -`|x i`|^p + `|x i - lambda`|^p.
+    Lemma pnrm_e i: mf_p_norm p (e i) 1.
     Proof.
-    Admitted.
-
-    Lemma pnrms_e' x j: 0 < p ->
-      `|p_norm_seq p x j`|^(/p) = \|\big[plus/zero]_(0 <= i < j) x *_pw (e i) \|_p.
-    Proof.                                                                        
-      move=> plt; have plt': 0 < /p by apply/Rinv_0_lt_compat.
-      rewrite -[RHS]Rabs_pos_eq; last exact/ipnrm_pos.
-      rewrite -[RHS](@Rapw_inv _ (/p)); try lra; f_equal; rewrite Rinv_involutive; try lra.
-      elim: j => [ | j ih]; first by rewrite /p_norm_seq !big_nil ipnrm0; try lra; rewrite Rapw0.
-      rewrite pnrmsS big_nat_recr//= e_mult norm_plus_e.
-      rewrite Rplus_assoc; f_equal => //.
-
-
-
-
-      Lemma lp_e i: (e i) \from l_ p.
+      apply/pnrm_lim; try lra.
+      by exists i.+1 => m ilm; rewrite pnrms_e ilm Rapw1 /d/=; split_Rabs; lra.
+    Qed.
+    
+    Lemma ipnrm_e i: \|e i\|_p = 1.
     Proof.
-      exists 1 => _ [j ->].
-      rewrite pnrms_e.
+      apply/ipnrm_pnrm; try lra.
+      exact/pnrm_e.
+    Qed.
+
+    Lemma sum_coef (F: nat -> RN_ModuleSpace) j n:
+      (\big[plus/zero]_(0 <= i < j) F i) n = \sum_(0 <= i < j) (F i n).
+    Proof.
+      elim: j n => [n | j ih n]; first by rewrite !big_nil /zero/=/cnst.
+      by rewrite !big_nat_recr //= {1}/plus/=/ptwn_op/= ih.
+    Qed.
+
+    Lemma esum0 x n m: (n <= m)%nat -> (\big[plus/zero]_(0 <= i < n) x *_pw (e i)) m = 0.
+    Proof.
+      move => ineq.
+      rewrite sum_coef.
+      elim: n ineq => [ineq | n ih ineq]; first by rewrite big_nil.
+      rewrite big_nat_recr //= ih; last exact/leq_trans/ineq.
+      rewrite e_mult add0r /scal/=/scale/= /e.
+      suff -> : n == m = false by rewrite Rmult_0_r.
+      exact/eqP/Nat.lt_neq/ltP.
+    Qed.
+
+    Lemma esum_coef x n m: (m < n)%nat -> (\big[plus/zero]_(0 <= i < n) x *_pw (e i)) m = x m.
+    Proof.
+      move => /subnK<-.
+      elim: (n - m.+1)%nat => [ | k ih].
+      - rewrite add0n big_nat_recr //= {1}/plus/=/ptwn_op esum0 // Rplus_0_l.
+        rewrite /mult/=/ptwn_op /e; have ->: m == m = true by apply/eqP.
+        by rewrite Rmult_1_r.
+      rewrite addSn big_nat_recr //= {1}/plus/=/ptwn_op ih /e /mult/ptwn_op/=.
+      suff ->: (k + m.+1)%nat == m = false by rewrite Rmult_0_r Rplus_0_r.
+      apply/negP => /eqP eq.
+      suff : (k + m < m)%nat by rewrite ltnNge => /negP ineq; apply/ineq/leq_addl.
+      by rewrite -{2}eq addnS.
+    Qed.
+
+    Lemma pnrms_e_eq x n:
+      p_norm_seq p x n = p_norm_seq p (\big[plus/zero]_(0 <= i < n) x *_pw (e i)) n.
+    Proof.
+      case: n => [ | n]; first by rewrite /p_norm_seq !big_nil.
+      rewrite !pnrmsS esum_coef //; f_equal.
+      rewrite /p_norm_seq; apply/eq_big_nat => i /andP [_ ineq].
+      by rewrite esum_coef //; apply/leq_trans; first exact/ineq.
+    Qed.
+
+    Lemma pnrms_esum x n m: (n <= m)%nat ->
+      p_norm_seq p x n = p_norm_seq p (\big[plus/zero]_(0 <= i < n) x *_pw (e i)) m.
+    Proof.
+      elim: m => [ | m ih ]; first by rewrite leqn0 => /eqP ->; rewrite /p_norm_seq !big_nil.
+      rewrite leq_eqVlt; case/orP => [/eqP <- | ineq]; first exact/pnrms_e_eq.
+      by rewrite pnrmsS ih // -[LHS]Rplus_0_r; f_equal; rewrite esum0 // Rapw0.
+    Qed.
+      
+    Lemma norm_pnrms_e x n:
+      \|\big[plus/zero]_(0 <= i < n) x *_pw (e i)\|_p = `|p_norm_seq p x n`|^(/p).
+    Proof.
+      apply/ipnrm_ppnrm; try lra.
+      apply/ppnrm_lim; try lra.
+      exists n => m nlm.
+      rewrite -pnrms_esum // Rabs_pos_eq; last exact/pnrms_pos.
+      by rewrite /d/=; split_Rabs; lra.
+    Qed.
+          
+    Lemma lp_e i: (e i) \from l_ p.
+    Proof.
+      exists 1 => _ [j ->]; rewrite pnrms_e.
       by case: (i < j)%nat; lra.
     Qed.
 
     Notation lp := (lp_NormedModule pspec).
     Definition sbs i: lp:= exist _ _ (lp_e i).
 
+    Lemma norm_sbs i: \|sbs i| = 1.
+    Proof.
+      apply/norm_eq; try lra.
+      exact/pnrm_e.
+    Qed.
+
+    Lemma sval_sum (F: nat -> lp) n:
+      sval (\big[plus/zero]_(0 <= i < n) F i) =
+      \big[plus/zero]_(0 <= i < n) (sval (F i): RN_ModuleSpace).
+    Proof.
+      elim: n => [ | n ih]; first by rewrite !big_nil.
+      rewrite !big_nat_recr//= {2}/plus/=/ptwn_op; apply/functional_extensionality => i.
+      by f_equal; rewrite ih.
+    Qed.
+      
+    Lemma norm_pnrms_sbs (x: l_ p) n:
+      \|\big[plus/zero]_(0 <= i < n) scal (sval x i) (sbs i)| = `|p_norm_seq p (sval x) n`|^(/p).
+    Proof.
+      rewrite norm_ipnrm; try lra.
+      have := norm_pnrms_e (sval x) n.
+      rewrite sval_sum /=.
+      suff ->: \big[plus/zero]_(0 <= i < n) (sval x) *_pw (e i) =
+        \big[plus/zero]_(0 <= i < n) scal (sval x i) (e i) by move ->.
+      apply/eq_bigr => i _.
+      apply/functional_extensionality => j.
+      rewrite /mult/ptwn_op /scal/=/scale/=.
+      rewrite /e; case: ifP => [/eqP -> | ]//.
+      by rewrite !Rmult_0_r.
+    Qed.
+
+    Lemma pnrms_lp x (y: lp) N: 1 < p ->
+      p_norm_seq p x N <=
+      Rpower 2 (p-1) * p_norm_seq p (sval y) N + \sum_(0 <= i < N) Rpower 2 (p-1) * `|x i - sval y i`|^p.
+    Proof.
+      move => plt.
+      elim: N => [ | N ih]; first by rewrite /p_norm_seq !big_nil Rplus_0_r Rmult_0_r; apply/Rle_refl.
+      rewrite !pnrmsS big_nat_recr //=.
+      apply/Rle_trans.
+      - apply/Rplus_le_compat; first exact/ih.
+        suff ineq: `|x N`|^p <= Rpower 2 (p - 1) * (`|sval y N`|^p + `|x N - sval y N`|^p).
+        apply/ineq.
+        have {1}->: x N = x N - sval y N + sval y N by ring.
+        by apply/Rle_trans; first exact/RapwD; lra.
+      by rewrite /GRing.add/=/GRing.mul/=; lra.
+    Qed.
+
+    Lemma Rapw_vni x q: q <> 0 -> `|`|x`|^q`|^(/q) = Rabs x.
+    Proof.
+      move => neq.
+      rewrite -{1}(Rinv_involutive q) //.
+      exact/Rapw_inv/Rinv_neq_0_compat.
+    Qed.
+
+    Lemma scaleR_sumR x F n m: (n <= m)%nat -> \sum_(n <= i < m) x * F i = x * \sum_(n <= i < m) F i.
+    Proof.
+      move => /subnK <-.
+      elim: (m - n)%nat => [ | k ih]; first by rewrite add0n /index_iota subnn /= !big_nil Rmult_0_r.
+      rewrite addSn !big_nat_recr/=; try exact/leq_addl.
+      by rewrite ih /GRing.add/=/GRing.mul/=; ring.
+    Qed.
+
+    Lemma sumR_le F G n m: (n <= m)%nat -> (forall i, (n <= i < m)%nat -> F i <= G i) ->
+                           \sum_(n <= i < m) F i <= \sum_(n <= i < m) G i.
+    Proof.
+      move => /subnK <-; elim: (m - n)%nat => [ | k ih prp].
+      - by rewrite add0n/index_iota subnn/= !big_nil; intros; apply/Rle_refl.
+      rewrite !addSn !big_nat_recr /=; try exact/leq_addl.
+      apply/Rplus_le_compat/prp/andP; last by split; first exact/leq_addl.
+      apply/ih => i /andP [ineq ineq']; apply/prp/andP.
+      rewrite addSn; split => //.
+      by apply/leq_trans; first exact/ineq'.
+    Qed.
+
+    Print Assumptions Young's_inequality.
+    Require Import ChoiceFacts.
+    Axiom choice : FunctionalCountableChoice_on R.
+    Local Open Scope metric_scope.
+    Lemma lp_cmplt: complete lp.
+    Proof.
+      case: pspec => [plt | eq].
+      move => xn cchy.
+      have /choice [x xprp]: forall i, exists xi, xi \is_limit_of (fun j => sval (xn j) i).
+      - move => n; apply/R_cmplt=> eps eg0.
+        have [N Nprp]:= cchy eps eg0.
+        exists N => m k Nlm Nlk.
+        exact/Rle_trans/Nprp/Nlk/Nlm/norm_diff_coef.
+      have xlp: x \from l_ p.  
+      - have [ | M Mprp]:= cchy 1; first by lra.
+        exists (1 + Rpower 2 (p - 1) * `|1 + \|xn M|`|^p) => _ [N ->].
+        suff [K [MlK Kprp]]: exists K, (M <= K)%nat /\ forall n, (n <= N)%nat ->
+                                           d (x n) (sval (xn K) n) <= Rpower 2 (1-p) * Rpower (INR N) (-/p).
+        + have prp: forall k, p_norm_seq p x N <=
+                              (\sum_(0 <= i < N) Rpower 2 (p - 1) * `|x i - sval (xn k) i`|^p)
+                              + Rpower 2 (p - 1) * `|\|xn k|`|^p.
+          * move => k.
+            apply/Rle_trans; first apply/(pnrms_lp _ (xn k)); try lra.
+            have: 0 < Rpower 2 (p - 1) by apply/exp_pos.
+            suff: p_norm_seq p (sval (xn k)) N <= `|\|xn k|`|^p by nra.
+            apply/ppnrm_leq/ppnrm_pnrm; try lra.
+            split; first exact/Rapw_pos.
+            rewrite Rapw_vni; try lra.
+            by rewrite Rabs_pos_eq; [apply/norm_spec | apply/norm_pos]; lra.
+          apply/Rle_trans; first exact/(prp K).
+          apply/Rplus_le_compat.
+          * rewrite scaleR_sumR.
+            apply/Rle_trans.
+            apply/Rmult_le_compat_l.
+            apply/Rlt_le/exp_pos.
+          * admit.
+          apply/Rmult_le_compat_l; first exact/Rlt_le/exp_pos.
+          apply/Rapw_inc_le; try lra.
+          rewrite Rabs_pos_eq; last by apply/norm_pos; lra.
+          have ->: xn K = plus (minus (xn K) (xn M)) (xn M).
+          * admit.
+          apply/Rle_trans; first exact/Minkowski's_inequality.
+          rewrite Rabs_pos_eq.
+          apply/Rplus_le_compat_r; first exact/Mprp.
+          by apply/Rplus_le_le_0_compat/norm_pos; lra.
+        suff prp: forall eps, 0 < eps ->  exists K, (M <= K)%nat /\ forall k, (K <= k)%nat ->
+                forall n, (n <= N)%nat -> d (x n) (sval (xn k) n) <= eps.
+        + have [ | K [ineq' Kprp]]:= prp (Rpower 2 (1 - p) * Rpower (INR N) (- /p)).
+          * by apply/Rmult_lt_0_compat; apply/exp_pos.
+          by exists K; split; last apply (Kprp K).
+        move => eps eg0; elim: N => [ | N [K' [ineq' K'prp]]].
+        + have [K Kprp]:= xprp 0%nat eps eg0.
+          exists (maxn M K).
+          split => [ | k ineq n ]; first exact/leq_maxl.
+          rewrite leqn0 => /eqP ->.
+          exact/Kprp/leq_trans/ineq/leq_maxr.
+        have [K Kprp]:= xprp N.+1 eps eg0.
+        exists (maxn K K').
+        split => [ | k ineq n]; first by rewrite leq_max; apply/orP; right.
+        rewrite leq_eqVlt; case/orP => [/eqP -> | nlN]; first exact/Kprp/leq_trans/ineq/leq_maxl.
+        exact/K'prp/nlN/leq_trans/ineq/leq_maxr.
+
+        apply/K'prp.
+        Search _ (_ <= maxn _ _)%nat.
+        have 
+
+          apply/Rmult_le_compat; first exact/Rlt_le/exp_pos; first exact/Rapw_pos.
+          rewrite -{2}(Rpower_1 2); try lra.
+          apply/Rle_Rpower; try lra.
+          Search Rpower Rle.
+
+          
+            suff: forall k, k<= N -> \sum(0 <= i < k) Rpower 2 (p - 1) * 
+          elim: (N) Kprp => [Kprp | N ih Kprp]
+          .
+          
+            have ->: `|\|xn 0%nat|`|^p + 3 = `|\|xn 0%nat|`|^p + 2 + 1 by field.
+        apply/Rplus_le_compat_r.
+        have: \|xn M| <= \|xn 0%nat| + 2.
+        + elim: N.
+          
+          exists 0%nat => n ineq.
+          rewrite /d/= Rinv_1 Rapw1.
+          
+          
+          
+      - exists (exist _ _ xlp).
+        move => eps eg0.
+        have eg0': 0 < eps/2 by lra.
+        have [N Nprp]:= cchy _ eg0'.
+        
+        exists N => m Nlm.
+        apply/le_dst/Nprp/Nlm.
+
+        have := 
+      exists (\|xn 0%nat| + 3) => r [n ->].
+        
+      have := cond_leq.
+      rewrite pnrms_esum.
+      Search _ p_norm_seq e.
+      
+        Search _ (_ <= norm _ ).
+        
+    Lemma sbs_lim (x: lp):
+      x \is_limit_of (fun n => \big[plus/zero]_(0 <= i < n) scal (sval x i) (sbs i)).
+    Proof.
+      
+      Search _ "triang".
+      apply/lim_dst => eps eg0.
+      
+      move => eps eg0.
+      apply/lim_dst.
+      
+      apply/lim_norm.      
+      have := pnrm_lim.
+
     Notation "x - y" := (minus x y).
-    Notation "\| x |" := (norm x).
 
     Lemma lim_norm xn (x: lp):
       limit xn x <-> limit (fun n => norm (minus x (xn n))) 0.
     Proof. by rewrite lim_dst. Qed.
 
-    Lemma sbs_lim (x: lp):
-      limit (fun n => \big[plus/zero]_(0 <= i < n) scal (sval x i) (sbs i)) x.
-    Proof.
-      apply/lim_norm.      
-      have := pnrm_lim.
       
       rewrite /limit /= => eps eg0.
     rewrite /d /=.

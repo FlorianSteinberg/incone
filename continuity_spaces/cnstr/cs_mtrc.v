@@ -1,7 +1,7 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat.
 From rlzrs Require Import all_rlzrs.
 From metric Require Import reals pointwise metric.
-Require Import all_cs_base cprd.
+Require Import all_cs_base cprd classical_cont.
 Require Import Qreals Reals Psatz ClassicalChoice ChoiceFacts.
 Require Import Morphisms.
 Local Open Scope cs_scope.
@@ -66,7 +66,7 @@ Section metric_representation.
   Lemma lim_mlim : @limit metric_cs =~= metric_limit.
   Proof.
     move => xn x.
-    split; last first => [/lim_tpmn/choice [mu prp] | [phin [phi [phinxn [phinx lim]]]]].
+    split; last first => [/lim_tpmn/countable_choice [mu prp] | [phin [phi [phinxn [phinx lim]]]]].
     - have [phin phinxn]:= get_description (xn: metric_cs\^w).
       have [phi phinx]:= get_description (x: metric_cs).
       exists (fun mn => if (mu mn.2.+1 <= mn.1)%nat then phi mn.2.+1 else phin mn).
@@ -116,7 +116,7 @@ Section continuity.
     (op (x, y)) \is_limit_of (cptwn_op op (xn,yn)).
   Proof.
     move => /cont_scnt cont lmt lmt'.    
-    have ->: cptw_op op = ptw op \o_f (@cs_zip _ _ _ (metric_cs rdense) (metric_cs qdense)) by trivial.
+    have ->: cptw_op op = ptw op \o_f (@cs_zip _ _ _ _ (metric_cs rdense) (metric_cs qdense)) by trivial.
     apply/cont; first exact/choice.
     by rewrite lim_prd.
   Qed.
@@ -165,5 +165,87 @@ Section continuity.
     exfalso; apply/ineq''; move: lstn.
     elim L => // a L' ih' /=[ <- | lstn]; first by have:= leq_maxl a (foldr maxn 0 L')%nat.
     by apply/leq_trans; first exact/ih'; have := leq_maxr a (foldr maxn 0 L')%nat.
+  Qed.
+  
+  Lemma exists_minmod_met (f : metric_cs rdense -> metric_cs qdense) x:
+    (f \is_continuous_in x)%met ->
+    exists mu : nat -> nat, forall n,
+      (forall y, (d x y <= /2 ^ (mu n) -> d (f x) (f y) <= /2 ^ n))
+      /\
+      forall m, (forall y, d x y <= /2 ^ m -> d (f x) (f y) <= (/2 ^ n)) -> (mu n <= m)%nat. 
+  Proof.
+    move => cont.
+    suff /nat_choice [mu muprp]: forall n, exists m,
+          (forall y, d x y <= /2 ^ m -> d (f x) (f y) <= /2 ^ n)
+          /\
+          (forall k : nat,
+          (forall y : M, d x y <= / 2 ^ k -> d (f x) (f y) <= / 2 ^ n) -> (m <= k)%nat).
+    - by exists mu => n; apply/muprp.
+    move => n.
+    have [ | delta [/dns0_tpmn [m mld] prp]]:= cont (/2^n); first exact/tpmn_lt.
+    apply/well_order_nat; exists m => y dst.
+    exact/prp/Rle_trans/Rlt_le/mld.
+  Qed.
+
+  Lemma mcont_cont (f: metric_cs rdense -> metric_cs qdense):
+    (f \is_continuous)%met -> f \is_continuous.
+  Proof.
+    move => cont.
+    have /countable_choice [mu minmod]:= exists_minmod_met (cont (r _)).
+    pose F := (make_mf (fun phi Fphi => forall n, exists k,
+                              (mu (phi k) n.+1 <= k)%nat
+                              /\
+                              (forall k', (mu (phi k') n.+1 <= k')%nat ->(k <= k')%nat)
+                              /\
+                              d (q (Fphi n)) (f (r (phi k))) <= /2 ^ n.+1
+                              /\
+                              (forall m, d (q m) (f (r (phi k))) <= /2 ^ n.+1 -> (Fphi n <= m)%nat)
+              )).
+    have Fcont: F \is_continuous_operator.
+    - move => /= phi Fphi /nat_choice [nu nu_prop].
+      exists (fun n => (init_seg (nu n).+1)) => n psi coin Fphi' prop.
+      have [k' [ineq [min [dst md]]]]:= prop n.    
+      have keqk' : k' = nu n.
+      + have [nu_prop1 [nu_prop2 _]]:= nu_prop n.
+        rewrite coin.1 in nu_prop1.
+        have /leP lt:= (min (nu n) nu_prop1).
+        suff e0 : psi k' = phi k' by rewrite e0 in ineq; have /leP gt := (nu_prop2 k' ineq); lia.
+        have [cs _] := coin_lstn phi psi (init_seg (nu n).+1).
+        have [_ lst] := (lstn_iseg (@id nat) k' (nu n).+1).
+        by symmetry; apply/(cs coin k')/lst; exists k'; split; first apply/leP; lia.
+      have e0 : f (r (psi k')) = f (r (phi (nu n))) by rewrite keqk' coin.1.        
+      have [_ [_ [nu1 nu4]]] := nu_prop n.
+      rewrite -e0 in nu1 nu4.
+      have /leP lt := md (Fphi n) nu1.
+      have /leP gt := nu4 (Fphi' n) dst.
+      lia.
+    exists F; split; last exact/Fcont.
+    apply/sing_rlzr_F2MF; first exact/cont_sing.
+    split => [phi x phinx | phi x Fphi phinx val n].
+    - suff /=/nat_choice [h /nat_choice [h']]: forall n, exists k, exists s : nat,
+            (mu (phi k) n.+1 <= k)%nat /\
+            (forall k' : nat, (mu (phi k') n.+1 <= k')%nat -> (k <= k')%nat) /\
+            d (q s) (f (r (phi k))) <= / (2 ^ n.+1) /\
+            (forall m : nat, d (q m) (f (r (phi k))) <= / (2 ^ n.+1) -> (s <= m)%nat).
+      + by exists h' => n; exists (h n).
+      move => n.
+      suff /well_order_nat [k []]: exists k, (mu (phi k) n.+1 <= k)%nat.
+      - exists k.
+        have /well_order_nat [s [c sprp]]:= @qdense (f (r (phi k))) (/2^n.+1) (tpmn_lt _).      
+        exists s; split => //; split => //.
+        by split => [ | m]; rewrite dst_sym; last apply sprp.
+      have [nu nuprp]:= exists_minmod_met (cont x).
+      suff modmod: forall l n',
+          d x (r l) <= /2 ^ (nu n'.+1).+1 -> (mu l n' <= (nu n'.+1).+1)%nat.
+      - by exists (nu n.+2).+1; apply/modmod/phinx.
+      move => z k dst; apply minmod => y dst'.
+      apply/dst_le; last by rewrite tpmn_half; exact/Rle_refl.
+      - rewrite dst_sym; apply nuprp.
+        by apply/Rle_trans/tpmnP/leqW/leqnn; first exact/dst.
+      by apply nuprp; apply/dst_le; first exact/dst; first exact/dst'; rewrite -tpmn_half; lra.
+    rewrite dst_sym; have [k [ineq [min [dst prp]]]]:= val n.
+    apply/dst_le; first exact/dst; last by rewrite [X in _ <= X]tpmn_half; apply/Rle_refl.
+    apply minmod; apply/Rle_trans/tpmnP/ineq.
+    rewrite dst_sym; apply/phinx.
   Qed.
 End continuity.

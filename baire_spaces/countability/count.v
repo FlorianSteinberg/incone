@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun choice ssrnat ssrbool.
-From rlzrs Require Import all_mf.
+From mf Require Import all_mf.
 Require Import iseg.
 Require Import Reals Morphisms ChoiceFacts.
 

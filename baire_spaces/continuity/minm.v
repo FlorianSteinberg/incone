@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrnat ssrbool eqtype.
-From rlzrs Require Import all_mf.
+From mf Require Import all_mf.
 Require Import baire cont iseg.
 
 Set Implicit Arguments.

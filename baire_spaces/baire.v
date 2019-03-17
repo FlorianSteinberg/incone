@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrbool eqtype ssrnat.
-From rlzrs Require Import all_mf.
+From mf Require Import all_mf.
 Require Import iseg.
 Require Import Morphisms.
 

@@ -1,6 +1,6 @@
 (* This file provides an abstract envelope for computability theoretical considerations *)
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype choice.
-From rlzrs Require Import all_mf.
+From mf Require Import all_mf.
 Require Import iseg.
 Require Import FunctionalExtensionality.
 

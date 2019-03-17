@@ -1,6 +1,6 @@
 From mathcomp Require Import all_ssreflect.
 From rlzrs Require Import all_rlzrs.
-Require Import all_cs_base classical_func dscrt cprd.
+Require Import all_cs_base classical_func classical_cont dscrt cprd.
 Require Import Classical Morphisms.
 
 Set Implicit Arguments.
@@ -414,7 +414,7 @@ Section Open_subsets_of_nat.
     exact/(@comp_hcr _ (cs_Sirp\^w))/Sw2ON_cont/fun2sig_cont.
   Qed.
 
-  Definition ON2Onat : cs_ON -> \O(cs_nat):= (@sig2fun _ 0 nat_count cs_Sirp) \o_f P2CF.
+  Definition ON2Onat : cs_ON -> \O(cs_nat):= (@sig2fun _ 0 nat_count countable_choice cs_Sirp) \o_f P2CF.
 
   Lemma ON2Onat_cont: ON2Onat \is_continuous.
   Proof.
@@ -531,3 +531,5 @@ Section Closed_subsets_of_nat.
     by rewrite /P2CF/complement; do 4 case: ifP => //.
   Qed.    
 End Closed_subsets_of_nat.
+
+  

@@ -10,6 +10,7 @@ Unset Printing Implicit Defensive.
 
 Section USIGPROD.
   Context (X: cs) (I: Type).
+  Hypothesis choice: forall A, FunctionalChoice_on I A.
   Definition rep_Iprod := make_mf (fun phi (xn: I -> X) =>
     forall i, (fun p => (phi (i,p))) \describes (xn i) \wrt X).
   
@@ -17,7 +18,7 @@ Section USIGPROD.
   Proof.
     move => xn.
     pose R n phi:= phi \describes (xn n) \wrt X.
-    have [ | phi phiprp]:= @choice _ _ R; last by exists (fun p => phi p.1 p.2).
+    have [ | phi phiprp]:= @choice _ R; last by exists (fun p => phi p.1 p.2).
     by move => n; have [phi phinx]:= (get_description (xn n)); exists phi.
   Qed.
 
@@ -79,14 +80,14 @@ Section USIGPROD.
  Qed.
 End USIGPROD.
 Notation "X '\^w'" :=
-  (cs_Iprod X 0 nat_count) (at level 35, format "X '\^w'").    
+  (cs_Iprod X countable_choice 0 nat_count) (at level 35, format "X '\^w'").    
 
 Section isomorphisms.
   Context (I: Type) (somei: I) (I_count: I \is_countable).
+  Hypothesis choice: forall A, FunctionalChoice_on I A.
   Notation cs_I:= (@cs_id I somei I_count).
-  Notation "X '\^I'" := (cs_Iprod X somei I_count) (at level 30, format "X '\^I'").
+  Notation "X '\^I'" := (cs_Iprod X choice somei I_count) (at level 30, format "X '\^I'").
   Context (X: cs).
-  
   Definition sig2fun (f: X\^I) := exist_c (@cs_id_dscrt I somei I_count X f): cs_I c-> X.
 
   Definition sig2fun_rlzrf (phi: names (X\^I)) Lq' :=
@@ -136,7 +137,7 @@ Section isomorphisms.
       + move => n.
         have [ | [phi val prp]]//:= rlzr (fun _ => n) n.
         by exists phi => q; apply/val.
-      have [phin nm]:= choice _ prp.
+      have [phin nm]:= choice prp.
       by exists (fun nq => phin nq.1 nq.2) => n q /=; apply nm.
     have [ | [phi val prp]]//:= rlzr (fun _ => n) n.
     apply/prp => q.
@@ -250,10 +251,10 @@ Section isomorphisms.
 End isomorphisms.
 
 Section pointwise.  
-  Context I (somei: I) (I_count: I \is_countable).    
+  Context I (somei: I) (I_count: I \is_countable).
+  Hypothesis choice: forall A, FunctionalChoice_on I A.
   
-  Notation "X '\^I'" := (@cs_Iprod X I somei I_count) (at level 2, format "X '\^I'").
-
+  Notation "X '\^I'" := (cs_Iprod X choice somei I_count) (at level 2, format "X '\^I'").
 
   Definition ptw_rlzr Q A Q' A' (F: (Q -> A) ->> (Q' -> A')) :=
     make_mf (fun phin Fphin =>
@@ -327,7 +328,7 @@ Section pointwise.
     curry (ptw_op (uncurry op)).
 
   Lemma cptw_ptw (X Y Z: cs) (op: X \*_cs Y -> Z):
-    (cptw_op op) = (@ptw (X \*_cs Y) Z op) \o_f (@cs_zip I somei I_count _ _).
+    (cptw_op op) = (@ptw (X \*_cs Y) Z op) \o_f (@cs_zip I somei I_count choice _ _).
   Proof. done. Qed.
   
   Lemma cptw_cont X (op: X \*_cs X -> X):
@@ -345,7 +346,7 @@ Section pointwise.
       split => [ | psi FpsiFpsi n].
       + have fd n:= (Frop (np (fun q => lprj phi (n, q))
 			      (fun q => rprj phi (n, q))) (xn n, yn n) (nms n)).1.
-        have [Fphi Fphiprp]:= choice _ fd.
+        have [Fphi Fphiprp]:= choice fd.
         by exists (fun nq => Fphi nq.1 nq.2) => n /=; apply Fphiprp.
       have val n:= (Frop (np (fun q => lprj phi (n, q))
 		             (fun q => rprj phi (n, q)))
@@ -369,6 +370,7 @@ Section pointwise.
     by elim: (Lf q) lstn => // a L ih /= [ -> | ]; [left | right; apply/ih].
   Qed.
 End pointwise.
+  
 Notation cptwn_op := (@cptw_op nat 0%nat nat_count).
 Notation ptwn_op := (@ptw_op nat).
 Notation ptwn := (@ptw nat).

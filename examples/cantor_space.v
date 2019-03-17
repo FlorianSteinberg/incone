@@ -1,5 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun eqtype ssrbool seq ssrnat.
-From rlzrs Require Import all_rlzrs choice_mf.
+From mf Require Import choice_mf.
+From rlzrs Require Import all_rlzrs.
 Require Import all_cs dscrt sets Classical.
 
 Set Implicit Arguments.

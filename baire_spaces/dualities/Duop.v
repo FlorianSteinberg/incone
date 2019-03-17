@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect seq ssrnat ssrbool eqtype ssrfun.
-From rlzrs Require Import all_mf.
+From mf Require Import all_mf.
 Require Import all_cont FMop Umach Ucont Uuniv.
 
 Set Implicit Arguments.

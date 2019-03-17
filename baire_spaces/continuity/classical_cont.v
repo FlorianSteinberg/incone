@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrbool ssrnat seq ssrfun.
-From rlzrs Require Import all_mf choice_mf.
+From mf Require Import all_mf choice_mf.
 Require Import baire cont iseg minm.
 Require Import Classical ChoiceFacts.
 

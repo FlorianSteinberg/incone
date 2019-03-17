@@ -1,7 +1,7 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat.
 From rlzrs Require Import all_rlzrs.
 From metric Require Import reals pointwise metric.
-Require Import all_cs_base cprd.
+Require Import all_cs_base cprd classical_cont.
 Require Import Qreals Reals Psatz ClassicalChoice ChoiceFacts.
 Require Import Morphisms.
 Local Open Scope cs_scope.
@@ -167,287 +167,85 @@ Section continuity.
     by apply/leq_trans; first exact/ih'; have := leq_maxr a (foldr maxn 0 L')%nat.
   Qed.
   
-  Lemma exists_minmod_met (f : metric_cs rdense -> metric_cs qdense) :
-    (f \is_continuous)%met ->
-    exists mu : M -> nat -> nat, forall x n,
-      (forall y, (d x y <= /2 ^ (mu x n) -> d (f x) (f y) <= /2 ^ n))
+  Lemma exists_minmod_met (f : metric_cs rdense -> metric_cs qdense) x:
+    (f \is_continuous_in x)%met ->
+    exists mu : nat -> nat, forall n,
+      (forall y, (d x y <= /2 ^ (mu n) -> d (f x) (f y) <= /2 ^ n))
       /\
-      forall m, (forall y, d x y <= /2 ^ m -> d (f x) (f y) <= (/2 ^ n)) -> (mu x n <= m)%nat. 
+      forall m, (forall y, d x y <= /2 ^ m -> d (f x) (f y) <= (/2 ^ n)) -> (mu n <= m)%nat. 
   Proof.
     move => cont.
-    suff /choice [mu muprp]: forall xn, exists mu,
-          (forall y, d xn.1 y <= /2 ^ mu -> d (f xn.1) (f y) <= /2 ^ xn.2)
+    suff /nat_choice [mu muprp]: forall n, exists m,
+          (forall y, d x y <= /2 ^ m -> d (f x) (f y) <= /2 ^ n)
           /\
-          (forall m : nat,
-          (forall y : M, d xn.1 y <= / 2 ^ m -> d (f xn.1) (f y) <= / 2 ^ xn.2) -> (mu <= m)%nat).
-    - by exists (fun x n => mu (x, n)) => x n; apply/(muprp (x, n)).
-    pose mf_mod := make_mf (fun xn m => 
-           (forall y, d xn.1 y <= /2 ^ m ->  d (f xn.1) (f y) <= /2 ^ xn.2)).
-    have mod_tot: mf_mod \is_total.
-    - move => [x n].
-      have [ | delta [/dns0_tpmn [m mld] prp]]:= cont x (/2^n); first exact/tpmn_lt.
-      by exists m => y /=dst; apply/prp; lra.
-    move => [x n].
-    by have := @classical_cont.well_order_nat (mf_mod (x, n)) (mod_tot (x, n)).
+          (forall k : nat,
+          (forall y : M, d x y <= / 2 ^ k -> d (f x) (f y) <= / 2 ^ n) -> (m <= k)%nat).
+    - by exists mu => n; apply/muprp.
+    move => n.
+    have [ | delta [/dns0_tpmn [m mld] prp]]:= cont (/2^n); first exact/tpmn_lt.
+    apply/well_order_nat; exists m => y dst.
+    exact/prp/Rle_trans/Rlt_le/mld.
   Qed.
 
   Lemma mcont_cont (f: metric_cs rdense -> metric_cs qdense):
     (f \is_continuous)%met -> f \is_continuous.
-    move => /exists_minmod_met [mu minmod].
-    
-    case : (mu_exists' H) => [ mu [mu_pos [mule1 [mu_modulus mu_cont]]]].
-    
-    have st : forall x phi n, (phi \describes x \wrt (metric_cs rdense)) -> exists k, (/2 ^ k) <= (mu (r (phi k)) n).
-    - move => x phi n phi_prop.
-      specialize (st0 x).
-      apply ClassicalChoice.choice in st0.
-      case st0.
-      move => st0f st0fprop.
-      simpl in phi_prop.
-      have closeness : forall k, ((st0f n.+1) <= k) % nat ->  (mu x n.+1)/4 <= (mu (r (phi k)) n).
-      + move => k k_prop.
-        have stprop := (st0fprop (n.+1)).
-        have xclose1 : (d x (r (phi k))) <= (mu x n.+1)/2.
-        * have xclose' := (phi_prop (k)).
-          have triv : (/2 ^ k) <= (/2 ^ (st0f n.+1)) by apply /tpmnP.
-          apply /Rle_trans.
-          by apply xclose'.
-        apply /Rle_trans.
-        * by apply triv.
-        by apply stprop.
-      have xclose : (d x (r (phi k))) <= (mu x n.+1).
-      * have := (mu_pos x n.+1).
-          by lra.
-        have fxclose : d (f x) (f (r (phi k))) <= /2^(n.+1).
-        * have mod' := (mu_modulus x (r (phi k)) n.+1 (xclose)).
-          done.
-        have p0 : forall y, (d (r (phi k)) y) <= (mu x n.+1)/2 -> (d x y) <= ((mu x n.+1)).
-        * move => y H0.
-          have dt := (dst_trngl).
-          specialize (dt M x y (r (phi k))).
-          apply /Rle_trans.
-          apply dt.
-          by lra.
-       have mod' : forall y, (d (r (phi k)) y) <= (mu x n.+1)/2 -> (d (f (r (phi k))) (f y)) <= (/2 ^ n).
-    move => y closeness.
-    have dt := dst_trngl.
-    specialize (dt N (f (r (phi k))) (f y) (f x)).
-    rewrite dst_sym in fxclose.
-    apply /Rle_trans.
-    apply dt.
-    have fxyclose := (mu_modulus x y n.+1).
-    have p0' := (fxyclose (p0 y closeness)).
-    have rp := (Rplus_le_compat_l (d (f (r (phi k))) (f x)) (d (f x) (f y)) (/2 ^ (n.+1)) p0').
-    have rp' := (Rplus_le_compat_r (/2 ^ (n.+1)) (d (f  (r (phi k))) (f x)) (/2 ^ (n.+1)) fxclose).
-    apply /Rle_trans.
-    apply rp.
-    apply /Rle_trans.
-    apply rp'.
-    have tp := (tpmn_half n).
-    by lra.
-    have mu_lt : 0 < (mu x n.+1)/2 < 1.
-    split.
-    suff : 0 < (mu x n.+1) by lra.
-    apply (mu_pos x (n.+1)).
-    suff :(mu x n.+1)<2 by lra.
-    apply /Rle_lt_trans.
-    apply (mule1 x n.+1).
-    by lra.
-    have cont' := (mu_cont (r (phi k)) n ((mu x n.+1)/2) mu_lt mod').
-    have triv : (mu x n.+1) / 2 / 2 = (mu x n.+1)/4.
-    by field.
-     rewrite triv in cont'.
-     done.
-    exists (st0f n.+1).+2.
-    have triv : ((st0f n.+1) <= (st0f n.+1).+2)%nat.
-    apply /leq_trans.
-    have triv' : ((st0f n.+1) <= (st0f n.+1).+1)%nat.
-    done.
-    apply triv'.
-    done.
-    have triv' : forall k, (2 ^ k) <> 0.
-    move => k.
-    case.
-    have very_trivial : (0 < 2).
-    by lra.
-    have p'' := (pow_lt 2 k very_trivial).
-    move => H3.
-    rewrite H3 in p''.
-    by lra.
-    have closeness' := (closeness (st0f n.+1).+2 triv).
-    have P := (st0fprop n.+1). 
-    have triv2 : (/2 ^ ((st0f n.+1).+2)) = (/2 ^ (st0f n.+1))/4.
-    simpl.
-    rewrite Rinv_mult_distr.
-    rewrite Rinv_mult_distr.
-    field.
-    apply triv'.
-    by lra.
-    apply triv'.
-    by lra.
-    case.
-    move => H3.
-    have U := (Rmult_integral 2 (2 ^ (st0f n.+1)) H3).
-    case U.
-    by lra.
-    by apply triv'.
-    rewrite triv2.
-    have P' : (/ 2 ^ st0f n.+1)/4 <= (mu x n.+1)/4.
-    apply /Rle_div_l.
-    by lra.
-    apply /Rle_trans.
-    apply P.
-    have t : ((mu x n.+1)/4)*4 = (mu x n.+1).
-    by field.
-    rewrite t.
-    have mu_pos' := (mu_pos x n.+1).
-    by lra.
-    apply /Rle_trans.
-    apply P'.
-    by apply closeness'.
-
-      have st2 : forall x n, exists i, (d (f x) (q i)) <= (/2 ^ n).
-      move => x n.
-      have [ds _] := (dseq_tpmn q).
-      specialize (ds qdense (f x) n).
-      by apply ds.
-      exists (make_mf (fun phi Fphi => forall n, exists k, (/2 ^ k) <= (mu (r (phi k)) n.+2) /\ (forall k', (/2 ^ k') <= (mu (r (phi k')) n.+2) ->(k <= k')%nat) /\ (d (q (Fphi n)) (f (r (phi k)))) <= (/2 ^ n.+1) /\ (forall m, (d (q m) (f (r (phi k)))) <= (/2 ^ n.+1) -> ((Fphi n) <= m)%nat))).
-      split.
-      apply rlzr_F2MF.
-      move => phi x.
-      split.
-      simpl.
-      have st' := (st x phi _ H0).
-      have st_min : forall n, exists k, (/ 2 ^ k) <= (mu (r (phi k)) n) /\ forall k', (/ 2 ^ k') <= (mu (r (phi k')) n) -> (k <= k')%nat.
+  Proof.
+    move => cont.
+    have /countable_choice [mu minmod]:= exists_minmod_met (cont (r _)).
+    pose F := (make_mf (fun phi Fphi => forall n, exists k,
+                              (mu (phi k) n.+1 <= k)%nat
+                              /\
+                              (forall k', (mu (phi k') n.+1 <= k')%nat ->(k <= k')%nat)
+                              /\
+                              d (q (Fphi n)) (f (r (phi k))) <= /2 ^ n.+1
+                              /\
+                              (forall m, d (q m) (f (r (phi k))) <= /2 ^ n.+1 -> (Fphi n <= m)%nat)
+              )).
+    have Fcont: F \is_continuous_operator.
+    - move => /= phi Fphi /nat_choice [nu nu_prop].
+      exists (fun n => (init_seg (nu n).+1)) => n psi coin Fphi' prop.
+      have [k' [ineq [min [dst md]]]]:= prop n.    
+      have keqk' : k' = nu n.
+      + have [nu_prop1 [nu_prop2 _]]:= nu_prop n.
+        rewrite coin.1 in nu_prop1.
+        have /leP lt:= (min (nu n) nu_prop1).
+        suff e0 : psi k' = phi k' by rewrite e0 in ineq; have /leP gt := (nu_prop2 k' ineq); lia.
+        have [cs _] := coin_lstn phi psi (init_seg (nu n).+1).
+        have [_ lst] := (lstn_iseg (@id nat) k' (nu n).+1).
+        by symmetry; apply/(cs coin k')/lst; exists k'; split; first apply/leP; lia.
+      have e0 : f (r (psi k')) = f (r (phi (nu n))) by rewrite keqk' coin.1.        
+      have [_ [_ [nu1 nu4]]] := nu_prop n.
+      rewrite -e0 in nu1 nu4.
+      have /leP lt := md (Fphi n) nu1.
+      have /leP gt := nu4 (Fphi' n) dst.
+      lia.
+    exists F; split; last exact/Fcont.
+    apply/sing_rlzr_F2MF; first exact/cont_sing.
+    split => [phi x phinx | phi x Fphi phinx val n].
+    - suff /=/nat_choice [h /nat_choice [h']]: forall n, exists k, exists s : nat,
+            (mu (phi k) n.+1 <= k)%nat /\
+            (forall k' : nat, (mu (phi k') n.+1 <= k')%nat -> (k <= k')%nat) /\
+            d (q s) (f (r (phi k))) <= / (2 ^ n.+1) /\
+            (forall m : nat, d (q m) (f (r (phi k))) <= / (2 ^ n.+1) -> (s <= m)%nat).
+      + by exists h' => n; exists (h n).
       move => n.
-      by apply (classical_cont.well_order_nat (st' n)).     
-      apply choice in st_min.
-      have := st_min.
-      case.
-      move => stc stc_prop.
-      have prop0 : forall n, exists m, (d (f (r (phi (stc n.+2)))) (q m)) <= (/2 ^ (n.+1)) /\ forall t, (d (f (r (phi (stc n.+2)))) (q t)) <= (/ 2 ^ (n.+1)) -> (m <= t)%nat.
-      move => n.
-      have P_exists : exists m, (d (f (r (phi (stc n.+2)))) (q m)) <= (/2 ^ (n.+1)).
-      by apply (qdense (f (r (phi (stc n.+2)))) (tpmn_lt n.+1)).
-      have := (classical_cont.well_order_nat P_exists).
-      case.
-      move => n0 n0_prop.
-      exists n0.
-      by apply n0_prop.
-      apply choice in prop0.
-      have := prop0.
-      case.
-      move => F F_prop.
-      exists F.
-      move => n.
-      exists (stc n.+2).
-      split.
-      by apply stc_prop.
-      have := (F_prop n).
-      move => [Fp1 Fp2].
-      rewrite dst_sym in Fp1.
-      split.
-      by apply stc_prop.
-      split.
-      apply /Rle_trans.
-      apply Fp1.
-      have triv : / (2 * 2^n) = (/ 2 ^ n.+1).
-      done.
-      rewrite triv.
-      by apply /tpmnP.
-      move => m.
-      specialize (Fp2 m).
-      rewrite dst_sym in Fp2.
-      by apply Fp2.
-      simpl.
-      move => psi psi_prop n.
-      specialize (psi_prop n).
-      case psi_prop.
-      move => k [prop1 [prop2' [prop2 prop2'']]].
-      apply /Rle_trans.
-      have dt := dst_trngl.
-      specialize (dt N (f x) (q (psi n)) (f (r (phi k))) ).
-      apply dt.
-      rewrite dst_sym in prop2.
-      have e0 : (d (f x) (f (r (phi k)))) <= (/2 ^ (n.+1)).
-      have mmod := (mu_modulus (r (phi k)) x n.+2).
-      specialize (H0 k).
-      rewrite dst_sym in H0.
-      have e1 : (d (r (phi k)) x) <= (mu (r (phi k)) n.+2).
-      apply /Rle_trans.
-      apply H0.
-      by apply prop1.
-      specialize (mmod e1).
-      rewrite dst_sym in mmod.
-      apply /Rle_trans.
-      apply mmod.
-      by apply /tpmnP.
-      have Rp := (Rplus_le_compat (d (f x) (f (r (phi k)))) (/ 2 ^ n.+1) (d (f (r (phi k))) (q (psi n))) (/2 ^ n.+1) e0 prop2).
-       apply /Rle_trans.
-       apply Rp.
-       have tp := (tpmn_half n).
-       apply symmetry in tp.
-       rewrite tp.
-       by lra.
-   rewrite /cont.continuous.
-   simpl.
-   move => phi Fphi.
-   move => prop.
-   apply choice in prop.
-   have := prop.
-   case.
-   move => S S_prop.
-   exists (fun n=>(init_seg (S n).+1)).
-   move => n psi.
-   move => coin.
-   have := coin.
-   simpl.
-   move => [L1 L2] Fphi' H2.
-   specialize (S_prop n).
-   case (H2 n).
-   move => k' [k'_prop1 [k'_prop2 [k'_prop3 k'_prop4]]].
-   have keqk' : k' = (S n).
-   have := S_prop.
-   move => [S_prop1 [S_prop2 _]].
-   rewrite L1 in S_prop1.
-   have lt := (k'_prop2 (S n) S_prop1).
-   have e0 : phi(k') = psi(k').
-   have := (@coin_lstn nat nat phi psi (init_seg (S n).+1)).
-   move => [cs _].
-   specialize (cs coin k').
-   have := (lstn_iseg (@id nat) k' (S n).+1).
-   move => [_ lst].
-   have w : (exists n0 : nat, (n0 < (S n).+1)%nat /\ n0 = k').
-   by exists k'.
-   specialize (lst w).
-   specialize (cs lst).
-   by apply cs.
-   apply symmetry in e0.
-   rewrite e0 in k'_prop1.
-   have gt := (S_prop2 k' k'_prop1).
-   have eq := (eqn_leq k' (S n)).
-   rewrite gt in eq.
-   rewrite lt in eq.
-   simpl in eq.
-   apply /eqP.
-   by rewrite eq.
-   have e0 : (f (r (psi k'))) = (f (r (phi (S n)))).
-   rewrite keqk'.
-   by rewrite L1.
-   have lt := (k'_prop4 (Fphi n)).
-   rewrite e0 in lt.
-   have := S_prop.
-   move => [_ [_ [S1 S4]]].
-   specialize (lt S1).
-   have gt := (S4 (Fphi' n)).
-   apply symmetry in e0.
-   rewrite e0 in gt.
-   specialize (gt k'_prop3).
-   have eq := (eqn_leq (Fphi' n) (Fphi n)).
-   rewrite gt in eq.
-   rewrite lt in eq.
-   simpl in eq.
-   apply /eqP.
-   by rewrite eq.
-Qed.
+      suff /well_order_nat [k []]: exists k, (mu (phi k) n.+1 <= k)%nat.
+      - exists k.
+        have /well_order_nat [s [c sprp]]:= @qdense (f (r (phi k))) (/2^n.+1) (tpmn_lt _).      
+        exists s; split => //; split => //.
+        by split => [ | m]; rewrite dst_sym; last apply sprp.
+      have [nu nuprp]:= exists_minmod_met (cont x).
+      suff modmod: forall l n',
+          d x (r l) <= /2 ^ (nu n'.+1).+1 -> (mu l n' <= (nu n'.+1).+1)%nat.
+      - by exists (nu n.+2).+1; apply/modmod/phinx.
+      move => z k dst; apply minmod => y dst'.
+      apply/dst_le; last by rewrite tpmn_half; exact/Rle_refl.
+      - rewrite dst_sym; apply nuprp.
+        by apply/Rle_trans/tpmnP/leqW/leqnn; first exact/dst.
+      by apply nuprp; apply/dst_le; first exact/dst; first exact/dst'; rewrite -tpmn_half; lra.
+    rewrite dst_sym; have [k [ineq [min [dst prp]]]]:= val n.
+    apply/dst_le; first exact/dst; last by rewrite [X in _ <= X]tpmn_half; apply/Rle_refl.
+    apply minmod; apply/Rle_trans/tpmnP/ineq.
+    rewrite dst_sym; apply/phinx.
+  Qed.
 End continuity.

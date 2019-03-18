@@ -24,7 +24,7 @@ Section closed_choice_on_the_naturals.
   Definition CN: cs_AN ->> cs_nat := make_mf (fun (A: pred nat) n => A n).
 
   Lemma CN_CN'_val A: closed_choice_on cs_nat  A === CN (sval A).
-  Proof. by move => n; split => /= [eq | ]; [rewrite eq | case: (sval A n) => [[]]]. Qed.
+  Proof. by move => n; split => /= [eq | ]; [rewrite eq | case: (sval A n) => [[]|]]. Qed.
 
   Lemma CN_CN': closed_choice_on cs_nat =~= CN \o F2MF Anat2AN.
   Proof.

@@ -53,3 +53,4 @@ examples/reals/sdvsc.v
 examples/continuous_search.v
 examples/closed_choice.v
 examples/cantor_space.v
+examples/KleeneKreisel.v

@@ -22,8 +22,8 @@ Section Sirpinskispace.
   Lemma rep_Sirp_sing: rep_Sirp \is_singlevalued.
   Proof.
     move => phi s s' [imp imp'] [pmi pmi'].
-    case E: s => [[]]; first by symmetry; apply/pmi/imp'.
-    by case E': s' => [[]]; first by rewrite -E; apply/imp/pmi'.
+    case E: s => [[]|]; first by symmetry; apply/pmi/imp'.
+    by case E': s' => [[]|]; first by rewrite -E; apply/imp/pmi'.
   Qed. 
 
   Canonical cs_Sirp_class:= @continuity_space.Class _ _ _
@@ -39,7 +39,7 @@ Section Sirpinskispace.
   Definition CF2SS (chi: X -> cs_Sirp) := make_subset (fun (t: X) => chi t = top).
 
   Lemma CF2SS_spec chrf: CF2SS chrf === dom (PF2MF (chrf)).
-  Proof. by move => x /=; case: (chrf x) => [[]]//; split => //; [exists tt | case]. Qed.
+  Proof. by move => x /=; case: (chrf x) => [[]|]//; split => //; [exists tt | case]. Qed.
 
   Definition characteristic_function (A: subset X) :=
     make_mf (fun x (s: cs_Sirp) => s = top <-> x \from A).
@@ -51,8 +51,8 @@ Section Sirpinskispace.
   Lemma chrf_sing A: chi_ A \is_singlevalued.
   Proof.
     move => x s s' /= [imp imp'] [pmi pmi'].
-    case E: s => [[]]; symmetry; first exact/pmi'/imp.
-    by case E': s' => [[]]//; rewrite -E; symmetry; apply/imp'/pmi.
+    case E: s => [[]|]; symmetry; first exact/pmi'/imp.
+    by case E': s' => [[]|]//; rewrite -E; symmetry; apply/imp'/pmi.
   Qed.
 
   Lemma chrf_tot A: chi_ A \is_total.
@@ -251,7 +251,7 @@ Section Opens_and_closeds.
   Proof.
     have [A eq]:= empty_open.
     exists (complement_opens A) => x; split => // _ /=.
-    by rewrite /P2CF/complement; have /=:= eq x; case: (sval A x) => [[[]]]//.
+    by rewrite /P2CF/complement; have /=:= eq x; case: (sval A x) => [[[]]|]//.
   Qed.
 
   Lemma empty_clsd: closed empty.
@@ -328,7 +328,7 @@ Section Open_subsets_of_nat.
     move => p /=.
     exists (fun n => if p n then n.+1 else 0) => n.
     split => [eq | [m]]; first by exists n; rewrite eq.
-    by case E: (p m) => [[]] => [[<-] | ].                                     
+    by case E: (p m) => [[]|] => [[<-] | ].                                     
   Qed.
 
   Lemma rep_ON_sing: rep_ON \is_singlevalued.
@@ -382,7 +382,7 @@ Section Open_subsets_of_nat.
   Proof.
     rewrite F2MF_rlzr_F2MF => phi A phinA n.
     have := phinA n; rewrite/CF2P.
-    case: (A n) => [[]].
+    case: (A n) => [[]|].
     - case => [_ []// m eq]; split => // _.
       exists (pickle (n, m)).
       by rewrite /Sw2ON_rlzrf pickleK eq.

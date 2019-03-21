@@ -215,11 +215,25 @@ depends on the size of the inputs *)
         by have:= truncI eg0; rewrite /Qdiv Q2R_mult {4}/Q2R/=; lra.
       by rewrite Rinv_1 Rmult_1_r /Qdiv Q2R_mult {2 3}/Q2R/=; have:= truncI eg0; lra.
     Qed.
+
+    Lemma Rmult_rlzr_cntop: Rmult_rlzr \is_continuous_operator.
+    Proof.
+      apply/cont_F2MF => phi; rewrite /Rmult_rlzrf /=.
+      exists (fun eps => [:: inl (1 # 2); inr (1 # 2);
+                          inl (trunc eps / (1 + 1) / rab (rprj phi))%Q;
+                          inr (eps / (1 + 1) / rab (lprj phi))%Q]).
+      by rewrite /rab/lprj/rprj => eps psi [-> [-> [-> [->]]]].
+    Qed.  
+
+    Lemma Rmult_cont: (fun (xy: RQ \*_cs RQ) => xy.1 * xy.2: RQ) \is_continuous.
+    Proof.
+      by exists Rmult_rlzr; split; [apply/Rmult_rlzr_spec | apply/Rmult_rlzr_cntop].
+    Qed.
   End multiplication.
 
   Section limit.
-    Notation lim:= (@limit metric_R).
-    Notation lim_eff:= (@efficient_limit metric_R).
+    Notation lim:= (@limit metric_R: RQ\^w ->> RQ).
+    Notation lim_eff:= (@efficient_limit metric_R: RQ\^w ->> RQ).
 
     Lemma cnst_dscr q: (cnst q) \describes (Q2R q) \wrt RQ.
     Proof. rewrite /cnst => eps; split_Rabs; lra. Qed.
@@ -235,7 +249,7 @@ depends on the size of the inputs *)
     Proof. exists 0%nat; rewrite /cnst/distance/=/R_dist; split_Rabs; lra. Qed.
 
     Local Open Scope baire_scope.
-    Lemma lim_not_cont: ~(lim: RQ\^w ->> RQ) \has_continuous_realizer.
+    Lemma lim_not_cont: ~ lim \has_continuous_realizer.
     Proof.
       move => [/= F [/= rlzr /cont_spec cont]].
       pose xn := cnst (Q2R 0): RQ\^w.
@@ -281,8 +295,8 @@ depends on the size of the inputs *)
     
     Definition lim_eff_rlzr : questions (RQ\^w) ->> questions RQ := F2MF lim_eff_rlzrf.
     
-    Lemma lim_eff_rlzrf_spec:
-      lim_eff_rlzr \realizes (lim_eff: RQ\^w ->> RQ).
+    Lemma lim_eff_rlzr_spec:
+      lim_eff_rlzr \realizes lim_eff.
     Proof.
       rewrite F2MF_rlzr => psi xn psinxn [x lim].
       exists x; split => // eps epsg0.
@@ -294,6 +308,17 @@ depends on the size of the inputs *)
         by apply psinxn; rewrite Q2R_mult {2}/Q2R/=; lra. 
       have lt1:= pow_lt 2 (Pos_size (Qden eps)); have lt2:= size_Qden epsg0.
       by rewrite Q2R_mult {2}/Q2R /= /N Rinv_mult_distr; lra.
+    Qed.
+
+    Lemma lim_eff_rlzr_cntop : lim_eff_rlzr \is_continuous_operator.
+    Proof.
+      apply/cont_F2MF => phi; rewrite /lim_eff_rlzrf.
+      by exists (fun eps => [:: ((Pos_size (Qden eps)).+1, (eps * (1#2))%Q)]) => eps psi [].
+    Qed.
+
+    Lemma lim_eff_hcr: lim_eff \has_continuous_realizer.
+    Proof.
+      by exists lim_eff_rlzr; split; [apply/lim_eff_rlzr_spec | apply/lim_eff_rlzr_cntop].
     Qed.
   End limit.
 

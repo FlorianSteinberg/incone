@@ -1,9 +1,10 @@
 Require Import Reals Qreals Psatz Classical FunctionalExtensionality.
 From mathcomp Require Import all_ssreflect all_algebra.
-From rlzrs Require Import all_mf.
+From mf Require Import all_mf.
 Require Import iseg.
 From metric Require Import pointwise reals metric standard coquelicot.
 From Coquelicot Require Import Coquelicot.
+Require Import all_cs.
 From Younginequality Require Import Rstruct youngsinequality concave.
 
 Set Implicit Arguments.

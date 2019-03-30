@@ -11,7 +11,7 @@ Local Open Scope cs_scope.
 Lemma ass_cont (X Y: cs) (f: X -> Y): f \from (codom (@associate X Y)) <-> f \is_continuous.
 Proof.
   split => [[psi /=rlzr] | [F [rlzr cont]]]; first by exists \F_(U psi); split; last exact/FM_cont.
-  have [psi val]:= (M_universal (someq X) (somea X) (fun _ => somea Y) (Q_count X) cont).
+  have [psi val]:= (U_universal (someq X) (somea X) (fun _ => somea Y) (Q_count X) cont).
   by exists psi; exact/ntrvw.tight_rlzr/val.
 Qed.
 

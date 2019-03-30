@@ -74,7 +74,7 @@ Section classical_machines.
     by rewrite !subSn //; [ rewrite subKn | rewrite leq_subr].
   Qed.
 
-  Lemma M_universal (someq: Q) (somea : A) (somephi': B') (F: B ->> B'):
+  Lemma U_universal (someq: Q) (somea : A) (somephi': B') (F: B ->> B'):
     Q \is_countable -> F \is_continuous -> exists psiF, (U psiF) \evaluates_to F.
   Proof.
     have [eqQ' _]:= classic_eqClass Q'.

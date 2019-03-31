@@ -114,7 +114,7 @@ Section closed_choice_on_the_naturals.
     have eq1: Fphi tt = 0.
     - by have [n [-> ]]:= prp Fphi val; rewrite /sing0 /=; case: ifP => // /eqP.
     have : Fphi' tt <> 0.
-    - have [n [-> [/negP ex eq']]]:= prp' Fphi' val'.
+    - have [n [-> /negP ex eq']]:= prp' Fphi' val'.
       apply/ex/negP/phi'nA.
       exists (\max_(n <- L tt) n.+1).
       rewrite /phi' eq'.

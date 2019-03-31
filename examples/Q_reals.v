@@ -322,47 +322,6 @@ depends on the size of the inputs *)
       by exists lim_eff_rlzr; split; [apply/lim_eff_rlzr_spec | apply/lim_eff_rlzr_cntop].
     Qed.
   End limit.
-
-  Definition sign (x: RQ) : cs_Kleeneans :=
-    match (total_order_T x 0) with
-    | inleft l => match l with
-                  | left _ => false_K
-                  | right _ => bot_K
-                  end
-    | inright _ => true_K
-    end.
-
-  Definition mf_sign:= F2MF sign.
-  
-  Definition sign_rlzrf phi n : option bool :=
-    let eps := Qpower_positive (1#2) (Pos.of_nat n) in
-    let q := phi eps in
-    if Qlt_le_dec q (Qopp eps) then Some false else
-      if Qlt_le_dec eps q then Some true else None.
-  
-  Definition sign_rlzr: questions RQ ->> questions cs_Kleeneans := F2MF sign_rlzrf.
-  
-  Lemma sign_rlzr_spec: sign_rlzr \realizes mf_sign.
-  Proof.
-    rewrite F2MF_rlzr_F2MF => phi x phinx /=; rewrite /sign /=.
-    case: (total_order_T x 0) => [[lt | eq] | gt].
-    - - have gt: 0 < -x by lra.
-        have [r [ineq ineq']]:= accf_Q2R_0 gt.
-        exists (Pos_size (Qden r)).
-        rewrite /sign_rlzrf /=.
-        have []:= phinx (Qpower_positive (1#2) (Pos.of_nat (Pos_size (Qden r)))).
-  Admitted.
-
-  Lemma sign_rlzr_cntop:
-    sign_rlzr \is_continuous_operator.
-  Proof.
-    rewrite cont_F2MF => phi.
-    exists (fun n => [:: Qpower_positive (1#2) (Pos.of_nat n)]) => phi' n /= [coin _].
-    by rewrite /sign_rlzrf /= coin.
-  Qed.
-
-  Lemma sign_cont: sign \is_continuous.
-  Proof. by exists sign_rlzr; split; [exact/sign_rlzr_spec | exact/sign_rlzr_cntop]. Qed.
 End reals_via_rational_approximations.
 
 Section metric_Qreals.

@@ -3,6 +3,7 @@ From rlzrs Require Import all_rlzrs.
 Require Import all_cs cs_mtrc.
 From metric Require Import reals metric standard Qmetric.
 Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
+Require Import sets.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -321,8 +322,6 @@ depends on the size of the inputs *)
       by exists lim_eff_rlzr; split; [apply/lim_eff_rlzr_spec | apply/lim_eff_rlzr_cntop].
     Qed.
   End limit.
-
-  Require Import sets.
 
   Definition sign (x: RQ) : cs_Kleeneans :=
     match (total_order_T x 0) with

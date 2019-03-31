@@ -1,4 +1,9 @@
 -R . incone
+-arg -w -arg -notation-overridden
+-arg -w -arg -masking-absolute-name
+-arg -w -arg -redundant-canonical-projection
+-arg -w -arg -compatibility-notation
+-arg -w -arg -non-reversible-notation
 
 baire_spaces/countability/iseg.v
 baire_spaces/countability/count.v

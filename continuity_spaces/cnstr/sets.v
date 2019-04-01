@@ -140,7 +140,7 @@ Section Opens_and_closeds.
     have [ | chrf eq]:= (choice_mf.fun_spec (chi_ O) top).2.
     - by split; [apply/chrf_sing | apply/chrf_tot].
     rewrite <-eq in cont; exists (exist_c cont) => x.
-    split => [Ox/= | [[/= eq']]]; first by apply/eq.
+    split => [Ox/= | /= eq']; first by apply/eq.
     by apply/((eq x top).1 eq').1.
   Qed.
 
@@ -154,7 +154,7 @@ Section Opens_and_closeds.
   Lemma empty_open: open (@empty X).
   Proof.
     suff cont: (cnst bot: X -> cs_Sirp) \is_continuous.
-    - by exists (exist_c cont) => x; split; last case.
+    - by exists (exist_c cont).
     exists (F2MF (fun phi q => false)).  
     by split; [apply/F2MF_rlzr_F2MF; split => [[] | ] | rewrite cont_F2MF; apply cnst_cont].
   Qed.
@@ -257,7 +257,7 @@ Section Opens_and_closeds.
   Lemma empty_clsd: closed empty.
   Proof.
     have [A eq]:= all_open.
-    exists (complement_opens A) => x; split => //= [[[]]].
+    exists (complement_opens A) => x; split => //=.
     by rewrite /P2CF/complement; have [->]:= eq x.
   Qed.
 End Opens_and_closeds.
@@ -328,7 +328,7 @@ Section Open_subsets_of_nat.
     move => p /=.
     exists (fun n => if p n then n.+1 else 0) => n.
     split => [eq | [m]]; first by exists n; rewrite eq.
-    by case E: (p m) => [[]|] => [[<-] | ].                                     
+    by case E: (p m) => [|] => [[<-] | ].                                     
   Qed.
 
   Lemma rep_ON_sing: rep_ON \is_singlevalued.

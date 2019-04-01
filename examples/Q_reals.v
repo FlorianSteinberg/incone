@@ -3,6 +3,7 @@ From rlzrs Require Import all_rlzrs.
 Require Import all_cs cs_mtrc.
 From metric Require Import reals metric standard Qmetric.
 Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
+Require Import sets.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -215,11 +216,25 @@ depends on the size of the inputs *)
         by have:= truncI eg0; rewrite /Qdiv Q2R_mult {4}/Q2R/=; lra.
       by rewrite Rinv_1 Rmult_1_r /Qdiv Q2R_mult {2 3}/Q2R/=; have:= truncI eg0; lra.
     Qed.
+
+    Lemma Rmult_rlzr_cntop: Rmult_rlzr \is_continuous_operator.
+    Proof.
+      apply/cont_F2MF => phi; rewrite /Rmult_rlzrf /=.
+      exists (fun eps => [:: inl (1 # 2); inr (1 # 2);
+                          inl (trunc eps / (1 + 1) / rab (rprj phi))%Q;
+                          inr (eps / (1 + 1) / rab (lprj phi))%Q]).
+      by rewrite /rab/lprj/rprj => eps psi [-> [-> [-> [->]]]].
+    Qed.  
+
+    Lemma Rmult_cont: (fun (xy: RQ \*_cs RQ) => xy.1 * xy.2: RQ) \is_continuous.
+    Proof.
+      by exists Rmult_rlzr; split; [apply/Rmult_rlzr_spec | apply/Rmult_rlzr_cntop].
+    Qed.
   End multiplication.
 
   Section limit.
-    Notation lim:= (@limit metric_R).
-    Notation lim_eff:= (@efficient_limit metric_R).
+    Notation lim:= (@limit metric_R: RQ\^w ->> RQ).
+    Notation lim_eff:= (@efficient_limit metric_R: RQ\^w ->> RQ).
 
     Lemma cnst_dscr q: (cnst q) \describes (Q2R q) \wrt RQ.
     Proof. rewrite /cnst => eps; split_Rabs; lra. Qed.
@@ -235,7 +250,7 @@ depends on the size of the inputs *)
     Proof. exists 0%nat; rewrite /cnst/distance/=/R_dist; split_Rabs; lra. Qed.
 
     Local Open Scope baire_scope.
-    Lemma lim_not_cont: ~(lim: RQ\^w ->> RQ) \has_continuous_realizer.
+    Lemma lim_not_cont: ~ lim \has_continuous_realizer.
     Proof.
       move => [/= F [/= rlzr /cont_spec cont]].
       pose xn := cnst (Q2R 0): RQ\^w.
@@ -281,8 +296,8 @@ depends on the size of the inputs *)
     
     Definition lim_eff_rlzr : questions (RQ\^w) ->> questions RQ := F2MF lim_eff_rlzrf.
     
-    Lemma lim_eff_rlzrf_spec:
-      lim_eff_rlzr \realizes (lim_eff: RQ\^w ->> RQ).
+    Lemma lim_eff_rlzr_spec:
+      lim_eff_rlzr \realizes lim_eff.
     Proof.
       rewrite F2MF_rlzr => psi xn psinxn [x lim].
       exists x; split => // eps epsg0.
@@ -295,50 +310,18 @@ depends on the size of the inputs *)
       have lt1:= pow_lt 2 (Pos_size (Qden eps)); have lt2:= size_Qden epsg0.
       by rewrite Q2R_mult {2}/Q2R /= /N Rinv_mult_distr; lra.
     Qed.
+
+    Lemma lim_eff_rlzr_cntop : lim_eff_rlzr \is_continuous_operator.
+    Proof.
+      apply/cont_F2MF => phi; rewrite /lim_eff_rlzrf.
+      by exists (fun eps => [:: ((Pos_size (Qden eps)).+1, (eps * (1#2))%Q)]) => eps psi [].
+    Qed.
+
+    Lemma lim_eff_hcr: lim_eff \has_continuous_realizer.
+    Proof.
+      by exists lim_eff_rlzr; split; [apply/lim_eff_rlzr_spec | apply/lim_eff_rlzr_cntop].
+    Qed.
   End limit.
-
-  Require Import sets.
-
-  Definition sign (x: RQ) : cs_Kleeneans :=
-    match (total_order_T x 0) with
-    | inleft l => match l with
-                  | left _ => false_K
-                  | right _ => bot_K
-                  end
-    | inright _ => true_K
-    end.
-
-  Definition mf_sign:= F2MF sign.
-  
-  Definition sign_rlzrf phi n : option bool :=
-    let eps := Qpower_positive (1#2) (Pos.of_nat n) in
-    let q := phi eps in
-    if Qlt_le_dec q (Qopp eps) then Some false else
-      if Qlt_le_dec eps q then Some true else None.
-  
-  Definition sign_rlzr: questions RQ ->> questions cs_Kleeneans := F2MF sign_rlzrf.
-  
-  Lemma sign_rlzr_spec: sign_rlzr \realizes mf_sign.
-  Proof.
-    rewrite F2MF_rlzr_F2MF => phi x phinx /=; rewrite /sign /=.
-    case: (total_order_T x 0) => [[lt | eq] | gt].
-    - - have gt: 0 < -x by lra.
-        have [r [ineq ineq']]:= accf_Q2R_0 gt.
-        exists (Pos_size (Qden r)).
-        rewrite /sign_rlzrf /=.
-        have []:= phinx (Qpower_positive (1#2) (Pos.of_nat (Pos_size (Qden r)))).
-  Admitted.
-
-  Lemma sign_rlzr_cntop:
-    sign_rlzr \is_continuous_operator.
-  Proof.
-    rewrite cont_F2MF => phi.
-    exists (fun n => [:: Qpower_positive (1#2) (Pos.of_nat n)]) => phi' n /= [coin _].
-    by rewrite /sign_rlzrf /= coin.
-  Qed.
-
-  Lemma sign_cont: sign \is_continuous.
-  Proof. by exists sign_rlzr; split; [exact/sign_rlzr_spec | exact/sign_rlzr_cntop]. Qed.
 End reals_via_rational_approximations.
 
 Section metric_Qreals.

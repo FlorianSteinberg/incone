@@ -1,4 +1,9 @@
 -R . incone
+-arg -w -arg -notation-overridden
+-arg -w -arg -masking-absolute-name
+-arg -w -arg -redundant-canonical-projection
+-arg -w -arg -compatibility-notation
+-arg -w -arg -non-reversible-notation
 
 baire_spaces/countability/iseg.v
 baire_spaces/countability/count.v
@@ -44,13 +49,9 @@ continuity_spaces/cnstr/cs_mtrc.v
 continuity_spaces/cnstr/sets.v
 all_cs.v
 
-examples/reals/Rstruct.v
-examples/reals/under.v
-examples/reals/Q_reals.v
-examples/reals/sd_reals.v
-examples/reals/sdvsc.v
-
 examples/continuous_search.v
 examples/closed_choice.v
 examples/cantor_space.v
 examples/KleeneKreisel.v
+examples/Rstruct.v
+examples/Q_reals.v

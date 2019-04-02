@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect seq ssrnat ssrbool eqtype ssrfun choice.
 From mf Require Import all_mf.
-Require Import Morphisms.
+Require Import Morphisms Psatz.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -68,6 +68,9 @@ Section initial_segments.
 
   Definition segment n m := segment_rec n (m.+1-n).
 
+  Lemma seg_nil i j: (j < i)%nat -> segment i j = [::].
+  Proof. by rewrite -subn_eq0 /segment => /eqP -> /=. Qed.
+
   Lemma size_seg n m: size (segment n m) = m.+1-n.
   Proof. by rewrite /segment; apply size_seg_rec. Qed.
 
@@ -95,7 +98,7 @@ Section initial_segments.
     rewrite (@seg_recl (n + k.+1)); last by apply/leqW/leq_addr.
     by rewrite -catA addnS -(@seg_recr n)//; last by apply/leqW/leq_addr.
   Qed.
-
+  
   Fixpoint iseg n:=
     match n with
     | 0 => nil
@@ -199,9 +202,13 @@ Section initial_segments.
   Proof. by move => [cncl min] q lstn; apply/iseg_subl/lstn_iseg_S/cncl/lstn_melt. Qed.
 End initial_segments.
 
-Require Import Psatz.
-
 Section naturals.
+  Lemma leqVlt i j: (i <= j \/ j < i)%nat.
+  Proof.
+    case/orP: (leq_total i j); first by left.
+    by rewrite leq_eqVlt; case/orP => [/eqP -> | ]; [left | right].
+  Qed.
+
   Lemma seg_iota n k: segment id n (n + k) = rev (iota n k.+1).
   Proof.
     elim: k n => [n | k ih n]; first by rewrite addn0 /segment /= subSn // subnn /= addn0 /rev /=.
@@ -388,6 +395,29 @@ Proof.
   rewrite mem_iota add0n => /andP [_ ineq].
   exact/ass.
 Qed.
+
+Section eqTypes.
+  Lemma mem_segP (T: eqType) i j (Delta: _ -> T) x:
+    reflect (exists k, (i <= k <= j)%nat /\ x = Delta k) (x \in (segment Delta i j)).
+  Proof.
+    case E: (x \in segment Delta i j); last first.
+    - apply/ReflectF => [[k [/andP [ineq ineq'] eq]]].
+      suff: false by trivial.
+      rewrite -E.
+      have /subnK <-: (i <= j)%nat by apply/leq_trans/ineq'.
+      rewrite addnC seg_map seg_iota; apply/mapP; exists k => //.
+      rewrite mem_rev mem_iota; apply/andP; split => //.
+      rewrite addnS addnC.      
+      by have /subnK ->: (i <= j)%nat by apply/leq_trans/ineq'.      
+    apply/ReflectT.
+    have : x \in segment Delta i j by rewrite E.
+    case: (leqVlt i j) => [/subnK <- | ineq]; last by rewrite seg_nil // => /inP.
+    rewrite addnC seg_map seg_iota => /mapP [k].
+    rewrite mem_rev mem_iota => /andP [ineq ineq'] ->.
+    rewrite addnS in ineq'.
+    by exists k; split; first apply/andP.
+  Qed.
+End eqTypes.
 
 Section countTypes.
   Context (Q: countType) (noq: Q) (noq_spec: pickle noq = 0).

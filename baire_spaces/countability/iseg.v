@@ -65,15 +65,18 @@ Section initial_segments.
   
   Lemma size_seg_rec n m: size (segment_rec n m) = m.
   Proof. by elim: m => // m /= ->. Qed.
-
+  
   Definition segment n m := segment_rec n (m.+1-n).
 
+  Lemma segnn i: segment i i = [:: cnt i].
+  Proof. by rewrite /segment subSn // subnn /= addn0. Qed.
+    
   Lemma seg_nil i j: (j < i)%nat -> segment i j = [::].
   Proof. by rewrite -subn_eq0 /segment => /eqP -> /=. Qed.
 
   Lemma size_seg n m: size (segment n m) = m.+1-n.
   Proof. by rewrite /segment; apply size_seg_rec. Qed.
-
+  
   Lemma seg_recr n m : n <= m.+1 ->
 	               segment n m.+1 = segment m.+1 m.+1 ++ segment n m.
   Proof. by move => ineq; rewrite /segment (@subSn (m.+1)) // subSn// subnn /= addn0 subnKC. Qed.
@@ -202,13 +205,26 @@ Section initial_segments.
   Proof. by move => [cncl min] q lstn; apply/iseg_subl/lstn_iseg_S/cncl/lstn_melt. Qed.
 End initial_segments.
 
-Section naturals.
-  Lemma leqVlt i j: (i <= j \/ j < i)%nat.
-  Proof.
-    case/orP: (leq_total i j); first by left.
-    by rewrite leq_eqVlt; case/orP => [/eqP -> | ]; [left | right].
-  Qed.
+Lemma leqVlt i j: (i <= j \/ j < i)%nat.
+Proof.
+  case/orP: (leq_total i j); first by left.
+  by rewrite leq_eqVlt; case/orP => [/eqP -> | ]; [left | right].
+Qed.
 
+Lemma seg_eq T (cnt cnt': _ -> T) i j:
+  (forall k, i <= k <= j -> cnt k = cnt' k) -> segment cnt i j = segment cnt' i j.
+Proof.
+  case: (leqVlt i j) => [/subnK <- | ineq]; last by rewrite !seg_nil.
+  elim: (j - i)%nat => [ass | n ih ass]; first by rewrite !add0n !segnn ass // add0n; apply/andP.
+  have ineq: i <= (n + i).+1 by rewrite -addSn; apply/leq_addl.
+  rewrite !addSn seg_recr // [RHS]seg_recr //.
+  f_equal; last first.
+  apply/ih => k /andP [ineq' ineq''].
+  by apply/ass /andP; rewrite addSn; split => //; apply /leqW.
+  by rewrite !segnn ass //; apply/andP.
+Qed.
+
+Section naturals.
   Lemma seg_iota n k: segment id n (n + k) = rev (iota n k.+1).
   Proof.
     elim: k n => [n | k ih n]; first by rewrite addn0 /segment /= subSn // subnn /= addn0 /rev /=.

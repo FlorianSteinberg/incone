@@ -1,9 +1,8 @@
-From mathcomp Require Import ssreflect ssrfun seq ssrnat ssrbool.
+From mathcomp Require Import ssreflect ssrfun seq ssrnat.
 From rlzrs Require Import all_rlzrs.
-Require Import classical_count classical_cont classical_mach classical_func all_cs_base dscrt seq_cont sub.
+Require Import all_cs_base dscrt.
 From metric Require Import pointwise.
-Require Import FunctionalExtensionality ClassicalChoice ChoiceFacts.
-Require Import Psatz.
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -21,10 +20,7 @@ Section SEQ.
 
   Lemma rep_seq_sur: rep_seq \is_cototal.
   Proof.
-    move => L.
-    elim : L.
-    - by exists (fun q => [::]).
-    move => a L' [phi' //=IH]//=.
+    elim => [ | a L' [phi']]; first by exists (fun q => [::]).
     have [phi phip] := (get_description a).
     by exists (fun q => (phi q)::(phi' q)).
   Qed.
@@ -32,57 +28,38 @@ Section SEQ.
   Lemma rep_seq_sing: rep_seq \is_singlevalued.
   Proof.
     move => phi L1.
-    move : phi.
-    elim : L1.
-    - move => phi L2//=.
-      case L2; first by [].
-      rewrite /rep_seq_rec//=.
-      move => a l H1 [H2 _].
-      specialize (H1 (someq X)).
-      contradiction.
-    move => a l IH//= phi.
-    move => L2 [H1 [H2 H3]].
-    case : L2.
-    - simpl.
-      move => H4.
-      specialize (H4 (someq X)).
-      contradiction.
-    move => a' l' H4.
-    have [H1' [H2' H3']] := H4.
-    f_equal.
-    - by apply (rep_sing H2).
-    apply (IH (fun q => behead (phi q))); first by apply H3.
-    by apply H3'.
+    elim : L1 phi => [phi [ | a L H1 []]// | a L IH phi [[] | a' L' phinaL phina'L']//].
+    f_equal; last by apply/IH; [apply phinaL | apply phina'L'].
+    by apply/rep_sing; [apply phinaL | apply phina'L'].
   Qed.
 
-  Definition seq_cs := make_cs (someq X) [::] (queries_countable X) (list_count (answers_countable X)) rep_seq_sur rep_seq_sing.
+  Definition cs_seq := make_cs (someq X) [::] (queries_countable X) (list_count (answers_countable X)) rep_seq_sur rep_seq_sing.
 
-  Definition list_size (phi : (names seq_cs)) := (size (phi (someq X))).
+  Definition size_rlzrf (phi : (names cs_seq)) (tt: unit) := (size (phi (someq X))).
 
-  Lemma size_spec L phi : phi \describes L \wrt seq_cs -> (list_size phi) = (size L). 
+  Definition size_rlzr: names cs_seq ->> names cs_nat := F2MF size_rlzrf.
+
+  Lemma size_rlzr_cntop: size_rlzr \is_continuous_operator.
   Proof.
-    move : phi.
-    elim : L.
-    move => phi //=H1.
-    rewrite /list_size.
-    by rewrite (H1 (someq X)).
-    move => a l IH //=.
-    move => phi [H1 [H2 H3]].
-    rewrite /list_size.
-    case E : (phi (someq X)) => [| a' l']; first by contradiction.
-    simpl.
-    have IH' :=(IH (fun q => behead (phi q)) H3).
-    simpl in IH'.
-    rewrite /list_size in IH'.
-    symmetry in IH'.
-    rewrite IH'.
-    rewrite size_behead.
-    have p0 : (size l') = (size (a'::l')).-1 by [].
-    rewrite p0.
-    by rewrite E.
+    rewrite cont_F2MF /size_rlzrf => phi.
+    by exists (fun _ => [::someq X]) => q' psi /= [-> _].
+  Qed.
+    
+  Lemma size_rlzr_spec: size_rlzr \realizes (F2MF size).
+  Proof.
+    apply/F2MF_rlzr_F2MF => phi L/=; rewrite /size_rlzrf.
+    elim : L phi => [phi -> | a L IH phi phinaL]//=.    
+    case E : (phi (someq X)) => [| a' L']; first by case phinaL.
+    rewrite -(IH (fun q => behead (phi q))); last by apply phinaL.
+    by rewrite size_behead /= E.
   Qed.
 
- (*  Definition list_head (phi0 : (names X)) (phi : (names seq_cs)) := (fun q => (head (phi0 q) (phi q))). *)
+  Lemma size_cont: (size: cs_seq -> cs_nat) \is_continuous.
+  Proof.
+    exists size_rlzr; split; [exact/size_rlzr_spec | exact/size_rlzr_cntop].
+  Qed.
+
+  (*  Definition list_head (phi0 : (names X)) (phi : (names seq_cs)) := (fun q => (head (phi0 q) (phi q))). *)
 
  (*  Lemma head_spec1 x L' phi : forall phi0, phi \describes x::L' \wrt seq_cs -> ((list_head phi0 phi) \describes x \wrt X). *)
  (*  move => phi0. *)

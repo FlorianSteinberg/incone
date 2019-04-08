@@ -102,7 +102,7 @@ Proof.
   split; last exact/eval_rlzr_cntop.
   rewrite rlzr_F2MF => psiphi fx psiphinfx.
   have [ | [Fpsiphi val] prp]:= eval_rlzr_crct psiphinfx; first exact/F2MF_dom.
-  split => [ | Fq [_ val']]; first by exists Fpsiphi; split; first by exists fx.
+  split => [ | Fq [/=_ val']]; first by exists Fpsiphi; split; first by exists fx.
   by have [f'x' [nm ->]]:= prp Fq val'.                         
 Qed.
 
@@ -117,7 +117,7 @@ Proof.
   have [ | [Fphi /D_spec val] prp]:= psinf phi x phinx; first exact/F2MF_dom.
   split => [ | Fphi' /D_spec val']; first by exists Fphi.
   have [fa [Fphi'nfa]]:= prp Fphi' val'.
-  by rewrite /pt_eval /evaluation => ->.
+  by rewrite /pt_eval /evaluation =>/= ->.
 Qed.
 
 Definition point_evaluation (X Y: cs) (x: X):= exist_c (@ptvl_val_cont X Y x).

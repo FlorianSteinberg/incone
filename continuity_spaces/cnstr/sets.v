@@ -146,14 +146,14 @@ Section Opens_and_closeds.
 
   Lemma all_open: open (@All X).
   Proof.
-    suff cont: (cnst top: X -> cs_Sirp) \is_continuous by exists (exist_c cont).
+    suff cont: continuous (cnst top: X -> cs_Sirp) by exists (exist_c cont).
     exists (mf_cnst (cnst true)).  
     by split; [apply/F2MF_rlzr_F2MF; split => //; exists 0 | rewrite cont_F2MF; apply cnst_cont].
   Qed.
 
   Lemma empty_open: open (@empty X).
   Proof.
-    suff cont: (cnst bot: X -> cs_Sirp) \is_continuous.
+    suff cont: continuous (cnst bot: X -> cs_Sirp).
     - by exists (exist_c cont).
     exists (F2MF (fun phi q => false)).  
     by split; [apply/F2MF_rlzr_F2MF; split => [[] | ] | rewrite cont_F2MF; apply cnst_cont].
@@ -466,7 +466,7 @@ Section Closed_subsets_of_nat.
   Proof.
     exists mf_id; split; last exact/id_cntop.
     apply/F2MF_rlzr_F2MF => phi A /rep_AN_spec [[cA [phincA <-]] _].
-    by rewrite complement_involutive.
+    by rewrite /= complement_involutive.
   Qed.
 
   Lemma cont_cmpl: (complement: cs_ON -> cs_AN) \is_continuous.

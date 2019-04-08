@@ -97,7 +97,8 @@ Section reals_via_rational_approximations.
     Proof.
       exists Rplus_rlzr; split; [exact/Rplus_rlzr_spec | exact/Rplus_rlzr_cntop].
     Qed.
-  End addition.
+
+    End addition.
 
   Section multiplication.
 (* Multiplication is more involved as the precision of approximations that have to be used

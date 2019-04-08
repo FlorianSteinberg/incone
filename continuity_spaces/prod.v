@@ -265,3 +265,15 @@ Section products.
     f \is_continuous -> (rcry_f f y) \is_continuous.
   Proof. by move => cont; rewrite /continuous F2MF_rcry; exact/rcry_hcr. Qed.
 End products.
+
+Class Uncurry T (f : T) src tgt := { prog : src -> tgt}.
+Arguments prog {T} f {src tgt _}.
+
+Instance Uncurry_base (A B : cs) f : @Uncurry (A -> B) f _ _ :=
+  {| prog := f |}.
+Instance Uncurry_step (A B : cs) C (f : A -> B -> C)
+                       T (g : forall a, @Uncurry (B -> C) (f a) B T) :
+                                          @Uncurry (A -> B -> C) f (cs_prod A B) T :=
+  {| prog := (fun x : A * B => @prog _ _ _ _ (g (fst x)) (snd x)) |}.
+Notation "f '\is_continuous'" := (@continuous _ _ (prog f)) (at level 2): curry_scope.
+Delimit Scope curry_scope with curry.

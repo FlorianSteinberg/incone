@@ -60,7 +60,7 @@ Section USIGPROD.
   Lemma cprd_uprp_cont (Z : cs) (f : I -> Z c-> X):
     exists (F : Z c-> cs_Iprod), forall z i, sval F z i = sval (f i) z.
   Proof.
-    suff fcont: ((fun z => (fun n => sval (f n) z)) : (Z -> cs_Iprod)) \is_continuous.
+    suff fcont: continuous ((fun z => (fun n => sval (f n) z)) : (Z -> cs_Iprod)).
     - by exists (exist_c fcont).
     have /choice [F Fprp]: forall i, (sval (f i)) \is_continuous.
     - by move => i; apply/ass_cont; case: (f i).

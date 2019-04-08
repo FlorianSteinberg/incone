@@ -48,7 +48,7 @@ Local Open Scope baire_scope.
 Lemma eval_rlzr_cntop (X Y: cs):
   (@eval_rlzr (queries X) (queries Y) (answers X) (answers Y))|_(dom (rep (X c-> Y \*_cs X))) \is_continuous_operator.
 Proof.
-  rewrite !cont_spec => psiphi [Fpsiphi [[[f x] [psinf phinx]] /eval_rlzr_val val]].
+  rewrite !cntop_spec => psiphi [Fpsiphi [[[f x] [psinf phinx]] /eval_rlzr_val val]].
   rewrite /= in psinf phinx; have phifd: (rprj psiphi) \from dom \F_(U (lprj psiphi)) by exists Fpsiphi.
   have [FqM [FsM prp]]:= @FM_cont_spec (queries X) (queries Y) (answers X) (answers Y).
   have [subs [subs' [c_prp _]]]:= prp (lprj psiphi) (rprj psiphi).

@@ -78,7 +78,7 @@ by exists (@unit_fun X); split => // f _; apply functional_extensionality => x; 
 Qed.
 
 Definition unit_fun_rlzr (X: cs): questions X ->> questions cs_unit
-  := (F2MF (fun (_: names X) (_: queries cs_unit) => tt: answers cs_unit)).
+  := (F2MF (fun (_: name_space X) (_: queries cs_unit) => tt: answers cs_unit)).
 
 Lemma unit_fun_rlzr_spec (X: cs) : (@unit_fun_rlzr X) \realizes (F2MF (@unit_fun X)).
 Proof. by rewrite F2MF_rlzr_F2MF. Qed.

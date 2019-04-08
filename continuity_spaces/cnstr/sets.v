@@ -345,7 +345,7 @@ Section Open_subsets_of_nat.
 
   Definition ON2Sw_rlzrf (phi: nat -> nat) (nm: nat * nat):= ((phi nm.2) == nm.1.+1).
 
-  Definition ON2Sw_rlzr:= F2MF ON2Sw_rlzrf: names cs_ON ->> names (cs_Sirp\^w).
+  Definition ON2Sw_rlzr:= F2MF ON2Sw_rlzrf: name_space cs_ON ->> name_space (cs_Sirp\^w).
   
   Lemma ON2Sw_rlzr_spec:
     ON2Sw_rlzr \realizes (F2MF (@P2CF nat)).
@@ -375,7 +375,7 @@ Section Open_subsets_of_nat.
     | Some nm => if phi nm then nm.1.+1 else 0
     end.
 
-  Definition Sw2ON_rlzr:= F2MF Sw2ON_rlzrf : names (cs_Sirp\^w) ->> names cs_ON.
+  Definition Sw2ON_rlzr:= F2MF Sw2ON_rlzrf : name_space (cs_Sirp\^w) ->> name_space cs_ON.
              
   Lemma Sw2ON_rlzr_spec:
     Sw2ON_rlzr \realizes (F2MF (@CF2P nat)).
@@ -509,7 +509,6 @@ Section Closed_subsets_of_nat.
     exists (P2CF p); apply/ass_cont/nat_dscrt.
   Defined.
   
-  Check AN2Anat.
   Lemma AN2Anat_cont: AN2Anat \is_continuous.
   Proof.
     rewrite /continuous -(comp_id_l (F2MF _)).

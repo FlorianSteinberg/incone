@@ -36,13 +36,13 @@ Section USIGPROD.
        (somei, someq X) (somea X) (prod_count I_count (Q_count X)) (A_count X)).
   Canonical cs_Iprod := continuity_space.Pack cs_Iprod_class.
                   
-  Lemma Iprd_base (an: cs_Iprod) (phi: names cs_Iprod):
+  Lemma Iprd_base (an: cs_Iprod) (phi: name_space cs_Iprod):
     phi \describes an \wrt cs_Iprod <-> forall i, (fun q => phi (i,q)) \describes (an i) \wrt X.
   Proof. done. Qed.
 
   Lemma cprd_rlzr (Z: cs) (f: I -> Z -> X) F:
     (forall i, (F i) \realizes (F2MF (f i))) ->
-    (make_mf (fun phi psi => forall i, F i phi (fun q => (psi (i, q)))):_ ->> names cs_Iprod)
+    (make_mf (fun phi psi => forall i, F i phi (fun q => (psi (i, q)))):_ ->> name_space cs_Iprod)
       \realizes
       (F2MF (fun z => f^~ z)).
   Proof.
@@ -90,7 +90,7 @@ Section isomorphisms.
   Context (X: cs).
   Definition sig2fun (f: X\^I) := exist_c (@cs_id_dscrt I somei I_count X f): cs_I c-> X.
 
-  Definition sig2fun_rlzrf (phi: names (X\^I)) Lq' :=
+  Definition sig2fun_rlzrf (phi: name_space (X\^I)) Lq' :=
     match Lq'.1 with
     | nil => inl [:: tt]
     | (n :: L) => inr (phi (n, Lq'.2))
@@ -125,7 +125,7 @@ Section isomorphisms.
   Qed.
 
   Definition fun2sig_rlzr: questions (cs_I c-> X) ->> questions (X\^I):=
-    make_mf (fun (psi: names cs_I c-> X) phi =>
+    make_mf (fun (psi: name_space cs_I c-> X) phi =>
 	       forall n, \F_(U psi) (fun _ => n) (fun q => phi (n, q))).
 
   Lemma fun2sig_rlzr_spec: fun2sig_rlzr \realizes (F2MF sval).
@@ -335,8 +335,8 @@ Section pointwise.
     op \is_continuous -> (cptw_op op) \is_continuous.
   Proof.
     move => [F [/rlzr_F2MF Frop Fcont]].
-    pose np := (@name_pair X X: names X -> names X -> names (X \*_cs X)).
-    exists (make_mf (fun (phi: names (_\^I \*_cs (_\^I))) psi => forall n,
+    pose np := (@name_pair X X: name_space X -> name_space X -> name_space (X \*_cs X)).
+    exists (make_mf (fun (phi: name_space (_\^I \*_cs (_\^I))) psi => forall n,
 	                 F (np (fun q => lprj phi (n, q)) (fun q => rprj phi (n, q))) (fun q => psi (n, q)))).
     rewrite rlzr_F2MF; split => [phi [xn yn] [/= phinxn phinyn] | ].
     - have nms n: (np (fun q : queries X => lprj phi (n, q))

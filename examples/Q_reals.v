@@ -252,7 +252,7 @@ depends on the size of the inputs *)
     Local Open Scope baire_scope.
     Lemma lim_not_cont: ~ lim \has_continuous_realizer.
     Proof.
-      move => [/= F [/= rlzr /cont_spec cont]].
+      move => [/= F [/= rlzr /cntop_spec cont]].
       pose xn := cnst (Q2R 0): RQ\^w.
       have limxn0: lim xn (Q2R 0) by exists 0%nat; rewrite /xn/cnst/distance/=/R_dist; split_Rabs; lra.
       have qnfdF: cnst 0%Q \from dom F.

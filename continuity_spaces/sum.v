@@ -86,13 +86,13 @@ Section cs_sum.
        (sum_count (A_count X) (A_count Y))).
   Canonical cs_sum (X Y: cs) := continuity_space.Pack (@cs_sum_class X Y).
 
-  Definition cs_lslct X Y : names (cs_sum X Y) -> names X:=
+  Definition cs_lslct X Y : name_space (cs_sum X Y) -> name_space X:=
     lslct (somea X) (someq Y).
   
-  Definition cs_rslct X Y: names (cs_sum X Y) -> names Y:=
+  Definition cs_rslct X Y: name_space (cs_sum X Y) -> name_space Y:=
     rslct (someq X) (somea Y).
   
-  Definition cs_slct X Y: names (cs_sum X Y) -> names X + names Y:=
+  Definition cs_slct X Y: name_space (cs_sum X Y) -> name_space X + name_space Y:=
     slct (someq X) (somea X) (someq Y) (somea Y).
 End cs_sum.
 Arguments linc {Q} {A} {Q'} {A'}.
@@ -135,7 +135,7 @@ Section sums.
   Arguments paib {T}.
   
   Definition paib_rlzr (X: cs): questions (X \+_cs X) ->> questions X:=
-    F2MF (@paib (names X) \o_f (slct (someq X) (somea X) (someq X) (somea X))).
+    F2MF (@paib (name_space X) \o_f (slct (someq X) (somea X) (someq X) (somea X))).
   
   Lemma paib_rlzr_crct (X: cs): (paib_rlzr X) \realizes (F2MF paib: X \+_cs X ->> X).
   Proof.
@@ -154,8 +154,9 @@ Section sums.
   Lemma paib_cont (X: cs): (@paib X: _ \+_cs _ -> _) \is_continuous.
   Proof. exists (paib_rlzr X); split; [exact/paib_rlzr_crct | exact/paib_rlzr_cntop]. Qed.
 
-  Definition fsum_rlzr (X Y X' Y':cs) (F: (names X) ->> (names Y)) (G: (names X') ->> (names Y')):
-    names (X \+_cs X') ->> questions (Y \+_cs Y'):=
+  Definition fsum_rlzr (X Y X' Y':cs) (F: (name_space X) ->> (name_space Y))
+             (G: (name_space X') ->> (name_space Y')):
+    name_space (X \+_cs X') ->> questions (Y \+_cs Y'):=
     (F2MF inc) \o (F +s+ G) \o (F2MF cs_slct). 
   
   Lemma fsum_rlzr_spec (X Y X' Y': cs) F G (f: X ->> Y) (g: X' ->> Y'):

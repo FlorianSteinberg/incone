@@ -71,19 +71,24 @@ Notation cs:= continuity_space.type.
 Coercion space: cs >-> dictionary.
 Coercion continuity_space.mixin: cs >-> continuity_space.class_of.
 Coercion continuity_space.M: continuity_space.class_of >-> continuity_space.mixin_of.
-Notation queries:= continuity_space.Q.
+Notation queries := continuity_space.Q.
 Notation answers := continuity_space.A.
 Notation representation X:= (description X).
 Notation rep X := (representation X).
 Notation queries_countable := Q_count.
 Notation answers_countable := A_count.
-Notation names X := (questions X).
+Notation name_space X := (questions X).
 Notation delta phi x := (representation _ phi x).
 Notation "phi '\describes' x '\wrt' X" := (representation (X: cs) phi x) (at level 2): cs_scope.
 Notation "phi '\is_description_of' x" := (delta phi x) (at level 2): cs_scope.
 Notation get_description:= rep_sur.
+Notation get_name := rep_sur.
+Definition descriptions (X: cs) (x: X) := (rep X)\^-1 x.
+Notation names x := (descriptions x).
 Notation someq:= continuity_space.someq.
 Notation somea:= continuity_space.somea.
+Notation some_query := someq.
+Notation some_answer := somea.
 Notation "F \is_continuous_operator" := (continuous F) (at level 30): cs_scope.
 
 Section continuity.
@@ -121,7 +126,23 @@ Section continuity.
     have ->: (F2MF (fun x => f (g x))) =~= (F2MF f) \o (F2MF g) by rewrite comp_F2MF.
     exact: comp_hcr.
   Qed.
-End continuity.
-Notation hcr:= has_continuous_realizer.
+
+  Lemma cont_spec (X Y: cs) (f: X -> Y): f \is_continuous <->
+    exists F, F \is_continuous_operator
+              /\
+              dom (rep X) \is_subset_of (dom F)
+              /\
+              forall (phi: name_space X) (x: X),
+                phi \describes x \wrt X -> F phi \is_subset_of names (f x).
+  Proof.    
+    split => [[F [rlzr cont]] | [F [cont [dm val]]]]; exists F; split => //.
+    - have /sing_rlzr_F2MF [ | dm val] := rlzr; first exact/cont_sing.
+      by split => [phi [] | phi x phinx Fphi]; [apply/dm | apply/val].
+    apply/sing_rlzr_F2MF; first exact/cont_sing.
+    by split => [phi x phinx | phi x Fphi phinx]; [apply/dm; exists x | apply/val].
+  Qed.
+  End continuity.
+Notation cntop_spec:= cont.cont_spec. 
+Notation hcr := has_continuous_realizer.
 Notation "f '\has_continuous_realizer'":= (hcr f) (at level 2): cs_scope.
 Notation "f \is_continuous" := (continuous f) (at level 2): cs_scope.

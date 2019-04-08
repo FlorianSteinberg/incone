@@ -48,11 +48,11 @@ Section products.
     (lprj phi) \describes (x.1) \wrt X /\ (rprj phi) \describes (x.2) \wrt Y.
   Proof. done. Qed.
 
-  Definition fst_rlzr (X Y: cs): names (X \*_cs Y) ->> names X :=
+  Definition fst_rlzr (X Y: cs): name_space (X \*_cs Y) ->> name_space X :=
     F2MF (@lprj (queries X) (answers X) (queries Y) (answers Y)).
   Local Arguments fst_rlzr {X} {Y}.
 
-  Definition snd_rlzr (X Y: cs): names (X \*_cs Y) ->> names Y:=
+  Definition snd_rlzr (X Y: cs): name_space (X \*_cs Y) ->> name_space Y:=
     F2MF (@rprj (queries X) (answers X) (queries Y) (answers Y)).
   Local Arguments snd_rlzr {X} {Y}.
 
@@ -65,18 +65,18 @@ Section products.
   Proof. by rewrite F2MF_rlzr_F2MF => phi x [_ phinx]. Qed.
 
   Definition diag_rlzr (X: cs): questions X ->> questions (X \*_cs X):=
-    F2MF (fun (phi: names X) => name_pair phi phi).
+    F2MF (fun (phi: name_space X) => name_pair phi phi).
   Local Arguments diag_rlzr {X}.
 
   Lemma diag_rlzr_spec (X: cs):
     diag_rlzr \realizes (@mf_diag X: _ ->> (_ \*_cs _)).
   Proof. by rewrite F2MF_rlzr_F2MF. Qed.
 
-  Lemma lprj_pair (X Y: cs) (phi: names X) (psi: names Y):
+  Lemma lprj_pair (X Y: cs) (phi: name_space X) (psi: name_space Y):
     lprj (name_pair phi psi) =  phi.
   Proof. by trivial. Qed.
   
-  Lemma rprj_pair (X Y: cs) (phi: names X) (psi: names Y):
+  Lemma rprj_pair (X Y: cs) (phi: name_space X) (psi: name_space Y):
     rprj (name_pair phi psi) =  psi.
   Proof. by trivial. Qed.
 
@@ -99,14 +99,14 @@ Section products.
   Lemma snd_cont (X Y: cs): (@snd X Y: _ \*_cs _ -> _) \is_continuous.
   Proof. exact/snd_hcr. Qed.
 
-  Definition fprd_rlzr (X Y X' Y': cs) (F: (names X) ->> (names Y)) (G: (names X') ->> (names Y')):
-    names (X \*_cs X') ->> names (Y \*_cs Y'):=
+  Definition fprd_rlzr (X Y X' Y': cs) (F: (name_space X) ->> (name_space Y)) (G: (name_space X') ->> (name_space Y')):
+    name_space (X \*_cs X') ->> name_space (Y \*_cs Y'):=
     fprd_rlzr (somea Y) (somea Y') (somea X) (somea X') F G.
   
-  Definition fprd_frlzr (X Y X' Y': cs) (F: (names X) -> (names Y)) (G: (names X') -> (names Y')):=
-    (fun (phipsi: names (X \*_cs X')) => name_pair (F (lprj phipsi)) (G (rprj phipsi))).
+  Definition fprd_frlzr (X Y X' Y': cs) (F: (name_space X) -> (name_space Y)) (G: (name_space X') -> (name_space Y')):=
+    (fun (phipsi: name_space (X \*_cs X')) => name_pair (F (lprj phipsi)) (G (rprj phipsi))).
 
-  Lemma	fprd_frlzr_rlzr (X Y X' Y': cs) (F: (names X) -> (names Y)) (G: (names X') -> (names Y')):
+  Lemma	fprd_frlzr_rlzr (X Y X' Y': cs) (F: (name_space X) -> (name_space Y)) (G: (name_space X') -> (name_space Y')):
     F2MF (fprd_frlzr F G) =~= fprd_rlzr (F2MF F) (F2MF G).
   Proof.
     move => phi FGphi; rewrite {1}/F2MF.
@@ -130,8 +130,8 @@ Section products.
     by exists (y, y').
   Qed.
   
-  Lemma fprd_rlzr_cntop (X Y X' Y': cs) (F: (names X) ->> (names Y))
-	(G: (names X') ->> (names Y')): F \is_continuous_operator -> G \is_continuous_operator ->
+  Lemma fprd_rlzr_cntop (X Y X' Y': cs) (F: (name_space X) ->> (name_space Y))
+	(G: (name_space X') ->> (name_space Y')): F \is_continuous_operator -> G \is_continuous_operator ->
 	                                (fprd_rlzr F G) \is_continuous_operator.
   Proof. exact/fprd_cont. Qed.
 
@@ -161,7 +161,7 @@ Section products.
     PF2MF (lcry_p f s) =~= lcry (PF2MF f) s.
   Proof. done. Qed.
 
-  Definition lcry_rlzr (X Y Z: cs) (F: names (X \*_cs Y) ->> names Z) (phi: questions X):
+  Definition lcry_rlzr (X Y Z: cs) (F: name_space (X \*_cs Y) ->> name_space Z) (phi: questions X):
     questions Y ->> questions Z:=
     (make_mf (fun psi Fphipsi => F (name_pair phi psi) Fphipsi)).
   
@@ -182,10 +182,10 @@ Section products.
                  end
     end.
   
-  Lemma lcry_rlzr_cntop (X Y Z: cs) (F: names (X \*_cs Y) ->> names Z) phi:
+  Lemma lcry_rlzr_cntop (X Y Z: cs) (F: name_space (X \*_cs Y) ->> name_space Z) phi:
     F \is_continuous_operator -> (lcry_rlzr F phi) \is_continuous_operator.
   Proof.
-    rewrite !cont_spec => cont psi [Fphipsi /= val].
+    rewrite !cntop_spec => cont psi [Fphipsi /= val].
     have [ | mf mod]:= cont (name_pair phi psi); first by exists Fphipsi.
     exists (fun q => collect_right (mf q)) => q.
     exists (Fphipsi q) => psi' coin Fphipsi' val'.
@@ -220,7 +220,7 @@ Section products.
     PF2MF (rcry_p f t) =~= rcry (PF2MF f) t.
   Proof. done. Qed.
 
-  Definition rcry_rlzr (X Y Z: cs) (F: names (X \*_cs Y) ->> names Z) (psi: questions Y):
+  Definition rcry_rlzr (X Y Z: cs) (F: name_space (X \*_cs Y) ->> name_space Z) (psi: questions Y):
     questions X ->> questions Z:=
     make_mf (fun phi Fphipsi => F (name_pair phi psi) Fphipsi).
 
@@ -244,7 +244,7 @@ Section products.
   Lemma rcry_rlzr_cntop (X Y Z: cs) F psi:
     F \is_continuous_operator -> (@rcry_rlzr X Y Z F psi) \is_continuous_operator.
   Proof.
-    rewrite !cont_spec => cont phi [Fphipsi /= val].
+    rewrite !cntop_spec => cont phi [Fphipsi /= val].
     have [ | mf mod]:= cont (name_pair phi psi); first by exists Fphipsi.
     exists (fun q => collect_left (mf q)) => q.
     exists (Fphipsi q) => psi' coin Fphipsi' val'.

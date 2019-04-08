@@ -88,7 +88,7 @@ Proof. by move => tot; have [[[n []] | [n []]]]//:= tot xpred0. Qed.
 (** But, it is continuous. Too prove this, it is necessary to explcitly work
 with the encodings **)
 Definition nzb_rlzr : questions Cantor ->> questions cs_bool :=
-  make_mf(fun (psi: names Cantor) (b: names cs_bool) =>
+  make_mf(fun (psi: name_space Cantor) (b: name_space cs_bool) =>
             exists n, psi (n, tt) = true /\ b tt = true).
 
 Lemma nzb_rlzr_spec: nzb_rlzr \realizes nz_bool_p.
@@ -133,7 +133,7 @@ Qed.
 (** In contrast to the realizer of the partial function above, the realizer
 on Sirpinski-space can be written down explicitly and not only as a relation. **)
 Definition nzS_rlzr: questions Cantor ->> questions cs_Sirp
-  := F2MF (fun (phi: names Cantor) (q: queries cs_Sirp) => phi (q, tt): answers cs_Sirp).
+  := F2MF (fun (phi: name_space Cantor) (q: queries cs_Sirp) => phi (q, tt): answers cs_Sirp).
 
 Lemma nzS_rlzr_spec: nzS_rlzr \realizes nz_Sirp.
 Proof.

@@ -376,6 +376,15 @@ Section naturals.
     elim: n => // n ih neg.    
     by rewrite not_has_find; [rewrite size_iota | rewrite neg].
   Qed.
+
+  Lemma searchP n: reflect (exists m, p m /\ m < n) (search n < n).
+  Proof.
+    apply: (iffP idP).
+    rewrite search_find -{2}(size_iota 0 n) -has_find => /hasP [m] .
+    by rewrite mem_iota add0n => /andP []; exists m.
+    rewrite search_find -{3}(size_iota 0 n) -has_find => [[m [pm mln]]]. 
+    by apply/hasP; exists m => //; rewrite mem_iota add0n; apply/andP.
+  Qed.
     
   Lemma search_fail n: (forall m, p m -> n < m) -> search n = n.
   Proof. exact/searchU_fail. Qed.
@@ -401,15 +410,6 @@ Section naturals.
     by split; [apply/search_inc | apply/search_min/search_correct].
   Qed.
 
-  Lemma searchP n: reflect (exists m, p m /\ m < n) (search n < n).
-  Proof.
-    apply: (iffP idP).
-    rewrite search_find -{2}(size_iota 0 n) -has_find => /hasP [m] .
-    by rewrite mem_iota add0n => /andP []; exists m.
-    rewrite search_find -{3}(size_iota 0 n) -has_find => [[m [pm mln]]]. 
-    by apply/hasP; exists m => //; rewrite mem_iota add0n; apply/andP.
-  Qed.
-
   Lemma search_search n: search (search n) = search n.
   Proof.
     suff /negP/leP: ~ search (search n) < search n.    
@@ -431,25 +431,25 @@ Proof.
 Qed.
 
 Section eqTypes.
+  Lemma inP (T: eqType) q (L: seq T): reflect (List.In q L) (q \in L).
+  Proof.
+    elim: L => [ | t L ih]; [exact/ReflectF | rewrite in_cons].
+    by apply/(iffP idP) => [/orP [/eqP -> | /ih ]| /= [-> |/ih lstn]];
+                             try apply/orP; [left | right | left | right ].
+  Qed.  
+
   Lemma mem_segP (T: eqType) i j (Delta: _ -> T) x:
     reflect (exists k, (i <= k <= j)%nat /\ x = Delta k) (x \in (segment Delta i j)).
   Proof.
-    case E: (x \in segment Delta i j); last first.
-    - apply/ReflectF => [[k [/andP [ineq ineq'] eq]]].
-      suff: false by trivial.
-      rewrite -E.
-      have /subnK <-: (i <= j)%nat by apply/leq_trans/ineq'.
-      rewrite addnC seg_map seg_iota; apply/mapP; exists k => //.
-      rewrite mem_rev mem_iota; apply/andP; split => //.
-      rewrite addnS addnC.      
-      by have /subnK ->: (i <= j)%nat by apply/leq_trans/ineq'.      
-    apply/ReflectT.
-    have : x \in segment Delta i j by rewrite E.
-    case: (leqVlt i j) => [/subnK <- | ineq]; last by rewrite seg_nil // => /inP.
-    rewrite addnC seg_map seg_iota => /mapP [k].
-    rewrite mem_rev mem_iota => /andP [ineq ineq'] ->.
-    rewrite addnS in ineq'.
-    by exists k; split; first apply/andP.
+    apply/(iffP idP) => [ | [k [/andP [ineq ineq'] eq]]].
+    - case: (leqVlt i j) => [/subnK <- | ineq]; last by rewrite seg_nil.
+      rewrite addnC seg_map seg_iota => /mapP [k].
+      rewrite mem_rev mem_iota addnS => /andP [ineq ineq'] ->.
+      by exists k; split; first apply/andP.
+    have /subnK <-: (i <= j)%nat by apply/leq_trans/ineq'.
+    rewrite addnC seg_map seg_iota; apply/mapP; exists k => //.
+    rewrite mem_rev mem_iota; apply/andP; split => //.
+    by rewrite addnS addnC; have /subnK ->: (i <= j)%nat by apply/leq_trans/ineq'.      
   Qed.
 End eqTypes.
 

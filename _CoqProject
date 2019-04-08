@@ -20,6 +20,7 @@ baire_spaces/constructions/baire_prod.v
 baire_spaces/countability/seq_cont.v
 baire_spaces/countability/classical_count.v
 
+baire_spaces/dualities/PhiN.v
 baire_spaces/dualities/FMop.v
 baire_spaces/dualities/nvrsl.v
 baire_spaces/dualities/Umach.v

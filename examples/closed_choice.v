@@ -9,7 +9,7 @@
 Require Import Psatz.
 From mathcomp Require Import all_ssreflect.
 From rlzrs Require Import all_rlzrs.
-Require Import all_cs sets classical_cont classical_func.
+Require Import iseg all_cs sets classical_cont classical_func.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -48,17 +48,6 @@ Section closed_choice_on_the_naturals.
     apply/functional_extensionality => n/=.
     by rewrite /AN2Anat/Anat2AN/P2CF /=; case: ifP.
   Qed.
-
-  Lemma inP (T: eqType) q (L: seq T): reflect (List.In q L) (q \in L).
-  Proof.
-    elim: L => [ | t L ih]; first by apply/ReflectF.
-    case E: (q \in t :: L).
-    - rewrite seq.inE in E.
-      by apply/ReflectT; case/orP: E => [/eqP -> | /ih ]; [left | right].
-    apply/ReflectF => [/= [eq | lstn]]; suff: false by trivial.
-    - by rewrite -E seq.inE; apply/orP; left; rewrite eq.
-    by rewrite -E seq.inE; apply/orP; right; apply/ih.
-  Qed.  
 
   Lemma bigmax_lt T (L: seq T) (t: T) (phi: T -> nat):
     List.In t L -> phi t < \max_(n <- L) (phi n).+1.

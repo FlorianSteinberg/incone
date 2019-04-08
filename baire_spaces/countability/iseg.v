@@ -401,6 +401,24 @@ Section naturals.
     by split; [apply/search_inc | apply/search_min/search_correct].
   Qed.
 
+  Lemma searchP (p: nat -> bool) n: reflect (exists m, p m /\ m < n) (search p n < n).
+  Proof.
+    apply: (iffP idP).
+    rewrite search_find -{2}(size_iota 0 n) -has_find => /hasP [m] .
+    by rewrite mem_iota add0n => /andP []; exists m.
+    rewrite search_find -{3}(size_iota 0 n) -has_find => [[m [pm mln]]]. 
+    by apply/hasP; exists m => //; rewrite mem_iota add0n; apply/andP.
+  Qed.
+
+  Lemma search_search p n: search p (search p n) = search p n.
+  Proof.
+    suff /negP/leP: ~ search p (search p n) < search p n.    
+    - by have /leP:= search_le p (search p n); lia.  
+    move => /searchP [m [pm /leP ineq]].
+    suff /leP: search p n <= m by lia.
+    exact/search_min.
+  Qed.
+  
 End naturals.
 
 Lemma search_ext (p p': pred nat) n:

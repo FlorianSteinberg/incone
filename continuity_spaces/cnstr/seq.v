@@ -8,12 +8,14 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section SEQ.
+  Local Open Scope curry_scope.
   Context (X: cs).
   Fixpoint rep_seq_rec phi L :=
     match L with
       | nil => forall q, (phi q) = [::]
-      | (a :: L') => (not (phi (someq X) = [::])) /\ (fun q => (head (somea X) (phi q))) \describes a \wrt X
-                   /\ (rep_seq_rec (fun q => (behead (phi q))) L')
+      | (a :: L') => (forall q, phi q <> [::])
+                     /\ (fun q => head (somea X) (phi q)) \describes a \wrt X
+                     /\ (rep_seq_rec (fun q => (behead (phi q))) L')
       end.
 
   Definition rep_seq := make_mf rep_seq_rec.
@@ -27,17 +29,18 @@ Section SEQ.
   
   Lemma rep_seq_sing: rep_seq \is_singlevalued.
   Proof.
-    move => phi L1.
-    elim : L1 phi => [phi [ | a L H1 []]// | a L IH phi [[] | a' L' phinaL phina'L']//].
-    f_equal; last by apply/IH; [apply phinaL | apply phina'L'].
+    move => phi L.
+    elim: L phi => [phi [ | a L' phinL [prp]]//| a L ih phi [[prp] | a' L' phinaL phina'L']//];
+                     try by have := prp (someq X).
+    f_equal; last by apply/ih; [apply phinaL | apply phina'L'].
     by apply/rep_sing; [apply phinaL | apply phina'L'].
   Qed.
 
   Definition cs_seq := make_cs (someq X) [::] (queries_countable X) (list_count (answers_countable X)) rep_seq_sur rep_seq_sing.
 
-  Definition size_rlzrf (phi : (names cs_seq)) (tt: unit) := (size (phi (someq X))).
+  Definition size_rlzrf (phi : (name_space cs_seq)) (tt: unit) := (size (phi (someq X))).
 
-  Definition size_rlzr: names cs_seq ->> names cs_nat := F2MF size_rlzrf.
+  Definition size_rlzr: name_space cs_seq ->> name_space cs_nat := F2MF size_rlzrf.
 
   Lemma size_rlzr_cntop: size_rlzr \is_continuous_operator.
   Proof.
@@ -49,67 +52,55 @@ Section SEQ.
   Proof.
     apply/F2MF_rlzr_F2MF => phi L/=; rewrite /size_rlzrf.
     elim : L phi => [phi -> | a L IH phi phinaL]//=.    
-    case E : (phi (someq X)) => [| a' L']; first by case phinaL.
+    case E : (phi (someq X)) => [ | a' L']; first by have:= (phinaL.1 (someq X)).
     rewrite -(IH (fun q => behead (phi q))); last by apply phinaL.
     by rewrite size_behead /= E.
   Qed.
 
   Lemma size_cont: (size: cs_seq -> cs_nat) \is_continuous.
+  Proof. by exists size_rlzr; split; [exact/size_rlzr_spec | exact/size_rlzr_cntop]. Qed.
+
+  Definition head_rlzrf phi (psi: name_space cs_seq) q := head (phi q) (psi q).
+
+  Definition head_rlzr: name_space (X \*_cs cs_seq) ->> name_space X :=
+    F2MF (fun phi => head_rlzrf (lprj phi) (rprj phi)).
+
+  Lemma head_rlzr_cntop: head_rlzr \is_continuous_operator.
   Proof.
-    exists size_rlzr; split; [exact/size_rlzr_spec | exact/size_rlzr_cntop].
+    apply/cont_F2MF; rewrite /head_rlzrf/lprj/rprj.
+    by exists (fun q => [:: inl q; inr q]) => q psi /= [-> [->]].
+  Qed.
+              
+  Lemma head_rlzr_spec: head_rlzr \realizes (F2MF (fun xL => head xL.1 xL.2)).
+  Proof.
+    apply/F2MF_rlzr_F2MF => phi [x L] [/=phinx].
+    case: L => [prp | y L [neq [phiny _]]].
+    - suff ->: head_rlzrf (lprj phi) (rprj phi) = lprj phi by trivial.
+      by apply/functional_extensionality => q; rewrite /head_rlzrf prp.
+    suff ->: head_rlzrf (lprj phi) (rprj phi) = fun q => head (some_answer X) (rprj phi q) by trivial.
+    apply/functional_extensionality => q.
+    by rewrite /head_rlzrf; have:= neq q; case: (rprj phi q) => //.
   Qed.
 
-  (*  Definition list_head (phi0 : (names X)) (phi : (names seq_cs)) := (fun q => (head (phi0 q) (phi q))). *)
+  Lemma head_cont: (head : X -> cs_seq -> X) \is_continuous.
+  Proof. by exists head_rlzr; split; [exact/head_rlzr_spec | exact/head_rlzr_cntop]. Qed.
+   
+  Definition cons_rlzrf (phi : name_space X) psi := (fun q => (cons (phi q) (psi q))).
 
- (*  Lemma head_spec1 x L' phi : forall phi0, phi \describes x::L' \wrt seq_cs -> ((list_head phi0 phi) \describes x \wrt X). *)
- (*  move => phi0. *)
- (*  move => [H1 [H2 H3]]. *)
- (*  rewrite /list_head. *)
- (*  have p1 : 0 < size(x :: L') by auto. *)
- (*  have p2 : forall q, not ((phi q) = [::]).  *)
- (*  - move => q. *)
- (*    suff : not ((size (phi q)) = 0). *)
- (*    * suff : (phi q = [::]) -> (size (phi q)) = 0 by auto. *)
- (*      move => H. *)
- (*      by rewrite H. *)
- (*   specialize (H1 q). *)
- (*   symmetry in H1. *)
- (*   by rewrite H1. *)
- (*  specialize (H2 0 p1). *)
- (*  rewrite nth0 in H2. *)
- (*  rewrite /list_head. *)
- (*  have fun_eq : (fun q => (head (phi0 q) (phi q))) = (fun q => (nth (somea X) (phi q)) 0). *)
- (*  - apply functional_extensionality. *)
- (*    move => q. *)
- (*    rewrite  nth0. *)
- (*    case P : (phi q). *)
- (*     -specialize (p2 q); by contradiction. *)
- (*    done. *)
- (*  by rewrite fun_eq. *)
- (*  Qed. *)
+  Definition cons_rlzr: name_space (X \*_cs cs_seq) ->> (name_space cs_seq) :=
+    F2MF (fun phi => cons_rlzrf (lprj phi) (rprj phi)).
+  
+  Lemma cons_rlzr_cntop: cons_rlzr \is_continuous_operator.
+  Proof.
+    apply/cont_F2MF; rewrite /cons_rlzrf/lprj/rprj.
+    by exists (fun q => [:: inl q; inr q]) => q' psi /=[-> [->]].
+  Qed.
+  
+  Lemma cons_rlzr_spec: cons_rlzr \realizes (F2MF (fun xL => cons xL.1 xL.2)).
+  Proof. exact/F2MF_rlzr_F2MF. Qed.
 
- (*  Lemma head_spec2 phi : forall phi0, phi \describes [::] \wrt seq_cs -> (list_head phi0 phi) = phi0. *)
- (*  Proof. *)
- (*    move => phi0. *)
- (*    move => [H1 H2]. *)
- (*    have P : forall q, (phi q) = [::]. *)
- (*    - move => q. *)
- (*      suff : (size (phi q)) = 0 by apply size0nil. *)
- (*      specialize (H1 q). *)
- (*      symmetry in H1. *)
- (*      by rewrite H1. *)
- (*   rewrite /list_head. *)
- (*   apply functional_extensionality. *)
- (*   move => q. *)
- (*   by rewrite (P q). *)
- (* Qed. *)
-
- Definition list_cons (phi0 : names X) phi := (fun q => (cons (phi0 q) (phi q))).
-
- Lemma cons_spec x L phi0 phi : phi0 \describes x \wrt X /\ phi \describes L \wrt seq_cs -> (list_cons phi0 phi) \describes (x :: L) \wrt seq_cs.
- Proof.
-   done.
- Qed.
+  Lemma cons_cont: (cons: X -> cs_seq -> cs_seq) \is_continuous.
+  Proof.
+    by exists cons_rlzr; split; [exact/cons_rlzr_spec | exact/cons_rlzr_cntop].
+  Qed.
 End SEQ.
-
-Definition nat_list := (rep_seq cs_nat).

@@ -44,6 +44,7 @@ all_cs_base.v
 
 continuity_spaces/cnstr/dscrt.v
 continuity_spaces/cnstr/opt.v
+continuity_spaces/cnstr/seq.v
 continuity_spaces/cnstr/cprd.v
 continuity_spaces/cnstr/cs_mtrc.v
 continuity_spaces/cnstr/sets.v

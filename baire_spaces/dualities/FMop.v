@@ -8,26 +8,48 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+Section Phi_assignment.
+  Context (A Q: Type).
+  Notation B := (Q -> A).
+  Local Notation "Q ~> A" := (nat -> Q -> option A) (at level 2).
+
+  Definition Phi (N: Q ~> A):= make_mf (fun q a => exists n, N n q = Some a).
+
+  Local Notation "\Phi_ N" := (Phi N) (format "'\Phi_' N", at level 2).
+
+  Notation "N '\evaluates_to' phi" := (\Phi_N \tightens phi) (at level 40).
+
+  Lemma eval_Phi N: N \evaluates_to \Phi_N.
+  Proof. done. Qed.
+End Phi_assignment.  
+Notation "\Phi_ N" := (Phi N) (format "'\Phi_' N", at level 2).
+
 Section FM_operator.
-Context (A A' Q Q': Type).
-Notation B := (Q -> A).
-Notation B' := (Q' -> A').
-Notation "B o~> B'" := (nat -> B -> Q' -> option A') (at level 2).
+  Context (A A' Q Q': Type).
+  Notation B := (Q -> A).
+  Notation B' := (Q' -> A').
+  Notation "B o~> B'" := (nat -> B -> Q' -> option A') (at level 2).
+    
+  Definition operator (M: B o~> B') :=
+    make_mf (fun phi Mphi => forall q', exists c, M c phi q' = Some (Mphi q')).
+  
+  Notation "\F_ M" := (operator M) (format "'\F_' M", at level 2).
 
-Definition operator (M: B o~> B') :=
-	make_mf (fun phi Mphi => forall q', exists c, M c phi q' = Some (Mphi q')).
+  Lemma Phi_FM (N: nat -> Q' -> option A') phi Fphi:
+    (\F_(fun n phi q => N n q)) phi Fphi <-> \Phi_N \extends F2MF Fphi.
+  Proof.
+    split => [val q' a' <-| exte q']; first by have [n eq]:= val q'; exists n.
+    by have [ | n]//:= exte q' (Fphi q'); exists n.
+  Qed.
+  
+  Notation "M '\evaluates_to' F" := ((\F_M) \tightens F) (at level 40).
 
-Notation "\F_ M" := (operator M) (format "'\F_' M", at level 2).
+  Lemma eval_FM M: M \evaluates_to \F_M.
+  Proof. done. Qed.
 
-
-Notation "M '\evaluates_to' F" := ((\F_M) \tightens F) (at level 40).
-
-Lemma eval_FM M: M \evaluates_to \F_M.
-Proof. done. Qed.
-
-Lemma exte_sym_F2MF S T (f: S ->> T) g:
-	f \is_singlevalued -> f \extends (F2MF g) -> (F2MF g) \extends f.
-Proof. by move => sing exte s t fst; rewrite (sing s t (g s)) => //; apply exte. Qed.
+  Lemma exte_sym_F2MF S T (f: S ->> T) g:
+    f \is_singlevalued -> f \extends (F2MF g) -> (F2MF g) \extends f.
+  Proof. by move => sing exte s t fst; rewrite (sing s t (g s)) => //; apply exte. Qed.
 
 Lemma eval_F2MF M F:
 	M \evaluates_to (F2MF F) <-> \F_M =~= F2MF F.

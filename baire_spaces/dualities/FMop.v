@@ -120,7 +120,7 @@ Require Import baire all_cont.
 Section evaluation.
   Local Open Scope baire_scope.
   Context (Q' A': Type).
-  Context (Q: eqType) A (default: A).
+  Context (Q: eqType) A (default: A). 
   Notation B := (Q -> A).
   Notation B' := (Q' -> A').
   Context (N: nat -> Q -> option A).
@@ -134,67 +134,124 @@ Section evaluation.
     by split => [ | q lstn]; apply/subs; [left | right].
   Qed.
 
-  Fixpoint N2LF_rec LK q:=
-    match LK with
+  Definition G2MF S T (G: subset (S * T)):= make_mf (fun s t => (s,t) \from G).
+
+  Lemma G2MF_eq S T (G G': subset (S * T)): G === G' <-> G2MF G =~= G2MF G'.
+  Proof. by split => [eq s t | eq [s t]]; apply/eq. Qed.
+  
+  Definition L2MF T T' (KL: seq (T * T')):= G2MF (L2SS KL).
+  
+  Fixpoint L2LF (T: eqType) T' (KL: seq (T * T')) q:=
+    match KL with
     | nil => nil
-    | nq:: LK' => if nq.2 == q
-                  then match N nq.1 q with
-                       | Some a => a :: N2LF_rec LK' q
-                       | None => N2LF_rec LK' q
-                       end
-                  else N2LF_rec LK' q
+    | qa :: KL' => if qa.1 == q
+                   then qa.2 :: L2LF KL' q
+                   else L2LF KL' q
     end.
-
-
-  Lemma N2LF_nil L q: N2LF L nil q = nil.
-  Proof. by rewrite /N2LF /= subn0 drop_size. Qed.
-  
-  Definition N2MF n K := LF2MF (N2LF n K).
-
-  Lemma N2MF_nil L: N2MF L [::] =~= mf_empty.
-  Proof. by move => q a /=; rewrite N2LF_nil. Qed.
     
-  Lemma N2MF_cons L q K: N2MF L (q :: K) \extends N2MF L K.
-  Proof.
-  Admitted.
+  Lemma L2LF_spec (T: eqType) T' (KL: (seq (T * T'))):
+    LF2MF (L2LF KL) =~= L2MF KL.
+  Proof.    
+    rewrite /L2MF.
+    elim: KL => // [[t t'] KL] ih t'' t''' /=.
+    case: ifP => [/eqP eq | neq].
+    - split; first by case => [-> | ]; [left; rewrite eq | right; apply/ih].
+      by case => [[<- <-] | ]; [left | right; apply/ih].
+    split; first by right; apply/ih.
+    by case => [[/eqP] | lstn]; [rewrite neq | apply/ih].
+  Qed.      
 
-  Lemma N2MF_cat L K' K: N2MF L (K' ++ K) \extends N2MF L K.
+  Fixpoint omap T T' (F: T -> option T') (L: seq T) :=
+    match L with
+    | nil => nil
+    | t :: L' => match F t with
+                 | Some a => a :: omap F L'
+                 | None => omap F L'
+                 end
+    end.
+  
+  Definition N2LF KL q:= omap (fun n => N n q) (L2LF KL q).
+
+  Lemma N2LF_nil q: N2LF nil q = nil.
+  Proof. done. Qed.
+
+  Lemma N2LF_cons q n KL q':
+    N2LF ((q,n) :: KL) q' =
+    if q == q' then
+      match (N n q') with
+      | Some a => a :: N2LF KL q'
+      | None => N2LF KL q'
+      end
+    else N2LF KL q'.
   Proof.
-    by elim: K' => [q | q' K' ih/=]; [rewrite cat0s | apply/exte_trans/N2MF_cons/ih].
+    by rewrite /N2LF /=; case: ifP.    
+  Qed.
+
+  Lemma N2LF_cat KL' KL q':
+    N2LF (KL' ++ KL) q' = N2LF KL' q' ++ N2LF KL q'.
+  Proof.
+    elim: KL' => // [[q n]] KL' ih /=.
+    rewrite !N2LF_cons; case: ifP => [/eqP _ | _]; last exact/ih.
+    case: (N n q') => [a'/= | ]; last exact/ih.
+    by rewrite ih.
+  Qed.
+
+  Definition N2MF LK := LF2MF (N2LF LK).
+  
+  Lemma N2MF_nil: N2MF [::] =~= mf_empty.
+  Proof. done. Qed.
+
+  Lemma N2MF_ext LK LK': L2SS LK === L2SS LK' -> N2MF LK =~= N2MF LK.
+  Proof. done. Qed.
+  
+  Lemma N2MF_spec KL: \Phi_N \extends N2MF KL.
+  Proof.
+    elim: KL => [q a  | [q' n] KL ih q a] // prp.
+    move: prp; rewrite /=/N2LF /=.    
+    case : ifP => [/eqP eq /= | neq]; last exact/ih.
+    by case E: (N n q) => [a' /= | ] => [[<- | ] |]; [exists n | apply/ih | apply/ih].
+  Qed.
+
+  Lemma N2MF_cons q n KL: N2MF ((q,n)::KL) \extends N2MF KL.
+  Proof.
+    rewrite /N2MF => q' a' /=.
+    rewrite N2LF_cons.
+    case: ifP => // /eqP <-.
+    by case: (N n q) => //; right.
+  Qed.
+
+  Lemma N2MF_cat KL' KL: N2MF (KL' ++ KL) \extends N2MF KL.
+  Proof.
+    elim: KL' => [ | qn KL' ih/=]; first rewrite cat0s => q //.
+    by apply/exte_trans/N2MF_cons.
   Qed.
   
-  Lemma N2MF_exte L K: \Phi_N \extends N2MF L K.
+  Lemma N2MF_dom KL:
+    dom (N2MF KL) \is_subset_of dom (L2MF KL).
   Proof.
-    rewrite /N2MF/N2LF.
-    elim: (zip _ _) => [q | [n q] LK ih q' a']//=.
-    case: ifP => [/eqP <- | _ lstn]; last exact/ih.
-    by case E: (N n q) => [a | ] => /= [[<-| ]|]; [exists n | exact/ih | exact/ih].
+    move => q [a].
+    elim: KL => // [[q' n] KL ih /=].
+    rewrite N2LF_cons.
+    case: ifP => [/eqP <- | _ lstn]; first by exists n; left.
+    by have [ | n' lstn']//:= ih; exists n'; right.
   Qed.
 
-  Lemma N2MF_dom L K:
-    dom (N2MF L K) \is_subset_of L2SS K.
-  Proof.
-    elim: K => [q []| q K ih q']; first by rewrite /= N2LF_nil.
-  Admitted.
-    
   Lemma N2MF_dom_spec K:
-    (L2SS K) \is_subset_of dom \Phi_N <-> exists n, (L2SS K) \is_subset_of dom (N2MF n K).
+    (L2SS K) \is_subset_of dom \Phi_N <-> exists KL, (L2SS K) \is_subset_of dom (N2MF KL).
   Proof.
-  Admitted.
-              
-  Lemma size_zip_drop S T (L: seq S) (K: seq T):
-    size (zip (drop (size L - size K) L) (drop (size K - size L) K)) = minn (size K) (size L).
-  Proof.
-    rewrite size_zip !size_drop.
-    case /orP: (leq_total (size L) (size K)) => ineq.
-    rewrite !minnE.
-    have ->: size L - size K = 0 by apply/eqP; rewrite subn_eq0.
-    by rewrite !subn0 !(@subKn (size L) (size K)) // subnn subn0.
-    rewrite !minnE.
-    have ->: size K - size L = 0 by apply/eqP; rewrite subn_eq0.
-    by rewrite subn0 !subKn //.
+    split => [ | [KL subs]]; last exact/subs_trans/exte_dom/N2MF_spec/KL.
+    elim: K => [ | q K ih /cons_subs [[a [n val]] /ih [KL subs]]]; first by exists nil.
+    exists ((q,n):: KL); apply/cons_subs.
+    split; first by exists a; rewrite /N2MF /= N2LF_cons eq_refl val; left.
+    move => q' lstn.
+    have [a' val']:= subs q' lstn.
+    exists a'.
+    move : val'.
+    rewrite /N2MF /= N2LF_cons.
+    case: ifP => //.
+    by case E: (N n q') => //; right.
   Qed.
-      
+        
   Fixpoint allSome T (L: seq (seq T)) :=
     match L with
     | [::] => true
@@ -209,104 +266,297 @@ Section evaluation.
     apply/cons_subs; split; last by apply/ih.
     by case E: (phi q) pq => [ | a L]// _; exists a; rewrite /= E; left.
   Qed.
+
+  Lemma last_def T (L: seq T) (t t': T):
+    L <> nil -> last t L = last t' L.
+  Proof. by case: L. Qed.
+
+  Lemma last_lstn T (L: seq T) (t: T):
+    L <> nil -> List.In (last t L) L.
+  Proof.
+    case: L => // def L _.
+    move: {2}(size L) (eq_refl (size L)) t def => n.
+    elim: n L => [ | n ih L /eqP []]; first by case => //; left.
+    case: L => // a L [sze] t def.
+    rewrite last_cons; right.
+    exact/ih/eqP.
+  Qed.
   
-  Definition extend (phi: Q -> seq A) q:= head default (phi q).
+  Definition extend' (phi: Q -> seq A) q:= last default (phi q).
+  
+  Lemma extend'ext phi phi' q: phi q = phi' q -> extend' phi q = extend' phi' q.
+  Proof. by move => eq; rewrite /extend'; rewrite eq. Qed.
+    
+  Lemma extend'_spec phi: (extend' phi) \is_choice_for (LF2MF phi).
+  Proof.
+    rewrite /extend' => q a /= lstn.
+    by apply/last_lstn; case: (phi q) lstn.    
+  Qed.
+    
+  Definition KL_step' KL L q':= zip (Lf (extend' (N2LF KL)) q') L ++ KL.
+
+  Lemma KL_step'_spec' KL q':
+    L2SS (Lf (extend' (N2LF KL)) q') \is_subset_of dom \Phi_N ->
+    exists L, 
+      L2SS (Lf (extend' (N2LF KL)) q') \is_subset_of dom (N2MF (KL_step' KL L q'))
+      /\
+      (extend' (N2LF (KL_step' KL L q'))) \is_choice_for (N2MF KL).
+  Proof.
+    rewrite /KL_step'.
+    elim: (Lf (extend' (N2LF KL)) q') => [_ | q K ih /cons_subs [[a [n val]] dm]].
+    - by exists nil; split; last apply/extend'_spec.
+    have [L [subs icf]]:= ih dm.
+    exists (n :: L); split => /=.
+    - apply/cons_subs => /=; split; last exact/subs_trans/exte_dom/N2MF_cons/subs.
+      by exists a; rewrite N2LF_cons eq_refl val; left.
+    move => q'' a'' /= lstn.   
+    rewrite /extend' /= N2LF_cons.
+    case: ifP => [/eqP eq | _]; last exact/icf/lstn.
+    case E: (N n q'') => [a'''/= | ]; last exact/icf/lstn.
+    rewrite (last_def a''' default); first exact/icf/lstn.
+    suff: List.In a'' (N2LF (zip K L ++ KL) q'') by case: (N2LF (zip K L ++ KL) q'').
+    exact/N2MF_cat/lstn.
+  Qed.
+
+  Fixpoint list_dom KL :=
+    match KL with
+    | nil => nil
+    | qn:: KL' => if N qn.2 qn.1 is Some a then qn.1 :: list_dom KL' else list_dom KL'
+    end.
+
+  Lemma lstd_spec KL: L2SS (list_dom KL) === dom (N2MF KL).
+  Proof.
+    elim: KL => [q | [q n] KL ih q' /=]; first by split; case.
+    rewrite N2LF_cons.
+    case: ifP => [/eqP <-| /eqP neq].
+    - case E: (N n q) => [a | ]; last exact/ih.
+      by split => [ | [a']]; first exists a; left.
+    case E: (N n q) => [a | ]; last exact/ih.
+    split => [/= | ]; last by right; apply/ih.
+    by case => [eq | /ih [a' val]]; [exfalso; apply/neq | exists a'].
+  Qed.
+
+  Lemma lstd_zip KL: L2SS (list_dom KL) \is_subset_of L2SS (unzip1 KL).
+  Proof.
+    elim: KL => // [[q n]] KL ih /=.
+    case: (N n q) => [a | ]; last by right; apply/ih.
+    by move => q' /=[<- | ]; [left | right; apply/ih].
+  Qed.
+
+  Lemma lstd_cat KL KL': list_dom (KL ++ KL') = list_dom KL ++ list_dom KL'.
+  Proof. by elim: KL => // [[q n]] KL /= ->; case: (N n q). Qed.
+
+  Definition extend (phi: Q -> seq A) q := head default (phi q).
 
   Lemma extend_spec phi: (extend phi) \is_choice_for (LF2MF phi).
   Proof.
-    by rewrite /extend => q a /=; case: (phi q) => //; left.
+    rewrite /extend => q a /=.
+    by case: (phi q) => // q' K /= [-> | ]; left.
+  Qed.
+  
+  Definition KL_step KL L q':= zip (Lf (extend (N2LF KL)) q') L ++ KL.
+
+  Lemma KL_step_spec KL q' phi:
+    phi \is_choice_for (\Phi_N) ->
+    (L2SS (Lf (extend (N2LF KL)) q')) \is_subset_of dom \Phi_N ->
+    exists L,
+      size L = size (Lf (extend (N2LF KL)) q')
+      /\
+      (L2SS (Lf (extend (N2LF KL)) q')) \is_subset_of dom (N2MF (KL_step KL L q'))
+      /\
+      ((extend (N2LF KL)) \agrees_with phi \on (dom (N2MF KL)) ->
+      (extend (N2LF (KL_step KL L q'))) \and phi \coincide_on (Lf (extend (N2LF KL)) q')).
+  Proof.
+    rewrite /KL_step => icf subs.
+    elim: (Lf (extend (N2LF KL)) q') subs => [dm | q K ih /cons_subs [[a val] subs]].
+    - by exists nil; split; last by split => // q [].
+    have [L [sze [subs' coin]]]:= ih subs.
+    have [n val']:= icf _ _ val.
+    exists (n :: L).
+    split => [/= |]; first by rewrite sze.
+    split => [ | agre].
+    - apply/cons_subs; split; last exact/subs_trans/exte_dom/N2MF_cons/subs'.
+      by exists (phi q) => /=; rewrite N2LF_cons eq_refl val'; left.
+    apply/coin_lstn => q'' /= [<- | lstn]; first by rewrite /extend N2LF_cons eq_refl val'.
+    rewrite /extend N2LF_cons.
+    case: ifP => [/eqP <- | _]; first by rewrite val' .
+    by move: q'' lstn; apply/coin_lstn/coin.
+  Qed.
+  
+  Fixpoint KL_rec s q' := match s with
+                          | nil => nil
+                          | L :: s' => KL_step (KL_rec s' q') L q'
+                          end.
+  
+  Definition phi_rec s q' := extend (N2LF (KL_rec s q')).
+  Require Import Classical ChoiceFacts seq_cont.
+
+  Lemma zip_nill S T (L: seq T): zip ([::]:seq S) L = nil.
+  Proof. by case: L. Qed.
+
+  Lemma zip_nilr S T (K: seq S): zip K ([::]:seq T) = nil.
+  Proof. by case: K. Qed.
+
+  Hypothesis tot: \Phi_N \is_total.
+  Hypothesis modmod: forall phi, Lf phi \is_modulus_of (F2MF Lf) \on_input phi.
+
+  Axiom choice: FunctionalChoice.
+  Lemma phi_spec phi q':
+    phi \is_choice_for (\Phi_N|_(L2SS (Lf phi q'))) <->
+    exists s, phi \and (phi_rec s q') \coincide_on (Lf phi q')
+              /\
+              L2SS (Lf (phi_rec s q') q') \is_subset_of dom (N2MF (KL_rec s q')).
+  Proof.
+    split => [icf | [s [coin subs]] q a [val dm]]; last first.    
+    split => //.
+    move: coin => /coin_agre ->; last first.
+    apply/lstd_spec/subs => /=.
+    have := agre q.
+    rewrite lstd_spec.
+    - 
+    have prp: forall KL, L2SS (Lf (extend (N2LF KL)) q') \is_subset_of dom \Phi_N.
+    - by move => KL; rewrite ((tot_spec \Phi_N).1 tot); apply/subs_all.
+    have /choice [sf sfprp]:= KL_step_spec icf (prp _).
+    pose KL:= fix KL n := match n with
+                          | 0 => nil
+                          | S n' => KL_step (KL n') (sf (KL n')) q'
+                          end.
+    pose phin n:= extend (N2LF (KL n)).
+    have phin_dom: forall n m, n < m -> L2SS (Lf (phin n) q') \is_subset_of dom (N2MF (KL m)).
+    - move => n m /subnK <-.
+      elim: (m - n.+1) => [ | k ih]; first by rewrite add0n; have [sze []]:= sfprp (KL n).
+      by rewrite addSn /= /KL_step; apply/subs_trans/exte_dom/N2MF_cat/ih.
+    have phin_coin: forall n, (phin n) \and phi \coincide_on (list_dom (KL n)).
+    - elim => // n /coin_agre ih /=.
+      have prp': (phin n.+1) \and phi \coincide_on (Lf (phin n) q').
+        by apply sfprp => q /lstd_spec; apply/ih.
+      have [sze _]:= (sfprp (KL n)).
+      rewrite /KL_step lstd_cat.
+      apply/coin_cat; split.
+      + apply/coin_subl; first by apply/lstd_zip.
+        by rewrite unzip1_zip; last by rewrite sze.        
+      apply/coin_agre => q lstn.
+      case E: (q \in (Lf (phin n) q')).
+      + by move /coin_agre: prp' => -> //; apply/inP; rewrite E.
+      move: E; rewrite /phin /= /KL_step {2}/extend N2LF_cat /=.
+      move: (sf (KL n)).
+      elim: (Lf (extend (N2LF (KL n))) q') => [sfKL _ | a L ih' sfKL lstn'].
+      + by rewrite zip_nill /=; apply/ih.
+      case: (sfKL) => [ | a' L']; first by rewrite zip_nilr; apply/ih.
+      rewrite /= N2LF_cons.
+      move: lstn'; rewrite in_cons => /orP /not_or_and [neq nin].
+      case: ifP => [/eqP eq| _]; first by exfalso; apply/neq; rewrite eq.
+      by apply/ih'/negP.
+
+    have KL_subs: forall n m, n <= m -> (list_dom (KL n)) \is_sublist_of (list_dom (KL m)).
+    - move => n m /subnK <-.
+      elim: (m - n) => // k ih.
+      rewrite addSn /= lstd_cat => q lstn.
+      by apply/lstn_app; right; apply/ih.
+      
+    have phinm_coin: forall n m, n <= m -> (phin m) \and phi \coincide_on (list_dom (KL n)).
+    - move => n m /subnK <-.
+      elim: (m - n) => [ | k ih]; first by rewrite add0n; apply/phin_coin.
+      by rewrite addSn; apply/coin_subl/phin_coin/KL_subs; rewrite -addSn; apply/leq_addl.
+
+    have [psi lim]: exists psi, psi \is_limit_of phin.   
+    - suff /choice [psi psiprp]: forall q, exists a, exists n, forall m, n <= m -> a = phin m q.
+      + exists psi; elim => [ | q K [n nprp]]; first by exists 0.
+        have [k kprp]:= psiprp q.
+        exists (maxn n k) => m; rewrite geq_max => /andP [ineq ineq'].
+        by split; [apply/kprp/ineq' | apply/nprp/ineq].
+      move => q.        
+      case: (classic (exists n, q \from dom (N2MF (KL n)))) => [[n /lstd_spec fd] | ].
+      + exists (phin n q); exists n => m ineq.
+        have /coin_agre ->:= phinm_coin n m ineq => //.
+        by have /coin_agre ->:= phinm_coin n n (leqnn n).
+      move => /not_ex_all_not nex.
+      exists default; exists 0 => m _.
+      suff : N2LF (KL m) q = nil by rewrite /phin/=/extend/= => ->.
+      case E: (N2LF (KL m) q) => [ | a L] //.
+      exfalso; apply/(nex m).
+      by exists a; rewrite /N2MF /= E; left.
+
+    have /cont_F2MF/cont_scnt scnt : Lf \is_continuous_function.
+    - move => phi'; exists (Lf phi') => q'1 psi1 coin.
+      have [a crt]:= modmod phi' q'1.
+      by symmetry; apply/crt_icf; [ | apply/crt | apply/coin | ].
+
+    have lim': Lf psi \is_limit_of (fun n => Lf (phin n)) by apply/scnt; [apply/lim | | ].
+
+    have eq: Lf phi q' = Lf psi q'.
+    - have [a' crt]:= modmod psi q'.
+      suff coin : psi \and phi \coincide_on (Lf psi q').
+      + by apply/crt_icf; [ | apply/crt | apply/coin | ].
+      have [k kprp]:= lim' [:: q'].
+      have [ | -> _] //:= kprp k.
+      have [k' k'prp]:= lim (Lf (phin k) q').
+      apply/coin_trans; first exact/(k'prp (maxn k.+1 k'))/leq_maxr.      
+      apply/coin_subl/phinm_coin/leq_maxl => q lstn.
+      apply/lstd_spec.
+      by apply sfprp.
+
+    have [k lmt]:= lim' [:: q'].
+    have eq': L2SS (Lf (phin k.+1) q') \is_subset_of dom (N2MF (KL k.+1)).
+    have [ | <- _]// := lmt k.+1.
+    have [ | -> _]// := lmt k.
+    exact/phin_dom.
+
+    pose s := fix s n:= match n with
+                        | 0 => nil
+                        | S n => sf (KL n) :: s n
+                        end.
+    have crct: forall k, KL_rec (s k) q' = KL k.
+    - by elim => // k' ih; rewrite /= ih.
+    have crct': forall k, phi_rec (s k) q' = phin k.
+    - by case => //k'; rewrite /phi_rec/= crct.
+    exists (s k.+1).
+    rewrite crct crct'; split => //.
+    exact/coin_sym/phinm_coin.
   Qed.
 
-  Fixpoint K_rec k L q':=
-    match k with
-    | 0 => nil
-    | S k' => Lf (extend (N2LF L (K_rec k' L q'))) q'
+  Fixpoint check_sublist (K L: seq Q):=
+    match K with
+    | nil => true
+    | q :: K' => (q \in L) && check_sublist K' L
     end.
 
-  Lemma K_rec_inc k k' L q': k <= k' -> (K_rec k L q') \is_sublist_of (K_rec k' L q').
+  Lemma clP K L: reflect (K \is_sublist_of L) (check_sublist K L).
   Proof.
-  Admitted.
+    apply/(iffP idP).
+    elim: K => [_ q | q K ih ]//= /andP [lstn cl].
+    by apply/L2SS_subs/cons_subs; split; [exact/inP | apply/L2SS_subs/ih].
+    elim: K => // q K ih /L2SS_subs/cons_subs [lstn /L2SS_subs subl] /=.
+    by apply/andP; split; [exact/inP | apply/ih].
+  Qed.
 
-  Lemma K_rec_term k k' L q':
-    k <= k' -> K_rec k L q' = K_rec k.+1 L q' -> K_rec k L q' = K_rec k' L q'.
-  Proof.
-  Admitted.
-
-
-
-    Definition phi_rec k L q':=
-    let K := K_rec k L q' in
-    if allSome (map (N2LF L K) K)
-    then Some (extend (N2LF L K))
+  Definition MN n q':=
+    let s:= inverse_pickle [::] n in
+    let phi := phi_rec s q' in
+    if check_sublist (Lf phi q') (list_dom (KL_rec s q'))
+    then Some (M phi q')
     else None.
 
-  Lemma phi_recS_inl k L K K' q': phi_rec k L q' = inl K ->  phi_rec k.+1 L q' = inl K'
-                                 -> K' = Lf (extend (N2LF L K)) q' ++ K.
+  Hypothesis mod: forall phi, Lf phi \is_modulus_of (F2MF M) \on_input phi.
+
+  Lemma MN_spec phi:
+    phi \is_choice_for (\Phi_N) -> (M phi) \is_choice_for \Phi_MN.
   Proof.
-    by rewrite /=; case: (phi_rec k L q') => // _ [->]; case: ifP => // _ [<-].
+    move => icf q' a' val.
+    have [s [coin ]]:= phi_spec q' icf.
+    rewrite -lstd_spec => /L2SS_subs /clP cl.
+    exists (pickle s).
+    rewrite /MN /inverse_pickle pickleK_inv cl.
+    f_equal; symmetry.
+    have [a'' crt]:= mod (phi_rec s q') q'.
+    apply/crt_icf; [ | apply/crt | | ] => //.
+    by apply/coin_sym/coin_subl; first exact/clP/cl.
   Qed.
 
-  Lemma phi_rec_inc k k' L K K' q: k <= k' -> phi_rec k L q = inl K -> phi_rec k' L q = inl K' ->
-                                   exists K'', K' = K'' ++ K.
+  Lemma MN_sing:
+    \Phi_N \is_singlevalued -> \Phi_MN \is_singlevalued.
   Proof.
-    move => /subnK <-.
-    elim: (k' - k) K' => [K' | l ih K' eq]; first by rewrite add0n => -> [->]; exists nil.
-    move: ih.
-    rewrite addSn /=; case E: (phi_rec (l + k) L q) => [pK | ]// ih.
-    case: ifP => // _ [] <-; have [ | | K'' -> ]//:= ih pK.
-    by exists (Lf (extend (N2LF L (K'' ++ K))) q ++ K''); rewrite catA.
-  Qed.
-
-  Lemma phi_rec_dom k k' L phi K q': phi_rec k L q' = inr phi -> phi_rec k' L q' = inl K ->
-                                     L2SS K \is_subset_of dom \Phi_N.
-  Proof.
-    case: (leqVlt k k') => [ /subnK<- eq | ineq eq eq'].
-    - suff ->: phi_rec (k' - k + k) L q' = inr phi by trivial.
-      by elim: (k' - k) => [ | l ih]; [rewrite add0n | rewrite addSn /= ih].
-    move => q lstn /=.
-    move: ineq eq => /subnK <-.
-    rewrite addnS -addSn.
-    elim: (k - k'.+1).+1 => [ | l /=]; first by rewrite add0n eq'.
-    case E: (phi_rec (l + k') L q') => [K' | ]// _.
-    case: ifP => // /aSoP subs _.
-    suff /N2MF_dom_spec subs' : exists n, L2SS K' \is_subset_of dom (N2MF n K').
-    have [ | a [m val]]:= subs' q.
-    have [ | K'' ->]:= @phi_rec_inc k' (l + k') L _ _ _ _ eq' E; first exact/leq_addl.
-    by rewrite L2SS_cat; right.
-    by exists a; exists m.
-    exists L.
-    apply/subs_trans/subs => q'' lstn'.
-    by rewrite L2SS_cat; right.
-  Qed.
-    
-  Lemma phi_rec_crct k L phi q' q:
-    phi_rec k L q' = inr phi -> q \in Lf phi q' -> \Phi_N q (phi q).
-  Proof.
-    elim: k => // k /=.
-    case: (phi_rec k L q') => // K' _.
-    case: ifP => // /aSoP subs [<-] /inP lstn.
-    suff val: (N2MF L K' q) (extend (N2LF L K') q) by apply/N2MF_exte/val.
-    have [ | a val']:= subs q; first by rewrite L2SS_cat; left.
-    exact/extend_spec/val'.
-  Qed.
-  
-  Lemma phi_rec_term q' phi:
-    (forall k' L K, phi_rec k' L q' = inl K -> L2SS K \is_subset_of dom \Phi_N) ->
-    phi \is_choice_for (\Phi_N) -> certificate (F2MF Lf) (Lf phi q') phi q' ->
-    exists k L psi, phi_rec k L q' = inr psi /\ phi \and psi \coincide_on (Lf phi q').
-  Proof.
-    move => dm icf crt.
-    exists (size (Lf phi q')).
-    
-  Admitted    
-
-    Definition MN n q':=
-    let kL:= inverse_pickle (0,[::]) n in
-    match phi_rec kL.1 kL.2 q' with
-    | inl _ => None
-    | inr a => Some (M a q')
-    end.
-  
+    move => sing.
   Lemma MphiN_spec phi q':
     certificate (F2MF Lf) (Lf phi q') phi q' (Lf phi q') ->
     certificate (F2MF M) (Lf phi q') phi q' (M phi q') ->

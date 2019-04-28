@@ -148,7 +148,7 @@ Section isomorphisms.
   Proof.
     apply/cont_choice.
     rewrite /fun2sig_rlzr => psi phi Fpsiphi [n q'].
-    have [ | mf mod]:= @FM_val_cont _ _ _ _ (fun _ => n) psi (fun q => phi (n, q)); first exact/(Fpsiphi n).
+    have [ | mf mod]:= @FU_val_cont _ _ _ _ (fun _ => n) psi (fun q => phi (n, q)); first exact/(Fpsiphi n).
     exists (mf q') => psi' coin Fpsi' val.
     exact/(mod q' psi' coin (fun q => Fpsi' (n, q)))/val.
   Qed.

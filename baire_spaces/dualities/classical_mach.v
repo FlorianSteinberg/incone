@@ -33,7 +33,7 @@ Section classical_machines.
     by have <-: Mphi = Fphi by apply/ sing; apply prop.
   Qed.
 
-  Lemma FM_dom_spec (psi: seq A * Q' -> seq Q + A') (phi: B):
+  Lemma FU_dom_spec (psi: seq A * Q' -> seq Q + A') (phi: B):
     phi \from dom \F_(U psi) <-> (communication psi phi) \is_total.
   Proof.
     split => [[Fphi /FU_spec FphiFphi] q' | tot].
@@ -89,7 +89,7 @@ Section classical_machines.
     rewrite mon_eval; last exact/cont_sing; last exact/U_mon.
     move => phi Fphi FphiFphi.
     have phifd: phi \from dom F by exists Fphi.
-    apply/(MpsiF_spec phifd) => //; try by move => n; have []:= listfprop phi n phifd.
+    apply/(UpsiF_spec phifd) => //; try by move => n; have []:= listfprop phi n phifd.
     - move => q' n ineq.
       have [a' crt]:= mod_minmod ms (mfmod phi phifd) q'.
       rewrite [mf phi q'](crt phi) //.
@@ -111,7 +111,7 @@ Section classical_machines.
       exists (gather_queries psi n phi q').
       exists n; move: eq; rewrite /U/queriesM.
       by case: (U_rec psi n phi q').
-    rewrite FM_dom_spec => q'.  
+    rewrite FU_dom_spec => q'.  
     have [Qn [a' [com _]]]:= val q'.
     by exists (Qn, a').
   Qed.
@@ -125,7 +125,7 @@ Section classical_machines.
       exists (build_shapes psi n phi q').
       exists n; move: eq; rewrite /U/shapesM.
       by case: (U_rec psi n phi q').
-    rewrite FM_dom_spec => q'.
+    rewrite FU_dom_spec => q'.
     have [Qn [a' [com _]]] := val q'.
     by exists (Qn, a').
   Qed.
@@ -162,16 +162,16 @@ Section classical_machines.
     exact/FsM_mod_FsM.
   Qed.
 
-  Lemma FM_cont (psi: seq A * Q' -> seq Q + A'): \F_(U psi) \is_continuous.
+  Lemma FU_cont (psi: seq A * Q' -> seq Q + A'): \F_(U psi) \is_continuous.
   Proof.
     rewrite cont_spec => phi /FqM_dom [mf mod].
     by exists mf; apply/FqM_mod_FU.
   Qed.
 
-  Lemma FM_sing (psi: seq A * Q' -> seq Q + A'): \F_(U psi) \is_singlevalued.
-  Proof. exact/cont_sing/FM_cont. Qed.
+  Lemma FU_sing (psi: seq A * Q' -> seq Q + A'): \F_(U psi) \is_singlevalued.
+  Proof. exact/cont_sing/FU_cont. Qed.
 
-  Lemma FM_val_cont (phi: B): (make_mf (fun psi (Fphi: B') => \F_(U psi) phi Fphi)) \is_continuous.
+  Lemma FU_val_cont (phi: B): (make_mf (fun psi (Fphi: B') => \F_(U psi) phi Fphi)) \is_continuous.
   Proof.
     rewrite cont_spec => psi [Fphi val].
     have [ | sf val']:= (FsM_dom psi phi).1; first by exists Fphi.

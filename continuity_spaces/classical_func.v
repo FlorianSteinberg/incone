@@ -10,7 +10,7 @@ Unset Printing Implicit Defensive.
 Local Open Scope cs_scope.
 Lemma ass_cont (X Y: cs) (f: X -> Y): f \from (codom (@associate X Y)) <-> f \is_continuous.
 Proof.
-  split => [[psi /=rlzr] | [F [rlzr cont]]]; first by exists \F_(U psi); split; last exact/FM_cont.
+  split => [[psi /=rlzr] | [F [rlzr cont]]]; first by exists \F_(U psi); split; last exact/FU_cont.
   have [psi val]:= (U_universal (someq X) (somea X) (fun _ => somea Y) (Q_count X) cont).
   by exists psi; exact/ntrvw.tight_rlzr/val.
 Qed.
@@ -113,7 +113,7 @@ Proof.
   have [phi phinx]:= get_description x.
   exists (\F_(U (D phi))).
   rewrite rlzr_F2MF.
-  split => [psi f psinf | ]; last exact/FM_cont.
+  split => [psi f psinf | ]; last exact/FU_cont.
   have [ | [Fphi /D_spec val] prp]:= psinf phi x phinx; first exact/F2MF_dom.
   split => [ | Fphi' /D_spec val']; first by exists Fphi.
   have [fa [Fphi'nfa]]:= prp Fphi' val'.

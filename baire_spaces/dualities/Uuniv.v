@@ -57,7 +57,7 @@ Section psiF.
     by rewrite iseg_cat_seg // ltnNge E.
   Qed.
 
-  Lemma MpsiF_spec (F: B ->> B') phi: phi \from dom F ->
+  Lemma UpsiF_spec (F: B ->> B') phi: phi \from dom F ->
     (forall n, listf (map phi (init_seg n)) \from dom F) ->
     (forall n, (listf (map phi (init_seg n))) \and phi \coincide_on (init_seg n)) ->
     (forall q' n, mf phi q' <= n -> mf (listf (map phi (init_seg n))) q' <= mf phi q') ->

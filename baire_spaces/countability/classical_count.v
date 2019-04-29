@@ -75,7 +75,7 @@ Proof.
   have [cnt icf]:= exists_choice cnt' someq.
   have sur: cnt \is_surjective.
   - move => q; have [n val]:= cotot q.
-    by exists n; apply/sing/val/icf/val.
+    by exists n; apply/sing/val/icf; exists q.
   have [sec ms]:= exists_minsec sur.  
   move => scnt phi Fphi val.
   suff: forall q', exists L, certificate F L phi q' (Fphi q') by apply/choice.

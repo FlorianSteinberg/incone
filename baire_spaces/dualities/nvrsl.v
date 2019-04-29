@@ -90,7 +90,6 @@ Section continuous_dualities.
     have [cont _]:= cont' psi; move: FsM cont' => _ _.
     have [ | qf mod]:= dm phi; first by exists Fphi.
     exists qf => q'.                                      
-    have [a' crt]:= cont phi qf mod q'.
-   by apply/crt_icf/crt.
+   by apply/crt_icf/cont.
   Qed.
 End continuous_dualities.

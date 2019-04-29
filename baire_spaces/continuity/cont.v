@@ -34,7 +34,8 @@ Section continuity.
 
   Lemma crt_icf L phi Fphi: F phi Fphi -> Fphi \is_choice_for (certificate L phi).
   Proof.
-    by move => val q' a'/crt_cert crt; rewrite crt_cert; apply/cert_icf/crt. 
+    move => val q' [a' /crt_cert crt].
+    by rewrite crt_cert; apply/cert_icf => //; exists a'.
   Qed.
 
   Definition continuity_modulus := make_mf (fun phi Lf =>
@@ -68,8 +69,7 @@ Section continuity.
     - have [Lf mod]:= cont phi Fphi val.
       by exists Lf => q'; exists (Fphi q'); apply/mod.
       have [ | Lf mod]:= cont phi; first by exists Fphi.
-    exists Lf => q'; have [a' crt]:= mod q'.
-    exact/crt_cert/cert_icf/crt_cert/crt.
+    by exists Lf => q'; apply/crt_icf/mod.
   Qed.
 
   Definition continuity_points := intersection (dom continuity_modulus) (dom F).

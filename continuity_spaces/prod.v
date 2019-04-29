@@ -189,8 +189,8 @@ Section products.
     have [ | mf mod]:= cont (name_pair phi psi); first by exists Fphipsi.
     exists (fun q => collect_right (mf q)) => q.
     exists (Fphipsi q) => psi' coin Fphipsi' val'.
-    have [a' crt]:= mod q; apply/(crt_icf val crt)/val'.
-    by elim: (mf q) coin => // [[q' L ih /=/ih | q' L ih /= [-> /ih]]].
+    apply/crt_icf/val'; first exact/val; first exact/mod.
+      by elim: (mf q) coin => // [[q' L ih /=/ih | q' L ih /= [-> /ih]]].
   Qed.
 
   Lemma lcry_hcr (X Y Z: cs) (f: X \*_cs Y ->> Z) x:
@@ -248,7 +248,7 @@ Section products.
     have [ | mf mod]:= cont (name_pair phi psi); first by exists Fphipsi.
     exists (fun q => collect_left (mf q)) => q.
     exists (Fphipsi q) => psi' coin Fphipsi' val'.
-    have [a' crt]:= mod q; apply/(crt_icf val crt)/val'.
+    apply/(crt_icf val (mod _))/val'.
     by elim: (mf q) coin => // [[q' L ih /= [-> /ih] | q' L ih /= /ih]].
   Qed.
 

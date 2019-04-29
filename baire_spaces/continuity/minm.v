@@ -63,7 +63,7 @@ Section minimal_moduli.
 
   Lemma minmod_cont: (minimal_modulus F) \is_continuous.
   Proof.
-    move => phi mf mod; exists (fun q' => init_seg (mf q')) => q'.
-    by have [a' mod']:=(mod_minmod mod q'); exact/crt_icf/mod'.
+    move => phi mf mod; exists (fun q' => init_seg (mf q')) => q'.    
+    exact/crt_icf/mod_minmod.
   Qed.
 End minimal_moduli.

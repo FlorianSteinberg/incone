@@ -70,7 +70,7 @@ Section psiF.
     - have [ | a' crt]:= mod (phin n) _ q'; first exact/listfdom; have [Fphik FphikFphik]:= listfdom n.
       rewrite [RHS](crt phi)//.
       rewrite (crt (phin n)) //; first exact/coin_ref.
-      + exact/icf/FphikFphik.
+      + apply/icf; first by exists Fphik.
       exact/coin_subl/listfcoin/iseg_subl/ineq.
     elim: {2}(mf phi q') (leqnn (mf phi q')) => [ineq | n ih].
     - exists 1; rewrite /U/=/U_step/=/psiF /=.

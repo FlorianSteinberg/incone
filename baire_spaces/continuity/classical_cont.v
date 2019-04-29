@@ -101,6 +101,6 @@ Section classical_lemmas.
     have [mf icf]:= exists_choice (minimal_modulus F) (fun _ => 0) => /cont_spec cont.
     exists mf => phi [Fphi val].
     have [ | mf' mod']:= (dom_minmod F phi).2; first by apply/cont; exists Fphi.
-    by split => [q' | Lf mod q']; have [cont' prp]:= icf phi mf' mod'; last have:= prp Lf mod q'.
+    by split => [q' | Lf mod q']; have [ | cont' prp]:= icf phi; try apply/prp; try by exists mf'.
   Qed.
 End classical_lemmas.

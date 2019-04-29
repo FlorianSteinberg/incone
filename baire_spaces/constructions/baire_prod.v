@@ -171,7 +171,7 @@ Section baire_fprd.
     have [ | mf mod]:= cont (pair a a' (phi,psi)); first by exists Fphipsi.
     exists (fun q => collect_right (mf q)) => q.
     exists (Fphipsi q) => psi' coin Fphipsi' val'.
-    have [psii' crt]:= mod q; apply/(crt_icf val crt)/val'.
+    apply/crt_icf/val'; first exact/val; first exact/mod.
     by elim: (mf q) coin => // [[q' L ih /=/ih | q' L ih /= [-> /ih]]].
   Qed.
 
@@ -193,7 +193,7 @@ Section baire_fprd.
     have [ | mf mod]:= cont (pair a a' (phi, psi)); first by exists Fphipsi.
     exists (fun q => collect_left (mf q)) => q.
     exists (Fphipsi q) => psi' coin Fphipsi' val'.
-    have [psii' crt]:= mod q; apply/(crt_icf val crt)/val'.
+    apply/(crt_icf _)/val'; first exact/val; first exact/mod.
     by elim: (mf q) coin => // [[q' L ih /= [-> /ih] | q' L ih /= /ih]].
   Qed.
 End baire_fprd.

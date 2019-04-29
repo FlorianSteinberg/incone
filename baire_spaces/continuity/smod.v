@@ -78,8 +78,8 @@ Qed.
 
 Lemma cert_icf L phi Fphi: F phi Fphi -> Fphi \is_choice_for (cert L phi).
 Proof.
-move => FphiFphi q' a' crt psi coin Fpsi FpsiFpsi.
-rewrite (crt psi coin Fpsi) // (crt phi _ Fphi)//; exact/coin_ref.
+  move => val q' [a' crt] psi coin Fpsi val'.
+  rewrite (crt psi coin Fpsi) // (crt phi _ Fphi)//; exact/coin_ref.
 Qed.
 
 Lemma cert_exte L K phi: L \is_subset_of K -> cert K phi \extends cert L phi.

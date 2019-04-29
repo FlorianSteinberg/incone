@@ -70,8 +70,7 @@ Proof.
   - by trivial.
   have [Fpsiphi' val'']: psiphi' \from dom eval_rlzr.
   - by have []:= eval_rlzr_crct psiphi'nfx'; first exact/F2MF_dom.
-  have [a' tempcrt]:= qfmodF q'. 
-  have crt := crt_icf val tempcrt _; move: a' tempcrt => _ _.
+  have crt := crt_icf val (qfmodF q') _.
   rewrite -(crt (rprj psi'phi') _ Fpsiphi' val''); last by apply/coin'.
   have [subs [subs' [cprp _]]]:= prp (lprj psiphi) (rprj psi'phi').
   have [ | qf' qvl']:= subs (rprj psi'phi'); first by exists Fpsiphi'.

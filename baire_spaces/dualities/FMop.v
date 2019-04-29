@@ -314,8 +314,8 @@ Section evaluation.
 
   Lemma extend_spec phi: (extend phi) \is_choice_for (LF2MF phi).
   Proof.
-    rewrite /extend => q a /=.
-    by case: (phi q) => // q' K /= [-> | ]; left.
+    rewrite /extend => q [a /=].
+      by case: (phi q) => // q' K /= [-> | ]; left.
   Qed.
   
   Definition KL_step KL L q':= zip (Lf (extend (N2LF KL)) q') L ++ KL.
@@ -332,10 +332,10 @@ Section evaluation.
       (extend (N2LF (KL_step KL L q'))) \and phi \coincide_on (Lf (extend (N2LF KL)) q')).
   Proof.
     rewrite /KL_step => icf subs.
-    elim: (Lf (extend (N2LF KL)) q') subs => [dm | q K ih /cons_subs [[a val] subs]].
+    elim: (Lf (extend (N2LF KL)) q') subs => [dm | q K ih /cons_subs [qfd subs]].
     - by exists nil; split; last by split => // q [].
     have [L [sze [subs' coin]]]:= ih subs.
-    have [n val']:= icf _ _ val.
+    have [n val']:= icf _ qfd.
     exists (n :: L).
     split => [/= |]; first by rewrite sze.
     split => [ | agre].
@@ -435,15 +435,13 @@ Section evaluation.
 
     have /cont_F2MF/cont_scnt scnt : Lf \is_continuous_function.
     - move => phi'; exists (Lf phi') => q'1 psi1 coin.
-      have [a crt]:= modmod phi' q'1.
-      by symmetry; apply/crt_icf; [ | apply/crt | apply/coin | ].
+      by symmetry; apply/crt_icf; [ | apply/modmod | apply/coin | ].
 
     have lim': Lf psi \is_limit_of (fun n => Lf (phin n)) by apply/scnt; [apply/lim | | ].
 
     have eq: Lf phi q' = Lf psi q'.
-    - have [a' crt]:= modmod psi q'.
-      suff coin : psi \and phi \coincide_on (Lf psi q').
-      + by apply/crt_icf; [ | apply/crt | apply/coin | ].
+    - suff coin : psi \and phi \coincide_on (Lf psi q').
+      + by apply/crt_icf; [ | apply/modmod | apply/coin | ].
       have [k kprp]:= lim' [:: q'].
       have [ | -> _] //:= kprp k.
       have [k' k'prp]:= lim (Lf (phin k) q').
@@ -500,13 +498,12 @@ Section evaluation.
   Lemma FN_icf phi:
     phi \is_choice_for (\Phi_N) -> (F phi) \is_choice_for \Phi_FN.
   Proof.
-    move => icf q' a' val.
+    move => icf q' q'fd.
     have [s [coin ]]:= phi_rec_spec q' icf.
     rewrite -lstd_spec => /L2SS_subs /clP cl.
     exists (pickle s).
     rewrite /FN /inverse_pickle pickleK_inv cl.
-    f_equal; have [a'' crt]:= mod phi q'.
-    by apply/crt_icf; try apply/crt; try apply/coin.
+    by f_equal; apply/crt_icf; try apply/mod; try apply/coin.
   Qed.
 
   Lemma FN_sing:
@@ -521,34 +518,31 @@ Section evaluation.
     move => subl subl'.
     pose phi := extend (N2LF (KL_rec s q' ++ KL_rec s' q')).
     apply/(@eq_trans _ _ (F phi q')).
-    - have [a'' crt] := mod (phi_rec s q') q'.
-      symmetry.
-      apply/crt_icf; [ | apply/crt | | ] => //.    
+    - symmetry.
+      apply/crt_icf; [ | apply/mod | | ] => //.    
       apply/coin_lstn => q lstn.
       have /lstd_spec [b val]:=subl q lstn.
-      apply/sing; apply/N2MF_spec/extend_spec; first exact/val.
-      by rewrite /= N2LF_cat lstn_app; left; exact/val.
-    have [a'' crt] := mod (phi_rec s' q') q'.
-    apply/crt_icf; [ | apply/crt | | ] => //.    
+      apply/sing; apply/N2MF_spec/extend_spec; first by exists b; apply/val.
+      by exists b; rewrite /= N2LF_cat lstn_app; left; apply/val.
+    apply/crt_icf; [ | apply/mod | | ] => //.    
     apply/coin_lstn => q lstn.
     have /lstd_spec [b val]:=subl' q lstn.
-    apply/sing; apply/N2MF_spec/extend_spec; first exact/val.
-    by rewrite /= N2LF_cat lstn_app; right; exact/val.
+    apply/sing; apply/N2MF_spec/extend_spec; first by exists b; apply/val.
+    by exists b; rewrite /= N2LF_cat lstn_app; right; exact/val.
   Qed.
     
   Lemma FN_spec phi:
     F2MF phi =~= \Phi_N -> F2MF (F phi) =~= \Phi_FN.
   Proof.
     move => eq q' a'; split => [<- | val /=].
-    - have [q a val | s [coin ]]:= @phi_rec_spec phi q'; first exact/eq.
+    - have [q qfd | s [coin ]]:= @phi_rec_spec phi q'; first exact/eq.
       rewrite /= /FN -lstd_spec => /L2SS_subs /clP cl.
       exists (pickle s).
       rewrite /inverse_pickle pickleK_inv cl.
       f_equal.
-      have [a'' crt]:= mod phi q'.
-      apply/crt_icf; [ | apply/crt | apply/coin | ] => //.
+      apply/crt_icf; [ | apply/mod | apply/coin | ] => //.
     apply/FN_sing/val; first by rewrite -eq; apply/F2MF_sing.
-    apply/FN_icf/val => q a val'.
+    apply/FN_icf => [q qfd |]; last by exists a'; apply/val.
     exact/eq.
   Qed.
 End evaluation.

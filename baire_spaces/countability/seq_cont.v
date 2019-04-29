@@ -63,7 +63,7 @@ Section sequential_continuity.
     forall q', certificate F (Lf q') phi q' (Fphi q').
   Proof.
     move => val; split => mod q'; last by exists (Fphi q').
-    by have [a' crt]:= mod q'; apply/crt_icf/crt/val.
+    exact/crt_icf/mod.
   Qed.
     
   Lemma cntp_scntp phi: continuity_point phi -> sequential_continuity_point phi.

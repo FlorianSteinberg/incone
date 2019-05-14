@@ -545,7 +545,7 @@ Proof.
   by apply tpmn_series.
 Qed.
 
-Fixpoint finite_sum_rlzr_rec (phia : (names (RQ\^w))) (phix : (names RQ)) (N M : nat) : (names RQ) :=
+Fixpoint finite_sum_rlzr_rec (phia : (questions (RQ\^w))) (phix : (questions RQ)) (N M : nat) : (questions RQ) :=
   match M with  
   | 0%nat => (fun q => (phia (N,q)))
   | S M'=> (fun q => (Rplus_rlzrf
@@ -557,7 +557,7 @@ Fixpoint finite_sum_rlzr_rec (phia : (names (RQ\^w))) (phix : (names RQ)) (N M :
                                                 q'))
                     ) q))
   end.              
-Definition finite_sum_rlzrf (phi : (names powerseries1_cs)) phix N := (finite_sum_rlzr_rec (rprj phi) phix N N).
+Definition finite_sum_rlzrf (phi : (questions powerseries1_cs)) phix N := (finite_sum_rlzr_rec (rprj phi) phix N N).
 
 Lemma finite_sum_rlzr_rec_spec1 : forall a phia phix N, (phia \describes a \wrt powerseries1_cs) ->(finite_sum_rlzr_rec (rprj phia) phix N 0) \describes (projT1 a N) \wrt RQ. 
 Proof.
@@ -642,7 +642,7 @@ Qed.
 
 Definition RQ1 := (cs_sub (make_subset (fun x : RQ => ((Rabs x) <= 1)%R))).
 
-Definition get_coeff_num (phi : (names powerseries1_cs)) eps := (coeff_num (lprj (lprj phi) tt) ((rprj (lprj phi) tt)) (Pos_size (Qden (eps)))).
+Definition get_coeff_num (phi : (questions powerseries1_cs)) eps := (coeff_num (lprj (lprj phi) tt) ((rprj (lprj phi) tt)) (Pos_size (Qden (eps)))).
 
 Lemma get_coeff_num_cont : (get_coeff_num \is_continuous_function) %baire.
 Proof.
@@ -653,7 +653,7 @@ Proof.
   by rewrite /lprj/rprj H1 H2.
 Qed.
 
-Definition sum_rlzrf' (phia : (names powerseries1_cs)) phix eps := (finite_sum_rlzrf phia phix (get_coeff_num phia (eps / (1+1))) (eps / (1+1))).
+Definition sum_rlzrf' (phia : (questions powerseries1_cs)) phix eps := (finite_sum_rlzrf phia phix (get_coeff_num phia (eps / (1+1))) (eps / (1+1))).
 Lemma sum_rlzrf_spec : forall a phia x phix, (Rabs x <= 1)%R-> (phia \describes a \wrt powerseries1_cs) -> (phix \describes x \wrt RQ) -> (sum_rlzrf' phia phix) \describes (PSeries (projT1 a) x) \wrt RQ.
 Proof.
   move => a phia x phix xB [phiana1 sb] phixnx.
@@ -688,7 +688,7 @@ Proof.
   by lra.
 Qed.
 
-Definition sum_rlzrf (phi : (names (powerseries1_cs \*_cs RQ1))) eps := (sum_rlzrf' (lprj phi) (rprj phi) eps).
+Definition sum_rlzrf (phi : (questions (powerseries1_cs \*_cs RQ1))) eps := (sum_rlzrf' (lprj phi) (rprj phi) eps).
 Definition sum_rlzr: (questions (powerseries1_cs \*_cs RQ1) ->> questions RQ) := F2MF sum_rlzrf.
 
 Definition pssum :=  (fun ax : (powerseries1_cs \*_cs RQ1) => (PSeries (projT1 ax.1) (projT1 ax.2))).
@@ -698,9 +698,9 @@ Proof.
   apply sum_rlzrf_spec; by [apply (projT2 ax.2) | apply phinax | ].
 Qed.
 
-Definition fun_pair (X Y Z : cs) (f : (names X -> names Y)) (g: names X -> names Z) phi : (names (Y \*_cs Z)) := (name_pair (f phi) (g phi)).
+Definition fun_pair (X Y Z : cs) (f : (questions X -> questions Y)) (g: questions X -> questions Z) phi : (questions (Y \*_cs Z)) := (name_pair (f phi) (g phi)).
 
-Lemma fun_pair_cont (X Y Z : cs) (f : (names X -> names Y)) (g : (names X -> names Z)) : (f \is_continuous_function)%baire -> (g \is_continuous_function)%baire -> ((fun_pair f g) \is_continuous_function)%baire.
+Lemma fun_pair_cont (X Y Z : cs) (f : (questions X -> questions Y)) (g : (questions X -> questions Z)) : (f \is_continuous_function)%baire -> (g \is_continuous_function)%baire -> ((fun_pair f g) \is_continuous_function)%baire.
 Proof.
   move => fc gc phi.
   apply choice in fc.
@@ -716,11 +716,11 @@ Proof.
   case q => q' coin; by apply injective_projections; [try apply fcfp| try apply gcfp].
 Qed.
 
-Lemma finite_sum_cont : forall N M, ((fun (phi  : (names ( RQ\^w \*_cs  RQ))) eps => (finite_sum_rlzr_rec (lprj phi) (rprj phi) N M) eps) \is_continuous_function)%baire.
+Lemma finite_sum_cont : forall N M, ((fun (phi  : (questions ( RQ\^w \*_cs  RQ))) eps => (finite_sum_rlzr_rec (lprj phi) (rprj phi) N M) eps) \is_continuous_function)%baire.
 Proof.
   move => N M.
   elim : M => [|m IH].
-  -  set F_c := ((fun (phi' : (names ( RQ\^w ))) (eps' : Q) => (phi' (N,eps'))) \o_f lprj) : ((questions ( RQ\^w \*_cs  RQ)) -> Q -> (answers RQ)).
+  -  set F_c := ((fun (phi' : (questions ( RQ\^w ))) (eps' : Q) => (phi' (N,eps'))) \o_f lprj) : ((questions ( RQ\^w \*_cs  RQ)) -> Q -> (answers RQ)).
     suff : (F_c \is_continuous_function)%baire by []. 
     rewrite <- cont_F2MF.
     rewrite /F_c.
@@ -730,9 +730,9 @@ Proof.
     move => phi.
     by exists (fun q => [:: (N,q)]) => q' psi [H1 _].
   simpl.
- set F_cl' := (fun phi : (names (RQ\^w)) => (fun q' : Q => phi ((N - m.+1)%nat, q')):(names RQ)).
- pose F_cl :=  (F_cl' \o_f lprj):((names (RQ\^w \*_cs RQ) -> names RQ)).
-  set F_cr1 :=(fun phi:  (names (RQ\^w \*_cs RQ)) => (finite_sum_rlzr_rec (lprj phi) (rprj phi) N m)).
+ set F_cl' := (fun phi : (questions (RQ\^w)) => (fun q' : Q => phi ((N - m.+1)%nat, q')):(questions RQ)).
+ pose F_cl :=  (F_cl' \o_f lprj):((questions (RQ\^w \*_cs RQ) -> questions RQ)).
+  set F_cr1 :=(fun phi:  (questions (RQ\^w \*_cs RQ)) => (finite_sum_rlzr_rec (lprj phi) (rprj phi) N m)).
   set F_cr := Rmult_rlzrf \o_f (fun_pair F_cr1 rprj).
   set F_ci := (fun_pair F_cl F_cr).
   set F_c := Rplus_rlzrf \o_f
@@ -760,7 +760,7 @@ Proof.
   by move => q psi [coin _].
 Qed.
 
-Definition finite_sum_rlzr_p (phi : (names (RQ\^w \*_cs RQ \*_cs cs_nat))) := (finite_sum_rlzr_rec (lprj (lprj phi)) (rprj (lprj phi)) ((rprj phi) tt)) ((rprj phi) tt).
+Definition finite_sum_rlzr_p (phi : (questions (RQ\^w \*_cs RQ \*_cs cs_nat))) := (finite_sum_rlzr_rec (lprj (lprj phi)) (rprj (lprj phi)) ((rprj phi) tt)) ((rprj phi) tt).
 
 Lemma finite_sum_cont' : (finite_sum_rlzr_p \is_continuous_function)%baire.
 Proof.
@@ -782,7 +782,7 @@ Proof.
   by apply H2.
 Qed.
 
-Definition emb1 (eps : Q) (phi : (names (powerseries1_cs \*_cs RQ1)))  : (names (RQ\^w \*_cs RQ \*_cs cs_nat)) :=  (fun q : (queries (RQ\^w \*_cs RQ \*_cs cs_nat)) =>
+Definition emb1 (eps : Q) (phi : (questions (powerseries1_cs \*_cs RQ1)))  : (questions (RQ\^w \*_cs RQ \*_cs cs_nat)) :=  (fun q : (queries (RQ\^w \*_cs RQ \*_cs cs_nat)) =>
                                                                match q with
                                                                | (inl (inl q')) => ((rprj (lprj phi ) q'), (somea RQ), (somea cs_nat))
                                                                | (inl (inr q')) => ((somea (RQ\^w)), rprj phi q', (somea cs_nat))
@@ -808,7 +808,7 @@ Qed.
 Lemma sum_rlzr_cntop: sum_rlzr \is_continuous_operator.
 Proof.
   rewrite cont_F2MF /sum_rlzrf/sum_rlzrf'/finite_sum_rlzrf.
-  set F' := (fun (phi : (names (powerseries1_cs \*_cs RQ1))) eps => ((finite_sum_rlzr_p \o_f (emb1 (eps / (1+1)))) phi (eps / (1+1)))).
+  set F' := (fun (phi : (questions (powerseries1_cs \*_cs RQ1))) eps => ((finite_sum_rlzr_p \o_f (emb1 (eps / (1+1)))) phi (eps / (1+1)))).
   have compc eps : ((finite_sum_rlzr_p \o_f (emb1 eps)) \is_continuous_function)%baire.
   - rewrite <- cont_F2MF.
     rewrite <- F2MF_comp_F2MF.

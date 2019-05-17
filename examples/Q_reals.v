@@ -9,6 +9,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Import QArith.
+Require Import Qabs.
 Local Open Scope R_scope.
 
 Section reals_via_rational_approximations.
@@ -132,6 +133,12 @@ depends on the size of the inputs *)
     Lemma up_lt r : r < up r.
     Proof. by have:= archimed r; lra. Qed.
 
+    Lemma upq_le q: upQ q <= q + 1.
+    Proof. by have:= archimedQ q; lra. Qed.
+    
+    Lemma upq_lt (q:Q) : (q < upQ q)%R.
+    Proof. by have:= archimedQ q; lra. Qed.
+
     Lemma rab_spec phi (x: RQ): phi \describes x \wrt RQ ->
                       Rabs x <= Q2R (rab phi).
     Proof.
@@ -142,12 +149,42 @@ depends on the size of the inputs *)
       apply/Rle_trans; first apply/Rabs_triang_inv.
       apply/Rle_trans; first apply/phinx; rewrite /Q2R/=; lra.
     Qed.
-    
+    Let qab phi := inject_Z (upQ (Qabs (phi (1#2))+1)).
+
     Definition Rmult_rlzrf phi (eps: Q) :=
-      (lprj phi (trunc eps / (1 + 1)/(rab (rprj phi)))
+      (lprj phi (trunc eps / (1 + 1)/(qab (rprj phi)))
        *
-       (rprj phi (eps / (1 + 1)/(rab (lprj phi)))))%Q.
-    
+       (rprj phi (eps / (1 + 1)/(qab (lprj phi)))))%Q.
+
+
+    Lemma qab_pos phi: 1 <= Q2R (qab phi).
+    Proof.
+      rewrite /Q2R/qab/=; rewrite Rinv_1 Rmult_1_r.
+      apply Rlt_le.
+      apply: Rle_lt_trans; last by apply upq_lt.
+      rewrite Q2R_plus.
+      suff : (0%Q <= Qabs ((phi (1#2)))) by lra.
+      by apply Qle_Rle; apply Qabs_nonneg.
+    Qed.
+
+    Lemma Q2R_abs q : ((Q2R (Qabs q)) = (Rabs q))%R.
+    Proof.
+      apply Qabs_case => h; apply Qle_Rle in h; rewrite RMicromega.IQR_0 in h; by [apply Rle_ge in h; symmetry;apply Rabs_right | rewrite Q2R_opp Rabs_left1].
+    Qed.
+
+    Lemma qab_spec phi (x: RQ): phi \describes x \wrt RQ ->
+                      Rabs x <= Q2R (qab phi).
+    Proof.
+      move => phinx.
+      rewrite /qab{1}/Q2R/= Rinv_1 Rmult_1_r.
+      apply/Rle_trans/Rlt_le/upq_lt.
+      rewrite Q2R_plus.
+      suff: Rabs x - Qabs ((phi (1#2))) <= 1 by lra.
+      rewrite Q2R_abs.
+      apply/Rle_trans; first apply/Rabs_triang_inv.
+      apply/Rle_trans; first apply/phinx; rewrite /Q2R/=; lra.
+    Qed.
+
     Definition Rmult_rlzr : questions (RQ \*_cs RQ) ->> questions RQ:= F2MF Rmult_rlzrf.
     
     Lemma Rmult_rlzr_spec:
@@ -155,20 +192,20 @@ depends on the size of the inputs *)
     Proof.
       rewrite F2MF_rlzr_F2MF => phi [x y] [phinx psiny] eps eg0 /=.
       rewrite Q2R_mult.
-      set r := Q2R (lprj phi (trunc eps / (1 + 1) / rab (rprj phi))%Q).
-      set q := Q2R (rprj phi (eps / (1 + 1) / rab (lprj phi))%Q).
+      set r := Q2R (lprj phi (trunc eps / (1 + 1) / qab (rprj phi))%Q).
+      set q := Q2R (rprj phi (eps / (1 + 1) / qab (lprj phi))%Q).
       have g0: 0 < Q2R (eps / (1 + 1)) by rewrite Q2R_div; first rewrite {2}/Q2R/=; lra.
       have ->: (x * y - r * q) = ((x - r) * y + r * (y - q)) by field.
       have ->: (Q2R eps) = (Q2R (eps/ (1 + 1)) + Q2R (eps/ (1 + 1))).
       - by rewrite Q2R_div; first rewrite {3 5}/Q2R/=; lra.
       apply/Rle_trans/Rplus_le_compat; first exact/Rabs_triang.
-      - rewrite Rabs_mult; have rab_pos:= (rab_pos (rprj phi)).
+      - rewrite Rabs_mult; have qab_pos:= (qab_pos (rprj phi)).
         case: (classic (y = 0)) => [eq | neq].
         + by apply/ Rle_trans; last apply/ Rlt_le /g0; rewrite eq Rabs_R0; lra.
         rewrite -[X in _ <= X]Rmult_1_r -(Rinv_l (Rabs y)); last by split_Rabs; lra.
         rewrite -Rmult_assoc; apply: Rmult_le_compat; try by split_Rabs; lra.
-        have neq': ~ rab (rprj phi) == 0 => [/Qeq_eqR eq | ].
-        + by have := rab_pos; rewrite eq /Q2R /=; lra.
+        have neq': ~ qab (rprj phi) == 0 => [/Qeq_eqR eq | ].
+        + by have := qab_pos; rewrite eq /Q2R /=; lra.
         have le:= truncI eg0; apply/Rle_trans.
         + apply/phinx; rewrite Q2R_div; try lra.
           apply Rmult_gt_0_compat; last by apply Rlt_gt; apply Rinv_0_lt_compat; lra.
@@ -176,44 +213,45 @@ depends on the size of the inputs *)
         rewrite Q2R_div// Q2R_div//Q2R_div// {2 5}/Q2R/=; try lra.
         have le':= trunc_le eps.
         apply/Rmult_le_compat; try lra.
-        + by apply/Rlt_le/Rinv_0_lt_compat/Rlt_le_trans/rab_pos; lra.
+        + by apply/Rlt_le/Rinv_0_lt_compat/Rlt_le_trans/qab_pos; lra.
         apply Rinv_le_contravar; first by split_Rabs; lra.
-        exact /rab_spec.
+        exact /qab_spec.
       rewrite Rabs_mult; case: (classic (r = 0)) => [eq | neq].
       - by apply/ Rle_trans; [rewrite eq Rabs_R0 | apply/ Rlt_le/ g0]; lra.
       rewrite /Qdiv -(Rmult_1_l (Q2R (eps / (1 + 1)))).
       rewrite -(Rinv_r (Rabs r)); last by split_Rabs; lra.
       rewrite Rmult_assoc; apply: Rmult_le_compat; try by split_Rabs; lra.
-      have neq': ~ rab (lprj phi) == 0 => [/Qeq_eqR eq | ].
-      - by have := rab_pos (lprj phi); rewrite eq /Q2R /=; lra.
+      have neq': ~ qab (lprj phi) == 0 => [/Qeq_eqR eq | ].
+      - by have := qab_pos (lprj phi); rewrite eq /Q2R /=; lra.
       rewrite Rmult_comm; apply/ Rle_trans; first apply psiny.
-      - suff lt: 0 < / Q2R (rab (lprj phi)).
+      - suff lt: 0 < / Q2R (qab (lprj phi)).
         + by rewrite Q2R_div /Rdiv; first apply/Rmult_lt_0_compat; lra.
-        by apply/Rinv_0_lt_compat/Rlt_le_trans/rab_pos; lra.
+        by apply/Rinv_0_lt_compat/Rlt_le_trans/qab_pos; lra.
       rewrite Q2R_div; try lra.
       rewrite /Rdiv; apply Rmult_le_compat_l; try lra.
       apply Rle_Rinv; first exact: Rabs_pos_lt; try lra.
-      - rewrite /rab {1}/Q2R/= Rinv_1 Rmult_1_r.
-        apply/Rle_lt_trans/(archimed (Rabs (Q2R (lprj phi (1 # 2)))+1)).1.
+      - rewrite /qab {1}/Q2R/= Rinv_1 Rmult_1_r.
+        apply/Rle_lt_trans/(archimedQ (Qabs ((lprj phi (1 # 2)))+1)).1.
+        rewrite Q2R_plus Q2R_abs.
         by have:= Rabs_pos (Q2R (lprj phi (1#2))); lra.
-      rewrite /rab{1}/Q2R/= Rinv_1 Rmult_1_r.
-      apply/Rle_trans/Rlt_le/(archimed (Rabs (Q2R (lprj phi (1 # 2)))+1)).1.
-      suffices: (Rabs r - Rabs (Q2R (lprj phi (1#2))) <= 1) by lra.
+      rewrite /qab{1}/Q2R/= Rinv_1 Rmult_1_r.
+      apply/Rle_trans/Rlt_le/(archimedQ (Qabs ((lprj phi (1 # 2)))+1)).1.
+      suffices: (Rabs r - Rabs (Q2R (lprj phi (1#2))) <= 1) by rewrite Q2R_plus Q2R_abs;lra.
       apply/ Rle_trans; first exact/Rabs_triang_inv.
-      have ->: (r - Q2R (lprj phi (1#2))) = ((r - x) - (Q2R (lprj phi (1#2)) - x)) by field.  
+      have ->: (r - Q2R (lprj phi (1#2))) = ((r - x) - (Q2R (lprj phi (1#2)) - x)) by field.
       apply/Rle_trans/Rle_trans; first exact/Rabs_triang.
       - apply/Rplus_le_compat; last rewrite Rabs_Ropp.
         + rewrite Rabs_minus_sym; apply/phinx.
           rewrite Q2R_div; first rewrite  /Qdiv Q2R_mult; first apply/Rmult_lt_0_compat.
           * by rewrite {2}/Q2R/=; have := truncI eg0; lra.
-          * by apply/Rinv_0_lt_compat/Rlt_le_trans/rab_pos; lra.
-          by move => /Qeq_eqR eq; have := rab_pos (rprj phi); rewrite eq /Q2R /=; lra.
+          * by apply/Rinv_0_lt_compat/Rlt_le_trans/qab_pos; lra.
+          by move => /Qeq_eqR eq; have := qab_pos (rprj phi); rewrite eq /Q2R /=; lra.
         by rewrite Rabs_minus_sym; apply/phinx; rewrite /Q2R/=; lra.
-      have rps:= rab_pos (rprj phi).
+      have rps:= qab_pos (rprj phi).
       apply/Rle_trans.
       - apply/Rplus_le_compat_r; rewrite/Rdiv.
         rewrite Q2R_div => [ | /Qeq_eqR eq]; last by rewrite /Q2R /=; lra.
-        apply/Rmult_le_compat_l/Rinv_le_contravar/rab_pos; try lra.
+        apply/Rmult_le_compat_l/Rinv_le_contravar/qab_pos; try lra.
         by have:= truncI eg0; rewrite /Qdiv Q2R_mult {4}/Q2R/=; lra.
       by rewrite Rinv_1 Rmult_1_r /Qdiv Q2R_mult {2 3}/Q2R/=; have:= truncI eg0; lra.
     Qed.
@@ -222,10 +260,10 @@ depends on the size of the inputs *)
     Proof.
       apply/cont_F2MF => phi; rewrite /Rmult_rlzrf /=.
       exists (fun eps => [:: inl (1 # 2); inr (1 # 2);
-                          inl (trunc eps / (1 + 1) / rab (rprj phi))%Q;
-                          inr (eps / (1 + 1) / rab (lprj phi))%Q]).
-      by rewrite /rab/lprj/rprj => eps psi [-> [-> [-> [->]]]].
-    Qed.  
+                          inl (trunc eps / (1 + 1) / qab (rprj phi))%Q;
+                          inr (eps / (1 + 1) /qab (lprj phi))%Q]).
+      by rewrite /qab/lprj/rprj => eps psi [-> [-> [-> [->]]]].
+    Qed.
 
     Lemma Rmult_cont: (fun (xy: RQ \*_cs RQ) => xy.1 * xy.2: RQ) \is_continuous.
     Proof.

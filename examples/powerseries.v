@@ -316,6 +316,20 @@ Section ps_summation.
     rewrite <- RPow_abs.
     by apply pow_le_1_compat_abs.
   Qed.
+  Lemma invp1gt0 k : (0 < k)%coq_nat -> (0 < 1 + /INR k)%R.
+  Proof.
+    move => H.
+    suff: (0 < / INR k)%R by lra.
+    apply Rinv_0_lt_compat.
+    by apply lt_0_INR.
+  Qed.
+  Lemma invge0 k : (0 < k)%coq_nat -> (0 <= /(1 + /INR k))%R.
+  Proof.
+    move => H.
+    apply Rlt_le.
+    apply Rinv_0_lt_compat.
+    by apply invp1gt0.
+  Qed.
 
   Lemma series_tail_approx a A k: (series_bound a A k) -> forall N,  ((Series.Series (fun k => (Rabs (a (N.+1+k)%coq_nat)))) <= (INR A) * (INR k.+1) * (/ (1 + (/ (INR k)))) ^ (N.+1))%R.
 
@@ -837,6 +851,79 @@ Section ps_summation.
    by apply Lp.
   Qed.  
 
+Section addition.
+  Lemma addition_bound a b : forall A1 k1 A2 k2, (series_bound a A1 k1) -> (series_bound b A2 k2) -> (series_bound (fun n => (a n + b n)%R) (A1+A2) (max k1 k2)). 
+  Proof.
+    move => A1 k1 A2 k2 [k1_pos [A1_pos B1]] [k2_pos [A2_pos B2]].
+    split; [apply Nat.max_lt_iff; auto | split => [ | n]; first by apply Nat.add_pos_r]. 
+    apply /Rle_trans.
+    apply Rabs_triang.
+    have le : ((Rabs (a n) + (Rabs (b n))) <= (INR A1)*(/ (1 + (/ (INR k1))))^n+(INR A2)*(/ (1 + (/ (INR k2))))^n)%R by apply Rplus_le_compat.
+    apply /Rle_trans.
+    apply le.
+    have p0 : forall s t, (0 < s)%coq_nat ->  (0 <= (/ (1 + (/ (INR s)))) <= (/ (1 + / INR (max s t))))%R.
+    - move => s t sgt0.
+      split; first by apply invge0.
+      apply Rinv_le_contravar;first by apply invp1gt0;apply Nat.max_lt_iff;auto.
+      apply Rplus_le_compat_l.
+      apply Rinv_le_contravar; first by apply lt_0_INR.
+      apply le_INR.
+      by apply Nat.le_max_l.
+    have l1 := (pow_incr (/ (1 + (/ INR k1))) (/ (1 + ( / INR (max k1 k2)))) n (p0 k1 k2 k1_pos)).
+    have l2 := (pow_incr (/ (1 + (/ INR k2))) (/ (1 + ( / INR (max k2 k1)))) n (p0 k2 k1 k2_pos)).
+    rewrite Nat.max_comm in l2.
+    have l1' := (Rmult_le_compat_l (INR A1) ((/ (1 + (/ INR k1)))^n) ((/ (1 + ( / INR (max k1 k2))))^n) (pos_INR A1) l1).
+    have l2' := (Rmult_le_compat_l (INR A2) ((/ (1 + (/ INR k2)))^n) ((/ (1 + ( / INR (max k1 k2))))^n) (pos_INR A2) l2).
+
+    have c := (Rplus_le_compat ((INR A1)*((/ (1 + (/ INR k1)))^n)) ((INR A1) * (/ (1 + ( / (INR ((max k1 k2))))))^n) ((INR A2)*(/ (1 + / (INR k2)))^n) (INR A2 * (/ (1 + ( / INR (max k1 k2))))^n) l1' l2').
+    apply /Rle_trans.
+    apply c.
+    rewrite <- Rmult_plus_distr_r.
+    rewrite <- plus_INR.
+    by rewrite /addn/addn_rec;lra.
+  Qed.
+  Definition addition_rlzrf (phi1 phi2:ps_names) (q: (unit + unit + nat*Q) ) := match q with
+                                           | (inr q') => (0%nat, 0%nat,(Rplus_rlzrf (RQ_pair (fun eps => (rprj phi1 (q'.1,eps))) (fun eps => (rprj phi2 (q'.1,eps)))) q'.2))
+                                           | (inl (inl q')) => (((lprj (lprj phi1) q')+(lprj (lprj phi2) q'))%nat, 0%nat, 0%Q)
+                                           | (inl (inr q')) => (0%nat,(max (rprj (lprj phi1) q') (rprj (lprj phi2) q')), 0%Q)
+                                           end.
+  Lemma series1_add a b : (series1 a)->(series1 b)->(series1 (PS_plus a b)).
+  Proof.
+    move => ap bp.
+    have Rbargt : (Rbar_lt 1%Z (Rbar_min (CV_radius a) (CV_radius b))) by apply Rbar_min_case.
+    apply /Rbar_lt_le_trans.
+    apply Rbargt.
+    by apply CV_radius_plus.
+  Qed.
+
+  Definition ps1_addition (a b : powerseries1) : powerseries1 := exist series1 (PS_plus  (projT1 a) (projT1 b)) (series1_add (projT2 a) (projT2 b)).
+
+  Definition psadd :=  (fun ab : (powerseries1_cs \*_cs powerseries1_cs) => (ps1_addition ab.1 ab.2)).
+
+  Lemma addition_rlzrf_spec : forall phi1 phi2 (a b : powerseries1), (phi1 \describes a \wrt powerseries1_cs) -> (phi2 \describes b \wrt powerseries1_cs) -> (addition_rlzrf phi1 phi2) \describes (ps1_addition a b)  \wrt powerseries1_cs.
+  Proof.
+    move => phi1 phi2 a b [//= phi1na1 phi1na2] [//= phi2nb1 phi2nb2].
+    split => [n eps epsgt0 | ] //=; last by apply addition_bound.
+    rewrite /addition_rlzrf/rprj //=.
+    have := Rplus_rlzr_spec.
+    rewrite F2MF_rlzr_F2MF => //= pspec.
+    have ps := (pspec (RQ_pair (fun eps' => (phi1 (inr (n, eps'))).2) (fun eps' => (phi2 (inr (n,eps'))).2)) ((sval a n), (sval b n))).
+    apply ps; last by apply epsgt0.
+    by split; [apply phi1na1 |  apply phi2nb1].
+Qed.
+
+  Definition addition_rlzrf' (phiab : (questions (powerseries1_cs \*_cs powerseries1_cs)))  := (addition_rlzrf (lprj phiab) (rprj phiab)).
+
+  Definition addition_rlzr: (questions (powerseries1_cs \*_cs powerseries1_cs) ->> (questions (powerseries1_cs))) := F2MF addition_rlzrf'.
+
+  Lemma addition_rlzr_spec : addition_rlzr \realizes (F2MF psadd).
+  Proof.
+    rewrite F2MF_rlzr_F2MF => ab [phia phib] [phiana phibnb].
+    rewrite /addition_rlzrf'.
+    by apply addition_rlzrf_spec.
+  Qed. 
+
+Section examples.
   Notation "x '+rq' y" :=
   (Rplus_rlzrf (name_pair x y)) (at level 35, format "x '+rq' y").    
   Notation "x '*rq' y" :=
@@ -849,11 +936,23 @@ Section ps_summation.
                                            | 0%nat => acc
                                            | n.+1 => (inv_fact_acc n eps (acc / (N2Q n.+1)))
                                            end)).
-  Definition inv_fact' n eps := (inv_fact_acc n eps 1).
+  Definition inv_fact n eps := (inv_fact_acc n eps 1).
 
-  Definition exp_ps (nq: (nat*Q)) := (inv_fact' nq.1 nq.2).
+  Definition exp_ps (nq: (nat*Q)) := (inv_fact nq.1 nq.2).
   Definition N2cs (n : nat) : (questions cs_nat) := (fun (q : unit) => n). 
   Definition make_ps_name (phia : (questions (RQ\^w))) A k := (name_pair (name_pair (N2cs A) (N2cs k)) phia).
   Definition exp_name := (make_ps_name exp_ps 1 1).
   Definition comp_exp (phi : (questions RQ)) := (sum_rlzrf' exp_name phi).
-  Compute (comp_exp (Q2RQ (1#2)) (1#10000)).
+  Compute (comp_exp (Q2RQ (1#2)) (1#100)).
+
+  
+  Definition sin_ps (nq: (nat*Q)) := match (nq.1 mod 4) with
+                                   | 0%nat => 0
+                                   | 1%nat => (inv_fact nq.1 nq.2)
+                                   | 2%nat => 0
+                                   | _ => -(inv_fact nq.1 nq.2)
+                                   end.
+  Definition sin_name := (make_ps_name sin_ps 1 1).
+  Definition comp_sin (phi : (questions RQ)) := (sum_rlzrf' sin_name phi).
+  Definition sin_plus_e := (addition_rlzrf sin_name exp_name).
+  Definition comp_spe (phi : (questions RQ)) := (sum_rlzrf' sin_plus_e phi).

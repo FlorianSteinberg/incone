@@ -4,6 +4,7 @@ Require Import Q_reals.
 Require Import all_cont FMop.
 Require Import iseg.
 Require Import Coquelicot.PSeries.
+Require Import Setoid.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -23,6 +24,7 @@ Section names_for_realizers.
   Definition ps_names := ((unit+unit)+(nat*Q))->((nat*nat)*Q).
   Definition psx_names := ((unit+unit)+(nat*Q)+Q)->((nat*nat)*Q*Q).
   Definition RQ_pair (a:Q->Q) (b:Q->Q) := (pair 0%Q 0%Q (a,b)).
+End names_for_realizers.
 
 Section powerseries_basic_facts.
   Definition single_element_seq (m : nat) x := (fun n => (if (n == m) then x else 0%R)).
@@ -229,7 +231,7 @@ Section powerseries_basic_facts.
   Qed.
 
   Definition powerseries1 := {a : nat -> R | series1 a }.
-
+End powerseries_basic_facts.
 Section ps_representation.
   Definition ps_rep : (questions (cs_nat \*_cs cs_nat \*_cs RQ\^w)) ->> powerseries1 := make_mf (fun phi (a : powerseries1) => (rprj phi) \describes (projT1 a) \wrt (RQ\^w) /\ (series_bound (projT1 a) (lprj (lprj phi) tt) (rprj (lprj phi) tt))).
 
@@ -257,7 +259,7 @@ Section ps_representation.
   Qed.
 
   Definition powerseries1_cs := (make_cs (someq (cs_nat \*_cs cs_nat \*_cs RQ\^w)) (somea (cs_nat \*_cs cs_nat \*_cs RQ\^w)) (queries_countable (cs_nat \*_cs cs_nat \*_cs RQ\^w)) (answers_countable (cs_nat \*_cs cs_nat \*_cs RQ\^w)) ps_rep_sur ps_rep_sing).
-
+End ps_representation.
 Section ps_summation.
   Lemma series_exists_helper k : (0 < k)%coq_nat -> ((Rabs (/ (1 + / INR k))) < 1)%R.
   Proof.
@@ -850,6 +852,7 @@ Section ps_summation.
    move => eps psi.
    by apply Lp.
   Qed.  
+End ps_summation.
 
 Section addition.
   Lemma addition_bound a b : forall A1 k1 A2 k2, (series_bound a A1 k1) -> (series_bound b A2 k2) -> (series_bound (fun n => (a n + b n)%R) (A1+A2) (max k1 k2)). 
@@ -923,11 +926,206 @@ Qed.
     by apply addition_rlzrf_spec.
   Qed. 
 
+End addition.
+Section multiplication.
+  Lemma multiplication_bound_helper1 : forall n r, (0 < r < 1)%R -> (((INR n)*(r ^ n) <= (INR n.+1)*(r ^ (n.+1))))%R <-> ((INR n) <= (r / (1-r)))%R.
+  Proof.
+    move => n r rlt1.
+    have t : ((r ^ (n.+1)) = r*(r^n))%R by simpl; lra.
+    split => H.
+    - apply Rle_div_r; first by lra.
+      rewrite Rmult_minus_distr_l Rmult_1_r.
+      suff : (INR n <= ((INR n)+1)*r)%R by lra.
+      rewrite <- S_INR.   
+      apply (Rmult_le_reg_r (r ^ n)); first by apply pow_lt;lra.
+      rewrite Rmult_assoc.
+      by rewrite <- t.
+    rewrite t; rewrite <- Rmult_assoc.
+    apply Rmult_le_compat_r; first by apply pow_le;lra.
+    rewrite S_INR.
+    suff: ((INR n)*(1-r) <= r)%R by lra.
+    apply Rle_div_r; by lra.
+  Qed.
+  
+  Lemma multiplication_bound_helper2 : forall n j r, (0 < r < 1)%R -> (n <= j)%coq_nat ->  ((INR j) <= (r / (1-r)))%R -> ((INR n)*(r ^ n) <= (INR j)*(r ^ j))%R.
+  Proof.
+    move => n j r rb njb jb.
+    have nb : ((INR n) <= (r / (1-r)))%R by apply (Rle_trans _ _ _ (le_INR _ _ njb)).    
+    move : jb njb.
+    elim j => [jb njb|j' IH jb njb]; first by rewrite Rmult_0_l; rewrite <- (le_n_0_eq n njb);simpl;lra.
+    have jb' : (INR (j') <= (r / (1-r)))%R by apply (Rle_trans _ (INR j'.+1)); by [rewrite S_INR;lra|].
+    case (Nat.le_gt_cases n j') => njb'.
+    - apply /Rle_trans.
+      apply IH; try by [].
+      apply multiplication_bound_helper1; try by [].
+      have t : (n = (j'.+1)) by lia.               
+      rewrite t.
+      by lra.
+  Qed.
+
+  Lemma multiplication_bound_helper3 : forall n j r, (0 < r < 1)%R -> (j <= n)%coq_nat -> ((r / (1-r)) < (INR j))%R ->  ((INR n)*(r ^ n) <= (INR j)*(r ^ j))%R.
+  Proof.
+    move => n j r rb njb nj.
+    move : njb.
+    rewrite Nat.le_lteq.
+    case => njb; last by rewrite njb;lra.
+    move : njb.
+    elim n => [njb' |n' IH njb' ]; first by rewrite Rmult_1_r;apply Rmult_le_pos; [apply pos_INR | apply pow_le;lra ].
+    have njb'' : (j <= n')%coq_nat by lia.   
+    have nb'' : ((r / (1-r)) < (INR n'))%R.
+    - apply /Rlt_le_trans.
+      apply nj.
+      by apply le_INR.
+    have h : ((INR n'.+1)*(r^(n'.+1)) <= ((INR n')*r^n'))%R.
+     -apply Rlt_le.
+      apply Rnot_le_lt.
+      apply (not_iff_compat (multiplication_bound_helper1 n' rb)).
+      by apply Rlt_not_le.
+    apply /Rle_trans.
+    apply h.
+    move : njb''.
+    rewrite Nat.le_lteq.
+    case => njb''; last by rewrite njb''; lra.
+    by apply IH.
+  Qed.
+
+  Lemma multiplication_bound_helper4 : forall n j, ((INR n) * ((/ (1 + (/ (INR j.+1)))) ^ n) <= (INR j.+2)* ((/ (1 + (/ (INR j.+1)))) ^ j.+2))%R.
+  Proof.
+    move => n j.
+    set r := (/ (1 + (/ (INR j.+1))))%R.
+    have rlt : (0 < r < 1)%R.
+    - rewrite /r.
+      split.
+      + apply Rinv_0_lt_compat.
+        suff: (0 < (/ (INR j.+1)))%R by lra.
+        apply Rinv_0_lt_compat.
+        by apply lt_0_INR;lia.
+      rewrite <- Rinv_1 at 2.
+      suff : (0 < (/ (INR j.+1)))%R.
+      + move => H.
+        by apply Rinv_lt_contravar; lra.
+      apply Rinv_0_lt_compat.
+      by apply lt_0_INR;lia.
+    have h : ((r / (1-r)) = (INR (j.+1)))%R.
+    - apply (Rmult_eq_reg_r (1-r)); last by lra.
+      field_simplify; last by lra.
+      do 2! rewrite Rdiv_1.
+      rewrite /r.     
+      field.
+      split; [apply not_0_INR; lia |].
+      suff: (0 <= (INR j.+1))%R by lra.
+      by apply pos_INR.
+    case (Nat.le_gt_cases n j.+1) => e.
+    - symmetry in h.
+      have [_ B]:= (multiplication_bound_helper1 j.+1 rlt ).
+      specialize (B (Req_le _ _ h)).
+      have Rl := (Rle_trans _ _ _ _ B).
+      apply Rl.
+      apply multiplication_bound_helper2; [apply rlt|apply e | rewrite h;lra].
+    apply multiplication_bound_helper3; [apply rlt | lia  |].
+    apply /Rle_lt_trans.
+    apply (Req_le _ _ h).
+    by apply lt_INR; lia.
+  Qed.
+
+  Lemma multiplication_bound_helper : forall n j, ((INR n) * ((/ (1 + (/ (INR j.+1)))) ^ n) <= (/ 2)*(INR j.+2)) %R.
+  Proof.
+    move => n j.
+    apply /Rle_trans.
+    apply multiplication_bound_helper4.
+    have t : (0 < j.+1)%coq_nat by lia.
+    have h := (tpmn_series_helper3 1 t).
+    rewrite pow_1 in h.
+    ring_simplify.
+    apply Rmult_le_compat_l; first by apply pos_INR; lia.
+    have jf : ((((j.+1)*1)%coq_nat.+1) = (j.+2))%coq_nat by lia.
+    by rewrite jf in h.
+  Qed.
+  Lemma series_bound_larger_k a : forall A k k', (k <= k')%coq_nat -> (series_bound a A k) -> (series_bound a A k').
+  Proof.
+    move => A k k' klek' [kgt0 [Agt0 b1]].
+    split; try split => [ | n];try lia.
+    apply /Rle_trans.
+    apply b1.
+    apply Rmult_le_compat_l; first by apply pos_INR;lia.
+    apply pow_incr.
+    have k'gt0 : (0 < k')%coq_nat by lia.
+    have lt j : (0 < j)%coq_nat -> (0 < 1+(/ INR j))%R.
+    - move => jlt.
+      suff : (0 < (/ INR j))%R by lra.
+      apply Rinv_0_lt_compat.
+      by apply lt_0_INR.
+    split; first by apply Rlt_le; apply Rinv_0_lt_compat; apply (lt k).
+    apply Rinv_le_contravar; first by apply (lt k').
+    apply Rplus_le_compat_l.
+    apply Rinv_le_contravar; first by apply lt_0_INR.
+    by apply le_INR.
+  Qed.
+  Lemma multiplication_bound a b : forall A1 k1 A2 k2, (series_bound a A1 k1) -> (series_bound b A2 k2) -> (series_bound (PS_mult a b) (A1*A2*((max k1 k2).+2)) (2*(max k1 k2))).  
+  Proof.
+  move => A1 k1 A2 k2 sb1 sb2.
+  set k := (max k1 k2).
+  have k1k : (k1 <= k)%coq_nat by lia.
+  have k2k : (k2 <= k)%coq_nat by lia.
+  have [kgt0 [A1gt0 b1]] := (series_bound_larger_k k1k sb1).
+  have [_ [A2gt0 b2]] := (series_bound_larger_k k2k sb2).
+  split; try split => [ | n]; try apply Nat.mul_pos_pos;try apply Nat.mul_pos_pos;try lia.
+  rewrite /PS_mult.
+  apply /Rle_trans.
+  apply sum_f_R0_triangle.
+  set cn := (fun (m : nat) => ((INR (A1*A2)%coq_nat) * ((/ (1 + (/ INR k)))^n))%R).
+  apply /Rle_trans.
+  apply (sum_Rle _ cn).
+  - move => m mltn.
+    rewrite Rabs_mult.
+    apply /Rle_trans.
+    apply (Rmult_le_compat _ _ _ _ (Rabs_pos _) (Rabs_pos _) (b1 m) (b2 (n-m)%coq_nat)  ).
+    have ar : ((((INR A1) * (/ (1 + (/ (INR k))))^m)*((INR A2)*(/ (1 + (/ (INR k))))^(n-m)%coq_nat)) = ((INR A1)*(INR A2)*((/ (1 + (/ (INR k))))^m*(/ (1 + (/ (INR k))))^(n-m)%coq_nat)))%R by lra.
+    rewrite ar.
+    rewrite <- mult_INR.
+    rewrite <- pow_add.
+    rewrite le_plus_minus_r;last by [].
+    by rewrite /cn;lra.
+   rewrite sum_cte.
+   have eq1 : ((/ (1 + (/ (INR k)))) = ((/ (1+(/ (INR ((2*k)%coq_nat)))))*(/ (1 + (/ (INR (2*k)%coq_nat.+1))))))%R.
+   rewrite !S_INR.
+   rewrite !mult_INR.
+   simpl.
+   field.
+   split; try split; (suff: (0 < (INR k))%R by lra);by apply lt_0_INR.
+   rewrite eq1.
+   rewrite !mult_INR.
+   rewrite Rpow_mult_distr.
+   rewrite !Rmult_assoc.
+   do 2! (apply Rmult_le_compat_l; first by apply Rlt_le;apply lt_0_INR).
+   rewrite (Rmult_comm (INR k.+2) _).
+   apply Rmult_le_compat_l; last first.
+   rewrite Rmult_comm.
+   have ineq : ((INR n.+1) * (/ (1 + (/ INR (2 * k)%coq_nat.+1))) ^ n <= ((INR n) * (/ (1 + (/ INR (2 * k)%coq_nat.+1))) ^ n)+1)%R.
+   - rewrite S_INR.
+     rewrite Rmult_plus_distr_r.
+     apply Rplus_le_compat_l.
+     rewrite Rmult_1_l.
+     apply pow_le_1_compat.
+     split; [apply Rlt_le; apply Rinv_0_lt_compat | rewrite <- Rinv_1; apply Rinv_le_contravar ]; try lra; try (suff: (0 < / (INR (2*k)%coq_nat.+1)) % R by lra); apply Rinv_0_lt_compat; apply lt_0_INR; lia.
+   apply /Rle_trans.
+   apply ineq.
+   rewrite (S_INR k.+1).
+   apply Rplus_le_compat_r.
+   apply /Rle_trans.
+   apply multiplication_bound_helper.
+   rewrite !S_INR.
+   rewrite mult_INR //=.
+   lra.
+   apply pow_le.
+   rewrite <- mult_INR.
+   by apply invge0; lia.
+  Qed.
 Section examples.
   Notation "x '+rq' y" :=
   (Rplus_rlzrf (name_pair x y)) (at level 35, format "x '+rq' y").    
   Notation "x '*rq' y" :=
-  (Rmult_rlzrf (name_pair x y)) (at level 35, format "x '*rq' y").    
+  
   Definition Q2RQ (q:Q) := (fun (eps :Q) => q). 
 
   Definition N2Q n := (Z.of_nat n # 1).
@@ -936,16 +1134,216 @@ Section examples.
                                            | 0%nat => acc
                                            | n.+1 => (inv_fact_acc n eps (acc / (N2Q n.+1)))
                                            end)).
+  Lemma inv_fact_acc_spec1 : forall n (eps acc : Q), (acc <= eps)%R -> (inv_fact_acc n eps acc)=0%Q.
+  Proof.
+    move => n eps acc H.
+    rewrite /inv_fact_acc.
+    apply Rle_Qle in H.
+    apply (Qle_bool_iff acc eps) in H.
+    elim n => [| n' IH]; by apply ifT.
+  Qed.
+
+  Lemma  Rlt_not_Qle (a b:Q) : (a < b)%R -> (not (Qle_bool b a)).
+    move => H.
+    apply Rlt_Qlt in H.
+    have q := (Qle_bool_iff b a).
+    apply Qlt_not_le in H.
+    by rewrite <- q in H.
+  Qed.
+
+  Lemma inv_fact_acc_spec2 : forall n (eps acc : Q), (eps < acc)%R  -> (inv_fact_acc n.+1 eps acc) =  (inv_fact_acc n eps (acc / (N2Q (n.+1)))).
+  Proof.
+    move => n.
+    move => eps acc H.
+    rewrite /inv_fact_acc.
+    rewrite ifN; last by apply /negP; apply Rlt_not_Qle.
+    done.
+  Qed.
+  Lemma fact_helper x n : ((x / N2Q n.+1)%Q / INR (fact n))%R = (x / (INR (fact n.+1)))%R.
+  Proof.
+    rewrite Q2R_div; last by [].
+    apply Interval_missing.Rdiv_eq_reg; try by apply INR_fact_neq_0.
+    have t : (Q2R (N2Q n.+1) = (INR (n.+1)))%R.
+    - rewrite /N2Q.
+      rewrite INR_IZR_INZ.
+      rewrite /Q2R.
+      simpl.
+      by lra.
+    rewrite t.
+    rewrite /Rdiv.
+    rewrite (Rmult_comm _ x).
+    rewrite Rmult_assoc.
+    apply Rmult_eq_compat_l.
+    rewrite <- simpl_fact.
+    rewrite Rmult_comm.
+    field.
+    by split; apply INR_fact_neq_0.
+  Qed.
+
+  Lemma inv_fact_acc_spec3 : forall n (eps acc : Q), ((acc / (INR (fact n))) <= eps) % R -> ((inv_fact_acc n eps acc) = 0).
+  Proof.
+    elim => [eps acc H| n IH eps acc H]; first by apply inv_fact_acc_spec1;rewrite Rdiv_1 in H.
+    case e: (Qle_bool acc eps); first by apply ifT.
+    simpl.
+    rewrite ifF; last by [].
+    apply IH.
+    suff : ((acc / N2Q n.+1)%Q / INR (fact n))%R = (acc / (INR (fact n.+1)))%R by move => H'; rewrite H'.
+    by apply fact_helper.
+  Qed.
+
+  Lemma inv_fact_acc_spec4 : forall n (eps acc : Q), (0 < acc)%R -> ((acc / (INR (fact n))) > eps) % R -> (Q2R (inv_fact_acc n eps acc) = (acc / (INR (fact  n)))%R).
+  Proof.
+    elim => [eps acc accgt0 H | n IH eps acc accgt0 H].
+    - rewrite /inv_fact_acc ifF; first by simpl;lra.
+      suff : (eps < acc)%R by move=>H';apply /negP; apply (Rlt_not_Qle H').
+      apply Rgt_lt.
+      simpl in H.
+      by lra.
+      have H' : (eps < acc)%R.
+      - apply Rgt_lt in H.
+        apply /Rlt_le_trans.
+        apply H.
+        apply Rle_div_l; first by apply INR_fact_lt_0.
+        rewrite <- (Rmult_1_r acc) at 1.
+        apply Rmult_le_compat_l; first by apply Rlt_le.
+        have inr1 : (1 = (INR 1))%R by auto.
+        rewrite inr1.
+        apply le_INR.
+        by apply lt_O_fact.
+      rewrite inv_fact_acc_spec2; last by apply H'.
+      rewrite IH; first by apply fact_helper.
+      - rewrite Q2R_div; last by [].
+       apply Rdiv_lt_0_compat; first by apply accgt0.
+       have t : (Q2R (N2Q n.+1) = (INR (n.+1)))%R.
+       + rewrite /N2Q.
+         rewrite INR_IZR_INZ.
+         rewrite /Q2R.
+         simpl.
+         by lra.
+       rewrite t.
+       by apply lt_0_INR; lia.
+     by rewrite fact_helper.
+  Qed. 
+
   Definition inv_fact n eps := (inv_fact_acc n eps 1).
 
+  Lemma inv_fact_spec : forall n (eps:Q), (0 < eps)%R -> ((Rabs ((/ (INR (fact n))) - (inv_fact n eps))) <= eps)%R. 
+  Proof.
+    move => n eps epsgt0.
+    rewrite /inv_fact.
+    case (Rlt_or_le eps (/ (INR (fact n)))) => H.
+    - rewrite inv_fact_acc_spec4; try lra.
+      have s : (1%Q / (INR (fact n)))%R = (/ (INR (fact n)))%R by lra.
+      rewrite s.
+      rewrite Rminus_eq_0 Rabs_R0.
+      by apply Rlt_le.
+    rewrite inv_fact_acc_spec3; last by lra.
+    rewrite RMicromega.IQR_0 Rminus_0_r.
+    rewrite Rabs_right; first by apply H.
+    apply Rle_ge; apply Rlt_le.
+    apply Rinv_0_lt_compat.
+    by apply INR_fact_lt_0.
+  Qed.
+
+  Lemma inv_fact_is_name : (fun nq => (inv_fact nq.1 nq.2)) \describes (fun n => (/ (INR (fact n)))%R) \wrt (RQ\^w).
+  Proof.
+    move => n eps.
+    by apply inv_fact_spec.
+  Qed.
+End examples.
+  Require Extraction.
+  Require ExtrHaskellZInteger.
+  Require ExtrHaskellNatInt.
+  Extraction Language Haskell.
   Definition exp_ps (nq: (nat*Q)) := (inv_fact nq.1 nq.2).
   Definition N2cs (n : nat) : (questions cs_nat) := (fun (q : unit) => n). 
   Definition make_ps_name (phia : (questions (RQ\^w))) A k := (name_pair (name_pair (N2cs A) (N2cs k)) phia).
-  Definition exp_name := (make_ps_name exp_ps 1 1).
-  Definition comp_exp (phi : (questions RQ)) := (sum_rlzrf' exp_name phi).
-  Compute (comp_exp (Q2RQ (1#2)) (1#100)).
+  Definition exp_name := (make_ps_name exp_ps 2 1).
 
+  Definition ps_e := (fun n => (/ (INR (fact n)))%R).
+  Lemma ps_es1 : series1 ps_e.
+  Proof.
+    rewrite /series1.
+    have s := (is_exp_Reals 2).
+    have s' : (CV_disk ps_e 2).
+    - rewrite /CV_disk.
+      rewrite /is_pseries in s.
+      rewrite /ex_series.
+      exists (exp 2).
+      rewrite /scal in s.
+      simpl in s.
+      rewrite /mult in s.
+      simpl in s.
+      have fe : (fun n => ((pow_n 2 n)* (/ (INR (fact n))))%R) = (fun n => (Rabs ((ps_e n) * 2^n))).
+      - apply functional_extensionality.
+        move => x.
+        rewrite pow_n_pow.
+        rewrite Rabs_right; rewrite /ps_e; first by lra.
+        apply Rle_ge.
+        apply Rmult_le_pos; first by apply Rlt_le; apply Rinv_0_lt_compat;apply INR_fact_lt_0.
+        apply pow_le;lra.
+      by rewrite <- fe.
+    rewrite /CV_radius.
+    apply (Rbar_lt_le_trans _ 2); first by simpl;lra.
+    have t : not (is_ub_Rbar (CV_disk ps_e) 1).
+    rewrite /is_ub_Rbar.
+    move => H.
+    move : (H 2 s').
+    by simpl; lra.
+    have [c _] := (Lub_Rbar_correct (CV_disk ps_e)).
+    by apply c.
+  Qed.
+  Definition ps_e1 := exist series1 ps_e ps_es1.
+  Lemma exp_name_spec : exp_name \describes ps_e1 \wrt powerseries1_cs. 
+  Proof.
+    split.
+    - move => i eps epsgt0 //=.
+      rewrite /ps_e /exp_name /make_ps_name /name_pair /rprj /exp_ps //=.
+      by apply inv_fact_spec.
+    simpl.
+    rewrite /series_bound /exp_name /make_ps_name /rprj /lprj /N2cs //=.
+    split; [lia | split; first by lia] => n.
+    rewrite Rinv_1.
+    rewrite /ps_e.
+    rewrite <- Rinv_pow; last by lra.
+    rewrite Rabs_Rinv;last by apply INR_fact_neq_0.
+    rewrite Rabs_right; last by apply Rle_ge; apply Rlt_le; apply INR_fact_lt_0.
+    have t : (1+1)%R = 2 by lra.
+    rewrite t.
+    rewrite Rmult_comm.
+    apply Rle_div_l; first by lra.
+    rewrite /Rdiv.
+    rewrite <- Rinv_mult_distr; [| apply INR_fact_neq_0| lra].
+    apply Rle_Rinv; [apply pow_lt;lra|apply Rmult_lt_0_compat;[apply INR_fact_lt_0|lra] |].
+    elim n => [| n' IH]; first by simpl;lra.
+    rewrite mult_INR //=.
+    rewrite Rmult_comm;apply Rmult_le_compat_r; first by lra.
+    move : IH; case n' => [| n'' IH]; first by simpl;lra.
+    apply /Rle_trans.
+    apply IH.
+    rewrite Rmult_comm.
+    apply Rmult_le_compat_r; last first.
+    - rewrite S_INR.
+      suff : (0 <= INR n'')%R by lra.
+      by apply pos_INR.
+    by apply pos_INR.
+  Qed.
+
+  Definition comp_exp (phi :names_RQ) :(names_RQ) := (sum_rlzrf' exp_name phi).
   
+  Definition exp1 (x : RQ1) : RQ := (exp (projT1 x)).
+  Lemma comp_exp_spec : (F2MF comp_exp: (questions RQ1)->>(questions RQ)) \realizes (F2MF exp1).
+  Proof.
+     apply F2MF_rlzr_F2MF.
+     move => phi x phinx.
+     rewrite /comp_exp.
+     rewrite /exp1.
+     rewrite (exp_Reals (projT1 x)).
+     by apply (sum_rlzrf_spec (projT2 x) exp_name_spec ).
+  Qed.
+  Definition ce n := (comp_exp (Q2RQ (1#1)) (1#n)).
+  Extraction "inv_fact" ce.
+    
   Definition sin_ps (nq: (nat*Q)) := match (nq.1 mod 4) with
                                    | 0%nat => 0
                                    | 1%nat => (inv_fact nq.1 nq.2)
@@ -956,3 +1354,5 @@ Section examples.
   Definition comp_sin (phi : (questions RQ)) := (sum_rlzrf' sin_name phi).
   Definition sin_plus_e := (addition_rlzrf sin_name exp_name).
   Definition comp_spe (phi : (questions RQ)) := (sum_rlzrf' sin_plus_e phi).
+  Definition PSeries2 a x y := (PSeries (fun n => (PSeries (fun m => (a (n,m))) y)) x). 
+  

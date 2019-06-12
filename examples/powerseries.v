@@ -1121,6 +1121,144 @@ Section multiplication.
    rewrite <- mult_INR.
    by apply invge0; lia.
   Qed.
+
+  Definition get_pwr (phi : ps_names) := (rprj phi).
+  Definition get_coeff_name (phi : ps_names) n := (fun eps => (get_pwr phi (n,eps))).
+  Definition get_A (phi : ps_names) := (lprj (lprj  phi) tt).
+  Definition get_k (phi : ps_names) := (rprj (lprj  phi) tt).
+
+  Fixpoint convolution_rlzrf_rec (phi1 phi2 : ps_names) (n i : nat) := match i with
+                                                                 | 0%nat => (Rmult_rlzrf (RQ_pair (get_coeff_name phi1 0) (get_coeff_name phi2 n)))
+                                                                 | (S i') => (Rplus_rlzrf (RQ_pair  (convolution_rlzrf_rec phi1 phi2 n i') (Rmult_rlzrf (RQ_pair (get_coeff_name phi1 i) (get_coeff_name phi2 (n-i)%coq_nat)))))
+                                                                 end.
+  Lemma convolution_rlzrf_rec_spec (phi1 phi2 : ps_names) n m :  forall a b, (phi1 \describes a \wrt powerseries1_cs) -> (phi2 \describes b \wrt powerseries1_cs) -> (convolution_rlzrf_rec phi1 phi2 n m) \describes (sum_f_R0 (fun k : nat => ((sval a k) * (sval b (n - k)%coq_nat))%R) m) \wrt RQ. 
+  Proof.
+    move => a b [phia _] [phib _].
+    elim : m => [eps epsgt0| m' IH].
+    - have := Rmult_rlzr_spec.
+      rewrite F2MF_rlzr_F2MF => mspec.
+      rewrite /convolution_rlzrf_rec//=.
+      specialize (mspec (RQ_pair (get_coeff_name phi1 0) (get_coeff_name phi2 n)) ((sval a 0%nat),(sval b n))).
+      rewrite !Nat.sub_0_r.
+      apply mspec; last by [].
+      by split; [apply phia | apply phib ].
+    rewrite sum_N_predN;last by lia.
+    have t : forall n', (n'.+1.-1)%coq_nat = n' by auto.
+    rewrite t.
+    rewrite /convolution_rlzrf_rec.
+    have := Rplus_rlzr_spec.
+    rewrite F2MF_rlzr_F2MF => pspec.
+    move => eps epsgt0 //=.
+    have pspec' := (pspec _ ((sum_f_R0 (fun k : nat => ((sval a k) * (sval b (n - k)%coq_nat))%R) m'), ((sval a (m'.+1)%nat)*(sval b (n-m'.+1)%nat))%R)).
+    apply pspec'; last by [].
+    split; rewrite /lprj/rprj //=.
+    move => eps' eps'gt0.
+    have := Rmult_rlzr_spec.
+    rewrite F2MF_rlzr_F2MF => mspec.
+    apply (mspec _ ((sval a m'.+1), (sval b (n-m'.+1)%nat)));last by [].
+    split; [apply phia | apply phib ].
+  Qed.
+
+  Definition convolution_rlzrf (phi1 phi2 : ps_names) n := (convolution_rlzrf_rec phi1 phi2 n n).
+  Lemma convolution_rlzrf_spec (phi1 phi2 : ps_names) n : forall a b, (phi1 \describes a \wrt powerseries1_cs) -> (phi2 \describes b \wrt powerseries1_cs) -> (convolution_rlzrf phi1 phi2 n) \describes (PS_mult (projT1 a) (projT1 b) n) \wrt RQ.
+  Proof.
+    by apply convolution_rlzrf_rec_spec.
+  Qed.
+
+  Definition multiplication_rlzrf (phi1 phi2:ps_names) (q: (unit + unit + nat*Q) ) := match q with
+                                           | (inr q') => (0%nat, 0%nat,(convolution_rlzrf phi1 phi2 q'.1 q'.2))
+                                           | (inl (inl q')) => (((get_A phi1)*(get_A phi2)*(max (get_k phi1) (get_k phi2)).+2)%nat, 0%nat, 0%Q)
+                                           | (inl (inr q')) => (0%nat,(2*(max (get_k phi1) (get_k phi2)))%nat, 0%Q)
+                                           end.
+
+  Lemma bseries_series1 a : (exists A k, (series_bound a A k)) -> (series1 a). 
+  Proof.
+    case => A; case => k [gt0k [gt0A H]].
+    rewrite /series1.
+    rewrite /CV_radius /Lub_Rbar; case ex_lub_Rbar => x [p1 p2].
+    have h : forall n, (0 < n)%coq_nat -> (0 < (1 + / (INR (n))))%R.
+    - move => n Hn.
+      suff : (0 < (/ (INR n)))%R by lra.
+      by apply Rinv_0_lt_compat; apply lt_0_INR.
+    have n2gt0 n  : (0 < n)%coq_nat -> (0 < 2 * n)%coq_nat.
+      move => Hn.
+      by apply /ltP; rewrite muln_gt0;apply /ltP.
+    have h' : forall n, (0 <= (1 + / (INR (2*k)))^n)%R.
+    - move => n.
+      by apply pow_le; apply Rlt_le;apply h; apply n2gt0.
+    have s : (CV_disk a (1+(/ (INR (2*k))))).
+      - rewrite /CV_disk.
+        set b := (fun n => ((INR A)*(((/ (1 + (/ (INR k)))) ^ n)*(1+(/ (INR (2 * k))))^n))%R).
+        have e := (ex_series_le _ b).
+        apply e.
+        + move => n.
+          rewrite /norm //= /abs //=.
+          rewrite Rabs_Rabsolu.
+          rewrite Rabs_mult.
+          rewrite (Rabs_right ((1 + (/ (INR (2*k)))) ^ n));last by apply Rle_ge;apply h'.
+          rewrite /b;rewrite <- Rmult_assoc; apply Rmult_le_compat_r; by [apply h' | ].
+        + have scal := ex_series_scal_l.
+          apply scal.
+          apply (ex_series_ext (fun n => ((1 + (/ (INR (2 * k)))) / (1 + (/ INR k)))^n)%R).
+          move => n.
+          rewrite <- Rpow_mult_distr.
+          suff : (((1 + (/ (INR (2 * k)))) / (1 + (/ INR k))) = (((/ (1 + (/ (INR k)))))*(1+(/ (INR (2 * k))))))%R by move => H';rewrite H';lra.
+          field;split; try split; apply Rgt_not_eq; apply Rlt_gt; try apply lt_0_INR; try apply n2gt0; try lia.
+          suff : (0 < (INR k))%R by lra.
+          by apply lt_0_INR.
+      apply ex_series_geom.
+      rewrite Rabs_right.
+      + rewrite <- Rdiv_lt_1; last by apply h.
+      suff : ((/ (INR (2 * k))) < (/ INR k))%R by lra.
+      apply Rinv_lt_contravar; [rewrite <- mult_INR; apply lt_0_INR | try apply lt_INR;try lia].
+      + apply /ltP.
+        rewrite muln_gt0.
+        apply /andP.
+        split; by apply /ltP;try apply n2gt0.
+      +  by apply /ltP;apply ltn_Pmull; [| apply /ltP].
+      apply Rle_ge.
+      apply Rdiv_le_0_compat; by try apply Rlt_le; apply h; try apply n2gt0.
+    have lt1 : (Rbar_lt 1%Z (1 + (/ INR (2*k)))%R).
+    - suff : (0 < (/ (INR (2*k))))%R by simpl; lra.
+      by apply Rinv_0_lt_compat; apply lt_0_INR; apply n2gt0.
+    apply /Rbar_lt_le_trans.
+    apply lt1.
+    by apply (p1 _ s).
+  Qed.
+
+  Lemma series1_mult a b : (series1 a)->(series1 b)->(series1 (PS_mult a b)).
+  Proof.
+     move => H1 H2.
+     apply bseries_series1.
+     Search _ series1.
+     case (Ak_exists H1) => A1; case => k1 sb1.
+     case (Ak_exists H2) => A2; case => k2 sb2.
+     exists (A1*A2*((max k1 k2).+2))%coq_nat; exists (2*(max k1 k2))%coq_nat.
+     by apply multiplication_bound.
+  Qed.
+
+  Definition ps1_mult (a b : powerseries1) : powerseries1 := exist series1 (PS_mult (projT1 a) (projT1 b)) (series1_mult (projT2 a) (projT2 b)).
+
+  Definition psmult :=  (fun ab : (powerseries1_cs \*_cs powerseries1_cs) => (ps1_mult ab.1 ab.2)).
+
+  Lemma multiplication_rlzrf_spec : forall phi1 phi2 (a b : powerseries1), (phi1 \describes a \wrt powerseries1_cs) -> (phi2 \describes b \wrt powerseries1_cs) -> (multiplication_rlzrf phi1 phi2) \describes (ps1_mult a b)  \wrt powerseries1_cs.
+  Proof.
+    move => phi1 phi2 a b [//= phi1na1 phi1na2] [//= phi2nb1 phi2nb2].
+    split => [n eps epsgt0 | ] //=; by [apply multiplication_bound | apply convolution_rlzrf_spec].
+Qed.
+   
+  Definition multiplication_rlzrf' (phiab : (questions (powerseries1_cs \*_cs powerseries1_cs)))  := (multiplication_rlzrf (lprj phiab) (rprj phiab)).
+
+  Definition multiplication_rlzr: (questions (powerseries1_cs \*_cs powerseries1_cs) ->> (questions (powerseries1_cs))) := F2MF multiplication_rlzrf'.
+
+  Lemma multiplication_rlzr_spec : multiplication_rlzr \realizes (F2MF psmult).
+  Proof.
+    rewrite F2MF_rlzr_F2MF => ab [phia phib] [phiana phibnb].
+    rewrite /multiplication_rlzrf'.
+    by apply multiplication_rlzrf_spec.
+  Qed. 
+End multiplication.
+
 Section examples.
   Notation "x '+rq' y" :=
   (Rplus_rlzrf (name_pair x y)) (at level 35, format "x '+rq' y").    

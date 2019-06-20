@@ -1263,6 +1263,7 @@ Section examples.
   Notation "x '+rq' y" :=
   (Rplus_rlzrf (name_pair x y)) (at level 35, format "x '+rq' y").    
   Notation "x '*rq' y" :=
+  (Rmult_rlzrf (name_pair x y)) (at level 30, format "x '*rq' y").    
   
   Definition Q2RQ (q:Q) := (fun (eps :Q) => q). 
 
@@ -1480,7 +1481,6 @@ End examples.
      by apply (sum_rlzrf_spec (projT2 x) exp_name_spec ).
   Qed.
   Definition ce n := (comp_exp (Q2RQ (1#1)) (1#n)).
-  Extraction "inv_fact" ce.
     
   Definition sin_ps (nq: (nat*Q)) := match (nq.1 mod 4) with
                                    | 0%nat => 0
@@ -1491,6 +1491,9 @@ End examples.
   Definition sin_name := (make_ps_name sin_ps 1 1).
   Definition comp_sin (phi : (questions RQ)) := (sum_rlzrf' sin_name phi).
   Definition sin_plus_e := (addition_rlzrf sin_name exp_name).
+  Definition sin_mult_e := (multiplication_rlzrf sin_name exp_name).
   Definition comp_spe (phi : (questions RQ)) := (sum_rlzrf' sin_plus_e phi).
+  Definition comp_sme (phi : (questions RQ)) := (sum_rlzrf' sin_mult_e phi).
+  Compute (comp_sme (Q2RQ (1#2)) (1#2)).
   Definition PSeries2 a x y := (PSeries (fun n => (PSeries (fun m => (a (n,m))) y)) x). 
   

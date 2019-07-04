@@ -74,7 +74,7 @@ Proof.
   have [[// | [// | [// | k]]]]:= ass n.  
   suff ->: U psi_F' k.+3 s n = Some (F' s n) by case.
   have /mon_spec prp:= @U_mon nat nat nat nat psi_F'.
-  by apply/(prp _ _ _ 3); first by exists (fun m => s (s m)) => /= m; exists 3; rewrite /U /=.
+  exact/(prp _ _ _ 3).
 Qed.
 (* The detailed specification of U can be found in the lemma FU_spec and by unfolding the
    definitions of the involved operations (operator is what \F_(_) is a notation for) *)

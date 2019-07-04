@@ -143,7 +143,7 @@ Section queries.
 
   Lemma qM_mon psi: (queriesM psi) \is_monotone.
   Proof.
-    by move => phi phifd q' n; rewrite /queriesM /=; case: (U_rec psi n phi q').
+    by move => phi q' n; rewrite /queriesM /=; case: (U_rec psi n phi q').
   Qed.
   
   Lemma FqM_spec psi phi mf: \F_(queriesM psi) phi mf <->

@@ -38,7 +38,10 @@ Definition U (psi: list A * Q' -> list Q + A')
   end.
 
 Lemma U_mon psi: (U psi) \is_monotone.
-Proof. by move => phi phifd q' n; rewrite/U/=; case E: (U_rec psi n phi q'). Qed.
+Proof.
+  move => phi q' n.
+  by rewrite /U/=; case E: (U_rec psi n phi q').
+Qed.
 
 Lemma unfold_U_rec n psi phi q':
   U_rec psi n.+1 phi q' = match U_rec psi n phi q' with

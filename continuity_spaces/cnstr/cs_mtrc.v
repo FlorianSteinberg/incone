@@ -87,6 +87,7 @@ Section metric_representation.
       have: (mu n.+1 <= m)%nat by apply/leq_trans/ineq/leq_maxr.
       by rewrite ineq'.
     apply/lim_tpmn => n.
+    rewrite /baire.limit in lim.
     have [N prp]:= lim (iseg (@id nat) n.+2).
     exists N => m ineq.
     have /coin_lstn prp':= prp m ineq.

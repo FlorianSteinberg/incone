@@ -12,6 +12,11 @@ Import QArith.
 Require Import Qabs.
 Local Open Scope R_scope.
 
+Print continuous_f.
+Print has_continuous_realizer.
+Print isomorphism.
+Print isomorphic.
+
 Section reals_via_rational_approximations.
   Coercion Q2R: Q >-> R.
   Definition rep_RQ : (Q -> Q) ->> R := make_mf (

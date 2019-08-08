@@ -1025,7 +1025,7 @@ Lemma add_error I J n m p:
   bounded I -> diam I <= /2^n -> bounded J -> diam J <= /2^m ->
   bounded (I.add p I J)
   /\
-  diam (I.add p I J) <= /2 ^ n + /2 ^ m + (powerRZ 2 (Z.max [(Imantissa_digits I)]%bigZ [(Imantissa_digits J)]%bigZ+(Z.max [Iexp_max I]%bigZ [Iexp_max J]%bigZ)-[p]%bigZ + 1))+(powerRZ 2 (Z.max [(Imantissa_digits I)]%bigZ [(Imantissa_digits J)]%bigZ+(Z.max [Iexp_max I]%bigZ [Iexp_max J]%bigZ)-[p]%bigZ + 2)).
+  diam (I.add p I J) <= /2 ^ n + /2 ^ m + (powerRZ 2 (Z.max [(Imantissa_digits I)]%bigZ [(Imantissa_digits J)]%bigZ+(Z.max [Iexp_max I]%bigZ [Iexp_max J]%bigZ)-[p]%bigZ + 3)).
 Proof.
   move => pgt.
   case: I => //; case => //lIm lIe; case => //uIm uIe _ ineq; rewrite /= in ineq.
@@ -1033,10 +1033,7 @@ Proof.
   set  M := (Z.max [(Imantissa_digits (Interval_interval_float.Ibnd (Float lIm lIe) (Float uIm uIe)))]%bigZ [(Imantissa_digits (Interval_interval_float.Ibnd (Float lJm lJe) (Float uJm uJe)))]%bigZ).
   set  E := (Z.max [(Iexp_max (Interval_interval_float.Ibnd (Float lIm lIe) (Float uIm uIe)))]%bigZ [(Iexp_max (Interval_interval_float.Ibnd (Float lJm lJe) (Float uJm uJe)))]%bigZ).
   split.
-  - rewrite /I.add.
-    rewrite /bounded.
-    rewrite !SFBI2.real_correct.
-    rewrite !SFBI2.add_correct.
+  - rewrite /I.add /bounded !SFBI2.real_correct !SFBI2.add_correct.
     rewrite /Xadd.
     by rewrite !D2R_SFBI2toX.
   rewrite /I.add.
@@ -1056,23 +1053,23 @@ Proof.
     apply /Zle_trans.
     apply digits_dec_exp.
     by rewrite exponent_max_sym;lia.
-  have t1' : (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_UP (SFBI2.prec p) ((D2R (Float uIm uIe))+(D2R (Float uJm uJe)))) <= ((D2R (Float uIm uIe))+(D2R (Float uJm uJe)))+(powerRZ 2 (M+E-[p]%bigZ+1)%Z).
+  have t1' : (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_UP (SFBI2.prec p) ((D2R (Float uIm uIe))+(D2R (Float uJm uJe)))) <= ((D2R (Float uIm uIe))+(D2R (Float uJm uJe)))+(powerRZ 2 (M+E-[p]%bigZ+2)%Z).
   - apply /Rle_trans.
     apply t1.
-    suff : (powerRZ 2 (Z.max [mantissa_digits uIm]%bigZ [mantissa_digits uJm]%bigZ + [exponent_max uJe uIe]%bigZ - [p]%bigZ + 2)) <= (powerRZ 2 (M + E - [p]%bigZ + 1)) by lra.
+    suff : (powerRZ 2 (Z.max [mantissa_digits uIm]%bigZ [mantissa_digits uJm]%bigZ + [exponent_max uJe uIe]%bigZ - [p]%bigZ + 2)) <= (powerRZ 2 (M + E - [p]%bigZ + 2)) by lra.
     rewrite !powerRZ_Rpower; try by lra.
     apply Rle_Rpower; try by lra.
     apply IZR_le.
-    suff [B1 B2] : ((Z.max [mantissa_digits uIm]%bigZ [mantissa_digits uJm]%bigZ)+1 <= M)%Z /\ ([exponent_max uJe uIe]%bigZ+1 <= E)%Z by lia.
+    suff [B1 B2] : ((Z.max [mantissa_digits uIm]%bigZ [mantissa_digits uJm]%bigZ) <= M)%Z /\ ([exponent_max uJe uIe]%bigZ <= E)%Z by lia.
    split.
    + by rewrite /M/Imantissa_digits/Dmantissa_digits !BigZ.spec_max //=; lia.
      by rewrite /E /Iexp_max/Dexp/exponent_max_spec !BigZ.spec_max //=; lia.
-  have t2 :   ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))) <= (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_DN (SFBI2.prec p) ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))))+ (powerRZ 2 ((Z.max [mantissa_digits lIm]%bigZ [mantissa_digits lJm]%bigZ)+[exponent_max lJe lIe]%bigZ-[p]%bigZ+1)) .
+  have t2 :   ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))) <= (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_DN (SFBI2.prec p) ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))))+ (powerRZ 2 ((Z.max [mantissa_digits lIm]%bigZ [mantissa_digits lJm]%bigZ)+[exponent_max lJe lIe]%bigZ-[p]%bigZ+2)) .
   - rewrite add_float.
     apply (Rcomplements.Rabs_le_between').
     rewrite Rabs_minus_sym.
     apply /Rle_trans.
-    apply round_error2.
+    apply round_error2; last by [].
     rewrite !powerRZ_Rpower; try by lra.
     apply Rle_Rpower; try by lra.
     apply IZR_le.
@@ -1083,10 +1080,10 @@ Proof.
     apply /Zle_trans.
     apply digits_dec_exp.
     by rewrite exponent_max_sym;lia.
-  have t2' : ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))) <= (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_DN (SFBI2.prec p) ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))))+ (powerRZ 2 ((M+E-[p]%bigZ+1)%Z)) .
+  have t2' : ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))) <= (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_DN (SFBI2.prec p) ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))))+ (powerRZ 2 ((M+E-[p]%bigZ+2)%Z)) .
   - apply /Rle_trans.
     apply t2.
-    suff : (powerRZ 2 (Z.max [mantissa_digits lIm]%bigZ [mantissa_digits lJm]%bigZ + [exponent_max lJe lIe]%bigZ - [p]%bigZ + 1)) <= (powerRZ 2 (M + E - [p]%bigZ + 1)) by lra.
+    suff : (powerRZ 2 (Z.max [mantissa_digits lIm]%bigZ [mantissa_digits lJm]%bigZ + [exponent_max lJe lIe]%bigZ - [p]%bigZ + 2)) <= (powerRZ 2 (M + E - [p]%bigZ + 2)) by lra.
     rewrite !powerRZ_Rpower; try by lra.
     apply Rle_Rpower; try by lra.
     apply IZR_le.
@@ -1097,15 +1094,107 @@ Proof.
   rewrite Rcomplements.Rle_minus_l.
   apply /Rle_trans.
   apply t1'.
-  suff :  (D2R (Float uIm uIe)) + (D2R (Float uJm uJe)) - (/ 2 ^ n) - (/ 2 ^ m) <= (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_DN (SFBI2.prec p) ((D2R (Float lIm lIe)) + (D2R (Float lJm lJe)))) + (powerRZ 2 (M + E - [p]%bigZ + 1)) by lra.
+  have pwr : (powerRZ 2 (M+E - [p]%bigZ + 3)) = (2 * powerRZ 2 (M+E - [p]%bigZ + 2)) by rewrite !(powerRZ_add);try by simpl;lra.
+  rewrite pwr.
+  suff :  (D2R (Float uIm uIe)) + (D2R (Float uJm uJe)) - (/ 2 ^ n) - (/ 2 ^ m) <= (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_DN (SFBI2.prec p) ((D2R (Float lIm lIe)) + (D2R (Float lJm lJe)))) + (powerRZ 2 (M + E - [p]%bigZ + 2)) by lra.
   have T:= (Rle_trans ((D2R (Float uIm uIe)) + (D2R (Float uJm uJe)) - (/ 2 ^ n) - (/ 2 ^ m))  _ _ _ t2').
   by apply T; lra.
 Qed.
-Definition Rplus_rlzrf (phi: questions (IR \*_cs IR)) (n: queries IR):= I.add (nat2p n) (lprj phi n) (rprj phi n).
-Definition Rmult_rlzrf (phi: questions (IR \*_cs IR)) (n: queries IR):= I.mult (nat2p n) (lprj phi n) (rprj phi n).
+Check mantissa_digits0.
+Lemma mantissa_digits0' m: ((m == 0)%bigZ /\ ([(mantissa_digits m)]%bigZ =0)%Z) \/ (((BigIntRadix2.valid_mantissa (BigZ.to_N m)) /\ mantissa_digits m == (BigIntRadix2.mantissa_digits (BigZ.to_N m)))%bigZ).
+Proof.
+  case e : (m =? 0)%bigZ.
+  - apply or_introl.
+    rewrite <- BigZ.eqb_eq.
+    by rewrite /mantissa_digits /BigIntRadix2.mantissa_sign e.
+  apply or_intror; split; last by apply mantissa_digits0; rewrite <- BigZ.eqb_neq.
+  apply valid_mantissa_bigN.
+  move : e.
+  rewrite BigZ.eqb_neq /BigZ.eq BigZ.spec_0 /BigZ.to_N /BigZ.to_Z.
+  case m => p; by [|lia].
+Qed.
 
+Lemma mantissa_digits_lb m : (m != 0)%bigZ -> (powerRZ 2 ([(mantissa_digits m)]%bigZ-1)) <= (Rabs (IZR [m]%bigZ)).
+Proof.
+case (mantissa_digits0' m) => [[Meq0 P] | [V P]] H; first by [].
+  rewrite P.
+  have c := BigIntRadix2.mantissa_digits_correct.
+  rewrite /BigIntRadix2.EtoZ in c.
+  rewrite c; last by [].
+  rewrite <- Interval_generic_proof.digits_conversion.
+  have [crc _] := (Digits.Zdigits_correct BigIntRadix2.radix (Z.pos (BigIntRadix2.MtoP (BigZ.to_N m)))).
+  have r : (Zaux.radix_val BigIntRadix2.radix) = 2%Z by [].
+  rewrite <- r.
+  rewrite <- Raux.bpow_powerRZ.
+  apply IZR_le in crc.
+  rewrite abs_IZR Raux.IZR_Zpower in crc; last first.
+  - suff: (0 < (Digits.Zdigits BigIntRadix2.radix (Z.pos (BigIntRadix2.MtoP (BigZ.to_N m)))))%Z by lia.
+    by apply Digits.Zdigits_gt_0.
+  suff: (Rabs (IZR (Z.pos (BigIntRadix2.MtoP (BigZ.to_N m))))) = (Rabs (IZR [m]%bigZ)) by move => <-.
+  rewrite !Rabs_Zabs.
+  apply IZR_eq.
+  move : H.
+  case m => n; by rewrite /BigZ.eq BigZ.spec_0 /BigIntRadix2.MtoP  /BigZ.to_Z /BigZ.to_N; have := (BigN.spec_pos n);case [n]%bigN => [| p |p]; try by []; try by lia.
+Qed.
+Lemma exp_lt m e N : (m != 0)%bigZ -> (Rabs (D2R (Float m e))) <= (powerRZ 2 N) ->  ([e]%bigZ <= N)%Z.
+Proof.
+  move => H0.
+  rewrite D2R_Float Rabs_mult.
+  Abort.
+Lemma float_lt m e N : (m != 0)%bigZ -> (Rabs (D2R (Float m e))) <= (powerRZ 2 N) -> ((powerRZ 2 [(mantissa_digits m)]%bigZ) <= (powerRZ 2 (N - [e]%bigZ+1))).
+Proof.
+  move => H0.
+  rewrite D2R_Float Rabs_mult.
+  rewrite [(Rabs (powerRZ _ _))]Rabs_right; last by apply Rle_ge, powerRZ_le;lra.
+  rewrite Rcomplements.Rle_div_r /Rdiv; last by apply Rlt_gt, powerRZ_lt;lra.
+  rewrite <- powerRZ_inv, <-powerRZ_neg, <-powerRZ_add, Z.add_opp_r; try by lra.
+  move => H.
+  suff : (powerRZ 2 ([(mantissa_digits m)]%bigZ-1)) <= (powerRZ 2 (N-[e]%bigZ)) by rewrite !powerRZ_add //=;lra.
+  apply /Rle_trans.
+  apply mantissa_digits_lb; try by [].
+  by [].
+ Qed.
+
+Lemma round_error3 : forall (mode: Interval_definitions.rounding_mode) (e:xpnt) (m:mant) p N, (1 < p)%bigZ -> (Rabs (D2R (Float m e))) <= (powerRZ 2 N) -> (Rabs ((Interval_definitions.round SFBI2.radix mode (SFBI2.prec p) (D2R (Float m e))) - (D2R (Float m e)))) <= (powerRZ 2 (N+2-[p]%bigZ)).
+Proof.
+  move => mode e m p N P1 Lt.
+  case P2: (m =? 0)%bigZ; move : P2; [rewrite BigZ.eqb_eq | rewrite BigZ.eqb_neq] => P2.
+  - rewrite D2R_Float P2 BigZ.spec_0 Rmult_0_l Rminus_0_r /Interval_definitions.round Generic_fmt.round_0 Rabs_R0.
+    apply powerRZ_le;lra.
+    apply /Rle_trans.
+    by apply round_error2;  [].
+  rewrite !powerRZ_add; try by lra.
+  apply Rmult_le_compat_r; first by apply powerRZ_le;lra.
+  suff : (powerRZ 2 [mantissa_digits m]%bigZ)*(powerRZ 2 ([e]%bigZ-1)) <= (powerRZ 2 N) by rewrite powerRZ_add; simpl;lra.
+  rewrite Rcomplements.Rle_div_r /Rdiv; last by apply Rlt_gt, powerRZ_lt;lra.
+  rewrite <- powerRZ_inv, <-powerRZ_neg, <-powerRZ_add, Z.add_opp_r, Z.sub_sub_distr; try by lra.
+  by apply float_lt.
+Qed.
+
+
+Lemma ID_bound_abs I : (bounded I) -> diam I <= /2^n ->  
+Definition Rplus_rlzrf (phi: questions (IR \*_cs IR)) (n: queries IR):= I.add (nat2p n) (lprj phi n) (rprj phi n).
+  Require Extraction.
+  Require ExtrHaskellBasic.
+  Require ExtrHaskellZInteger.
+  Require ExtrHaskellNatInt.
+  Extraction Language Haskell.
 Definition ZtoIR z : (questions IR):= (fun p:nat => (I.fromZ z)).
+Definition FloattoIR m e : (questions IR):= (fun p:nat => (I.bnd (Float (BigZ.of_Z m) (BigZ.of_Z e)) (Float (BigZ.of_Z m) (BigZ.of_Z e)))).
+
+Definition to_pair (d : D) := match d with
+                         | Fnan => (0%Z, 1%Z)
+                         | (Float m e) => ([m]%bigZ, [e]%bigZ)
+                                end.
+                          
+ Definition plus_float m1 e1 m2 e2 (n:nat) := (to_pair (I.midpoint (Rplus_rlzrf (name_pair (FloattoIR m1 e1) (FloattoIR m2 e2)) n))).
+Compute (plus_float 3%Z 2%Z (-3)%Z 10%Z 10%nat).
+ Extraction "plus" plus_float.
+ Search _ (D->Z).
+Search _ "mid".
 Compute ((Rplus_rlzrf (name_pair (ZtoIR (Z.pow 4 4000000)) (ZtoIR 4))) 2%nat).
+Definition Rmult_rlzrf (phi: questions (IR \*_cs IR)) (n: queries IR):= I.mult (nat2p n) (lprj phi n) (rprj phi n).
+200u
 Definition Rplus_rlzr: questions (IR \*_cs IR) ->> questions IR := F2MF Rplus_rlzrf.
 
 Lemma Rplus_rlzr_spec : Rplus_rlzr \realizes (F2MF (fun xy => Rplus xy.1 xy.2)).

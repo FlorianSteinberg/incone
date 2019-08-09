@@ -1100,7 +1100,7 @@ Proof.
   have T:= (Rle_trans ((D2R (Float uIm uIe)) + (D2R (Float uJm uJe)) - (/ 2 ^ n) - (/ 2 ^ m))  _ _ _ t2').
   by apply T; lra.
 Qed.
-Check mantissa_digits0.
+
 Lemma mantissa_digits0' m: ((m == 0)%bigZ /\ ([(mantissa_digits m)]%bigZ =0)%Z) \/ (((BigIntRadix2.valid_mantissa (BigZ.to_N m)) /\ mantissa_digits m == (BigIntRadix2.mantissa_digits (BigZ.to_N m)))%bigZ).
 Proof.
   case e : (m =? 0)%bigZ.
@@ -1170,9 +1170,164 @@ Proof.
   rewrite <- powerRZ_inv, <-powerRZ_neg, <-powerRZ_add, Z.add_opp_r, Z.sub_sub_distr; try by lra.
   by apply float_lt.
 Qed.
+Lemma ID_bound_abs (I : ID) : (bounded I) ->   forall x, x \contained_in I -> (Rabs x) <= (Rabs (lower I))+(diam I).
+Proof.
+  rewrite /lower/upper.
+  case: I => //; case => //lIm lIe; case => //uIm uIe _ x xc.
+  have [Lb Ub] := (contains_le (SFBI2.toX (Float lIm lIe)) (SFBI2.toX (Float uIm uIe)) (Xreal x) xc).
+  rewrite /le_upper D2R_SFBI2toX in Ub.
+  rewrite  D2R_SFBI2toX/le_lower/le_upper//= in Lb.
+  case (Rcase_abs x) => x0; [rewrite Rabs_left | rewrite Rabs_right]; by [|case (Rcase_abs (D2R (Float lIm lIe))) => Ip; [rewrite Rabs_left | rewrite Rabs_right]; by [|lra]].
+Qed.
+
+Lemma ID_bound_simpl (I : ID) n N : (0 <= N)%Z -> (bounded I) -> (diam I ) <= /2^n -> (exists x, x \contained_in I) -> (Rabs (lower I)) <= (powerRZ 2 N) -> (Rabs (upper I)) <= (powerRZ 2 (N+1)).
+Proof.
+  move => Ngt.
+  rewrite /upper/lower.
+  case: I => //; case => //lIm lIe; case => //uIm uIe BI DI nonempty LB.
+  apply /Rle_trans.
+  apply (ID_bound_abs BI).
+  case nonempty => x xp.
+  have c := (contains_upper (SFBI2.toX (Float lIm lIe)) (D2R (Float uIm uIe)) (Xreal x)).
+  rewrite //= !D2R_SFBI2toX in c,xp.
+  rewrite //=!D2R_SFBI2toX.  
+  apply c; apply xp.
+  simpl. 
+  apply /Rle_trans.
+  apply Rplus_le_compat_l.
+  apply DI.
+  apply /Rle_trans.
+  apply Rplus_le_compat_r.
+  apply LB.
+  rewrite powerRZ_add;simpl;last by lra.
+  suff : (/ 2 ^ n) <=(powerRZ 2 N) by lra.
+  suff K : (/ 2 ^ n) <= 1.
+  - apply /Rle_trans.
+    apply K.
+    rewrite powerRZ_Rpower; try by lra.
+    rewrite <- (Rpower_O 2); try by lra.
+    apply (Rle_Rpower 2 0 (IZR N)); by [lra | apply IZR_le].
+    rewrite Rinv_pow; last by lra.
+    case (Nat.eq_0_gt_0_cases n) => H;first by rewrite H //=;lra.
+    apply Rlt_le.
+    apply pow_lt_1_compat; by [lra|].
+Qed.
+Lemma ID_bound_dist I x y : (bounded I) -> (x \contained_in I) -> (y \contained_in I) -> (Rabs (x-y)) <= (diam I).  
+  case: I => //; case => //lIm lIe; case => //uIm uIe _.
+  rewrite //=!D2R_SFBI2toX.  
+  move => H1 H2.
+  by apply Rcomplements.Rabs_le_between';lra.
+Qed.
+
+Lemma upper_lower_contained I : (bounded I)-> (not_empty (I.convert I))-> ((upper I) \contained_in I) /\ ((lower I) \contained_in I).
+Proof.
+  case: I => //; case => //lIm lIe; case => //uIm uIe BI ne.
+  case ne => x xp.
+  have u := (contains_upper (SFBI2.toX (Float lIm lIe)) (D2R (Float uIm uIe)) (Xreal x)).
+  have l := (contains_lower (D2R (Float lIm lIe)) (SFBI2.toX (Float uIm uIe)) (Xreal x)).
+  rewrite //= !D2R_SFBI2toX.
+  rewrite //= !D2R_SFBI2toX in u,l,xp.
+  by lra.
+Qed.
+
+Lemma ID_bound_simpl2 (I : ID) n x N : (0 <= N)%Z -> (bounded I) -> (diam I ) <= /2^n ->  x \contained_in I -> (Rabs x) <= (powerRZ 2 N) -> (Rabs (upper I)) <= (powerRZ 2 (N+1)) /\ (Rabs (lower I)) <= (powerRZ 2 (N+1)).
+Proof.
+  move => Ngt.
+  move => BI DI xc LB.
+  have Rabs_bnd a b c : (Rabs (a-b)) <= c -> (Rabs a <= ((Rabs b) + c)).
+    move => H.
+    suff : (Rabs a - Rabs b <= c) by lra.
+    apply /Rle_trans.
+    by apply Rabs_triang_inv.
+    by [].
+  have ne : (not_empty (I.convert I)) by exists x.
+  have [U L]  := (upper_lower_contained BI ne).
+  have := (ID_bound_dist BI U xc).
+  have := (ID_bound_dist BI L xc).
+  move : U L BI DI xc LB ne.
+  rewrite /upper/lower.
+  case: I => //; case => //lIm lIe; case => //uIm uIe _ _ _ D _ xB _ lB uB.
+  have lb' : (Rabs ((D2R (Float lIm lIe))-x)) <= (/ 2 ^ n) by lra.
+  have ub' : (Rabs ((D2R (Float uIm uIe))-x)) <= (/ 2 ^ n) by lra.
+  apply Rabs_bnd in lb'.
+  apply Rabs_bnd in ub'.
+  have helper0 : (/ 2 ^ n) <= 1.
+  - rewrite Rinv_pow; last by lra.
+    case (Nat.eq_0_gt_0_cases n) => H;first by rewrite H //=;lra.
+    apply Rlt_le.
+    by apply pow_lt_1_compat; by [lra|].
+  have helper1 : (/ 2 ^ n) <=(powerRZ 2 N).
+  - apply /Rle_trans.
+    apply helper0.
+    rewrite powerRZ_Rpower; try by lra.
+    rewrite <- (Rpower_O 2); try by lra.
+    by apply (Rle_Rpower 2 0 (IZR N)); by [lra | apply IZR_le].
+  by have UB := (Rabs x)+(/ 2 ^ n) <=(powerRZ 2 (N+1));rewrite powerRZ_add /=;lra.
+Qed.      
+
+Lemma add_error' I J n m p x y N:
+  (1 < p)%bigZ ->
+  (0 <= N)%Z ->
+  bounded I -> diam I <= /2^n -> bounded J -> diam J <= /2^m ->
+  (x \contained_in I) ->
+  (y \contained_in J) ->
+  (Rabs x) <=  (powerRZ 2 N) -> (Rabs y) <= (powerRZ 2 N) ->
+  bounded (I.add p I J)
+  /\
+  diam (I.add p I J) <= /2 ^ n + /2 ^ m + (powerRZ 2 (N+5-[p]%bigZ)).
+Proof.
+  move => pgt Ngt.
+  move => BI DI BJ DJ xc yc Bx By.
+  have [B1 B2] := (ID_bound_simpl2 Ngt BI DI xc Bx). 
+  have [B1' B2'] := (ID_bound_simpl2 Ngt BJ DJ yc By). 
+  move : BI DI BJ DJ xc yc Bx By B1 B2 B1' B2'.
+  rewrite /upper/lower.
+  case: I => //; case => //lIm lIe; case => //uIm uIe _ ineq; rewrite /= in ineq.
+  case: J => //; case => //lJm lJe; case => //uJm uJe _ ineq' _ _ P1 P2 BIu BIl BJu BJl; rewrite /= in ineq'.
+  split.
+  - rewrite /I.add /bounded !SFBI2.real_correct !SFBI2.add_correct.
+    rewrite /Xadd.
+    by rewrite !D2R_SFBI2toX.
+  rewrite /I.add.
+  rewrite !SFBI2_add_correct.
+  have [BP1 BP2] : (Rabs ((D2R (Float uIm uIe))+(D2R (Float uJm uJe)))) <= (powerRZ 2 (N+2)) /\ (Rabs ((D2R (Float lIm lIe))+(D2R (Float lJm lJe)))) <= (powerRZ 2 (N+2)).
+  - suff: ((N+2) = (N+1+1))%Z ; last by lia.
+    move ->.
+    split.
+    + apply /Rle_trans.
+      apply Rabs_triang.
+      by rewrite powerRZ_add //=;lra.
+    apply /Rle_trans.
+    apply Rabs_triang.
+    by rewrite powerRZ_add //=;lra.
+  have t1 :  (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_UP (SFBI2.prec p) ((D2R (Float uIm uIe))+(D2R (Float uJm uJe)))) <= ((D2R (Float uIm uIe))+(D2R (Float uJm uJe)))+(powerRZ 2 ((N+4-[p]%bigZ))).
+  - rewrite add_float in BP1.
+    rewrite add_float.
+    apply (Rcomplements.Rabs_le_between').
+    apply /Rle_trans.
+    apply (round_error3 _ pgt BP1); try by [].
+    suff : ((N + 2 + 2 -[p]%bigZ) = (N + 4 - [p]%bigZ))%Z by move => ->;apply Req_le.
+    by lia.
+  have t2 :   ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))) <= (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_DN (SFBI2.prec p) ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))))+ (powerRZ 2 ((N+4-[p]%bigZ))).
+  - rewrite add_float in BP2.
+    rewrite add_float.
+    apply (Rcomplements.Rabs_le_between').
+    rewrite Rabs_minus_sym.
+    apply /Rle_trans.
+    apply (round_error3 _ pgt BP2); try by [].
+    suff : ((N + 2 + 2 -[p]%bigZ) = (N + 4 - [p]%bigZ))%Z by move => ->;apply Req_le.
+    by lia.
+  rewrite Rcomplements.Rle_minus_l.
+  apply /Rle_trans.
+  apply t1.
+  have pwr : (powerRZ 2 (N+5 - [p]%bigZ)) = (2*powerRZ 2 (N+4- [p]%bigZ)) by rewrite !(powerRZ_add);try by simpl;lra.
+  rewrite pwr.
+  suff :  (D2R (Float uIm uIe)) + (D2R (Float uJm uJe)) - (/ 2 ^ n) - (/ 2 ^ m) <= (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_DN (SFBI2.prec p) ((D2R (Float lIm lIe)) + (D2R (Float lJm lJe)))) + (powerRZ 2 (N + 4 - [p]%bigZ)) by lra.
+  have T:= (Rle_trans ((D2R (Float uIm uIe)) + (D2R (Float uJm uJe)) - (/ 2 ^ n) - (/ 2 ^ m))  _ _ _ t2).
+  by apply T; lra.
+Qed.
 
 
-Lemma ID_bound_abs I : (bounded I) -> diam I <= /2^n ->  
 Definition Rplus_rlzrf (phi: questions (IR \*_cs IR)) (n: queries IR):= I.add (nat2p n) (lprj phi n) (rprj phi n).
   Require Extraction.
   Require ExtrHaskellBasic.

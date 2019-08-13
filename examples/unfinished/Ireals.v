@@ -1329,6 +1329,52 @@ Qed.
 
 
 Definition Rplus_rlzrf (phi: questions (IR \*_cs IR)) (n: queries IR):= I.add (nat2p n) (lprj phi n) (rprj phi n).
+Definition Rplus_rlzr: questions (IR \*_cs IR) ->> questions IR := F2MF Rplus_rlzrf.
+
+Lemma Rplus_rlzr_spec : Rplus_rlzr \realizes (F2MF (fun xy => Rplus xy.1 xy.2)).
+Proof.
+  rewrite F2MF_rlzr_F2MF => phi [x y] [/=[xephin convx] [yephin convy]].
+  split => n; first by apply/add_correct_R; [apply xephin | apply yephin].
+  have : exists K, (1 <= K)%nat /\ ((Rabs x) <= (powerRZ 2 (Z.of_nat K))) /\ ((Rabs y) <= (powerRZ 2 (Z.of_nat K))). 
+  admit.
+  case => K [Kprp1 [Kprp2 Kprp3]].
+  have [N Nprp]:= convx n.+2.
+  have [M Mprp]:= convy n.+2.
+  exists (maxn (K.+3.+4)%nat (maxn M N)) => k ineq.
+  have [ | bndl dml]:= Nprp k.
+	- apply/leq_trans; first exact: (leq_maxr M N).
+  	by apply/leq_trans; first exact: (leq_maxr (K.+3.+4)%nat (maxn M N)).
+  have [ | bndr dmr]:= Mprp k.
+	- apply/leq_trans; first exact: (leq_maxl M N).
+	  by apply/leq_trans; first exact: (leq_maxr (K.+3.+4)%nat (maxn M N)).
+  have lt: (1 < nat2p k)%bigZ.
+  - suff : (1 < k)%coq_nat.
+    rewrite /nat2p/SFBI2.PtoP/BigZ.lt //=.   
+    rewrite BigN.spec_of_pos.
+    have t : ((Int31.phi 1) = 1)%Z by [].
+    rewrite t.
+    rewrite Nat2Z.inj_lt //=.
+    case  k => [|p]; by [lia |rewrite /Z.of_nat Pos.of_nat_succ].
+    suff : (K.+3.+4 <= k)%coq_nat by lia.
+    apply (Nat.le_trans (K.+3.+4) (maxn (K.+3.+4) (maxn M N)) k);apply /leP; try by [].
+    by apply (leq_maxl (K.+3.+4) (maxn M N)).
+  have err := (@add_error' (lprj phi k) (rprj phi k) k k (nat2p k) x y (Z.of_nat K) lt).
+  have lt' : (0 <= Z.of_nat K)%Z by lia. 
+  have [bnd err'] := (add_error' lt lt' bndl dml bndr dmr (xephin k) (yephin k) Kprp2 Kprp3).
+  split; first by apply bnd.
+  apply /Rle_trans.
+  apply err'.
+  simpl.
+  
+admit.
+have npg0: 0 < 2 ^ n.+1.
+	admit.
+have /=exp: /2 ^ k <= /2 * /2 ^ n.
+	admit.
+apply /Rle_trans; first by apply (@add_error (lprj phi k) (rprj phi k) n.+2 n.+2 k).
+have ng0: 0 < 2^n by apply pow_lt; lra.
+by rewrite /= !Rinv_mult_distr; try lra.
+Admitted.
   Require Extraction.
   Require ExtrHaskellBasic.
   Require ExtrHaskellZInteger.
@@ -1350,28 +1396,3 @@ Search _ "mid".
 Compute ((Rplus_rlzrf (name_pair (ZtoIR (Z.pow 4 4000000)) (ZtoIR 4))) 2%nat).
 Definition Rmult_rlzrf (phi: questions (IR \*_cs IR)) (n: queries IR):= I.mult (nat2p n) (lprj phi n) (rprj phi n).
 200u
-Definition Rplus_rlzr: questions (IR \*_cs IR) ->> questions IR := F2MF Rplus_rlzrf.
-
-Lemma Rplus_rlzr_spec : Rplus_rlzr \realizes (F2MF (fun xy => Rplus xy.1 xy.2)).
-Proof.
-rewrite F2MF_rlzr_F2MF => phi [x y] [/=[xephin convx] [yephin convy]].
-split => n; first by apply/add_correct_R; [apply xephin | apply yephin].
-have [N Nprp]:= convx n.+2.
-have [M Mprp]:= convy n.+2.
-exists (maxn n.+1 (maxn M N)) => k ineq.
-have [ | bndl dml]:= Nprp k.
-	apply/leq_trans; first exact: (leq_maxr M N).
-	by apply/leq_trans; first exact: (leq_maxr n.+1 (maxn M N)).
-have [ | bndr dmr]:= Mprp k.
-	apply/leq_trans; first exact: (leq_maxl M N).
-	by apply/leq_trans; first exact: (leq_maxr n.+1 (maxn M N)).
-rewrite /Rplus_rlzr/Rplus_rlzrf; split.
-admit.
-have npg0: 0 < 2 ^ n.+1.
-	admit.
-have /=exp: /2 ^ k <= /2 * /2 ^ n.
-	admit.
-apply /Rle_trans; first by apply (@add_error (lprj phi k) (rprj phi k) n.+2 n.+2 k).
-have ng0: 0 < 2^n by apply pow_lt; lra.
-by rewrite /= !Rinv_mult_distr; try lra.
-Admitted.

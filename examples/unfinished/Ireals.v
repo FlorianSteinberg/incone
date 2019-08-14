@@ -1425,6 +1425,70 @@ Proof.
   rewrite zp.
   by apply IZR_le;lia.
 Qed.
+
+Lemma mul_float m1 e1 m2 e2 : (D2R (Float m1 e1)*(D2R (Float m2 e2))) = (D2R (Float (m1*m2)%bigZ (e1+e2)%bigZ)).
+Proof.
+  rewrite !D2R_Float.
+  have comm u v w t : u*v*(w*t) = (u*w*(v*t)) by lra.
+  rewrite comm.
+  rewrite <- powerRZ_add; try by [].
+  by rewrite <- BigZ.spec_add,<- mult_IZR,<-BigZ.spec_mul.
+Qed.
+Lemma round_error_mul p rnd m1 e1 m2 e2 M: (1 < p)%bigZ -> (Rabs (D2R (Float m1 e1))) <= (powerRZ 2 M) -> (Rabs (D2R (Float m2 e2))) <= (powerRZ 2 M) -> (D2R (Float m1 e1))*(D2R (Float m2 e2)) - (powerRZ 2 (2*M+2-[p]%bigZ)%Z) <= (Interval_definitions.round SFBI2.radix rnd (SFBI2.prec p) ((D2R (Float m1 e1))*(D2R (Float m2 e2)))) <= (D2R (Float m1 e1))*(D2R (Float m2 e2)) + (powerRZ 2 (2*M+2-[p]%bigZ)%Z).
+Proof.
+  move => pgt H1 H2.
+  rewrite !mul_float.
+  have lt : (Rabs (D2R (Float (m1*m2)%bigZ (e1+e2)%bigZ))) <= (powerRZ 2 (2*M)).
+  - rewrite <- mul_float.
+    rewrite Rabs_mult.
+    rewrite <-Z.add_diag, powerRZ_add; last by lra.
+    by apply Rmult_le_compat; [apply Rabs_pos | apply Rabs_pos | |].
+  apply Rcomplements.Rabs_le_between'.
+  apply round_error3; by [].
+Qed.
+
+
+Lemma mul_error I J n m p x y N:
+  (1 < p)%bigZ ->
+  (0 <= N)%Z ->
+  bounded I -> diam I <= /2^n -> bounded J -> diam J <= /2^m ->
+  (x \contained_in I) ->
+  (y \contained_in J) ->
+  (Rabs x) <=  (powerRZ 2 N) -> (Rabs y) <= (powerRZ 2 N) ->
+  bounded (I.mul p I J)
+  /\
+  diam (I.mul p I J) <= /2 ^ n + /2 ^ m + (powerRZ 2 (2*N+5-[p]%bigZ)).
+Proof.
+  move => pgt Ngt.
+  move => BI DI BJ DJ xc yc Bx By.
+  have [B1 B2] := (ID_bound_simpl2 Ngt BI DI xc Bx). 
+  have [B1' B2'] := (ID_bound_simpl2 Ngt BJ DJ yc By). 
+  move : BI DI BJ DJ xc yc Bx By B1 B2 B1' B2'.
+  rewrite /upper/lower.
+  case: I => //; case => //lIm lIe; case => //uIm uIe _ ineq; rewrite /= in ineq.
+  case: J => //; case => //lJm lJe; case => //uJm uJe _ ineq' _ _ P1 P2 BIu BIl BJu BJl; rewrite /= in ineq'.
+  split.
+  - rewrite /bounded /I.mul.
+    case : (I.sign_large_ (Float lIm lIe) (Float uIm uIe));case : (I.sign_large_ (Float lJm lJe) (Float uJm uJe)); try by []; try by rewrite /I.mul !SFBI2.real_correct !SFBI2.mul_correct /Xmul !D2R_SFBI2toX.
+    rewrite !SFBI2.real_correct !SFBI2.max_correct !SFBI2.min_correct !SFBI2.mul_correct /Xmul.
+    by rewrite /Xmin /Xmax !D2R_SFBI2toX.
+    rewrite /I.mul.
+    case : (I.sign_large_ (Float lIm lIe) (Float uIm uIe));case : (I.sign_large_ (Float lJm lJe) (Float uJm uJe)).
+    admit.
+    admit.
+    admit.
+    admit.
+    admit.
+  have sub_simplification a b a' b': (a <= a') -> (b' <= b) -> (a-b <= a' - b') by lra.
+  have round_sub_simplifcation rnd rnd' m1 m2 m3 m4 e1 e2 e3 e4 M: ((Rabs (D2R (Float m1 e1))) <= (powerRZ 2 M)) -> ((Rabs (D2R (Float m2 e2))) <= (powerRZ 2 M)) -> ((Rabs (D2R (Float m3 e3))) <= (powerRZ 2 M)) -> ((Rabs (D2R (Float m4 e4))) <= (powerRZ 2 M)) -> (SFBI2.mul rnd p (Float m1 e1) (Float m2 e2)) - (SFBI2.mul rnd p (Float m3 e3) (Float m4 e4)) <= (D2R (Float m1 e1))*(D2R (Float m2 e2)) + (powerRZ 2 (2*M+2-[p]%bigZ)%Z) - ((D2R (Float m3 e3))*(D2R (Float m4 e4)) - (powerRZ 2 (2*M+2-[p]%bigZ)%Z)).
+  - move => B1 B2 B3 B4.
+    rewrite /D2R !SFBI2.mul_correct /Xmul !D2R_SFBI2toX //=.
+    apply sub_simplification;by apply round_error_mul; try by [].
+    apply /Rle_trans.
+    Check SFBI2.mul_correct //=
+    Search _ SFBI2.toX D2R.
+    rewrite !SFBI2.real_correct !SFBI2.max_correct !SFBI2.min_correct !SFBI2.mul_correct /Xmul.
+  rewrite !SFBI2_mul_correct.
   Require Extraction.
   Require ExtrHaskellBasic.
   Require ExtrHaskellZInteger.

@@ -1335,46 +1335,96 @@ Lemma Rplus_rlzr_spec : Rplus_rlzr \realizes (F2MF (fun xy => Rplus xy.1 xy.2)).
 Proof.
   rewrite F2MF_rlzr_F2MF => phi [x y] [/=[xephin convx] [yephin convy]].
   split => n; first by apply/add_correct_R; [apply xephin | apply yephin].
-  have : exists K, (1 <= K)%nat /\ ((Rabs x) <= (powerRZ 2 (Z.of_nat K))) /\ ((Rabs y) <= (powerRZ 2 (Z.of_nat K))). 
-  admit.
+  have tp2_upper t: exists K, (0 <= K)%Z /\ (Rabs t) <= (powerRZ 2 K).
+  - have [A _] := (archimed (Rabs t)).
+    have A' : (Rabs t) <= (IZR (up (Rabs t))) by lra.
+    case e : ((up (Rabs t)) <=? 1)%Z; move : e; [rewrite Z.leb_le | rewrite Z.leb_gt]=>e.
+    + exists 1%Z; split; first by lia.
+      apply /Rle_trans.
+      apply A'.
+      apply /Rle_trans.
+      apply (IZR_le _ _ e).
+      by simpl;lra.
+    exists (Z.log2_up (up (Rabs t))); split; first by apply Z.log2_up_nonneg.
+    have [_ lt] := (Z.log2_up_spec (up (Rabs t)) e).
+    apply /Rle_trans.
+    apply A'.
+    apply /Rle_trans.
+    apply (IZR_le _ _ lt).
+    rewrite (Raux.IZR_Zpower SFBI2.radix); last by apply Z.log2_up_nonneg.
+    by rewrite <- (Raux.bpow_powerRZ SFBI2.radix);lra.
+  have : exists K, (1 <= K)%nat /\ ((Rabs x) <= (powerRZ 2 (Z.of_nat K))) /\ ((Rabs y) <= (powerRZ 2 (Z.of_nat K))).
+  - case (tp2_upper x) => Ux [Uxge0 Uxp]; case (tp2_upper y) => Uy [Uyge0 Uyp].
+    have [T1 T2] : ((Z.to_nat Ux) <= (maxn 1 (maxn (Z.to_nat Ux) (Z.to_nat Uy))))%nat /\ ((Z.to_nat Uy) <= (maxn 1 (maxn (Z.to_nat Ux) (Z.to_nat Uy))))%nat.
+    - split.
+      apply /leP /Nat.le_trans.
+      apply /leP; apply (leq_maxl (Z.to_nat Ux) (Z.to_nat Uy)).
+      by apply /leP; apply leq_maxr.
+    apply /leP /Nat.le_trans.
+    apply /leP; apply (leq_maxr (Z.to_nat Ux) (Z.to_nat Uy)).
+    by apply /leP; apply leq_maxr.
+    exists (maxn 1 (maxn (Z.to_nat Ux) (Z.to_nat Uy))); split; first exact: (leq_maxl 1 _).
+    split.
+    + apply /Rle_trans.
+      apply Uxp.
+      rewrite !powerRZ_Rpower; try by lra.
+      apply Rle_Rpower; try by lra.
+      apply IZR_le.
+      apply Z2Nat.inj_le; [by [] | by apply Zle_0_nat | ].
+      rewrite Nat2Z.id.
+      by apply /leP.
+    apply /Rle_trans.
+    apply Uyp.
+    rewrite !powerRZ_Rpower; try by lra.
+    apply Rle_Rpower; try by lra.
+    apply IZR_le.
+    apply Z2Nat.inj_le; [by [] | by apply Zle_0_nat | ].
+    rewrite Nat2Z.id.
+    by apply /leP.
   case => K [Kprp1 [Kprp2 Kprp3]].
   have [N Nprp]:= convx n.+2.
   have [M Mprp]:= convy n.+2.
-  exists (maxn (K.+3.+4)%nat (maxn M N)) => k ineq.
+  exists (maxn ((K+n.+1).+3.+2)%nat (maxn M N)) => k ineq.
   have [ | bndl dml]:= Nprp k.
 	- apply/leq_trans; first exact: (leq_maxr M N).
-  	by apply/leq_trans; first exact: (leq_maxr (K.+3.+4)%nat (maxn M N)).
+  	by apply/leq_trans; first exact: (leq_maxr ((K+n.+1).+3.+2)%nat (maxn M N)).
   have [ | bndr dmr]:= Mprp k.
 	- apply/leq_trans; first exact: (leq_maxl M N).
-	  by apply/leq_trans; first exact: (leq_maxr (K.+3.+4)%nat (maxn M N)).
+	  by apply/leq_trans; first exact: (leq_maxr ((K+n.+1).+3.+2)%nat (maxn M N)).
+  have t : ((Int31.phi 1) = 1)%Z by [].
+  have kgel : ((K+n.+1)%coq_nat.+3.+2 <= k)%coq_nat.
+  - by apply (Nat.le_trans ((K+n.+1).+3.+2) (maxn ((K+n.+1).+3.+2) (maxn M N)) k);apply /leP; by [apply (leq_maxl ((K+n.+1).+3.+2) (maxn M N))|].
   have lt: (1 < nat2p k)%bigZ.
   - suff : (1 < k)%coq_nat.
     rewrite /nat2p/SFBI2.PtoP/BigZ.lt //=.   
     rewrite BigN.spec_of_pos.
-    have t : ((Int31.phi 1) = 1)%Z by [].
     rewrite t.
     rewrite Nat2Z.inj_lt //=.
     case  k => [|p]; by [lia |rewrite /Z.of_nat Pos.of_nat_succ].
-    suff : (K.+3.+4 <= k)%coq_nat by lia.
-    apply (Nat.le_trans (K.+3.+4) (maxn (K.+3.+4) (maxn M N)) k);apply /leP; try by [].
-    by apply (leq_maxl (K.+3.+4) (maxn M N)).
-  have err := (@add_error' (lprj phi k) (rprj phi k) k k (nat2p k) x y (Z.of_nat K) lt).
+    by suff : ((K+n.+1).+3.+2 <= k)%coq_nat by lia.
   have lt' : (0 <= Z.of_nat K)%Z by lia. 
-  have [bnd err'] := (add_error' lt lt' bndl dml bndr dmr (xephin k) (yephin k) Kprp2 Kprp3).
+  have [bnd err] := (add_error' lt lt' bndl dml bndr dmr (xephin k) (yephin k) Kprp2 Kprp3).
   split; first by apply bnd.
   apply /Rle_trans.
-  apply err'.
-  simpl.
-  
-admit.
-have npg0: 0 < 2 ^ n.+1.
-	admit.
-have /=exp: /2 ^ k <= /2 * /2 ^ n.
-	admit.
-apply /Rle_trans; first by apply (@add_error (lprj phi k) (rprj phi k) n.+2 n.+2 k).
-have ng0: 0 < 2^n by apply pow_lt; lra.
-by rewrite /= !Rinv_mult_distr; try lra.
-Admitted.
+  apply err.
+  suff H : (powerRZ 2 ((Z.of_nat K)+5 - [nat2p k]%bigZ)) <= (/ 2 ^ n.+1).
+  - apply /Rle_trans.
+    apply Rplus_le_compat_l.
+    apply H.
+    by rewrite <- !tpmn_half;lra.
+  rewrite <- powerRZ2_neg_pos.
+  rewrite !powerRZ_Rpower;try by lra.
+  apply Rle_Rpower; try by lra.
+  move : lt.
+  rewrite /nat2p /SFBI2.PtoP/BigIntRadix2.ZtoE/BigZ.lt !BigIntRadix2.ZtoE_correct.
+  move => lt.
+  have zp : (Z.pos (Pos.of_nat k)) = (Z.of_nat k).
+  - move :lt.
+    case k => [| p H] ; try by simpl; [].
+    by rewrite <- Pos.of_nat_succ, Zpos_P_of_succ_nat;lia.
+  rewrite zp.
+  by apply IZR_le;lia.
+Qed.
   Require Extraction.
   Require ExtrHaskellBasic.
   Require ExtrHaskellZInteger.

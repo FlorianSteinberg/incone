@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrnat ssrbool.
 From rlzrs Require Import all_rlzrs.
-Require Import classical_count classical_cont classical_mach classical_func all_cs_base dscrt seq_cont sub.
+Require Import  axioms classical_count classical_cont classical_mach classical_func all_cs_base dscrt seq_cont sub.
 From metric Require Import pointwise.
 Require Import FunctionalExtensionality ClassicalChoice ChoiceFacts.
 
@@ -30,12 +30,20 @@ Section USIGPROD.
   Qed.
 
   Context (somei: I) (I_count: I \is_countable).
-  Canonical cs_Iprod_class := @continuity_space.Class _ _ _
-    (interview.Mixin rep_Iprod_sur) (dictionary.Mixin rep_Iprod_sing)
-    (continuity_space.Mixin
-       (somei, someq X) (somea X) (prod_count I_count (Q_count X)) (A_count X)).
-  Canonical cs_Iprod := continuity_space.Pack cs_Iprod_class.
-                  
+
+  Definition Iprod_names : naming_space.
+    exists (I * (queries X))%type (answers X).
+    - exact/(somei,someq).
+    - exact/somea.
+    - exact/prod_count/Q_count/I_count.
+    exact/A_count.
+  Defined.
+
+  Canonical cs_Iprod: cs.
+    exists (I -> X) Iprod_names rep_Iprod.
+    by split; [apply/rep_Iprod_sur | apply/rep_Iprod_sing].
+  Defined.
+  
   Lemma Iprd_base (an: cs_Iprod) (phi: name_space cs_Iprod):
     phi \describes an \wrt cs_Iprod <-> forall i, (fun q => phi (i,q)) \describes (an i) \wrt X.
   Proof. done. Qed.
@@ -96,20 +104,21 @@ Section isomorphisms.
     | (n :: L) => inr (phi (n, Lq'.2))
     end.
   
-  Definition sig2fun_rlzr: questions (X\^I) ->> questions (cs_I c-> X) := F2MF sig2fun_rlzrf.
+  Definition sig2fun_rlzr: names (X\^I) ->> names (cs_I c-> X) := F2MF sig2fun_rlzrf.
 
   Lemma sig2fun_rlzr_spec: sig2fun_rlzr \realizes (F2MF sig2fun).
   Proof.
     rewrite F2MF_rlzr_F2MF => phi xn phinxn.
     rewrite /= rlzr_F2MF => nf /= n eq.
-    split => [ | psi val]; first by exists (fun q => phi (n, q)) => q'; exists 2; rewrite /U/= eq.
+    split => [ | psi val].
+    - by exists (fun q => phi (n, q)) => q'; exists 2; rewrite /Umach.U/= eq.
     suff <-: (fun q => phi (n, q)) = psi by apply/phinxn.
     apply/functional_extensionality => q.
     have [m eq']:= val q; case: m eq' => //m; case: m => //m.
-    have ->: U (sig2fun_rlzrf phi) m.+2 nf q = U (sig2fun_rlzrf phi) 2 nf q.
-    - elim: m => // m; rewrite -addn1 -addn1 /U /=.
+    have ->: Umach.U (sig2fun_rlzrf phi) nf (m.+2,q) = Umach.U (sig2fun_rlzrf phi) nf (2,q).
+    - elim: m => // m; rewrite -addn1 -addn1 /Umach.U /=.
       by case: (U_rec (sig2fun_rlzrf phi) (m + 1 + 1) nf q).
-    by rewrite /U/= eq => [[]].
+    by rewrite /Umach.U/= eq => [[]].
   Qed.
 
   Lemma sig2fun_rlzr_cntop: sig2fun_rlzr \is_continuous_operator.
@@ -124,16 +133,16 @@ Section isomorphisms.
     by exists sig2fun_rlzr; split; [apply/sig2fun_rlzr_spec | apply/sig2fun_rlzr_cntop].
   Qed.
 
-  Definition fun2sig_rlzr: questions (cs_I c-> X) ->> questions (X\^I):=
+  Definition fun2sig_rlzr: names (cs_I c-> X) ->> names (X\^I):=
     make_mf (fun (psi: name_space cs_I c-> X) phi =>
-	       forall n, \F_(U psi) (fun _ => n) (fun q => phi (n, q))).
+	       forall n, F_U psi (fun _ => n) (fun q => phi (n, q))).
 
   Lemma fun2sig_rlzr_spec: fun2sig_rlzr \realizes (F2MF sval).
   Proof.
     rewrite rlzr_F2MF => psi xn /rlzr_F2MF rlzr.
     split => [ | phin Fpsiphi n].
     - have prp: forall (i: I), exists phi: queries X -> answers X, forall q,
-      exists c : nat, U psi c (fun _ : unit => i) q = Some (phi q).
+      exists c : nat, Umach.U psi (fun _ : unit => i) (c,q) = Some (phi q).
       + move => n.
         have [ | [phi val prp]]//:= rlzr (fun _ => n) n.
         by exists phi => q; apply/val.
@@ -167,7 +176,7 @@ Section isomorphisms.
 
   Context (Y: cs).
   
-  Definition cs_zip (xnyn: X\^I \*_cs Y\^I): (X \*_cs Y)\^I :=
+  Definition cs_zip (xnyn: X\^I * Y\^I): (cs_prod X Y)\^I :=
     (fun i => (xnyn.1 i, xnyn.2 i)).
 
   Lemma cs_zip_spec (xn: X\^I) (yn: Y\^I) i:
@@ -180,7 +189,7 @@ Section isomorphisms.
     | inr q' => phipsi (inr (iqq'.1, q'))
     end.
 
-  Local Open Scope baire_scope.
+  Local Open Scope name_scope.
   Lemma zip_rlzr_cntop Q A Q' A':
     (@zip_rlzrf Q A Q' A') \is_continuous_function.
   Proof.
@@ -188,9 +197,9 @@ Section isomorphisms.
     exists (fun iqq' => [::match iqq'.2 with | inl q => inl (iqq'.1,q) | inr q' => inr (iqq'.1, q') end]).
     by rewrite /zip_rlzrf; move => [i [q | q']] psi [/= ->].
   Qed.
-  Local Close Scope baire_scope.
+  Local Close Scope name_scope.
   
-  Definition zip_rlzr: questions (X\^I \*_cs Y\^I) ->> questions ((X \*_cs Y)\^I):=
+  Definition zip_rlzr: names (cs_prod (X\^I) (Y\^I)) ->> names ((cs_prod X Y)\^I):=
     F2MF (@zip_rlzrf _ _ _ _).
   
   Lemma zip_rlzr_spec: zip_rlzr \realizes (F2MF cs_zip).
@@ -206,27 +215,27 @@ Section isomorphisms.
     by exists zip_rlzr; split; [exact/zip_rlzr_spec | exact/cont_F2MF/zip_rlzr_cntop].
   Qed.
               
-  Definition cs_unzip (xyn: (X \*_cs Y)\^I): X\^I \*_cs Y\^I:=
+  Definition cs_unzip (xyn: (cs_prod X Y)\^I): X\^I * Y\^I:=
     (fun i => (xyn i).1, fun i => (xyn i).2).
   
-  Definition nzip_rlzrf Q A Q' A' (phipsi: _ -> A * A') (iqiq': I * Q + I * Q'):=
+  Definition nzip_rlzrf X Y (phipsi: _ -> answers X * answers Y) (iqiq': queries (X\^I) + queries (Y\^I)):=
     match iqiq' with
     | inl iq => phipsi (iq.1, inl iq.2)
     | inr iq' => phipsi (iq'.1, inr iq'.2)
     end.
 
-  Local Open Scope baire_scope.
-  Lemma nzip_rlzr_cntop Q A Q' A':
-    (@nzip_rlzrf Q A Q' A') \is_continuous_function.
+  Local Open Scope name_scope.
+  Lemma nzip_rlzr_cntop:
+    (@nzip_rlzrf X Y) \is_continuous_function.
   Proof.
     move => phi.
     exists (fun iqiq' => [::match iqiq' with | inl iq => (iq.1, inl iq.2) | inr iq' => (iq'.1, inr iq'.2) end]).
     by rewrite /nzip_rlzrf; move => [iq | iq'] psi [/= ->].
   Qed.
-  Local Close Scope baire_scope.
+  Local Close Scope name_scope.
 
-  Definition nzip_rlzr: questions ((X \*_cs Y)\^I) ->> questions (X\^I \*_cs Y\^I):=
-    F2MF (@nzip_rlzrf _ _ _ _).
+  Definition nzip_rlzr: names ((cs_prod X Y)\^I) ->> names (cs_prod (X\^I) (Y\^I)):=
+    F2MF (@nzip_rlzrf X Y).
   
   Lemma nzip_rlzr_spec: nzip_rlzr \realizes (F2MF cs_unzip).
   Proof.
@@ -240,7 +249,7 @@ Section isomorphisms.
     by exists nzip_rlzr; split; [exact/nzip_rlzr_spec | exact/cont_F2MF/nzip_rlzr_cntop].
   Qed.
 
-  Lemma cprd_prd: (X\^I \*_cs Y\^I) ~=~ ((X \*_cs Y)\^I).
+  Lemma cprd_prd: (cs_prod (X\^I) (Y\^I)) ~=~ ((cs_prod X Y)\^I).
   Proof.
     exists (exist_c zip_cont).
     exists (exist_c nzip_cont).
@@ -264,8 +273,10 @@ Section pointwise.
     F \is_continuous_operator -> (ptw_rlzr F) \is_continuous_operator.
   Proof.
     move => cont => phin Fphin val.
-    have /choice [Lf mod]//: forall i, exists Lf, forall q', certificate F (Lf q') (fun  q => phin (i, q)) q' (Fphin (i, q')).
-    - by move => i; apply/cont.    
+    have /choice [Lf mod]//:
+         forall i, exists Lf, forall q',
+               certificate F (Lf q') (fun  q => phin (i, q)) q' (Fphin (i, q')).
+    - by move => i; apply/cont/val.
     exists (fun iq => [seq (iq.1, L) | L <- Lf iq.1 iq.2]).
     move => [i q'] psin coin Fpsin val'.
     apply/(mod i q' _ _ (fun q => Fpsin (i, q)))/val'.
@@ -273,22 +284,23 @@ Section pointwise.
   Qed.
 
   Lemma ptw_rlzr_spec (X Y: cs) (f: X ->> Y) F:
-    F \realizes f -> (ptw_rlzr F:questions (X\^I) ->> questions (Y\^I)) \realizes (mf_ptw I f). 
+    F \realizes f -> (ptw_rlzr F:names (X\^I) ->> names (Y\^I)) \realizes (mf_ptw I f). 
   Proof.
     move => rlzr phin xs phinxs [ys val].
     split => [ | Fphi val'].
     - suff /choice [Fphi prp]: forall i, exists Fphi,
             F (fun q => phin (i, q)) Fphi.
       - by exists (fun iq => Fphi iq.1 iq.2).
-      move => i.
-      by have []//:= rlzr (fun q => phin (i, q)) (xs i); first by exists (ys i).
+        move => i; have []//:= rlzr (fun q => phin (i, q)) (xs i); first by apply/phinxs.
+        by exists (ys i); apply/val. 
     suff /choice [fa prp]: forall i, exists fai,
                     (fun q' => Fphi (i, q')) \describes fai \wrt Y
                     /\
                     f (xs i) fai. 
     - by exists fa; split => i; have []:= prp i.
     move => i.
-    have [ | | _ prp]//:= rlzr (fun q => (phin (i, q))) (xs i); first by exists (ys i).
+    have [ | | _ prp]//:= rlzr (fun q => (phin (i, q))) (xs i); first exact/phinxs.
+    - by exists (ys i); apply/val.
     have [ | fa]//:= prp (fun q' => Fphi (i, q')).
     by exists fa.
   Qed.
@@ -324,24 +336,24 @@ Section pointwise.
     
   Definition curry R S T (f: R -> S -> T) rs := f rs.1 rs.2.
 
-  Definition cptw_op (X Y Z: cs) (op: X \*_cs Y -> Z): X\^I \*_cs Y\^I -> Z\^I :=
+  Definition cptw_op (X Y Z: cs) (op: X * Y -> Z): X\^I * Y\^I -> Z\^I :=
     curry (ptw_op (uncurry op)).
 
-  Lemma cptw_ptw (X Y Z: cs) (op: X \*_cs Y -> Z):
-    (cptw_op op) = (@ptw (X \*_cs Y) Z op) \o_f (@cs_zip I somei I_count choice _ _).
+  Lemma cptw_ptw (X Y Z: cs) (op: X * Y -> Z):
+    (cptw_op op) = (@ptw (X * Y) Z op) \o_f (@cs_zip I somei I_count choice _ _).
   Proof. done. Qed.
   
-  Lemma cptw_cont X (op: X \*_cs X -> X):
+  Lemma cptw_cont X (op: cs_prod X X -> X):
     op \is_continuous -> (cptw_op op) \is_continuous.
   Proof.
     move => [F [/rlzr_F2MF Frop Fcont]].
-    pose np := (@name_pair X X: name_space X -> name_space X -> name_space (X \*_cs X)).
-    exists (make_mf (fun (phi: name_space (_\^I \*_cs (_\^I))) psi => forall n,
+    pose np := (@name_pair X X: names X -> names X -> names (cs_prod X X)).
+    exists (make_mf (fun (phi: names (cs_prod (_\^I) (_\^I))) psi => forall n,
 	                 F (np (fun q => lprj phi (n, q)) (fun q => rprj phi (n, q))) (fun q => psi (n, q)))).
     rewrite rlzr_F2MF; split => [phi [xn yn] [/= phinxn phinyn] | ].
     - have nms n: (np (fun q : queries X => lprj phi (n, q))
 		      (fun q : queries X => rprj phi (n, q)))
-                    \describes (xn n, yn n) \wrt (X \*_cs X).
+                    \is_name_of (xn n, yn n).
       + by split => /=; [apply/phinxn | apply/phinyn].
       split => [ | psi FpsiFpsi n].
       + have fd n:= (Frop (np (fun q => lprj phi (n, q))
@@ -351,19 +363,19 @@ Section pointwise.
       have val n:= (Frop (np (fun q => lprj phi (n, q))
 		             (fun q => rprj phi (n, q)))
                          (xn n, yn n) (nms n)).2.
-      by rewrite /ptw/=; apply/val.
+      by rewrite /ptw/=; apply/val/FpsiFpsi.
     apply cont_choice => phi Fphi /=FphiFphi [n q].
     pose phin:= np (fun q => lprj phi (n, q)) (fun q => rprj phi (n, q)).
     have [ | Lf mod]:= Fcont phin (fun q' => Fphi (n, q')); first exact/FphiFphi.
     exists (map (fun q' => match q' with
 	                   | inl q'' => inl (n, q'')
 	                   | inr q'' => inr (n, q'')
-	                   end) (Lf q)) => psi /coin_lstn coin Fpsi eq.
+	                   end) (Lf q)) => psi /coin_agre coin Fpsi eq.
     apply/(mod q (fun q' => match q' with
-	                    | inl q'' => ((psi (inl (n, q''))).1, somea _)
-	                    | inr q'' => (somea _, (psi (inr (n, q''))).2)
+	                    | inl q'' => ((psi (inl (n, q''))).1, somea)
+	                    | inr q'' => (somea, (psi (inr (n, q''))).2)
                             end) _ (fun q => Fpsi (n, q))); last by apply eq.
-    apply/coin_lstn => [[q' | q'] lstn].
+    apply/coin_agre => [[q' | q'] lstn].
     + rewrite /phin/= -(coin (inl (n,q'))) /lprj//.
       by elim: (Lf q) lstn => // a L ih /= [ -> | ]; [left | right; apply/ih].
     rewrite /phin/= -(coin (inr (n,q'))) /rprj//.
@@ -382,7 +394,7 @@ Section limits.
       /\
       phi \describes x \wrt X
       /\
-      (phi \is_limit_of (uncurry phin))%baire).
+      (phi \is_limit_of (uncurry phin))%name).
   Arguments limit {X}.
   Local Notation "x \is_limit_of xn" := (limit xn x).
 
@@ -394,36 +406,34 @@ Section limits.
     split => [[phipsin [phipsi [nm [[lnm rnm] lmt]]]] |].
     - split.
       + exists (lprj (nzip_rlzrf phipsin)); exists (lprj phipsi).
-        split => [i | ]; [by have []:= nm i | split => // L].
-        have [N prp]:= lmt (map inl L).
+        split => [i | ]; [by have []:= nm i | split => // q].
+        have [N prp]:= lmt (inl q).
         exists N => m ineq /=; have := prp m ineq.
-        elim L => // q K ih [coin prp']; split; last exact/ih/prp'.
-        by rewrite /lprj coin.
+        by rewrite /lprj /= => ->.
       exists (rprj (nzip_rlzrf phipsin)); exists (rprj phipsi).
-      split => [i | ]; [by have []:= nm i | split => // L].
-      have [N prp]:= lmt (map inr L).
+      split => [i | ]; [by have []:= nm i | split => // q].
+      have [N prp]:= lmt (inr q).
       exists N => m ineq /=; have := prp m ineq.
-      elim L => // q K ih [coin prp']; split; last exact/ih/prp'.
-      by rewrite /rprj coin.
+      by rewrite /rprj /= => ->.
     move => [[phin [phi [phinxn [phinx lmt]]]] [psin [psi [psinxn [psinx lmt']]]]].
     exists (fun iqq' => match iqq'.2 with
-                        | inl q => (phin (iqq'.1, q), somea Y)
-                        | inr q' => (somea X, psin (iqq'.1, q'))
+                        | inl q => (phin (iqq'.1, q), somea)
+                        | inr q' => (somea, psin (iqq'.1, q'))
                         end).
     exists (name_pair phi psi).
-    split => [i | ]; first by split; rewrite /lprj/rprj/=.
-    split => //.
+    split => [i | ]; first by split; rewrite /lprj/rprj/=; [apply/phinxn | apply/psinxn].
+    split => //; apply/lim_coin.
     elim => [ | [q | q'] L [N ih]]; first by exists 0.
-    - have [N' coin]:= lmt [::q].
+    - have [N' coin]:= lmt q.
       exists (maxn N N') => m ineq.
       split; last exact/ih/leq_trans/ineq/leq_maxl.
       rewrite /uncurry/=.
-      by have [ | ->]:= coin m; first by apply/leq_trans/ineq/leq_maxr.
-    have [N' coin]:= lmt' [::q'].
+      by have -> //:= coin m; apply/leq_trans/ineq/leq_maxr.
+    have [N' coin]:= lmt' q'.
     exists (maxn N N') => m ineq.
     split; last exact/ih/leq_trans/ineq/leq_maxl.
     rewrite /uncurry/=.
-    by have [ | ->]:= coin m; first by apply/leq_trans/ineq/leq_maxr.
+    by have ->//:= coin m; first by apply/leq_trans/ineq/leq_maxr.
   Qed.
 
   Definition sequential_continuity_point (X Y: cs) (f: X -> Y) x:=
@@ -439,7 +449,7 @@ Section limits.
   Local Notation "F \is_sequentially_continuous_operator":= (seq_cont.sequentially_continuous F) (at level 30).
   
   Lemma rlzr_scnt (X Y: cs) (f: X -> Y) F:
-    FunctionalCountableChoice_on (questions Y) ->
+    FunctionalCountableChoice_on (names Y) ->
     F \realizes (F2MF f) -> F \is_sequentially_continuous_operator ->
     f \is_sequentially_continuous.
   Proof.
@@ -456,7 +466,7 @@ Section limits.
   Qed.
 
   Lemma cont_scnt (X Y: cs) (f: X -> Y):
-    FunctionalCountableChoice_on (questions Y) -> f \is_continuous -> sequentially_continuous f.
+    FunctionalCountableChoice_on (names Y) -> f \is_continuous -> sequentially_continuous f.
   Proof. move => choice [F [rlzr /cont_scnt cont]]; exact/rlzr_scnt/cont. Qed.
 End limits.
 Arguments limit {X}.

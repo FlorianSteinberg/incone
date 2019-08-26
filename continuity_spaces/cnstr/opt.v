@@ -25,21 +25,20 @@ Section OPTIONSPACES.
   Lemma rep_opt_sing: rep_opt \is_singlevalued.
   Proof.
     move => phi [x [y [psi [eq psinx]] [psi' [eq']] |]| [y | ]]//.
-    - + suff <-: psi = psi' by move => psiny; rewrite (@answer_unique X psi x y).
+    - + suff <-: psi = psi' by move => psiny; f_equal; apply/answers_unique/psiny/psinx.
         apply/functional_extensionality => q.
         by have := eq q; rewrite (eq' q) /=; case.
     - move => [psi [eq psinx]] eq'.
-      by have:= (eq' (someq X)); rewrite eq.
+      by have:= (eq' someq); rewrite eq.
     move => eq' [psi [eq psinx]].
-    by have:= (eq' (someq X)); rewrite eq.
+    by have:= (eq' someq); rewrite eq.
   Qed.
 
-  Canonical cs_opt_class := @continuity_space.Class _ _ _
-    (interview.Mixin rep_opt_sur) (dictionary.Mixin rep_opt_sing)
-    (continuity_space.Mixin (someq X) None (Q_count X) (option_count (A_count X))).
+  Canonical cs_opt: represented_space.
+  exists (option X) (Build_naming_space someq None (Q_count X) (option_count (A_count X))) rep_opt.
+  by split; [apply/rep_opt_sur | apply/rep_opt_sing].
+  Defined.
 
-  Canonical cs_opt := continuity_space.Pack cs_opt_class.
-      
   Lemma Some_cont: (@Some X) \is_continuous.
   Proof.
     exists (F2MF (fun phi => Some \o_f phi)).
@@ -61,35 +60,35 @@ Section OPTIONSPACES.
                        \/
                        (phi =1 cnst None /\ Fphi =1 phiy))).
     split => [ | phi Fpsi [[psi [eq val]] | [eq val]]]; last first.
-    - + exists (fun q => [:: someq X]) => q' phi' [coin _] Fphi'.
+    - + exists (fun q => [:: someq]) => q' phi' [coin _] Fphi'.
         case => [[psi [eq'' val']] | [eq'' ->]]; last by rewrite val.
-        by have /= := eq (someq X); rewrite coin val eq''.
+        by have /= := eq someq; rewrite coin val eq''.
       have [mf mod]:= cont psi Fpsi val.
-      exists (fun q => someq X :: mf q) => q' phi' /coin_lstn coin Fpsi'.
-      case => [[psi' [eq' val']] | [eq' val']]; last by have:= eq (someq X); rewrite coin; [rewrite eq' | left].
-      apply/mod/val'/coin_lstn => q /=lstn.
+      exists (fun q => someq :: mf q) => q' phi' /coin_agre coin Fpsi'.
+      case => [[psi' [eq' val']] | [eq' val']]; last by have:= eq someq; rewrite coin; [rewrite eq' | left].
+      apply/mod/val'/coin_agre => q /=lstn.
       by apply/Some_inj; have /= <-:= eq q; have /= <-:= eq' q; apply/coin; right.
     rewrite rlzr_F2MF => phi [x [psi [eq psinx]] | phinN]; last first.
     - split => [ | Fphi [[psi [eq val]] | [/=eq val]]]; first by exists phiy; right.
-      + by have:= eq (someq X); rewrite phinN.
+      + by have:= eq someq; rewrite phinN.
       by have ->: Fphi = phiy by apply/functional_extensionality => q; rewrite val.
     have [[Fpsi FpsiFpsi] prp]:= rlzr psi x psinx.
     split; first by exists Fpsi; left; exists psi; split.
-    move => Fpsi' /= [[psi' [eq' val']] | [eq'']]; last by have:= eq'' (someq X ); rewrite eq.
+    move => Fpsi' /= [[psi' [eq' val']] | [eq'']]; last by have:= eq'' someq; rewrite eq.
     suff eq'': psi = psi' by apply/prp => //; rewrite eq''.
     apply/functional_extensionality => q.
     by have /= := eq' q; rewrite eq /=; case.
   Qed.
 
-  Lemma opt_iso_sum: cs_opt ~=~ (cs_unit \+_cs X).
+  Lemma opt_iso_sum: cs_opt ~=~ (cs_sum cs_unit X).
   Proof.
     have otscont: (fun (ox: cs_opt) => match ox with
                                          | None => inl tt
-                                         | Some x => inr x: cs_unit \+_cs X
+                                         | Some x => inr x: cs_sum cs_unit X
                                          end) \is_continuous.
     apply/opt_rec_cont/inr_cont.
     exists (exist_c otscont).
-    have stocont: (fun (ttsx: cs_unit \+_cs X) => match ttsx with
+    have stocont: (fun (ttsx: cs_unit + X) => match ttsx with
                                                   | inl _ => (None: cs_opt)
                                                   | inr x => Some x
                                                   end) \is_continuous.
@@ -104,13 +103,13 @@ Section OPTIONSPACES.
     ((F2MF Some)\^-1: cs_opt ->> X) \has_continuous_realizer.
   Proof.
     exists (F2MF (fun phi q => match phi q with
-                               | None => somea X
+                               | None => somea
                                | Some a => a
                                end)).
     split; last by apply/cont_F2MF => phi; exists (fun q => [:: q]) => q' phi' [ ->].
     rewrite F2MF_rlzr => phi [x [psi [eq psinx]] _ | phinN []] //.
     exists x; split => //.
-    suff ->: (fun q => match phi q with | Some a => a | None => somea X end) = psi by trivial.
+    suff ->: (fun q => match phi q with | Some a => a | None => somea end) = psi by trivial.
     by apply/functional_extensionality => q; rewrite eq.
   Qed.  
 End OPTIONSPACES.

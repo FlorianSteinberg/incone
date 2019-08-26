@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs choice_dict.
-Require Import facts all_baire cs smod prod sub func classical_cont classical_mach Duop.
+Require Import facts all_names cs smod prod sub func classical_cont classical_mach.
 Require Import FunctionalExtensionality Classical.
 
 Set Implicit Arguments.
@@ -8,15 +8,15 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope cs_scope.
-Lemma ass_cont (X Y: cs) (f: X -> Y): f \from (codom (@associate X Y)) <-> f \is_continuous.
+Lemma cfun_spec (X Y: rs) (f: X -> Y): f \from (codom (@associate U X Y)) <-> f \is_continuous.
 Proof.
-  split => [[psi /=rlzr] | [F [rlzr cont]]]; first by exists \F_(U psi); split; last exact/FU_cont.
-  have [psi val]:= (U_universal (someq X) (somea X) (fun _ => somea Y) (Q_count X) cont).
-  by exists psi; exact/ntrvw.tight_rlzr/val.
+  split => [[psi /=rlzr] | [F [rlzr cont]]]; first by exists (F_U psi); split; last exact/FU_cont.
+  have [psi val]:= exists_associate (Q_count X) (A_count X) (Q_count Y) cont.
+  by exists psi; apply/ntrvw.tight_rlzr/val.
 Qed.
 
 Definition exist_c (X Y: cs) (f: X -> Y) (cont: f \is_continuous): (X c-> Y).
-Proof. by exists f; apply/ass_cont. Defined.
+Proof. by exists f; apply/cfun_spec. Defined.
 
 Lemma prod_uprp_cont (X Y Z: cs) (f: Z c-> X) (g: Z c-> Y):
   exists! (F: Z c-> (cs_prod X Y)),
@@ -24,9 +24,9 @@ Lemma prod_uprp_cont (X Y Z: cs) (f: Z c-> X) (g: Z c-> Y):
     /\
     (forall z, (projT1 F z).2 = (projT1 g) z).
 Proof.
-  set F :Z -> X \*_cs Y := (projT1 f **_f projT1 g) \o_f mf.diag.
+  set F :Z -> X * Y := (projT1 f **_f projT1 g) \o_f mf.diag.
   have Fcont: F \is_continuous.
-  - exact/(cont_comp _ (facts.diag_cont Z))/fprd_cont/ass_cont/(projT2 g)/ass_cont/(projT2 f).
+  - exact/(cont_comp _ (facts.diag_cont Z))/fprd_cont/cfun_spec/(projT2 g)/cfun_spec/(projT2 f).
   exists (exist_c Fcont); split => // G [] eq eq'.
   apply/eq_sub/functional_extensionality => z; symmetry.
   exact/injective_projections/eq'/eq.
@@ -34,22 +34,22 @@ Qed.
 
 Definition cs_comp (X Y Z: cs) (f: X c-> Y) (g: Y c-> Z): (X c-> Z).
 Proof.
-  exists ((projT1 g) \o_f projT1 f); apply/ass_cont/cont_comp.
-  - exact/ass_cont/(projT2 g).
-  exact/ass_cont/(projT2 f).
+  exists ((projT1 g) \o_f projT1 f); apply/cfun_spec/cont_comp.
+  - exact/cfun_spec/(projT2 g).
+  exact/cfun_spec/(projT2 f).
 Defined.
 
 Notation "g \o_cs f" := (cs_comp f g) (at level 29): cs_scope.
 
 Lemma cs_comp_spec (X Y Z: cs)(f: X c-> Y) (g: Y c-> Z): projT1 (g \o_cs f) =1 (projT1 g \o_f projT1 f).
 Proof. done. Qed.
-
-Local Open Scope baire_scope.
+ 
+Local Open Scope name_scope.
 Lemma eval_rlzr_cntop (X Y: cs):
-  (@eval_rlzr (queries X) (queries Y) (answers X) (answers Y))|_(dom (rep (X c-> Y \*_cs X))) \is_continuous_operator.
+  (eval_rlzr X Y)|_(dom (rep (cs_prod (X c-> Y) X))) \is_continuous_operator.
 Proof.
   rewrite !cntop_spec => psiphi [Fpsiphi [[[f x] [psinf phinx]] /eval_rlzr_val val]].
-  rewrite /= in psinf phinx; have phifd: (rprj psiphi) \from dom \F_(U (lprj psiphi)) by exists Fpsiphi.
+  rewrite /= in psinf phinx; have phifd: (rprj psiphi) \from dom (F_U (lprj psiphi)) by exists Fpsiphi.
   have [FqM [FsM prp]]:= @FM_cont_spec (queries X) (queries Y) (answers X) (answers Y).
   have [subs [subs' [c_prp _]]]:= prp (lprj psiphi) (rprj psiphi).
   have [qf qvl]:= subs (rprj psiphi) phifd.
@@ -60,15 +60,14 @@ Proof.
   exists (fun q' => map inl (sf q') ++ map inr (qf q')) => q'.
   exists (Fpsiphi q') => psi'phi' /coin_cat[coin coin'].
   have : (rprj psiphi) \and (rprj psi'phi') \coincide_on (qf q').
-  - by elim: (qf q') coin' => // q K ih /= [eq /ih]; split; first rewrite /rprj eq.
+  - by elim: (qf q') coin' => // q K ih /= [eq /ih]; split; first rewrite /rprj /= eq.
   have: (lprj psiphi) \and (lprj psi'phi') \coincide_on (sf q').
-  - by elim: (sf q') coin => // q K ih /= [eq /ih]; split; first rewrite /lprj eq.
+  - by elim: (sf q') coin => // q K ih /= [eq /ih]; split; first rewrite /lprj /= eq.
   move: coin coin' => _ _ coin coin'.  
-  rewrite det_restr => [[[f' x'] [/=psi'nf' phi'nx']]] Fpsi'phi'/eval_rlzr_val val'.
+  apply det_restr => [[[f' x'] [/=psi'nf' phi'nx']]] Fpsi'phi'/eval_rlzr_val val'.
   rewrite /= in psi'nf' phi'nx'; pose psiphi':= name_pair (lprj psiphi) (rprj psi'phi').
-  have psiphi'nfx': psiphi' \describes (f, x') \wrt (X c-> Y \*_cs X).
-  - by trivial.
-  have [Fpsiphi' val'']: psiphi' \from dom eval_rlzr.
+  have psiphi'nfx': psiphi' \is_name_of (f, x') by trivial.
+  have [Fpsiphi' val'']: psiphi' \from dom (eval_rlzr X Y).
   - by have []:= eval_rlzr_crct psiphi'nfx'; first exact/F2MF_dom.
   have crt := crt_icf val (qfmodF q') _.
   rewrite -(crt (rprj psi'phi') _ Fpsiphi' val''); last by apply/coin'.
@@ -93,11 +92,11 @@ Proof.
   have ->: Fpsi'phi' q' = a' by apply/crt'; first by rewrite -eq; apply/coin.
   by symmetry; apply/crt'; first by rewrite -eq; apply/coin_ref.
 Qed.
-Local Close Scope baire_scope.
+Local Close Scope name_scope.
 
 Lemma eval_cont (X Y: cs): (@evaluation X Y) \is_continuous.
 Proof.
-  exists (@eval_rlzr (queries X) (queries Y) (answers X) (answers Y))|_(dom (rep (X c-> Y \*_cs X))).
+  exists (eval_rlzr X Y)|_(dom delta).
   split; last exact/eval_rlzr_cntop.
   rewrite rlzr_F2MF => psiphi fx psiphinfx.
   have [ | [Fpsiphi val] prp]:= eval_rlzr_crct psiphinfx; first exact/F2MF_dom.
@@ -110,7 +109,7 @@ Definition pt_eval (X Y: cs) (x: X) (f: X c-> Y):= evaluation (f, x).
 Lemma ptvl_val_cont (X Y: cs) (x: X): (@pt_eval X Y x) \is_continuous.
 Proof.
   have [phi phinx]:= get_description x.
-  exists (\F_(U (D phi))).
+  exists (F_U (D phi: function_names U (function_names U _ _) _)).
   rewrite rlzr_F2MF.
   split => [psi f psinf | ]; last exact/FU_cont.
   have [ | [Fphi /D_spec val] prp]:= psinf phi x phinx; first exact/F2MF_dom.

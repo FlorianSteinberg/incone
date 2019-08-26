@@ -14,7 +14,7 @@ Section SEQ.
     match L with
       | nil => forall q, (phi q) = [::]
       | (a :: L') => (forall q, phi q <> [::])
-                     /\ (fun q => head (somea X) (phi q)) \describes a \wrt X
+                     /\ (fun q => head somea  (phi q)) \describes a \wrt X
                      /\ (rep_seq_rec (fun q => (behead (phi q))) L')
       end.
 
@@ -31,28 +31,31 @@ Section SEQ.
   Proof.
     move => phi L.
     elim: L phi => [phi [ | a L' phinL [prp]]//| a L ih phi [[prp] | a' L' phinaL phina'L']//];
-                     try by have := prp (someq X).
+                     try by have := prp someq.
     f_equal; last by apply/ih; [apply phinaL | apply phina'L'].
     by apply/rep_sing; [apply phinaL | apply phina'L'].
   Qed.
 
-  Definition cs_seq := make_cs (someq X) [::] (queries_countable X) (list_count (answers_countable X)) rep_seq_sur rep_seq_sing.
-
-  Definition size_rlzrf (phi : (name_space cs_seq)) (tt: unit) := (size (phi (someq X))).
+  Definition cs_seq: continuity_space.
+    exists (seq X) (Build_naming_space someq nil (Q_count X) (list_count (A_count X))) rep_seq.
+    by split; [apply/rep_seq_sur | apply/rep_seq_sing].
+  Defined.
+  
+  Definition size_rlzrf (phi : (name_space cs_seq)) (tt: unit) := (size (phi someq)).
 
   Definition size_rlzr: name_space cs_seq ->> name_space cs_nat := F2MF size_rlzrf.
 
   Lemma size_rlzr_cntop: size_rlzr \is_continuous_operator.
   Proof.
     rewrite cont_F2MF /size_rlzrf => phi.
-    by exists (fun _ => [::someq X]) => q' psi /= [-> _].
+    by exists (fun _ => [::someq]) => q' psi /= [-> _].
   Qed.
     
   Lemma size_rlzr_spec: size_rlzr \realizes (F2MF size).
   Proof.
     apply/F2MF_rlzr_F2MF => phi L/=; rewrite /size_rlzrf.
     elim : L phi => [phi -> | a L IH phi phinaL]//=.    
-    case E : (phi (someq X)) => [ | a' L']; first by have:= (phinaL.1 (someq X)).
+    case E : (phi someq) => [ | a' L']; first by have:= (phinaL.1 someq).
     rewrite -(IH (fun q => behead (phi q))); last by apply phinaL.
     by rewrite size_behead /= E.
   Qed.
@@ -60,10 +63,10 @@ Section SEQ.
   Lemma size_cont: (size: cs_seq -> cs_nat) \is_continuous.
   Proof. by exists size_rlzr; split; [exact/size_rlzr_spec | exact/size_rlzr_cntop]. Qed.
 
-  Definition head_rlzrf phi (psi: name_space cs_seq) q := head (phi q) (psi q).
+  Definition head_rlzrf phi (psi: names cs_seq) q := head (phi q) (psi q).
 
-  Definition head_rlzr: name_space (X \*_cs cs_seq) ->> name_space X :=
-    F2MF (fun phi => head_rlzrf (lprj phi) (rprj phi)).
+  Definition head_rlzr: names (cs_prod X cs_seq) ->> names X :=
+    F2MF (fun (phi: names (cs_prod X cs_seq)) => head_rlzrf (lprj phi) (rprj phi)).
 
   Lemma head_rlzr_cntop: head_rlzr \is_continuous_operator.
   Proof.
@@ -77,7 +80,7 @@ Section SEQ.
     case: L => [prp | y L [neq [phiny _]]].
     - suff ->: head_rlzrf (lprj phi) (rprj phi) = lprj phi by trivial.
       by apply/functional_extensionality => q; rewrite /head_rlzrf prp.
-    suff ->: head_rlzrf (lprj phi) (rprj phi) = fun q => head (some_answer X) (rprj phi q) by trivial.
+    suff ->: head_rlzrf (lprj phi) (rprj phi) = fun q => head somea (rprj phi q) by trivial.
     apply/functional_extensionality => q.
     by rewrite /head_rlzrf; have:= neq q; case: (rprj phi q) => //.
   Qed.
@@ -87,8 +90,8 @@ Section SEQ.
    
   Definition cons_rlzrf (phi : name_space X) psi := (fun q => (cons (phi q) (psi q))).
 
-  Definition cons_rlzr: name_space (X \*_cs cs_seq) ->> (name_space cs_seq) :=
-    F2MF (fun phi => cons_rlzrf (lprj phi) (rprj phi)).
+  Definition cons_rlzr: name_space (cs_prod X cs_seq) ->> (name_space cs_seq) :=
+    F2MF (fun (phi: names (cs_prod X cs_seq)) => cons_rlzrf (lprj phi) (rprj phi)).
   
   Lemma cons_rlzr_cntop: cons_rlzr \is_continuous_operator.
   Proof.

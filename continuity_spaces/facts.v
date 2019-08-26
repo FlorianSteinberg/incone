@@ -18,14 +18,12 @@ Section facts.
   Proof. exact/id_hcr. Qed.
 
   Lemma diag_hcr (X: cs):
-    (mf_diag: X ->> _ \*_cs _) \has_continuous_realizer.
-  Proof.    
+    (mf_diag: X ->> _) \has_continuous_realizer.
+  Proof.
     exists (F2MF (fun phi => name_pair phi phi)); split; first by rewrite F2MF_rlzr_F2MF.
-    apply cont_F2MF => phi.
-    exists (fun qq' => match qq' with | inl q => [:: q] | inr q' => [:: q'] end) => [[q' psi | q' psi]] [];
-    by rewrite /name_pair/baire_prod.pair/= => ->.
+    exact/cntop_cntf/naming_spaces.diag_cont.
   Qed.
 
-  Lemma diag_cont (X: cs): (@diag X: _ -> _ \*_cs _) \is_continuous.
+  Lemma diag_cont (X: cs): (@diag X) \is_continuous.
   Proof. exact/diag_hcr. Qed.
 End facts.

@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun.
 From rlzrs Require Import all_rlzrs.
-Require Import all_baire cs prod sum func classical_func facts.
+Require Import all_names cs prod sum func classical_func facts.
 Require Import Morphisms.
 
 Set Implicit Arguments.

@@ -1,7 +1,7 @@
 From mathcomp Require Import ssreflect ssrfun.
 From rlzrs Require Import all_rlzrs.
-From metric Require Import metric.
-Require Import all_baire cs.
+From metric Require Import all_metric.
+Require Import all_names cs.
 Require Import ProofIrrelevance ProofIrrelevanceFacts.
 
 Set Implicit Arguments.
@@ -28,11 +28,10 @@ Section subspace.
     by apply eq_sub; apply (@rep_sing X phi x y).
   Qed.
 
-  Definition cs_sub_class:= @continuity_space.Class _ _ _
-    (interview.Mixin rep_sub_sur) (dictionary.Mixin rep_sub_sing)
-    (continuity_space.Mixin (someq X) (somea X) (Q_count X) (A_count X)).
-
-  Canonical cs_sub := continuity_space.Pack cs_sub_class.
+  Canonical rs_sub: rs.
+    exists {x | x \from P} B rep_sub.
+    by split; [apply/rep_sub_sur | apply/rep_sub_sing].
+  Defined.
 End subspace.
 
 Section subspaces.

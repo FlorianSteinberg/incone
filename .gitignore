@@ -23,6 +23,7 @@ Makefile.coq.conf
 *.native
 *.o
 *.v.d
+*.v~
 *.vio
 *.vo
 .coq-native/

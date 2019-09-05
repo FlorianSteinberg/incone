@@ -7,6 +7,7 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section CM2A.
+  (*
   Context (Q: eqType) (someq: Q) ( Q' A A': Type).
   Notation B := (Q -> A).
   Notation B' := (Q' -> A').
@@ -58,6 +59,9 @@ Section CM2A.
     by do 2 split => //; rewrite cl.
   Qed.
 
+  Definition psi_step phi q' K m :=
+    if check_sublist (mu psi q') K
+                     then inr 
   Definition psi_step L q' K m:= sval (psi_step_dep L q' K m).
 
   Lemma pstp_spec L q' K m:
@@ -75,9 +79,9 @@ Section CM2A.
     by case: ifP => //; case: (mu psi q') => // q K'' _ [<-].
   Qed.
     
-  Fixpoint psi_rec (L: seq A) (q': Q') n m: seq Q + A':=
+  Fixpoint psi_rec (phi: seq (Q * A)) (q': Q') n m: seq Q + A':=
     match n with
-    | 0 => psi_step L q' nil m
+    | 0 => psi_step phi q' nil m
     | S n' => match psi_rec L q' n' m with
               | inr a' => inr a'
               | inl K => match psi_step L q' K m with
@@ -90,9 +94,11 @@ Section CM2A.
   Lemma psi_rec_spec L q' phi:
     exists k, forall n m, k <= n -> k <= m -> psi_rec L q' n m = inr (F phi q').
   Proof.
+    
   Admitted.
     
-  Definition CM2A (Lq': seq A * Q') := psi_rec Lq'.1 Lq'.2 (size Lq'.1) (size Lq'.1).
+  Definition CM2A (phiq': seq (Q * A) * Q') :=
+    psi_rec phiq'.1 phiq'.2 (size phiq'.1) (size phiq'.1).
 
   Lemma CM2A_nnil L q' K: CM2A (L,q') = inl K -> K <> nil.
   Proof.
@@ -109,5 +115,5 @@ Section CM2A.
     apply/FM_dom => q'.
     exists (F (exist _ phi phifd) q').
     rewrite /=.    
-  Admitted.    
+  Admitted.    *)
 End CM2A.

@@ -12,12 +12,12 @@ Context (Q Q' A A' : Type).
 (* B: Baire space *)
 Notation B := (Q -> A).
 Notation B' := (Q' -> A').
-Context (psi: seq A * Q' -> seq Q + A').
+Context (psi: seq (Q * A) * Q' -> seq Q + A').
 
 Definition U_step phi q' L :=
   match psi (L, q') with
   | inr a' => inr a'
-  | inl K => inl (map phi K ++ L)
+  | inl K => inl (zip K (map phi K) ++ L)
   end.
 
 Fixpoint U_rec phi q' n :=
@@ -36,6 +36,7 @@ Lemma U_recS phi q' n: U_rec phi q' n.+1 =
                        | inl L => U_step phi q' L
                        end.
 Proof. done. Qed.
+
 Definition U (phi: Q -> A) (nq' : nat * Q') :=
   match U_rec phi nq'.2 nq'.1 with
   | inl _ => None
@@ -51,7 +52,7 @@ Context (phi: Q -> A).
 Fixpoint consistent q' Ks :=
   match Ks with
   | nil => True
-  | K :: Ks' => psi (map phi (flatten Ks'), q') = inl K /\ consistent q' Ks'  end.
+  | K :: Ks' => psi (F2GL phi (flatten Ks'), q') = inl K /\ consistent q' Ks'  end.
 
 Lemma rev_eq T (L L': seq T): rev L = rev L' <-> L = L'.
 Proof. by split; first rewrite -{2}(revK L) -{2}(revK L'); move ->. Qed.
@@ -75,7 +76,7 @@ Proof. by case. Qed.
 Lemma cns_spec q' Ks:
   consistent q' Ks <->
   forall i, i < size Ks -> exists K,
-      psi (map phi (flatten (drop i.+1 Ks)), q') = inl K
+      psi (F2GL phi (flatten (drop i.+1 Ks)), q') = inl K
       /\
       flatten (drop i Ks) = K ++ flatten (drop i.+1 Ks).
 Proof.
@@ -102,7 +103,7 @@ Proof.
 Qed.
 
 Lemma cns_val_eq q' Ks Ks' a':
-  psi (map phi (flatten Ks), q') = inr a' -> size Ks <= size Ks' ->
+  psi (F2GL phi (flatten Ks), q') = inr a' -> size Ks <= size Ks' ->
 	consistent q' Ks -> consistent q' Ks' -> Ks = Ks'.
 Proof.
   move => val; elim: Ks' => [ | K' Kn' ih].
@@ -115,19 +116,19 @@ Proof.
 Qed.
 
 Lemma cns_U_rec q' Ks:
-  consistent q' Ks -> U_rec phi q' (size Ks) = inl (map phi (flatten Ks)).
+  consistent q' Ks -> U_rec phi q' (size Ks) = inl (F2GL phi (flatten Ks)).
 Proof.
   elim: Ks => // K Ks ih /cns_spec cns /=.
   rewrite /U_step ih; last exact/cns_cons/cns_spec/cns.
   have [ | K' /= []]//:= cns 0.
-  by rewrite drop0 map_cat  => -> /cat_eq_r ->.
+  by rewrite drop0 F2GL_cat => -> /cat_eq_r ->.
 Qed.
 
 Fixpoint gather_shapes q' n:=
   match n with
   | 0 => nil
   | S n' => let Ks := gather_shapes q' n' in
-            match psi (map phi (flatten Ks), q') with
+            match psi (F2GL phi (flatten Ks), q') with
             | inl K => K:: Ks
             | inr a' => Ks
             end
@@ -136,7 +137,7 @@ Fixpoint gather_shapes q' n:=
 Lemma gs_mon q' n:
     (gather_shapes q' n) \is_sublist_of (gather_shapes q' n.+1).
 Proof.
-  by move => K/=; case: (psi (map phi (flatten (gather_shapes q' n)), q')) => //; right.
+  by move => K/=; case: (psi (F2GL phi (flatten (gather_shapes q' n)), q')) => //; right.
 Qed.
 
 Lemma gs_subl q' n m:
@@ -146,7 +147,7 @@ Proof. by move => /subnK <-; elim: (m - n) => // k ih; apply/subs_trans/gs_mon/i
 Lemma gs_cns q' n: consistent q' (gather_shapes q' n).
 Proof.
   elim: n => // n ih /=.
-  by case E: (psi (map phi (flatten (gather_shapes q' n)), q')) => [K | a']; last exact/ih.
+  by case E: (psi (F2GL phi (flatten (gather_shapes q' n)), q')) => [K | a']; last exact/ih.
 Qed.                                  
 
 Lemma cns_gs q' Ks: consistent q' Ks -> gather_shapes q' (size Ks) = Ks.
@@ -155,14 +156,14 @@ Proof. by elim: Ks => // K Ks ih /= [val cns]; rewrite ih // val. Qed.
 Lemma size_gs q' n: size (gather_shapes q' n) <= n.
 Proof.
   elim: n => // n ih /=.
-  case: (psi (map phi (flatten (gather_shapes q' n)), q')) => // _.
+  case: (psi (F2GL phi (flatten (gather_shapes q' n)), q')) => // _.
   exact/leq_trans/leqnSn.
 Qed.  
 
 Lemma gs_gs q' n: gather_shapes q' n = gather_shapes q' (size (gather_shapes q' n)).
 Proof.
   elim: n => // n ih /=.
-  case E: (psi (map phi (flatten (gather_shapes q' n)), q')) => [K | a'] //=.
+  case E: (psi (F2GL phi (flatten (gather_shapes q' n)), q')) => [K | a'] //=.
   by rewrite -ih E.
 Qed.
 
@@ -190,14 +191,14 @@ Qed.
 
 Lemma U_rec_if q' n: U_rec phi q' n =
                    if n == 0 then inl nil
-                   else if psi (map phi (gather_queries (n.-1, q')), q') is inr a' then inr a'
-                   else inl (map phi (gather_queries (n, q'))).
+                   else if psi (F2GL phi (gather_queries (n.-1, q')), q') is inr a' then inr a'
+                   else inl (F2GL phi (gather_queries (n, q'))).
 Proof.
   elim: n => //= n ->.
   rewrite /U_step /gather_queries /=.
-  case: ifP => [/eqP->/=|/eqP neq]; first by case: (psi (nil, q')) => [K | ]//=; rewrite map_cat.
-  case E: (psi (map phi (gather_queries (n.-1, q')), q')) => [K | a'] //.
-  - by case E': (psi (map phi (gather_queries (n, q')),q')) => [K' | b']//=; rewrite map_cat.
+  case: ifP => [/eqP->/=|/eqP neq]; first by case: (psi (nil, q')) => [K | ]//=; rewrite F2GL_cat.
+  case E: (psi (F2GL phi (gather_queries (n.-1, q')), q')) => [K | a'] //.
+  - by case E': (psi (F2GL phi (gather_queries (n, q')),q')) => [K' | b']//=; rewrite F2GL_cat.
   by case: n neq E => // n _ /= eq; do 2 rewrite eq.
 Qed.  
 
@@ -206,7 +207,7 @@ Lemma flatten_cat_eq T (K: seq T) Ks: 0 < size Ks ->
 Proof. by case: Ks => //= K' Ks _; rewrite drop0 => /cat_eq_r ->. Qed.
 
 Definition communication:= make_mf (fun (q': Q') Ksa' =>
-	consistent q' Ksa'.1 /\ psi (map phi (flatten Ksa'.1), q') = inr Ksa'.2).
+	consistent q' Ksa'.1 /\ psi (F2GL phi (flatten Ksa'.1), q') = inr Ksa'.2).
 
 Lemma cmcn_sing: communication \is_singlevalued.
 Proof.
@@ -221,17 +222,17 @@ Qed.
 Lemma US q' n:
   U phi (n.+1, q') = match U phi (n, q') with
                      | Some a' => Some a'
-                     | None => if psi (map phi (gather_queries (n, q')), q') is inr a'
+                     | None => if psi (F2GL phi (gather_queries (n, q')), q') is inr a'
                                then Some a'
                                else None
                      end.
 Proof.
   rewrite /U U_rec_if /=.
-  case: n => [/= | n]; first by case (psi (nil, q')).
+  case: n => [/= | n]; first by case (psi _).
   rewrite U_rec_if; have -> /=: n.+1 == 0 = false by trivial.
   rewrite /gather_queries /=.
-  case E: (psi (map phi (gather_queries (n, q')), q')) => [K | ]//; last by rewrite E.
-  by case: (psi (map phi (flatten (K :: gather_shapes q' n)), q')).
+  case E: (psi (F2GL phi (gather_queries (n, q')), q')) => [K | ]//; last by rewrite E.
+  by case: (psi (F2GL phi (flatten (K :: gather_shapes q' n)), q')).
 Qed.
 
 Lemma cmcn_spec q' Ks a': communication q' (Ks,a') <->
@@ -255,7 +256,7 @@ Proof.
   rewrite (US _ n.+1); case E: (U phi _) => [a' | ] => [/= | _].
   - by case E': (psi _) => [K | b'] => [eq | ]; first rewrite eq; rewrite E'.
   rewrite /U_step /= /gather_queries /=.
-  by case E': (psi (map phi (gather_queries (n, q')), q')) => [K | b']; case: (psi _).
+  by case E': (psi (F2GL phi (gather_queries (n, q')), q')) => [K | b']; case: (psi _).
 Qed.
 
 Lemma gqS q' n: gather_queries (n.+1,q') =
@@ -317,7 +318,7 @@ Section moduli.
   Notation B' := (Q' -> A').
   Notation "? K" := (@inl (list Q) A' K) (format "'?' K", at level 50).
   Notation "! a'" := (@inr (list Q) A' a') (format "'!' a'", at level 50).
-  Context (psi: seq A * Q' -> seq Q + A').
+  Context (psi: seq (Q * A) * Q' -> seq Q + A').
 
   Local Open Scope name_scope.
   Lemma gq_modf_gs:
@@ -327,9 +328,8 @@ Section moduli.
     elim: n => // n ih coin /=.
     have coin': phi \coincides_with phi' \on (flatten (gather_shapes psi phi q' n)).
     - exact/coin_subl/coin/gq_mon.
-    by rewrite -ih //= -(coin_map coin').
+    by rewrite -ih //= /F2GL -(coin_map coin').
   Qed.
-
     
   Lemma gq_modf_gq:
     gather_queries psi \modulus_function_for gather_queries psi.
@@ -342,7 +342,7 @@ Section moduli.
     elim: n coin => //n ih coin.
     have coin': phi \coincides_with phi' \on (gather_queries psi phi (n,q')).
     - exact/coin_subl/coin/gq_mon.
-    rewrite !US -ih // /U_step -(gq_modf_gq coin') (coin_map coin').
+    rewrite !US -ih // /U_step /F2GL -(gq_modf_gq coin') (coin_map coin').
     by case: (U psi phi _) => //; case: (psi _).
   Qed.
 
@@ -382,26 +382,28 @@ Section duality_operator.
                         end
     end.
 
-  Fixpoint D (phi: B) (Ka'sq': seq (seq Q + A') * Q') : seq (seq A * Q') + A' :=
-    if Ka'sq'.1 is inr a' :: _ then inr a'
-    else inl [::(map phi (collect_left Ka'sq'.1), Ka'sq'.2)].
+  Definition D (phi: B) (Ka'sq': seq (((seq (Q * A) * Q') * (seq Q + A'))) * Q') :
+    seq (seq (Q * A) * Q') + A' :=
+    if Ka'sq'.1 is (_ ,inr a') :: _ then inr a'
+    else inl [::(F2GL phi (collect_left (map snd Ka'sq'.1)), Ka'sq'.2)].
   
   Lemma D_cont: D \is_continuous_function.
   Proof.
     exists (fun Ka'sq' => match Ka'sq'.1 with
-                          | inl K :: Ka's => collect_left Ka'sq'.1
+                          | (_, inl K) :: Ka's => collect_left (map snd Ka'sq'.1)
                           | _ => nil
                           end).
-    move => [Ka's q'] psi coin.
-    rewrite /D /=; case: Ka's coin => // [[]]//= K Ka's coin.
-    by f_equal; f_equal; rewrite (coin_map coin).
+    move => [Ka's q'] psi /= coin.    
+    rewrite /D /=; case: Ka's coin => // [[_]]//=  [] // Ks Ka's coin.    
+    by f_equal; f_equal; rewrite /F2GL (coin_map coin).
   Qed.
 
   Lemma U_rec_D psi phi q' n:
     U_rec (D phi) psi q' n =
     if n == 0 then inl nil
     else if U_rec psi phi q' n.-1 is inr a' then inr a'
-    else inl (iseg (fun i => psi(map phi (gather_queries psi phi (i,q')), q')) n).
+         else inl (iseg (fun i => let K := F2GL phi (gather_queries psi phi (i, q')) in
+                                  (K, q', psi (K, q'))) n).
   Proof.
     elim: n => // n.
     rewrite [RHS]/= U_recS => ->; rewrite !U_rec_if.
@@ -413,10 +415,13 @@ Section duality_operator.
     rewrite /= /U_step /= /gather_queries /=.
     case E: (psi _) => [K | a']//; last by rewrite E.
     case E': (psi _) => [K' | a'] //=.
-    do 7 f_equal.
-    move: E' => _.
+    do 3 f_equal; rewrite !F2GL_cat; do 5 f_equal; move: K' E' => _ _.
     elim: n K E => // k ih K /=.
-    case val: (psi (map phi (flatten (gather_shapes psi phi q' k)), q')) => [L | a'] // E.
+    case val: (psi (F2GL phi (flatten (gather_shapes psi phi q' k)), q')) => [L | a'] // E.
+    - by rewrite (ih L).
+    by rewrite E in val.
+    elim: n K E => // k ih K /=.
+    case val: (psi (F2GL phi (flatten (gather_shapes psi phi q' k)), q')) => [L | a'] // E.
     - by rewrite (ih L).
     by rewrite E in val.
   Qed.
@@ -434,16 +439,4 @@ Section duality_operator.
     by case eq: (U_rec _ _ _) => //.
   Qed.
 
-  Lemma gq_D_eq psi psi' phi q' n:
-    gather_queries (D phi) psi (n,q') = gather_queries (D phi) psi' (n, q') ->
-    gather_queries psi phi (n, q') = gather_queries psi' phi (n, q').
-  Proof.
-    elim: n => // n ih eq.
-    rewrite gqS [RHS]gqS !US.
-    rewrite gqS [RHS]gqS -!U_D_val in eq.
-    move: eq => /=.
-    case E: (U _ _ _) => [a' | ] //.
-    case E': (U _ _ _) => [b' | ] // eq'.
-    Search _ U None.
-  Qed.    
 End duality_operator.

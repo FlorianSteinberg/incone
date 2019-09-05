@@ -78,7 +78,10 @@ Section GL2MF.
       by split; first right; apply ih.
     by elim: K => [[] | q' K ih [/=[-> -> | lstn]]]//; [left |right; apply/ih].
   Qed.
-  
+
+  Lemma F2GL_cat phi K K': F2GL phi (K ++ K') = F2GL phi K ++ F2GL phi K'.
+  Proof. by rewrite /F2GL map_cat zip_cat // size_map. Qed.
+    
   Lemma GL2MF_spec phi K: GL2MF (F2GL phi K) =~= (F2MF phi)|_(L2SS K).
   Proof.
     move => q a; case: K => [ | q' K]; first by rewrite /=; firstorder.

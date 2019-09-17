@@ -189,7 +189,7 @@ End sequences.
 Arguments limit {Q} {A}.
 Notation "phi \is_limit_of phin" := (phi \from limit phin) (at level 23): name_scope.
 
-Section ouvertness.
+Section overtness.
   Local Open Scope name_scope.
   Context (Q A: Type). 
   Notation B := (Q -> A).
@@ -206,8 +206,8 @@ Section ouvertness.
   Lemma cldr_spec (phi: B) KL: phi \from cylinder KL <-> phi \is_choice_for (GL2MF KL).
   Proof. done. Qed.
 
-  Definition ouvert (P: subset B):= exists (ou: nat -> option B),
-      (codom (pf2MF ou) \is_subset_of P) /\ P \is_subset_of (closure (codom (pf2MF ou))).
+  Definition overt (P: subset B):= exists (ov: nat -> option B),
+      (codom (pf2MF ov) \is_subset_of P) /\ P \is_subset_of (closure (codom (pf2MF ov))).
 
   Definition projection_on (D: subset B):= cylinder|^D.
         
@@ -228,7 +228,7 @@ Section ouvertness.
   Lemma dp_coin D phi psi K: projection_on D (zip K (map phi K)) psi ->
                        phi \and psi \coincide_on K.
   Proof. by move => [_ coin]; apply/coin_sym/coin_GL2MF. Qed.
-End ouvertness.
+End overtness.
 Arguments cylinder {Q} {A}.
 
 Section mathcomp.

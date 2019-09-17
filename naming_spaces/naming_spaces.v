@@ -49,7 +49,7 @@ Section name_product.
     exact/sum_count/Q_count/Q_count.
     exact/prod_count/A_count/A_count.
   Defined.
-
+  
   Definition lprj (phipsi: product_names) := fst \o_f phipsi \o_f inl.
   Definition rprj (phipsi: product_names) := snd \o_f phipsi \o_f inr.
 
@@ -118,6 +118,7 @@ Section name_product.
     by rewrite /pair/unpair/lprj/rprj /= => [[q psi [-> [_ [->]]] | q psi [-> [-> ]]]] //.
   Qed.
 End name_product.
+Notation "B \*_ns B'" := (product_names B B') (at level 30): name_scope.  
 
 Section name_sum.
   Context (B B': naming_space).
@@ -172,7 +173,7 @@ Section name_sum.
   Lemma slct_sur: slct \is_surjective.
   Proof. by move => [phi | phi]; [exists (linc phi) | exists (rinc phi)]. Qed.
 End name_sum.
-
+  
 Section diagonal_mapping.
   Context (B: naming_space).
 

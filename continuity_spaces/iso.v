@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun.
 From rlzrs Require Import all_rlzrs.
-Require Import all_names cs prod sum func classical_func facts.
+Require Import all_names cs prod sum func classical_func.
 Require Import Morphisms.
 
 Set Implicit Arguments.
@@ -39,10 +39,10 @@ Global Instance prod_prpr:
   Proper (isomorphic ==> isomorphic ==> isomorphic) cs_prod.
 Proof.
   move => X X' [f [f' [cnclf cnclf']]] Y Y' [g [g' [cnclg cnclg']]].
-  have fcont: (projT1 f) \is_continuous by apply/ass_cont/(projT2 f).
-  have gcont: (projT1 g) \is_continuous by apply/ass_cont/(projT2 g).
-  have f'cont: (projT1 f') \is_continuous by apply/ass_cont/(projT2 f').
-  have g'cont: (projT1 g') \is_continuous by apply/ass_cont/(projT2 g').
+  have fcont: (projT1 f) \is_continuous by apply/cfun_spec/(projT2 f).
+  have gcont: (projT1 g) \is_continuous by apply/cfun_spec/(projT2 g).
+  have f'cont: (projT1 f') \is_continuous by apply/cfun_spec/(projT2 f').
+  have g'cont: (projT1 g') \is_continuous by apply/cfun_spec/(projT2 g').
   exists (exist_c (fprd_cont fcont gcont)).
   exists (exist_c (fprd_cont f'cont g'cont)).
   split; case => [x y /=]; rewrite /fprd /=.
@@ -50,14 +50,15 @@ Proof.
   by have /= ->:= cnclf' x; have /= ->:= cnclg' y.
 Qed.
 
+(*
 Global Instance sum_prpr:
   Proper (isomorphic ==> isomorphic ==> isomorphic) cs_sum.
 Proof.
   move => X X' [f [f' [cnclf cnclf']]] Y Y' [g [g' [cnclg cnclg']]].
-  have fcont: (projT1 f) \is_continuous by apply/ass_cont/(projT2 f).
-  have gcont: (projT1 g) \is_continuous by apply/ass_cont/(projT2 g).
-  have f'cont: (projT1 f') \is_continuous by apply/ass_cont/(projT2 f').
-  have g'cont: (projT1 g') \is_continuous by apply/ass_cont/(projT2 g').
+  have fcont: (projT1 f) \is_continuous by apply/cfun_spec/(projT2 f).
+  have gcont: (projT1 g) \is_continuous by apply/cfun_spec/(projT2 g).
+  have f'cont: (projT1 f') \is_continuous by apply/cfun_spec/(projT2 f').
+  have g'cont: (projT1 g') \is_continuous by apply/cfun_spec/(projT2 g').
   exists (exist_c (fsum_cont fcont gcont)).
   exists (exist_c (fsum_cont f'cont g'cont)).
   split; case => [x | y]; rewrite /fsum /=.
@@ -66,3 +67,4 @@ Proof.
   - by have /= ->:= cnclf' x.
   by have /= ->:= cnclg' y.
 Qed.
+*)

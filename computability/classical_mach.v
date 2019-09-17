@@ -381,12 +381,11 @@ Section initial_segment_associate.
   Lemma nu_mon: monotone_modulus nu.
   Proof. by move => phi q' n; apply/iseg_subl/n_step_le. Qed.
 
-  Definition psi_iseg Lq':=
-    let L := Lq'.1 in let q' := Lq'.2 in
-    let KL := zip (iseg cnt (size L)) L in
-    if Lf KL q' <= size L
+  Definition psi_iseg KLq':=
+    let KL := KLq'.1 in let q' := KLq'.2 in
+    if Lf KL q' <= size KL
     then inr (vf KL q')
-    else inl (segment cnt (size L) (Lf KL q').-1).
+    else inl (segment cnt (size KL) (Lf KL q').-1).
 
   Lemma map_iseg T T' (f: nat -> T) (g: T -> T') n: map g (iseg f n) = iseg (g \o_f f) n.
   Proof. by elim: n => // n /=<-. Qed.
@@ -407,6 +406,17 @@ Section initial_segment_associate.
     by rewrite /=; case: k => // k _ /=; rewrite cats0; symmetry; apply/iseg_seg.
   Qed.
 
+  Lemma zip_iseg (cnt': nat -> A) k:
+    zip (iseg cnt k) (iseg cnt' k) = iseg (fun q' => (cnt q', cnt' q')) k.
+  Proof. by elim: k => // k /= ->. Qed.
+
+  Lemma size_F2GL (phi: B) K: size (F2GL phi K) = size K.
+  Proof. by elim: K => //= q K ->. Qed.
+
+  Lemma zip_F2GL_snd (phi: B) K:
+    zip K (map snd (F2GL phi K)) = F2GL phi K.
+  Proof. by elim: K => //= q K ->. Qed.
+
   Lemma gs_psig phi q' k: phi \from dom F ->
     gather_queries psi_iseg phi (k,q') = iseg cnt (n_rec phi q' k).
   Proof.
@@ -416,24 +426,20 @@ Section initial_segment_associate.
     have [ | phi' /=]:= (dp_dom (F2GL phi (iseg cnt (n_rec phi q' k)))).2.
     - by exists phi; split => //; apply/coin_GL2MF/coin_ref.
     case eq: (dp _) => [psi | ]// _.
-    case E: (psi_iseg _) => [K | a']; move: E; rewrite {1}/psi_iseg /= size_map; case: ifP => // ineq; last first.
-    - move: ih; rewrite /gather_queries => ih _; rewrite ih; f_equal.
-      symmetry; apply/maxn_idPr.
+    case E: (psi_iseg _) => [K | a']; move: E.
+    rewrite {1}/psi_iseg /= size_F2GL ih; case: ifP => // ineq [<-].
+    - rewrite size_iseg iseg_cat_seg; last first.
+      + rewrite leqNgt; apply/negP => ineq'; suff: false by trivial.
+        by rewrite -ineq size_iseg.
+      f_equal.
       have [ | _ /coin_GL2MF/coin_F2GL ->] //:=
            @dp_spec (F2GL phi (iseg cnt (n_rec phi q' k))) psi; first by rewrite /= eq.
-      by rewrite ih size_iseg in ineq.
-    case => <-.
-    rewrite ih size_iseg iseg_cat_seg //.
-    f_equal.
-    symmetry.
-    have [ | _ /coin_GL2MF/coin_F2GL ->] //:=
+      symmetry; apply/maxn_idPl; rewrite leqNgt; apply/negP => ineq'; suff: false by trivial.
+      by rewrite -ineq size_iseg; apply/leq_trans/ineq'.
+    rewrite ih /psi_iseg; case: ifP => //=; rewrite size_F2GL size_iseg => ineq [eq'].
+    f_equal; symmetry; apply/maxn_idPr.
+    by have [ | _ /coin_GL2MF/coin_F2GL ->] //:=
          @dp_spec (F2GL phi (iseg cnt (n_rec phi q' k))) psi; first by rewrite /= eq.
-    apply/maxn_idPl.
-    move: ineq.
-    rewrite ih size_iseg => /negP /negP.
-    rewrite -ltnNge => ineq.
-    exact/leq_trans/ineq.
-    by rewrite ltnNge; move: ineq; rewrite ih size_iseg=> ->.
   Qed.
     
   Lemma psi_iseg_spec: FunctionalChoice_on Q' nat -> (U psi_iseg) \evaluates F.
@@ -441,48 +447,26 @@ Section initial_segment_associate.
     move => choice phi [Fphi val].
     split => [ | Fphi' /FU_val_spec val']; last first.
     - suff ->: Fphi' = Fphi by trivial.
-      apply/functional_extensionality => q'.
+      apply/fun_ext => q'.
       have [n [/=cns]]:= val' q'.
-      rewrite {1}/psi_iseg /= size_map.
-      case: ifP => // ineq [<-].
-      set KL := (zip (iseg cnt (size (flatten (gather_shapes psi_iseg phi q' n)))) (map phi (flatten (gather_shapes psi_iseg phi q' n)))).
+      rewrite {1}/psi_iseg /=.
+      have := gs_psig; rewrite /gather_queries size_F2GL => ->; last by exists Fphi.
+      rewrite size_iseg; case: ifP => //.
+      set KL := F2GL phi (iseg cnt (n_rec phi q' n)) => ineq [<-].
       have [ | phi' /=]:= (dp_dom KL).2.
-      + exists phi; split; first by exists Fphi.
-        rewrite /= /KL.
-        move: gs_psig; rewrite /gather_queries => ->; last by exists Fphi.
-        by rewrite size_iseg; apply/icf_GL2MF.
+      + by exists phi; split; [exists Fphi | apply/icf_GL2MF].
       case eq: (dp _) => [psi | ]// _.
       have [md mn]:= mod eq; have [a' crt]:= md q'.
       have -> //:= crt psi; last exact/vl; last exact/coin_ref.
       symmetry; apply/crt/val.
       have [ | _ /=]:= @dp_spec KL psi; first by rewrite /= eq.      
-      rewrite {1}/KL.
-      move: gs_psig; rewrite /gather_queries => ->; last by exists Fphi.
-      rewrite size_iseg => /coin_GL2MF coin.
-      apply/coin_subl/coin/iseg_subl.      
-      apply/leq_trans; first exact/ineq.
-      move: (@gs_psig phi q' n).    
-      rewrite /gather_queries => ->; last by exists Fphi.
-      by rewrite size_iseg.
+      rewrite {1}/KL => /coin_GL2MF coin.
+      exact/coin_subl/coin/iseg_subl.      
     apply/FM_dom => q'.
     have [ | k ineq']:= @n_rec_spec phi q' _ choice; first by exists Fphi.
     set k' := search (fun k => n_rec phi q' k.+1 <= n_rec phi q' k) k.
-    have := @search_correct (fun k => n_rec phi q' k.+1 <= n_rec phi q' k) _ ineq'.
-    rewrite -/k' => ineq.
-    exists (Fphi q'); exists k'.+1.
-    move: ineq.
-    rewrite US /= /n_step.
-    have [ | /=]:= (dp_dom (F2GL phi (iseg cnt (n_rec phi q' k')))).2.
-    - by exists phi; split; [exists Fphi | apply/coin_GL2MF/coin_ref].
-    case eq: (dp _) => [psi | ]// _ _.               
-    rewrite geq_max => /andP [ineq _].
-    rewrite {2}/psi_iseg /= size_map gs_psig; last by exists Fphi.
-    rewrite size_iseg.
-    have /=[ | _ /coin_GL2MF/coin_F2GL E]:= @dp_spec (F2GL phi (iseg cnt (n_rec phi q' k'))) psi.
-    - by rewrite eq.                  
-    rewrite E in ineq.
-    rewrite ineq.
-    Admitted.   
+    have := @search_correct (fun k => n_rec phi q' k.+1 <= n_rec phi q' k) _ ineq'.    
+  Admitted.
  End initial_segment_associate.  
 
 Section exists_associate.
@@ -548,7 +532,8 @@ Section exists_associate.
     by have ->: phi' = phi by apply/functional_extensionality => q; have [_ []]:= eq q.
   Qed.
 End exists_associate.
-  
+
+(*
 Section construct_associate.
   Local Open Scope name_scope.
   Context (Q: eqType) (Q' A A': Type) (somea: A) (someq: Q). 
@@ -590,11 +575,10 @@ Section construct_associate.
   
   Definition get_K L nq' := flatten (Ks_rec L nq' (size L)).
     
-  Definition pf_psi Lnq':=
-    let L:= Lnq'.1 in let nq' := Lnq'.2 in
-    let K := get_K L nq' in 
-    let K' := mu (extend somea (GL2LF (zip K L))) nq' in
-    if check_sublist K' K
+  Definition pf_psi KLnq':=
+    let KL:= KLnq'.1 in let nq' := KLnq'.2 in
+    let K' := mu (extend somea (GL2LF KL)) nq' in
+    if check_sublist K' (unzip1 KL)
     then inr (zip K' L)
     else inl K'.
 
@@ -663,14 +647,14 @@ Section construct_associate.
     by rewrite addSn /= -ih /Ks_step sze leqnn.
   Qed.    
 End construct_associate.
-
+*)
 Section mathcomp.
   Context (Q Q' A: eqType) (A': Type).
   Notation B := (Q -> A).
   Notation B' := (Q' -> A').
   Local Open Scope name_scope.
 
-  Lemma all_ovrt (P: subset B): countable Q -> countable A -> ouvert P.
+  Lemma all_ovrt (P: subset B): countable Q -> countable A -> overt P.
   Proof.
     case: (classic (exists phi, phi \from P)) => [[sp spP] | nex]; last first.
     - by exists (fun _ => None); split => [phi [] | phi phiP]//; exfalso; apply/nex; exists phi.

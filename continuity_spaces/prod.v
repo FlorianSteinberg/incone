@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs.
-Require Import all_cont cs naming_spaces rs_names.
+Require Import all_cont cs naming_spaces cs_names.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -8,19 +8,15 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope cs_scope.
 Section products.
-  Lemma prod_rep_spec (X Y: cs) : prod_rep X Y =~= (rep X ** rep Y) \o delta.
+  Lemma prod_rep_spec (X Y: cs) : product_representation X Y =~= delta ** delta \o delta.
+  Proof. by rewrite prod_rep_spec. Qed.
+
+  Lemma prod_name_spec (X Y: cs) phi (x: X) (y: Y):
+    phi \is_name_of (x,y) <-> (lprj phi) \is_name_of x /\ (rprj phi) \is_name_of y.
   Proof.
-    rewrite sing_rcmp; last exact/rep_sing.
-    by rewrite prod_rep_spec => phi psi; split => [ | [_ [<-] []]] //; exists (lprj phi, rprj phi).
+    split => [[[[_ _] [[<- <-]] []]] | [phinx phiny]]//.
+    by split => [ | [_ _] [<- <-]]; [exists (lprj phi, rprj phi) | exists (x, y)].
   Qed.
-
-  Lemma name_split (X Y: rs) phi (xy: X * Y): phi \is_name_of xy <->
-    (lprj phi) \is_name_of (xy.1) /\ (rprj phi) \is_name_of (xy.2).
-  Proof. done. Qed.
-
-  Lemma split_name (X Y: rs) phi psi (x: X) (y: Y): (pair (phi,psi)) \is_name_of (x,y) <->
-                                                    phi \is_name_of x /\ psi \is_name_of y.
-  Proof. done. Qed.
   
   Definition fst_rlzr (X Y: cs): name_space _ ->> name_space X :=
     F2MF (@lprj (name_space X) (name_space Y)).
@@ -30,33 +26,33 @@ Section products.
     F2MF (@rprj (name_space X) (name_space Y)).
   Local Arguments snd_rlzr {X} {Y}.
 
-  Lemma fst_rlzr_spec (X Y: cs): fst_rlzr \realizes (@mf_fst X Y).
-  Proof. by rewrite F2MF_rlzr_F2MF => phi x [phinx _]. Qed.
+  Lemma fst_rlzr_spec (X Y: cs): fst_rlzr \realizes (@fst X Y).
+  Proof. by rewrite F2MF_rlzr_F2MF  => phi x /prod_name_spec []. Qed.
 
-  Lemma snd_rlzr_spec (X Y: cs): (@snd_rlzr X Y) \realizes mf_snd.
-  Proof. by rewrite F2MF_rlzr_F2MF => phi x [_ phinx]. Qed.
+  Lemma snd_rlzr_spec (X Y: cs): (@snd_rlzr X Y) \realizes snd.
+  Proof. by rewrite F2MF_rlzr_F2MF => phi x /prod_name_spec []. Qed.
 
   Definition diag_rlzr (X: cs): name_space X ->> name_space _:=
-    F2MF (fun (phi: name_space X) => name_pair phi phi).
+    F2MF (fun (phi: name_space X) => pair (phi, phi)).
   Local Arguments diag_rlzr {X}.
 
   Lemma diag_rlzr_spec (X: cs):
-    diag_rlzr \realizes (@mf_diag X: X ->> _).
-  Proof. by rewrite F2MF_rlzr_F2MF. Qed.
+    diag_rlzr \solves (@mf_diag X: X ->> _).
+  Proof. by rewrite F2MF_rlzr_F2MF => ? ? ?; apply/prod_name_spec. Qed.
 
   Lemma lprj_pair (X Y: cs) (phi: name_space X) (psi: name_space Y):
-    lprj (name_pair phi psi) =  phi.
+    lprj (pair (phi,psi)) =  phi.
   Proof. by trivial. Qed.
   
   Lemma rprj_pair (X Y: cs) (phi: name_space X) (psi: name_space Y):
-    rprj (name_pair phi psi) =  psi.
+    rprj (pair (phi, psi)) =  psi.
   Proof. by trivial. Qed.
 
-  Lemma fst_hcr (X Y: rs): (@mf_fst X Y) \has_continuous_realizer.
+  Lemma fst_hcr (X Y: cs): (@fst X Y) \is_continuous.
   Proof.
     exists fst_rlzr.
-    split; last exact/cont_F2MF/(@lprj_cont B B).
-    by rewrite F2MF_rlzr_F2MF => phi x [].
+    split; last exact/cont_F2MF/lprj_cont.
+    by rewrite F2MF_rlzr_F2MF => phi x /prod_name_spec [].
   Qed.
 
   Lemma fst_cont (X Y: cs): (@fst X Y) \is_continuous.
@@ -65,7 +61,7 @@ Section products.
   Lemma snd_hcr (X Y: cs): (@mf_snd X Y) \has_continuous_realizer.
   Proof.
     exists snd_rlzr; split; last exact/cont_F2MF/rprj_cont.
-    by rewrite F2MF_rlzr_F2MF => phi x [].
+    by rewrite F2MF_rlzr_F2MF => phi x /prod_name_spec [].
   Qed.
 
   Lemma snd_cont (X Y: cs): (@snd X Y) \is_continuous.
@@ -83,12 +79,12 @@ Section products.
   Qed.
   
   Lemma fprd_rlzr_spec (X Y X' Y': cs) (f: X ->> Y) (g: X' ->> Y') F G:
-    F \realizes f -> G \realizes g -> (fprd_rlzr F G) \realizes (f ** g).
+    F \solves f -> G \solves g -> (fprd_rlzr F G) \solves (f ** g).
   Proof.
     move => /rlzr_spec rlzr /rlzr_spec rlzr'.
     rewrite rlzr_spec/= !prod_rep_spec fprd_rlzr_comp -!comp_assoc.
     apply/tight_comp_l.
-    rewrite (comp_assoc (_ ** _)) !rs_names.prod_rep_spec.    
+    rewrite !fprd_id !comp_id_r (comp_assoc (_ ** _)).
     have /sec_cncl ->:= (@pairK (name_space Y) (name_space Y')).
     rewrite comp_id_r !fprd_comp.
     exact/fprd_tight.
@@ -106,10 +102,11 @@ Section products.
   Proof. by move => cont cont' ; rewrite /continuous F2MF_fprd; apply/fprd_hcr. Qed.
     
   Lemma lcry_rlzr_spec (X Y Z: cs) F (f: X * Y ->> Z) phi x:
-    F \realizes f -> phi \is_name_of x -> (lcry_rlzr F phi) \realizes (lcry f x).
+    F \solves f -> phi \is_name_of x -> (lcry_rlzr F phi) \solves (lcry f x).
   Proof.
     move => rlzr phinx psi y psiny xyfd.
-    by have []//:= rlzr (name_pair phi psi) (x, y).
+    have []//:= rlzr (pair (phi, psi)) (x, y).
+    exact/prod_name_spec.
   Qed.
   
   Lemma lcry_hcr (X Y Z: cs) (f: X * Y ->> Z) x:
@@ -125,11 +122,12 @@ Section products.
   Proof. by move => cont; rewrite /continuous F2MF_lcry; exact/lcry_hcr. Qed.
 
   Lemma rcry_rlzr_spec (X Y Z: cs) F (f: X * Y ->> Z) psi y:
-    F \realizes f -> psi \describes y \wrt Y ->
-    (rcry_rlzr F psi) \realizes (rcry f y).
+    F \solves f -> psi \describes y \wrt Y ->
+    (rcry_rlzr F psi) \solves (rcry f y).
   Proof.
     move => rlzr psiny phi x phinx xyfd.
-    by have []//:= rlzr (name_pair phi psi) (x, y).
+    have []//:= rlzr (pair (phi, psi)) (x, y).
+    exact/prod_name_spec.
   Qed.
 
   Lemma rcry_hcr (X Y Z: cs) (f: X * Y ->> Z) y:
@@ -146,7 +144,7 @@ Section products.
   Proof. by move => cont; rewrite /continuous F2MF_rcry; exact/rcry_hcr. Qed.
 End products.
 
-Class Uncurry T (f : T) src tgt := { prog : src -> tgt}.
+Class Uncurry T (f : T) src tgt := {prog : src -> tgt}.
 Arguments prog {T} f {src tgt _}.
 
 Instance Uncurry_base (A B : cs) f : @Uncurry (A -> B) f _ _ :=
@@ -157,3 +155,4 @@ Instance Uncurry_step (A B : cs) C (f : A -> B -> C)
   {| prog := (fun x : A * B => @prog _ _ _ _ (g (fst x)) (snd x)) |}.
 Notation "f '\is_continuous'" := (@continuous _ _ (prog f)) (at level 2): curry_scope.
 Delimit Scope curry_scope with curry.
+Open Scope curry_scope.

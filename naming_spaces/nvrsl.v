@@ -22,9 +22,9 @@ End continuous_universals.
 
 Section U_universal.
   Definition fun_names (B B': naming_space): naming_space.
-    exists (seq (answers B) * (questions B'))%type (seq (questions B) + answers B')%type.
+    exists (seq (questions B * answers B) * (questions B'))%type (seq (questions B) + answers B')%type.
     apply/(nil, someq).
-    apply/prod_count/Q_count/list_count/A_count.
+    apply/prod_count/Q_count/list_count/prod_count/A_count/Q_count.
     exact/sum_count/A_count/list_count/Q_count.
   Defined.
 

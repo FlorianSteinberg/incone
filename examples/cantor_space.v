@@ -1,7 +1,7 @@
 From mathcomp Require Import ssreflect ssrfun eqtype ssrbool seq ssrnat.
-From mf Require Import choice_mf.
+From mf Require Import classical_mf.
 From rlzrs Require Import all_rlzrs.
-Require Import all_cs dscrt sets Classical.
+Require Import axioms all_cs dscrt sets Classical.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -35,7 +35,7 @@ Qed.
 
 Lemma nz_fun: nz_bool \is_function.
 Proof.
-  apply/(fun_spec _ true).
+  apply/(fun_spec _ true); first exact/full_choice.
   by split; [apply/nz_bool_sing | apply/nz_bool_tot].
 Qed.
 
@@ -62,7 +62,7 @@ Proof.
   suff Fpsinf: Fpsi \describes (false: cs_bool) \wrt _.
   - by have [b [Fpsinb ]]:= cnd Fpsi val'; have ->:= (rep_sing Fpsinb Fpsinf).  
   rewrite /= -Fxnf; apply/mod/val'.
-  apply/coin_lstn => [[n []]] lstn; rewrite psinchi.
+  apply/coin_agre => [[n []]] lstn; rewrite psinchi.
   suff ineq: n <= N by rewrite /chi ineq.
   rewrite /N; elim: (mf tt) lstn => //k L ih /= [->/= | lstn]; first exact/leq_maxl.
   exact/leq_trans/leq_maxr/ih.
@@ -87,11 +87,11 @@ Proof. by move => tot; have [[[n []] | [n []]]]//:= tot xpred0. Qed.
 
 (** But, it is continuous. Too prove this, it is necessary to explcitly work
 with the encodings **)
-Definition nzb_rlzr : questions Cantor ->> questions cs_bool :=
-  make_mf(fun (psi: name_space Cantor) (b: name_space cs_bool) =>
+Definition nzb_rlzr : name_space Cantor ->> name_space cs_bool :=
+  make_mf(fun psi b =>
             exists n, psi (n, tt) = true /\ b tt = true).
 
-Lemma nzb_rlzr_spec: nzb_rlzr \realizes nz_bool_p.
+Lemma nzb_rlzr_spec: nzb_rlzr \solves nz_bool_p.
 Proof.
   move => psi chi psinchi [b [n [eq eq']]].
   split => [ | Fpsi [k [vq vq']]]; first by exists (fun _ => true); exists n; rewrite psinchi.
@@ -132,12 +132,12 @@ Qed.
 
 (** In contrast to the realizer of the partial function above, the realizer
 on Sirpinski-space can be written down explicitly and not only as a relation. **)
-Definition nzS_rlzr: questions Cantor ->> questions cs_Sirp
-  := F2MF (fun (phi: name_space Cantor) (q: queries cs_Sirp) => phi (q, tt): answers cs_Sirp).
+Definition nzS_rlzr: name_space Cantor ->> name_space cs_Sirp
+  := F2MF (fun phi q => phi (q, tt): replies cs_Sirp).
 
-Lemma nzS_rlzr_spec: nzS_rlzr \realizes nz_Sirp.
+Lemma nzS_rlzr_spec: nzS_rlzr \solves nz_Sirp.
 Proof.
-  rewrite F2MF_rlzr => phi chi phinchi _.  
+  rewrite F2MF_slvs => phi chi phinchi chifd.  
   case: (classic (exists n, chi n = true)) => [[n eq] | ass].
   - exists top; split; last by split => // _; exists n.
     by split => // _; exists n; rewrite phinchi.

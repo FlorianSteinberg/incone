@@ -5,13 +5,13 @@
 Require Import Psatz.
 From mathcomp Require Import all_ssreflect.
 From metric Require Import all_metric.
-Require Import all_baire baire_metric classical_cont.
+Require Import all_names baire_metric classical_cont classical_count.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Local Open Scope baire_scope.
+Local Open Scope name_scope.
 Section baire_space.
   Context (Q A Q' A': Type).
   Notation B := (nat -> nat).
@@ -24,7 +24,7 @@ Section baire_space.
      The formal definition does not make the restriction that B = nat -> nat but allows each
      copy of the natural numbers to be a distinct type (that will often be assumed countable).
    **)
-  Print continuous_f.
+  Print continuous_function.
   (**
      An operator that can be defined directly in coq is usually readily be proven continuous,
      as Lf n can be chosen as the elements whose values are mentioned in the definition. Let's
@@ -82,9 +82,9 @@ Section baire_space.
 
   Lemma F_cont: F \is_continuous.
   Proof.
-    apply cont_choice => phi nf [val prp] str.
-    exists (init_seg (nf tt).+1) => psi /coin_lstn coin nf' [val' prp'].  
-    elim str; apply/eqP; rewrite eqn_leq; apply/andP.
+    move => phi nf [val prp].
+    exists (fun _ => init_seg (nf tt).+1); case => psi /coin_agre coin nf' [val' prp'].  
+    apply/eqP; rewrite eqn_leq; apply/andP.
     split; [apply/prp'; rewrite -coin// | apply/prp]; first by apply/lstn_iseg; exists (nf tt).
     rewrite -coin // in val'.
     apply/lstn_iseg; exists (nf' tt); split => //.
@@ -106,9 +106,9 @@ Section baire_space.
      Consider the operator that approximates the unbounded search embodied by F by a bounded
      search and takes the depth of this search as an additional argument, i.e.
    **)
-  Definition MF n phi (_: unit) :=
-    let m := search (fun k => phi k == 0) n in
-    if m < n then Some m else None. 
+  Definition MF phi (ntt:nat * unit) :=
+    let m := search (fun k => phi k == 0) ntt.1 in
+    if m < ntt.1 then Some m else None. 
   (**
      This coq-function may be interpreted as a partial operator by considering n a return value
      if and only if there exists a natural number k such that M_F k phi tt = Some n.
@@ -121,7 +121,7 @@ Section baire_space.
      appropriate equality of multivalued functions which is denoted by =~=.
    **)
 
-  Lemma MF_val n phi m: MF n phi tt = Some m -> phi m = 0.
+  Lemma MF_val phi n m: MF phi (n,tt) = Some m -> phi m = 0.
   Proof.
     rewrite /MF.
     case ineq: (search _ n < n) => // => [[<-]].
@@ -175,41 +175,41 @@ Section baire_space.
                                forall phi n, exists m, forall phi',
                                      {in init_seg m, phi =1 phi'} -> {in init_seg n, F phi =1 F phi'}.
   Proof.
-    have ms: minimal_section id id by split => // m n ->.
+    have ms: minimal_section _ id id by split => // m n ->.
     split => [cont phi n | cont].
-    - have [Lf mod] := cont phi.
+    - have [Lf md]:= cont phi.
       set m := \max_(i <- init_seg n) max_elt (Lf i).
-      exists m => psi/coin_funeq/coin_subl coin; rewrite -coin_funeq coin_lstn => q lstn.
-      apply/mod/coin/subl_trans; first exact/iseg_melt/ms.
+      exists m => psi/coin_funeq/coin_subl coin; rewrite -coin_funeq coin_agre => q lstn.
+      apply/md/coin/subs_trans; first exact/iseg_melt/ms.
       exact/iseg_subl/leq_max/(@iseg_base _ id id)/lstn/ms.
-    rewrite F2MF_cont_choice => phi n.
-    have [m mod]:= cont phi n.+1.
+    rewrite F2MF_cont_choice => [phi n | ]; last exact/countable_choice.
+    have [m md]:= cont phi n.+1.
     exists (init_seg m) => psi /coin_funeq coin.
-    have /coin_funeq/coin_lstn prp:= mod psi coin.
+    have /coin_funeq/coin_agre prp:= md psi coin.
     by apply/prp/lstn_iseg; exists n.
   Qed.
 
   (* The same can be done for partial operators: *)
-  Lemma PF2MF_continuous (F: B -> option B): (PF2MF F) \is_continuous <->
+  Lemma PF2MF_continuous (F: B -> option B): (pf2MF F) \is_continuous <->
     forall phi psi, F phi = Some psi -> forall n, exists m,
           forall phi' psi', F phi' = some psi' -> 
 	                    {in init_seg m, phi =1 phi'} -> {in init_seg n, psi =1 psi'}.
   Proof.
-    have ms: minimal_section id id by split => // m n ->.
+    have ms: minimal_section _ id id by split => // m n ->.
     split => [cont phi psi val n | cont].
-    - have [ | Lf mod]/=:= cont phi psi; first by rewrite val.
+    - have [ | Lf md]/=:= cont phi psi; first by rewrite val.
       set m := \max_(i <- init_seg n) max_elt (Lf i).
       exists m => phi' psi' val'/coin_funeq coin.
-      apply/coin_funeq/coin_lstn => k lstn; symmetry; apply/mod.
-      + apply/coin_subl/coin/subl_trans/iseg_subl/leq_max/iseg_base/lstn/ms.
+      apply/coin_funeq/coin_agre => k lstn; symmetry; apply/md.
+      + apply/coin_subl/coin/subs_trans/iseg_subl/leq_max/iseg_base/lstn/ms.
         exact/iseg_melt/ms.
       by rewrite /= val'.
-    rewrite cont_choice => phi /=.
+    rewrite cont_choice => phi /=; last exact/countable_choice.
     case val: (F phi) => [psi | ]// _ <- n.
-    have [m mod]:= cont phi psi val n.+1.
+    have [m md]:= cont phi psi val n.+1.
     exists (init_seg m)=> phi' /coin_funeq coin.
     case val': (F phi') => [psi' | ]// _ <-.
-    have /coin_funeq/coin_lstn prp:= mod phi' psi' val' coin.
+    have /coin_funeq/coin_agre prp:= md phi' psi' val' coin.
     by symmetry; apply/prp/lstn_iseg; exists n.
   Qed.
 End baire_space.

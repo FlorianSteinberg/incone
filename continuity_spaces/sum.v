@@ -1,7 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs.
-Require Import all_names cs rs_names.
-Require Import FunctionalExtensionality.
+Require Import axioms all_names cs cs_names.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -9,25 +8,26 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope cs_scope.  
 Section sums.
-  Definition inl_rlzr (X Y: cs) := F2MF (@linc (names X) (names Y)): _ ->> names (cs_sum _ _).
+  Definition inl_rlzr (X Y: cs) := F2MF (@linc (name_space X) (name_space Y)): _ ->> name_space (cs_sum _ _).
   Arguments inl_rlzr {X} {Y}.
   Arguments mf_inl {S} {T}.
 
-  Lemma inl_rlzr_spec (X Y: cs): inl_rlzr \realizes (mf_inl: X ->> cs_sum X Y).
+  Lemma inl_rlzr_spec (X Y: cs): inl_rlzr \realizes (inl: X -> cs_sum X Y).
   Proof.
-      by rewrite F2MF_rlzr_F2MF => phi x phinx; eexists; split; first exact/eq_refl. 
+    rewrite F2MF_rlzr_F2MF => phi x phinx.
+    by split => [ | _ <-]; [eexists; split; first exact/eq_refl | exists (inl x)].
   Qed.
   
   Lemma inl_cont (X Y: cs): (@inl X Y: X -> cs_sum X Y) \is_continuous.
   Proof. by exists inl_rlzr; split; [exact/inl_rlzr_spec | apply/cntop_cntf/linc_cntf ]. Qed.
   
-  Definition inr_rlzr (X Y: cs):= F2MF (@rinc (names X) (names Y)): _ ->> names (cs_sum _ _).
+  Definition inr_rlzr (X Y: cs):= F2MF (@rinc (B_ X) (B_ Y)): _ ->> B_ (cs_sum _ _).
   Arguments inr_rlzr {X} {Y}.
   
-  Lemma inr_rlzr_spec (X Y: cs): inr_rlzr \realizes (F2MF inr: Y ->> cs_sum X Y).
+  Lemma inr_rlzr_spec (X Y: cs): inr_rlzr \realizes (inr: Y -> cs_sum X Y).
   Proof.
     rewrite F2MF_rlzr_F2MF => phi y phiny.
-    by eexists; split; first exact/eq_refl.
+    by split => [ | _ <-]; [eexists; split; first exact/eq_refl | exists (inr y)].
   Qed.
   
   Lemma inr_cont (X Y: cs): (@inr X Y: _ -> cs_sum _ _) \is_continuous.
@@ -40,12 +40,12 @@ Section sums.
   Arguments paib {T}.
   
   Definition paib_rlzr (X: cs):=
-    F2MF (@paib (name_space X) \o_f (@slct (names X) (names X))): names (cs_sum _ _) ->> _.
+    F2MF (@paib (name_space X) \o_f (@slct (B_ X) (B_ X))): B_ (cs_sum _ _) ->> _.
   
-  Lemma paib_rlzr_crct (X: cs): (paib_rlzr X) \realizes (F2MF paib: cs_sum X X ->> X).
+  Lemma paib_rlzr_crct (X: cs): (paib_rlzr X) \realizes (paib: cs_sum X X -> X).
   Proof.
     rewrite F2MF_rlzr_F2MF => phi.
-    by case => x; case; by case => psi [eq psinx]//=; rewrite eq.
+    by case => x; case; case => psi [eq /=psinx] //=; rewrite eq; case: psi psinx eq => //.
   Qed.
 
   Lemma paib_rlzr_cntop (X: cs): (@paib_rlzr X) \is_continuous_operator.
@@ -59,10 +59,26 @@ Section sums.
   Lemma paib_cont (X: cs): (@paib X: cs_sum _ _ -> _) \is_continuous.
   Proof. exists (paib_rlzr X); split; [exact/paib_rlzr_crct | exact/paib_rlzr_cntop]. Qed.
 
-  Lemma fsum_spec (X Y X' Y': cs) F G (f: X ->> Y) (g: X' ->> Y'):
-    F \realizes f -> G \realizes g -> (fsum_rlzr F G) \realizes (f +s+ g).
+  Lemma fsum_comp S T R S' T' R' (f: S ->> T) (f': S' ->> T') (g: R ->> S) (g': R' ->> S'):
+    (f +s+ f') \o (g +s+ g') =~= (f \o g) +s+ (f' \o g').
   Proof.
-    rewrite fsum_rlzr_comp sum_rep_spec.
+    move => [r [t | t'] | r' [t | t']]; split => //; try by move => [[[s | s'] []]] //.
+    - move => [[[s | s'] [val val'] subs]]; split => //; first by exists s.
+      by move => s' grs'; have [ | [t' | ]] //:= subs (inl s'); exists t'.
+    - case => [[s [grs fst] subs]].
+      split => [ | [s' grs'| ]//]; first by exists (inl s).
+      by have [t' fs't']:= subs s' grs'; exists (inl t').
+    - move => [[[s | s'] [val val'] subs]]; split => //; first by exists s'.
+      by move => s grs; have [ | [ | t]] //:= subs (inr s); exists t.
+    case => [[s [grs fst] subs]].
+    split => [ | [| s' grs']//]; first by exists (inr s).
+    by have [t fs't]:= subs s' grs'; exists (inr t).
+  Qed.
+
+  (*
+  Lemma fsum_spec (X Y X' Y': cs) F G (f: X ->> Y) (g: X' ->> Y'):
+    F \solves f -> G \solves g -> (fsum_rlzr F G) \solves (f +s+ g).
+  Proof.
     rewrite (@comp_rcmp _ _ _ (F2MF (@inc _ _))); last exact/F2MF_tot.
     rewrite comp_F2MF => rlzr rlzr' phi.
     case => x [].
@@ -101,8 +117,7 @@ Section sums.
     have [ | fa []]//:= prp' Fphi; first by rewrite E in FpsiFpsi.
     by exists (inr fa); split; first exists (inr Fphi).
   Qed. 
-
-  (*
+  
   Lemma fsum_hcr (X Y X' Y': cs) (f: X ->> Y) (g: X' ->> Y'):
     f \has_continuous_realizer -> g \has_continuous_realizer ->
     (f +s+ g) \has_continuous_realizer.
@@ -118,6 +133,7 @@ Section sums.
     by rewrite/continuous F2MF_fsum; apply/fsum_hcr.
   Qed.
 *)
+
   Lemma sum_uprp_fun (X Y Z: cs) (f: X -> Z) (g: Y -> Z):
     exists! (F: X + Y -> Z),
       (forall x, F (inl x) = f x)
@@ -125,8 +141,9 @@ Section sums.
       (forall y, F (inr y) = g y).
   Proof.
     exists (fun xy => paib (fsum f g xy)); rewrite /paib.
-    by split => // F [eq eq']; apply functional_extensionality => [[x | y]].
+    by split => // F [eq eq']; apply fun_ext => [[x | y]].
   Qed.
+  
 (*
   Lemma sum_rec_cont (X Y Z: cs) (f: X -> Z) (g: Y -> Z):
     f \is_continuous -> g \is_continuous ->

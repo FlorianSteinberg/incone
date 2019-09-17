@@ -1,7 +1,7 @@
 From mathcomp Require Import ssreflect ssrfun seq choice.
 From rlzrs Require Import all_rlzrs.
-Require Import all_cs_base func classical_func classical_cont.
-Require Import Morphisms FunctionalExtensionality ClassicalChoice.
+Require Import axioms all_cs_base func classical_func classical_cont.
+Require Import Morphisms.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -15,10 +15,10 @@ Section discreteness.
     move => X Y [[g ass] [[h ass'] [/=/sec_cncl cncl /sec_cncl cncl']]].
     split => dscrt Z f.
     - rewrite /continuous -(comp_id_r (F2MF f)) /mf_id -cncl' -comp_assoc.
-      apply/comp_hcr; first by apply/ass_cont.
+      apply/comp_hcr; first by apply/cfun_spec.
       by rewrite F2MF_comp_F2MF; apply/dscrt.
     rewrite /continuous -(comp_id_r (F2MF f)) /mf_id -cncl -comp_assoc.
-    apply/comp_hcr; first by apply/ass_cont.
+    apply/comp_hcr; first by apply/cfun_spec.
     by rewrite F2MF_comp_F2MF; apply/dscrt.
   Qed.
 End discreteness.
@@ -36,33 +36,36 @@ Section cs_id.
 
   Context (s: S) (S_count: S \is_countable).
 
-  Definition cs_id: represented_space.
-    exists S (Build_naming_space tt s unit_count S_count) id_rep.
+  Definition cs_id: cs.
+    exists S (Build_naming_space tt unit_count S_count) id_rep.
     by split; [apply/id_rep_sur | apply/id_rep_sing].
   Defined.  
-  
+
   Lemma cs_id_dscrt: discrete cs_id.
   Proof.
     move => Y f.
-    pose R:= make_mf (fun phi psi => psi \describes (f (phi tt)) \wrt Y).
-    have Rtot: R \is_total by move => phi; apply/rep_sur.
-    have [F icf]:= choice _ Rtot.
+    pose R phi psi := psi \describes (f (phi tt)) \wrt Y.
+    have [ | | F icf]:= countable_choice _ _ _ R; try by move => phi; apply/rep_sur.
+    - have [cnt [sing sur]]:= S_count.
+      exists (make_mf (fun n f => cnt n (f tt))).
+      split => [n g h /= val val' | g]; first by apply/fun_ext; case; apply/sing/val'/val.
+      by have [n val]:= sur (g tt); exists n.
     exists (F2MF F); split; first by rewrite F2MF_rlzr_F2MF => fn n <-/=; apply/icf.
-    rewrite cont_F2MF F2MF_cont_choice => phi q'; exists [::tt] => psi [eq _].
-    by have ->: phi = psi by apply functional_extensionality => str; elim str.
+    rewrite cont_F2MF => phi; exists (fun _ => [:: tt]) => q' psi [eq _].
+    by have ->: phi = psi by apply/fun_ext => str; elim str.    
   Qed.
 End cs_id.
 
 Lemma dscrt_id (X: cs) (x: X) (Xcount: X \is_countable):
-  X \is_discrete -> X ~=~ (cs_id x Xcount).
+  X \is_discrete -> X ~=~ (cs_id Xcount).
 Proof.
   move => dscrt.
-  exists (exist_c (dscrt (cs_id x Xcount) id)).
-  by exists (exist_c (@cs_id_dscrt X x Xcount X id)).
+  exists (exist_c (dscrt (cs_id Xcount) id)).
+  by exists (exist_c (@cs_id_dscrt X Xcount X id)).
 Qed.
 
 Section TERMINAL.
-  Canonical cs_unit := cs_id tt unit_count.
+  Canonical cs_unit := cs_id unit_count.
 
   Lemma unit_dscrt: discrete cs_unit.
   Proof. exact/cs_id_dscrt. Qed.
@@ -74,10 +77,10 @@ Section TERMINAL.
     by exists (@unit_fun X); split => // f _; apply functional_extensionality => x; elim (f x).
   Qed.
 
-  Definition unit_fun_rlzr (X: cs): names X ->> names cs_unit
+  Definition unit_fun_rlzr (X: cs): B_ X ->> B_ cs_unit
     := (F2MF (fun _ => (fun _ => tt))).
 
-  Lemma unit_fun_rlzr_spec (X: cs) : (@unit_fun_rlzr X) \realizes (F2MF (@unit_fun X)).
+  Lemma unit_fun_rlzr_spec (X: cs) : (@unit_fun_rlzr X) \realizes (@unit_fun X).
   Proof. by rewrite F2MF_rlzr_F2MF. Qed.
 
   Lemma unit_fun_rlzr_cntop (X: cs): (@unit_fun_rlzr X) \is_continuous_operator.
@@ -91,23 +94,23 @@ Section TERMINAL.
   Lemma unit_fun_hcr (X: cs): (F2MF (@unit_fun X): X ->> cs_unit) \has_continuous_realizer.
   Proof. exact/unit_fun_cont. Qed.
 
-  Definition unit_fun_ass (X: cs) (Lq: seq (answers X) * queries cs_unit) :=
-    inr tt : seq (queries X) + answers cs_unit.
+  Definition unit_fun_ass (X: cs) (KLq: seq (queries X * replies X) * queries cs_unit) :=
+    inr tt : seq (queries X) + replies cs_unit.
 
-  Lemma unit_fun_ass_eval (X: cs): F_U (@unit_fun_ass X) =~= unit_fun_rlzr X. 
+  Lemma unit_fun_ass_eval (X: cs): F_U _ _ (@unit_fun_ass X) =~= unit_fun_rlzr X. 
   Proof.
     apply/eval_F2MF/mon_eval; first exact/U_mon; first exact/F2MF_sing.
     by move => phi _ <- q'; exists 2; rewrite /U/=.
   Qed.
 
-  Lemma unit_fun_ass_spec (X: cs): associate U X cs_unit (@unit_fun_ass X) (@unit_fun X).
+  Lemma unit_fun_ass_spec (X: cs): associate F_U X cs_unit (@unit_fun_ass X) (@unit_fun X).
   Proof. exact/ntrvw.tight_rlzr/eval_F2MF/unit_fun_ass_eval/unit_fun_rlzr_spec. Qed.
 
   Lemma trmnl_uprp_cont (X: cs): exists! f: X c-> cs_unit, True.
   Proof.
-    have cdom: (@unit_fun X) \from codom (associate U X cs_unit).
+    have cdom: (@unit_fun X) \from codom (associate F_U X cs_unit).
     - by exists (@unit_fun_ass X); apply/unit_fun_ass_spec.
-    exists (exist (fun p => p \from codom (associate U X cs_unit)) _ cdom).
+    exists (exist (fun p => p \from codom (associate F_U X cs_unit)) _ cdom).
     split => // f' _.
     apply/eq_sub/functional_extensionality => x /=.
     by case: (sval f' x); case: (unit_fun x).
@@ -115,19 +118,19 @@ Section TERMINAL.
 End TERMINAL.
 
 Section BOOL.
-  Canonical cs_bool:= cs_id false bool_count.
+  Canonical cs_bool:= cs_id bool_count.
 
   Lemma bool_dscrt: discrete cs_bool.
   Proof. exact/cs_id_dscrt. Qed.
 End BOOL.
 
 Section NATURALS.
-  Canonical cs_nat := cs_id 0 nat_count.
+  Canonical cs_nat := cs_id nat_count.
 
   Lemma S_cont: (S: cs_nat -> cs_nat) \is_continuous.
   Proof.
     exists (F2MF (fun phi q =>S (phi q))).
-    split; first by rewrite F2MF_rlzr => /= n phi -> [m]; by exists m.
+    split; first by rewrite F2MF_rlzr => phi n /= ->.
     by rewrite cont_F2MF => phi; exists (fun _ => [:: tt]) => str psi []; elim: str => ->.
   Qed.
 
@@ -138,7 +141,7 @@ Section NATURALS.
     (fun (p: cs_nat * cs_nat) => f p.1 p.2: cs_nat) \is_continuous.
   Proof.
     exists (F2MF (fun phi q => f (phi (inl tt)).1 (phi (inr tt)).2)).
-    split; first by rewrite F2MF_rlzr_F2MF => phi [n m] [/= <- <-].
+    split; first by rewrite F2MF_rlzr => phi [n m] /prod_name_spec [/= <- <-].
     by rewrite cont_F2MF => phi; exists (fun _ => [:: inl tt; inr tt]) => psi str [-> [->]].
   Qed.
 End NATURALS.

@@ -92,51 +92,52 @@ Section classical_lemmas.
     have ->:= md' psi coin (mu psi); last by split; last exact/mod.
     by have ->:= md' phi (coin_ref _ _) (mu phi); last by split; last exact/mod.
   Qed.
+
 End classical_lemmas.  
 
-Section mathcomp.
-  Lemma scnt_cont Q A Q' A' (F: (Q -> A) ->> (Q' -> A')):
-    Q \is_countable -> Q' \is_countable -> F \is_sequentially_continuous -> F \is_continuous.
-  Proof.
-    case: (classic (inhabited Q)) => [[someq] | neg _ _ scnt]; last first.
-    - move => phi Fphi val; exists (fun _ => nil) => q' phi' coin Fphi' val'.
-      suff lmt: Fphi \is_limit_of (cnst Fphi').
-      + by have [n prp]:= lmt q'; symmetry; apply/(prp n).
-      apply/scnt/val; last by move => n; apply/val'.
-      move => q; exists 0 => m ineq.
-      by exfalso; apply/neg/inhabits/q.
-    move => /count_enum/(enum_inh someq) [cnt sur] count' scnt phi Fphi val.
-    have [sec ms]:= exists_minsec sur.  
-    suff: forall q', exists L, certificate F L phi q' (Fphi q') by apply countable_choice.
-    move => q'.
-    apply/not_all_not_ex => prp.
-    have /nat_choice [phin phinprp]: forall n, exists psi,
-          phi \and psi \coincide_on (iseg cnt n)
-          /\
-          psi \from dom F
-          /\
-          forall Fpsi, F psi Fpsi -> Fpsi q' <> Fphi q'.
-    - move => n.
-      have /not_all_ex_not [psi cnd]:= prp (iseg cnt n).
-      exists psi.
-      split; first exact/(not_imply_elim _ _ cnd).
-      split => [ | Fpsi val' eq].
-      + have /not_all_ex_not [Fpsi cnd']:= (not_imply_elim2 _ _ cnd).
-        by exists Fpsi; apply/(not_imply_elim _ _ cnd').
-      apply/cnd => coin Fpsi' val''.
-      by rewrite (scnt_sing scnt val'' val').
-    have lmt: phi \is_limit_of phin.
-    - apply/lim_coin => L; exists (max_elt sec L) => m ineq.
-      apply/coin_subl/(phinprp m).1.
-      exact/subs_trans/iseg_subl/ineq/iseg_melt.
-    have /nat_choice [Fphin lmts]: forall n, exists Fphi, F (phin n) Fphi.
-    - by move => n; have [_ []]:= phinprp n.
-    have [N eq]:= scnt phi phin Fphin Fphi lmt lmts val q'.
-    have [_ [_ prp']]:= phinprp N.
-    apply/prp'; first exact/lmts.
-    by symmetry; apply/eq.
-  Qed.
+Lemma scnt_cont Q A Q' A' (F: (Q -> A) ->> (Q' -> A')):
+  Q \is_countable -> Q' \is_countable -> F \is_sequentially_continuous -> F \is_continuous.
+Proof.
+  case: (classic (inhabited Q)) => [[someq] | neg _ _ scnt]; last first.
+  - move => phi Fphi val; exists (fun _ => nil) => q' phi' coin Fphi' val'.
+    suff lmt: Fphi \is_limit_of (cnst Fphi').
+    + by have [n prp]:= lmt q'; symmetry; apply/(prp n).
+    apply/scnt/val; last by move => n; apply/val'.
+    move => q; exists 0 => m ineq.
+    by exfalso; apply/neg/inhabits/q.
+  move => /count_enum/(enum_inh someq) [cnt sur] count' scnt phi Fphi val.
+  have [sec ms]:= exists_minsec sur.  
+  suff: forall q', exists L, certificate F L phi q' (Fphi q') by apply countable_choice.
+  move => q'.
+  apply/not_all_not_ex => prp.
+  have /nat_choice [phin phinprp]: forall n, exists psi,
+        phi \and psi \coincide_on (iseg cnt n)
+        /\
+        psi \from dom F
+        /\
+        forall Fpsi, F psi Fpsi -> Fpsi q' <> Fphi q'.
+  - move => n.
+    have /not_all_ex_not [psi cnd]:= prp (iseg cnt n).
+    exists psi.
+    split; first exact/(not_imply_elim _ _ cnd).
+    split => [ | Fpsi val' eq].
+    + have /not_all_ex_not [Fpsi cnd']:= (not_imply_elim2 _ _ cnd).
+      by exists Fpsi; apply/(not_imply_elim _ _ cnd').
+    apply/cnd => coin Fpsi' val''.
+    by rewrite (scnt_sing scnt val'' val').
+  have lmt: phi \is_limit_of phin.
+  - apply/lim_coin => L; exists (max_elt sec L) => m ineq.
+    apply/coin_subl/(phinprp m).1.
+    exact/subs_trans/iseg_subl/ineq/iseg_melt.
+  have /nat_choice [Fphin lmts]: forall n, exists Fphi, F (phin n) Fphi.
+  - by move => n; have [_ []]:= phinprp n.
+  have [N eq]:= scnt phi phin Fphin Fphi lmt lmts val q'.
+  have [_ [_ prp']]:= phinprp N.
+  apply/prp'; first exact/lmts.
+  by symmetry; apply/eq.
+Qed.
 
+Section mathcomp.
   Context (Q': eqType) (Q A A': Type).
   Notation B := (Q -> A).
   Notation B' := (Q' -> A').

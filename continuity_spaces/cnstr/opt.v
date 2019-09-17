@@ -34,8 +34,8 @@ Section OPTIONSPACES.
     by have:= (eq' someq); rewrite eq.
   Qed.
 
-  Canonical cs_opt: represented_space.
-  exists (option X) (Build_naming_space someq None (Q_count X) (option_count (A_count X))) rep_opt.
+  Canonical cs_opt: cs.
+  exists (option X) (Build_naming_space someq (Q_count X) (option_count (A_count X))) rep_opt.
   by split; [apply/rep_opt_sur | apply/rep_opt_sing].
   Defined.
 
@@ -80,6 +80,7 @@ Section OPTIONSPACES.
     by have /= := eq' q; rewrite eq /=; case.
   Qed.
 
+  (*
   Lemma opt_iso_sum: cs_opt ~=~ (cs_sum cs_unit X).
   Proof.
     have otscont: (fun (ox: cs_opt) => match ox with
@@ -98,7 +99,7 @@ Section OPTIONSPACES.
     exists (exist_c stocont).
     by split; case => //; case.
   Qed.
-
+  
   Lemma Some_inv_hcr:
     ((F2MF Some)\^-1: cs_opt ->> X) \has_continuous_realizer.
   Proof.
@@ -112,4 +113,5 @@ Section OPTIONSPACES.
     suff ->: (fun q => match phi q with | Some a => a | None => somea end) = psi by trivial.
     by apply/functional_extensionality => q; rewrite eq.
   Qed.  
+*)
 End OPTIONSPACES.

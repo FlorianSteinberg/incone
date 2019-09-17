@@ -28,8 +28,8 @@ Section subspace.
     by apply eq_sub; apply (@rep_sing X phi x y).
   Qed.
 
-  Canonical rs_sub: rs.
-    exists {x | x \from P} B rep_sub.
+  Canonical cs_sub: cs.
+    exists {x | x \from P} (name_space _) rep_sub.
     by split; [apply/rep_sub_sur | apply/rep_sub_sing].
   Defined.
 End subspace.

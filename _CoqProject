@@ -25,19 +25,18 @@ computability/all_cmpt.v
 
 countability/classical_count.v
 continuity/classical_cont.v
+
+naming_spaces/naming_spaces.v
+continuity_spaces/cs.v
+naming_spaces/cs_names.v
 naming_spaces/Uuniv.v
 computability/classical_mach.v
 naming_spaces/baire_metric.v
-
-naming_spaces/naming_spaces.v
 naming_spaces/nvrsl.v
 naming_spaces/all_names.v
 
-continuity_spaces/cs.v
-naming_spaces/rs_names.v
 continuity_spaces/prod.v
 continuity_spaces/sum.v
-continuity_spaces/facts.v
 continuity_spaces/sub.v
 continuity_spaces/func.v
 continuity_spaces/classical_func.v
@@ -49,8 +48,8 @@ continuity_spaces/cnstr/opt.v
 continuity_spaces/cnstr/seq.v
 continuity_spaces/cnstr/cprd.v
 continuity_spaces/cnstr/cs_mtrc.v
-continuity_spaces/cnstr/sets.v
-all_cs.v
+continuity_spaces/cnstr/hyper_spaces.v
+continuity_spaces/all_cs.v
 
 examples/continuous_search.v
 examples/closed_choice.v

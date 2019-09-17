@@ -1,9 +1,9 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat eqtype.
 From rlzrs Require Import all_rlzrs.
+From metric Require Import all_metric reals standard Qmetric.
 Require Import all_cs cs_mtrc.
-From metric Require Import reals metric standard Qmetric.
 Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
-Require Import sets.
+Require Import hyper_spaces.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -40,17 +40,19 @@ Section reals_via_rational_approximations.
     by rewrite Q2R_div; try lra; rewrite {2 4}/Q2R/=; lra.
   Qed.
 
-  Canonical RQ_class:= @continuity_space.Class _ _ _
-                         (interview.Mixin rep_RQ_sur) (dictionary.Mixin rep_RQ_sing)
-                         (continuity_space.Mixin 0%Q 0%Q count.Q_count count.Q_count).
-  Canonical RQ := continuity_space.Pack RQ_class.
-  
+  Definition names_RQ:= Build_naming_space 0%Q count.Q_count count.Q_count.
+
+  Canonical RQ: cs.
+    exists R names_RQ rep_RQ.
+    split; [apply/rep_RQ_sur | apply/rep_RQ_sing].
+  Defined.
+
   Section addition.
     Definition Ropp_rlzrf phi (eps: Q) := Qopp (phi eps).
+
+    Definition Ropp_rlzr: name_space RQ ->> name_space RQ := F2MF Ropp_rlzrf.
     
-    Definition Ropp_rlzr: questions RQ ->> questions RQ := F2MF Ropp_rlzrf.
-    
-    Lemma Ropp_rlzr_spec: Ropp_rlzr \realizes (F2MF Ropp: RQ ->> RQ).
+    Lemma Ropp_rlzr_spec: Ropp_rlzr \realizes (Ropp: RQ -> RQ).
     Proof.
       rewrite F2MF_rlzr_F2MF => phi x phinx eps epsg0 /=.
       by rewrite Q2R_opp; move: (phinx eps epsg0); split_Rabs; lra.
@@ -60,22 +62,22 @@ Section reals_via_rational_approximations.
     Proof.
         by rewrite cont_F2MF /Ropp_rlzrf => phi; exists (fun eps => [:: eps]) => psi q' [<-].
     Qed.
-    
-    Lemma Ropp_hcr: (F2MF Ropp: RQ ->> RQ) \has_continuous_realizer.
+
+    Lemma Ropp_hcr: (Ropp: RQ -> RQ) \is_continuous.
     Proof. exists Ropp_rlzr; split; [apply/Ropp_rlzr_spec | apply/Ropp_rlzr_cntop]. Qed.
 
     Lemma Ropp_cont: (Ropp: RQ -> RQ) \is_continuous.
     Proof. exact/Ropp_hcr. Qed.
 
-    Definition Rplus_rlzrf phi (eps: Q) :=
+    Definition Rplus_rlzrf (phi: product_names names_RQ names_RQ) (eps: Q) :=
       (lprj phi (eps/(1+1)) + rprj phi (Qdiv eps (1+1)))%Q.
 
-    Definition Rplus_rlzr: questions (RQ \*_cs RQ) ->> questions RQ:= F2MF Rplus_rlzrf.
+    Definition Rplus_rlzr: name_space (cs_prod RQ RQ) ->> name_space RQ:= F2MF Rplus_rlzrf.
 
     Lemma Rplus_rlzr_spec:
-      Rplus_rlzr \realizes (F2MF (fun x => Rplus x.1 x.2) : (RQ \*_cs RQ) ->> RQ).
+      Rplus_rlzr \realizes ((fun x => Rplus x.1 x.2) : (cs_prod RQ RQ) -> RQ).
     Proof.
-      rewrite F2MF_rlzr_F2MF => phi x phinx eps eg0.
+      rewrite F2MF_rlzr_F2MF => phi x /prod_name_spec phinx eps eg0.
       rewrite /Rplus_rlzr Q2R_plus.
       set r := Q2R (lprj phi (Qdiv eps (1 + 1))).
       set q := Q2R (rprj phi (Qdiv eps (1 + 1))).
@@ -90,10 +92,10 @@ Section reals_via_rational_approximations.
     Proof.
       rewrite cont_F2MF => phi.
       exists (fun eps => [:: inl (Qdiv eps (1 + 1)); inr (Qdiv eps (1 + 1))]).
-      by rewrite /Rplus_rlzrf/lprj/rprj => psi q' [-> [->]].
+      by rewrite /Rplus_rlzrf/lprj/rprj => psi q' /= [-> [->]].
     Qed.
 
-    Lemma Rplus_cont: (fun (xy: RQ \*_cs RQ) => xy.1 + xy.2: RQ) \is_continuous.
+    Lemma Rplus_cont: (curry Rplus) \is_continuous.
     Proof.
       exists Rplus_rlzr; split; [exact/Rplus_rlzr_spec | exact/Rplus_rlzr_cntop].
     Qed.
@@ -143,17 +145,17 @@ depends on the size of the inputs *)
       apply/Rle_trans; first apply/phinx; rewrite /Q2R/=; lra.
     Qed.
     
-    Definition Rmult_rlzrf phi (eps: Q) :=
+    Definition Rmult_rlzrf (phi: product_names names_RQ names_RQ) (eps: Q) :=
       (lprj phi (trunc eps / (1 + 1)/(rab (rprj phi)))
        *
        (rprj phi (eps / (1 + 1)/(rab (lprj phi)))))%Q.
     
-    Definition Rmult_rlzr : questions (RQ \*_cs RQ) ->> questions RQ:= F2MF Rmult_rlzrf.
+    Definition Rmult_rlzr : name_space (cs_prod RQ RQ) ->> name_space RQ:= F2MF Rmult_rlzrf.
     
     Lemma Rmult_rlzr_spec:
-      Rmult_rlzr \realizes (F2MF (fun x => Rmult x.1 x.2):RQ \*_cs RQ ->> RQ).
+      Rmult_rlzr \realizes ((fun x => Rmult x.1 x.2): (cs_prod RQ RQ) -> RQ).
     Proof.
-      rewrite F2MF_rlzr_F2MF => phi [x y] [phinx psiny] eps eg0 /=.
+      rewrite F2MF_rlzr_F2MF => phi [x y] /prod_name_spec [phinx psiny] eps eg0 /=.
       rewrite Q2R_mult.
       set r := Q2R (lprj phi (trunc eps / (1 + 1) / rab (rprj phi))%Q).
       set q := Q2R (rprj phi (eps / (1 + 1) / rab (lprj phi))%Q).
@@ -224,18 +226,18 @@ depends on the size of the inputs *)
       exists (fun eps => [:: inl (1 # 2); inr (1 # 2);
                           inl (trunc eps / (1 + 1) / rab (rprj phi))%Q;
                           inr (eps / (1 + 1) / rab (lprj phi))%Q]).
-      by rewrite /rab/lprj/rprj => eps psi [-> [-> [-> [->]]]].
+      by rewrite /rab/lprj/rprj => eps psi /= [-> [-> [-> [->]]]].
     Qed.  
 
-    Lemma Rmult_cont: (fun (xy: RQ \*_cs RQ) => xy.1 * xy.2: RQ) \is_continuous.
+    Lemma Rmult_cont: (fun (xy: cs_prod RQ RQ) => xy.1 * xy.2: RQ) \is_continuous.
     Proof.
       by exists Rmult_rlzr; split; [apply/Rmult_rlzr_spec | apply/Rmult_rlzr_cntop].
     Qed.
   End multiplication.
 
   Section limit.
-    Notation lim:= (@limit metric_R: RQ\^w ->> RQ).
-    Notation lim_eff:= (@efficient_limit metric_R: RQ\^w ->> RQ).
+    Notation lim:= metric_limit.
+    Notation lim_eff:= (efficient_limit: RQ\^w ->> RQ).
 
     Lemma cnst_dscr q: (cnst q) \describes (Q2R q) \wrt RQ.
     Proof. rewrite /cnst => eps; split_Rabs; lra. Qed.
@@ -250,14 +252,15 @@ depends on the size of the inputs *)
     Lemma lim_cnst x: lim (cnst x) x.
     Proof. exists 0%nat; rewrite /cnst/distance/=/R_dist; split_Rabs; lra. Qed.
 
-    Local Open Scope baire_scope.
-    Lemma lim_not_cont: ~ lim \has_continuous_realizer.
+    Local Open Scope name_scope.
+    Lemma lim_not_cont: ~ (lim: RQ\^w ->> RQ) \has_continuous_realizer.
     Proof.
       move => [/= F [/= rlzr /cntop_spec cont]].
       pose xn := cnst (Q2R 0): RQ\^w.
-      have limxn0: lim xn (Q2R 0) by exists 0%nat; rewrite /xn/cnst/distance/=/R_dist; split_Rabs; lra.
+      have limxn0: lim (xn: nat -> M2PM metric_R) (Q2R 0).
+      - by exists 0%nat; rewrite /xn/cnst/distance/=/R_dist; split_Rabs; lra.
       have qnfdF: cnst 0%Q \from dom F.
-      - by apply /(rlzr_dom rlzr); [exact/cnst_sqnc_dscr | exists (Q2R 0)].
+      - by apply/(ntrvw.rlzr_dom rlzr); [exact/cnst_sqnc_dscr | exists (Q2R 0)].
       have [Lf Lmod]:= cont (cnst 0%Q) qnfdF.
       set fold := @List.fold_right nat nat.
       pose L := Lf 1%Q.
@@ -268,12 +271,12 @@ depends on the size of the inputs *)
       pose yn:= (fun n => Q2R (if (n <= m)%nat then 0%Q else 3#1)): RQ\^w.
       pose rn (p: nat * Q) := if (p.1 <= m)%nat then 0%Q else 3#1.
       have rnyn: rn \describes yn \wrt (RQ\^w) by apply/Q_sqnc_dscr.
-      have limyn3: lim yn 3.
+      have limyn3: lim (yn: nat -> M2PM metric_R) 3.
       - exists (S m) => n /leP ineq; rewrite /yn.
         by case: ifP => [/leP ineq' | ]; [lia | rewrite /distance/=; split_Rabs; lra].
-      have [phi Frnphi]: rn \from dom F by apply /(rlzr_dom rlzr); first exact/rnyn; exists 3.
+      have [phi Frnphi]: rn \from dom F by apply /(ntrvw.rlzr_dom rlzr); first exact/rnyn; exists 3.
       have coin: (cnst 0%Q) \and rn \coincide_on L.
-      - apply /coin_lstn => [[n eps] listin].
+      - apply /coin_agre => [[n eps] listin].
         rewrite /cnst /rn; case: ifP => // /= /leP ineq.
         by exfalso; apply/ineq/leP/mprop/listin.
       have [psi Fqnpsi]:= qnfdF.
@@ -282,25 +285,25 @@ depends on the size of the inputs *)
         exact/coin_ref.
       have := Qeq_eqR (psi 1%Q) (phi 1%Q) eq.
       have psin0: psi \describes 0 \wrt ( RQ).
-      - apply /(rlzr_val_sing _ rlzr)/Fqnpsi/lim_cnst; first exact/lim_sing.
+      - apply /(rlzr_val_sing _ rlzr)/Fqnpsi/lim_cnst; first exact/metric_spaces.lim_sing.
         by rewrite /cnst/=/Q2R /=; split_Rabs; lra.
       have phin3: phi \describes 3 \wrt RQ.
-      - by apply/(rlzr_val_sing _ rlzr)/Frnphi/limyn3; first exact/lim_sing.
+      - by apply/(rlzr_val_sing _ rlzr)/Frnphi/limyn3; first exact/metric_spaces.lim_sing.
       have l01: 0 < Q2R 1 by rewrite /Q2R/=; lra.
       have:= psin0 1%Q l01; have:= phin3 1%Q l01.
       by rewrite {2 4}/Q2R/=; split_Rabs; lra.
     Qed.
-    Local Close Scope baire_scope.
+    Local Close Scope name_scope.
     
     Definition lim_eff_rlzrf phin eps :=
       phin ((Pos_size (Qden eps)).+1, (eps * (1#2))%Q): Q.
     
-    Definition lim_eff_rlzr : questions (RQ\^w) ->> questions RQ := F2MF lim_eff_rlzrf.
+    Definition lim_eff_rlzr : name_space (RQ\^w) ->> name_space RQ := F2MF lim_eff_rlzrf.
     
     Lemma lim_eff_rlzr_spec:
-      lim_eff_rlzr \realizes lim_eff.
+      lim_eff_rlzr \solves lim_eff.
     Proof.
-      rewrite F2MF_rlzr => psi xn psinxn [x lim].
+      rewrite F2MF_slvs => psi xn psinxn [x lim].
       exists x; split => // eps epsg0.
       set N:= (Pos_size (Qden eps)).
       have ->: x - Q2R (lim_eff_rlzrf psi eps) = x - (xn N.+1) + (xn N.+1 - Q2R (lim_eff_rlzrf psi eps)) by lra.
@@ -327,21 +330,20 @@ End reals_via_rational_approximations.
 
 Section metric_Qreals.
   Local Open Scope R_scope.
-  Notation subset := mf_subset.type.
-  Context (r: nat -> Q).
-  Hypothesis r_dense: dense_sequence (Q2R \o_f r: nat -> R_met).
+  Context (r: sequence_in Q).
+  Hypothesis r_dense: codom (F2MF (Q2R \o_f r)) \is_dense_subset.
   
-  Definition Rm := metric_cs r_dense.
+  Definition Rm: cs := metric_cs nat_count r_dense.
   Definition Rm2RQ_rlzrf phi eps := r (phi (Pos_size (Qden eps))).
 
-  Lemma Rm2RQ_rlzr_cntop: (Rm2RQ_rlzrf \is_continuous_function)%baire.
+  Lemma Rm2RQ_rlzr_cntop: Rm2RQ_rlzrf \is_continuous_functional.
   Proof.
-  move => phi; exists (fun eps => [:: Pos_size (Qden eps)]).
-  by rewrite /Rm2RQ_rlzrf => eps psi [->].
+    move => phi; exists (fun eps => [:: Pos_size (Qden eps)]).
+    by rewrite /Rm2RQ_rlzrf => eps psi [->].
   Qed.
 
   Lemma Rm2RQ_rlzrf_spec:
-    (F2MF Rm2RQ_rlzrf: questions Rm ->> questions RQ) \realizes mf_id.
+    (F2MF Rm2RQ_rlzrf: name_space Rm ->> name_space RQ) \realizes id.
   Proof.
     apply/F2MF_rlzr_F2MF => phi x phinx eps eg0.
     rewrite /Rm2RQ_rlzrf.
@@ -355,5 +357,5 @@ Section metric_Qreals.
     exists (F2MF Rm2RQ_rlzrf).
     split; first exact Rm2RQ_rlzrf_spec.
     exact/cont_F2MF/Rm2RQ_rlzr_cntop.
-  Qed.  
+  Qed.
 End metric_Qreals.  

@@ -124,7 +124,7 @@ End Phi_assignment.
 Notation "\Phi_ N" := (Phi N) (format "'\Phi_' N", at level 2).
 
 Lemma ovrt_po (Q A: eqType) (D: mf_set.subset (Q -> A)):
-  ouvert D ->
+  overt D ->
   exists N, dom \Phi_N === dom (projection_on D) /\ (projection_on D) \extends \Phi_N.
 Proof.
   move => [ou [fd dns]].

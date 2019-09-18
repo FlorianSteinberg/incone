@@ -36,7 +36,9 @@ Notation upper := I.upper.
 Notation diam I := (I.upper I - I.lower I).
 Notation bounded := I.bounded.
 Notation I0 := (I.fromZ 0).
+Check I.add.
 
+Print I.extension_2.
 Lemma add_correct_R prec x y I J:
 	x \contained_in I -> y \contained_in J -> (x + y) \contained_in (I.add prec I J).
 Proof.
@@ -263,960 +265,6 @@ rewrite /Interval_definitions.FtoX.
 by case E: (SFBI2.toF (SFBI2.add mode p (Float m e) (Float m' e'))) => //; move =>  [<-]; rewrite /D2R/proj_val/SFBI2.toX/Interval_definitions.FtoX E.
 Qed.
 
-
-
-Lemma mantissa_digits_shl m d p : (BigIntRadix2.valid_mantissa m) -> (BigIntRadix2.EtoZ d) = (Z.pos p) -> ((BigIntRadix2.EtoZ (BigIntRadix2.mantissa_digits (BigIntRadix2.mantissa_shl m d))) = ((BigIntRadix2.EtoZ (BigIntRadix2.mantissa_digits m))+(Z.pos p))%Z).
-Proof.
-  move => H1 H2.
-  have [c1 c2] := (BigIntRadix2.mantissa_shl_correct p m d H1 H2).
-  rewrite !BigIntRadix2.mantissa_digits_correct; try by [].
-  rewrite <- !Interval_generic_proof.digits_conversion.
-  rewrite c1.
-  rewrite Interval_generic_proof.shift_correct Z.pow_pos_fold Digits.Zdigits_mult_Zpower; by [].
-Qed.
-
-Definition decrease_exp' p (e e':xpnt) :=
-  match BigIntRadix2.exponent_cmp e e' with
-        | Eq | Lt => p
-        | Gt =>  (BigIntRadix2.mantissa_shl p (BigIntRadix2.exponent_sub e e'))
-  end.
-
-Definition decrease_exp (m : mant) e e' := match (BigIntRadix2.mantissa_sign m) with
-                                   | Interval_specific_sig.Mzero  => m
-                                   | (Interval_specific_sig.Mnumber s p)  => (if s then BigZ.Neg else BigZ.Pos) (decrease_exp' p e e')
-                       end.
-
-Definition exponent_min e e' :=
-  match BigIntRadix2.exponent_cmp e e' with
-        | Eq | Lt => e
-        | Gt => e'
-  end.
-
-Definition exponent_max e e' :=
-  match BigIntRadix2.exponent_cmp e e' with
-        | Lt => e'
-        | _ => e
-  end.
-Lemma exponent_min_lt e e' : ((exponent_min e e') <= e)%bigZ /\ ((exponent_min e e') <= e')%bigZ.
-Proof.
-  rewrite /exponent_min.
-  case cmp : (BigIntRadix2.exponent_cmp e e').
-  - have := cmp.
-    rewrite BigZ.compare_eq_iff => cmp'.
-    by rewrite cmp' /BigZ.le;lia.
-  - have := cmp.
-    rewrite BigZ.compare_lt_iff => cmp'.
-    apply BigZ.lt_le_incl in cmp'.
-    split; by [apply BigZ.le_refl | ].
-  have := cmp.
-  rewrite BigZ.compare_gt_iff => cmp'.
-  apply BigZ.lt_le_incl in cmp'.
-  split; by [apply BigZ.le_refl | ].
-Qed.
-
-Lemma decrease_correct (m:mant) e e' : (D2R (Float (decrease_exp m e e') (exponent_min e e'))) = (D2R (Float m e)).
-Proof.
-  rewrite /decrease_exp /exponent_min.
-    rewrite !D2R_Float.
-  case ms: (m =? 0)%bigZ.
-  - rewrite /BigIntRadix2.mantissa_sign.
-    rewrite ms.
-    suff : (m == 0)%bigZ.
-    - move => H.
-      rewrite /BigZ.eq in H.
-      rewrite BigZ.spec_0 in H.
-      by rewrite H;lra.
-    by apply BigZ.eqb_eq. 
-  rewrite /BigIntRadix2.mantissa_sign.
-  rewrite ms.
-  have P0 x: (IZR [decrease_exp' x e e']%bigN)*(powerRZ 2 [(exponent_min e e')]%bigZ) = (IZR [x]%bigN * (powerRZ 2 [e]%bigZ)).
-  - rewrite /decrease_exp'/exponent_min.
-    case cmp : (BigIntRadix2.exponent_cmp e e'); try by [].
-    have := cmp.
-    rewrite BigZ.compare_gt_iff => cmp'.
-    have gt : (0 < e-e')%bigZ by apply BigZ.lt_0_sub.
-    rewrite /BigZ.lt BigZ.spec_0 in gt.
-    rewrite /BigIntRadix2.exponent_sub.
-    rewrite /BigIntRadix2.mantissa_shl //=.
-    rewrite BigN.spec_shiftl_pow2.
-    move : gt.
-    case e'': ([e-e']%bigZ) => [| p|]; try by auto.
-    move => _.
-    rewrite spec_to_Z_pos /Z.pow e''.
-    rewrite !mult_IZR Zpower_pos_powerRZ.
-    rewrite <- e''.
-    rewrite BigZ.spec_sub powerRZ_add;last by [].
-    rewrite !Rmult_assoc.
-    rewrite <- powerRZ_add;last by [].
-    rewrite Z.add_opp_diag_l //=.
-    by lra.
-    by [].
-  case m => t; try by apply P0.
-  - rewrite !opp_IZR; rewrite <- !Ropp_mult_distr_l; apply Ropp_eq_compat.
-    by apply P0.
-Qed.
-
-Lemma decrease_exp_spec m e e' : [(decrease_exp m e e')]%bigZ = ([m]%bigZ * 2^[e-(exponent_min e e')]%bigZ)%Z.
-Proof.
-  rewrite /decrease_exp /exponent_min/BigIntRadix2.mantissa_sign.
-  case ms: (m =? 0)%bigZ.
-  - suff : (m == 0)%bigZ.
-    - move => H.
-      rewrite /BigZ.eq in H.
-      rewrite BigZ.spec_0 in H.
-      by rewrite H //=;lra.
-    by apply BigZ.eqb_eq. 
-  have P0 x: ([decrease_exp' x e e']%bigN = ([x]%bigN * 2^[e-(exponent_min e e')]%bigZ))%Z.
-  - rewrite /decrease_exp'/exponent_min BigZ.spec_sub/BigIntRadix2.exponent_sub.
-    rewrite /Z.pow.
-    case cmp : (BigIntRadix2.exponent_cmp e e'); try by rewrite Z.sub_diag;lia.
-    have := cmp.
-    rewrite BigZ.compare_gt_iff => cmp'.
-    have gt : (0 < e-e')%bigZ by apply BigZ.lt_0_sub.
-    rewrite /BigZ.lt BigZ.spec_0 in gt.
-    have := gt.
-    case e'': ([e-e']%bigZ) => [| p|]; try by auto.
-    rewrite BigZ.spec_sub in e''.
-    rewrite e''.
-    move => _.
-    rewrite /BigIntRadix2.mantissa_shl.
-    case m => t //=; rewrite BigN.spec_shiftl_pow2; try rewrite !opp_IZR; (rewrite  spec_to_Z_pos;last by apply Z.lt_le_incl);rewrite BigZ.spec_sub.
-    - by rewrite e''.
-    by rewrite e'' Z.pow_pos_fold;lia.
-  case m => t; try by apply P0.
-    - rewrite /BigZ.to_Z.
-      rewrite <- !Zopp_mult_distr_l.
-      Search _ (- _ = - _)%Z.
-      apply Z.opp_inj_wd.
-      by apply P0.
-Qed.
-
-
-Lemma exponent_min_sym e e' : [(exponent_min e e')]%bigZ = [(exponent_min e' e)]%bigZ.
-Proof.
-  rewrite /exponent_min.
-  case cmp : (BigIntRadix2.exponent_cmp e e').
-  - have := cmp;rewrite BigZ.compare_eq_iff => cmp0.
-    have cmp' : (BigIntRadix2.exponent_cmp e' e) = Eq by  rewrite BigZ.compare_eq_iff.
-    by rewrite cmp'.
-  - have := cmp;rewrite BigZ.compare_lt_iff => cmp0.
-    have cmp' : (BigIntRadix2.exponent_cmp e' e) = Gt by  rewrite BigZ.compare_gt_iff.
-    by rewrite cmp'.
-  have := cmp;rewrite BigZ.compare_gt_iff => cmp0.
-  have cmp' : (BigIntRadix2.exponent_cmp e' e) = Lt by  rewrite BigZ.compare_lt_iff.
-  by rewrite cmp'.
-Qed.
-
-Lemma exponent_max_sym e e' : [(exponent_max e e')]%bigZ = [(exponent_max e' e)]%bigZ.
-Proof.
-  rewrite /exponent_max.
-  case cmp : (BigIntRadix2.exponent_cmp e e').
-  - have := cmp;rewrite BigZ.compare_eq_iff => cmp0.
-    have cmp' : (BigIntRadix2.exponent_cmp e' e) = Eq by  rewrite BigZ.compare_eq_iff.
-    by rewrite cmp'.
-  - have := cmp;rewrite BigZ.compare_lt_iff => cmp0.
-    have cmp' : (BigIntRadix2.exponent_cmp e' e) = Gt by  rewrite BigZ.compare_gt_iff.
-    by rewrite cmp'.
-  have := cmp;rewrite BigZ.compare_gt_iff => cmp0.
-  have cmp' : (BigIntRadix2.exponent_cmp e' e) = Lt by  rewrite BigZ.compare_lt_iff.
-  by rewrite cmp'.
-Qed.
-
-Lemma add_float m e m' e' : (D2R (Float m e)+(D2R (Float m' e'))) = (D2R (Float ((decrease_exp m e e')+(decrease_exp m' e' e))%bigZ (exponent_min e e'))).
-Proof.
-  rewrite !D2R_Float !BigZ.spec_add !decrease_exp_spec !plus_IZR !mult_IZR.
-  have pos e1 e2 :  (0 <= [e1-(exponent_min e1 e2)]%bigZ)%Z.
-  - rewrite BigZ.spec_sub.
-    suff : ([exponent_min e1 e2]%bigZ <= [e1]%bigZ)%Z by lia.
-    by apply (exponent_min_lt e1 e2).
-  rewrite !(Raux.IZR_Zpower SFBI2.radix _ (pos e e')).
-  rewrite !(Raux.IZR_Zpower SFBI2.radix _ (pos e' e)).
-  rewrite !(Raux.bpow_powerRZ SFBI2.radix) //=.
-  rewrite Rmult_plus_distr_r !BigZ.spec_sub.
-  rewrite !Rmult_assoc.
-  rewrite <- !powerRZ_add;try by lra.
-  rewrite (exponent_min_sym e' e).
-  by rewrite !Z.sub_add.
-Qed.
-
-Lemma round_IZR : forall (mode: Interval_definitions.rounding_mode) n, (Interval_definitions.rnd_of_mode mode (IZR n)) = n.
-Proof.
-  move => mode n.
-  elim mode;simpl.
-  -  apply Raux.Zceil_IZR.
-  - apply Raux.Zfloor_IZR.
-  - apply Raux.Ztrunc_IZR.
-  case (Generic_fmt.Znearest_DN_or_UP (fun x => ~~ Z.even x) (IZR n)) => H; rewrite H.
-  - apply Raux.Zfloor_IZR.
-  apply Raux.Zceil_IZR.
-Qed.
-
-Lemma mantissa_digits_gt1 m : (BigIntRadix2.valid_mantissa m) -> (1 <= (BigIntRadix2.mantissa_digits m))%bigZ.
-Proof.
-  move => H.
-  have crc := (BigIntRadix2.mantissa_digits_correct m H).
-  rewrite /BigIntRadix2.EtoZ in crc.
-  rewrite /BigZ.le crc.
-  suff t : (0 < (Z.pos (Interval_definitions.count_digits BigIntRadix2.radix (BigIntRadix2.MtoP m))))%Z.
-  - have eq1 : ([1]%bigZ = 1)%Z by [].
-    by rewrite eq1; lia.
-  by apply Pos2Z.is_pos.
-Qed.
-
-
-Lemma generic_format_mantissa_length : forall (e:xpnt) (m:bigZ) p, (BigIntRadix2.valid_mantissa (BigZ.to_N m)) -> ((BigIntRadix2.mantissa_digits (BigZ.to_N m)) <= p)%bigZ -> (Generic_fmt.generic_format SFBI2.radix (FLX.FLX_exp (Z.pos (SFBI2.prec p))) (IZR [m]%bigZ * powerRZ 2 [e]%bigZ)).
-Proof. 
-  move => e m p V1 V2.
-  have P1 : (1 <= p)%bigZ.
-  - have := (mantissa_digits_gt1 V1).
-    rewrite /BigZ.le => gt.
-    by apply (Zle_trans _ _ _ gt).
-  have helper1 z: (1 <= [z]%bigZ)%Z -> (Z.pos (SFBI2.prec z))=[z]%bigZ.
-  - rewrite /SFBI2.prec/BigIntRadix2.EtoZ.
-    case M : [z]%bigZ => [|z'|z']; try by lia; try by rewrite /BigZ.lt M //=.
-  apply FLX.generic_format_FLX.
-  apply (FLX.FLX_spec SFBI2.radix (Z.pos (SFBI2.prec p)) (IZR [m]%bigZ * powerRZ 2 [e]%bigZ) (Defs.Float SFBI2.radix [m]%bigZ [e]%bigZ)); first by rewrite /Defs.F2R Raux.bpow_powerRZ //=.
-    simpl.
-    suff H: ((Z.abs [m]%bigZ) < Z.pow_pos 2 (SFBI2.prec (BigIntRadix2.mantissa_digits (BigZ.to_N m))))%Z.
-    + apply /Zlt_le_trans.
-      apply H.
-      apply le_IZR.
-      rewrite !Zpower_pos_powerRZ.
-      rewrite !powerRZ_Rpower; try by lra.
-      apply Rle_Rpower; try by lra.
-      rewrite helper1; last by apply mantissa_digits_gt1.
-      rewrite helper1; last by apply P1.
-      by apply IZR_le.
-    rewrite /SFBI2.prec BigIntRadix2.mantissa_digits_correct; last by apply V1.
-    rewrite Z.pow_pos_fold.
-    rewrite <- Interval_generic_proof.digits_conversion.
-    have P : (Z.pos (BigIntRadix2.MtoP (BigZ.to_N m))) = (Z.abs [m]%bigZ).
-    + case V1 => m' m'p.
-      rewrite spec_to_N.
-      rewrite /BigIntRadix2.MtoP m'p Z.abs_mul //=.
-      suff zabs_sgn : ((Z.abs (Z.sgn [m]%bigZ)) = 1)%Z by rewrite zabs_sgn;lia.
-      suff : ([m]%bigZ <> 0)%Z by lia.
-      suff: ([m]%bigZ = 0)%Z -> False by [].
-      move => m0; move : m'p.
-      by rewrite spec_to_Z m0 //=.
-    rewrite P Digits.Zdigits_abs.
-    have [_ D] := (Digits.Zdigits_correct BigIntRadix2.radix [m]%bigZ).
-    rewrite /BigIntRadix2.MtoP.
-    move : D.
-    by case M: [m]%bigZ => [| | p']; try by auto.
-Qed.
-
-Lemma round_no_error : forall (mode: Interval_definitions.rounding_mode) (e:xpnt) (m:bigZ) p, (BigIntRadix2.valid_mantissa (BigZ.to_N m)) -> ((BigIntRadix2.mantissa_digits (BigZ.to_N m)) <= p)%bigZ -> Interval_definitions.round SFBI2.radix mode (SFBI2.prec p) (D2R (Float m e)) = (D2R (Float m e)).
-Proof. 
-  move => mode e m p V1 V2.
-  rewrite /Interval_definitions.round/Generic_fmt.round.
-  rewrite /Defs.F2R//=.
-  rewrite D2R_Float.
-  have helper: (Generic_fmt.generic_format SFBI2.radix
-    (FLX.FLX_exp (Z.pos (SFBI2.prec p)))
-    (IZR [m]%bigZ * powerRZ 2 [e]%bigZ)) by apply generic_format_mantissa_length.
-  rewrite Generic_fmt.scaled_mantissa_generic; by [rewrite round_IZR//= | apply helper].
-Qed.
-
-
-Definition mantissa_digits (m : mant) := match (BigIntRadix2.mantissa_sign m) with
-                                   | Interval_specific_sig.Mzero  => 0%bigZ
-                                   | (Interval_specific_sig.Mnumber s p)  => (BigIntRadix2.mantissa_digits p)
-                                end.
-
-Definition valid_mantissa (m : mant) := match m with
-                                  | (BigZ.Pos t) => BigIntRadix2.valid_mantissa t
-                                  | (BigZ.Neg t) => BigIntRadix2.valid_mantissa t
-                                end.
-
-Definition Dmantissa_digits (d :D) := match d with
-                                   | Fnan => 0%bigZ 
-                                   | (Float m e) => (mantissa_digits m)
-                                end.
-
-Lemma ms_decrease_exp m e e' : (BigIntRadix2.mantissa_sign (decrease_exp m e e')) = Interval_specific_sig.Mzero <-> (BigIntRadix2.mantissa_sign m) = Interval_specific_sig.Mzero.
-Proof.
-  split => H; last by rewrite /decrease_exp H.
-  move : H.
-  rewrite /BigIntRadix2.mantissa_sign.
-  case mz : (decrease_exp m e e' =? 0)%bigZ.
-  - suff m0 : (m == 0)%bigZ by rewrite <- BigZ.eqb_eq in m0;rewrite m0.
-    move : mz.
-    rewrite BigZ.eqb_eq /BigZ.eq decrease_exp_spec.
-    rewrite BigZ.spec_0.
-    apply Zmult_integral_l.
-    apply Z.pow_nonzero; try by lia.
-    suff H : (exponent_min e e' <= e)%bigZ.
-      -by rewrite BigZ.spec_sub; rewrite /BigZ.le in H; lia.
-    by apply exponent_min_lt.
-  case (decrease_exp m e e') => t; try by [].
-Qed.
-Lemma ms_decrease_exp' m e e' : ((decrease_exp m e e') =? 0)%bigZ = (m =? 0)%bigZ.
-Proof.
-  case mz : (decrease_exp m e e' =? 0)%bigZ.
-  - suff m0 : (m == 0)%bigZ by rewrite <- BigZ.eqb_eq in m0;rewrite m0.
-    move : mz.
-    rewrite BigZ.eqb_eq /BigZ.eq decrease_exp_spec.
-    rewrite BigZ.spec_0.
-    apply Zmult_integral_l.
-    apply Z.pow_nonzero; try by lia.
-    suff H : (exponent_min e e' <= e)%bigZ.
-      -by rewrite BigZ.spec_sub; rewrite /BigZ.le in H; lia.
-    by apply exponent_min_lt.
-    move : mz; rewrite /decrease_exp/BigIntRadix2.mantissa_sign.
-    case mz0 : (m =? 0)%bigZ; try by rewrite mz0.
-    - case m => t; by [].
-Qed.
-Lemma valid_mantissa_bigN t: ([t]%bigN <> 0)%Z -> (BigIntRadix2.valid_mantissa t).
-  - move => tp.
-    case t0: [t]%bigN => [| p |p]; first by [].
-      * by exists p.
-      have  := (BigN.spec_pos t).
-      by rewrite t0.
-Qed.
-
-Lemma decrease_exp_mantissa_digits_lt m e e' : (e' < e)%bigZ -> ((BigIntRadix2.EtoZ (mantissa_digits (decrease_exp m e e'))) <= (BigIntRadix2.EtoZ ((Dmantissa_digits (Float m e))+(e-e'))%bigZ))%Z.
-Proof.
-  move => H //=.
-  case mz: (m =? 0)%bigZ.
-  - rewrite /mantissa_digits/BigIntRadix2.mantissa_sign.
-    rewrite ms_decrease_exp' mz.
-    rewrite /BigIntRadix2.EtoZ BigZ.spec_add BigZ.spec_0 //= BigZ.spec_sub.
-      by rewrite /BigZ.lt in H;lia.
-  apply Zeq_le.
-  rewrite /mantissa_digits/decrease_exp/BigIntRadix2.mantissa_sign.
-  rewrite ms_decrease_exp' mz.
-  move : mz.
- have pos: (BigIntRadix2.EtoZ (BigIntRadix2.exponent_sub e e')) = (Z.pos (Z.to_pos (BigIntRadix2.EtoZ (BigIntRadix2.exponent_sub e e')))).
-  - rewrite Z2Pos.id; first by [].
-    rewrite /BigIntRadix2.EtoZ /BigIntRadix2.exponent_sub BigZ.spec_sub.
-    by rewrite /BigZ.lt in H;lia.
-  have cmp : (BigIntRadix2.exponent_cmp e e') = Gt by rewrite BigZ.compare_gt_iff.
-  case m => t mz; move : mz;rewrite BigZ.eqb_neq /BigZ.eq /BigZ.to_Z BigN.spec_0 => mz.
-  - rewrite /decrease_exp' /mantissa_digits.
-    rewrite cmp.
-    have vm := (valid_mantissa_bigN  mz).
-    rewrite (mantissa_digits_shl vm pos).
-    rewrite Z2Pos.id;last by suff : ([e']%bigZ < [e]%bigZ)%Z by lia. 
-    rewrite /BigIntRadix2.exponent_sub.
-    rewrite !/BigIntRadix2.EtoZ.
-    by rewrite BigZ.spec_add.
-  rewrite /decrease_exp' /mantissa_digits cmp.
-  have mz' : ([t]%bigN <> 0)%Z by lia.
-  have vm := (valid_mantissa_bigN mz').
-  rewrite (mantissa_digits_shl vm pos).
-  rewrite Z2Pos.id;last by suff : ([e']%bigZ < [e]%bigZ)%Z by lia. 
-  rewrite /BigIntRadix2.exponent_sub.
-  rewrite !/BigIntRadix2.EtoZ.
-  by rewrite BigZ.spec_add.
-Qed.
-
-
-Definition Dexp (d :D) := match d with
-                                   | Fnan => 0%bigZ 
-                                   | (Float m e) => e
-                                end.
-
-Definition Imantissa_digits (I : ID) := match I with
-                                | Interval_interval_float.Inan => 0%bigZ
-                                | (Interval_interval_float.Ibnd l r) => (BigZ.max (Dmantissa_digits l) (Dmantissa_digits r))
-                                end.
-
-Definition Iexp_max (I : ID) := match I with
-                                | Interval_interval_float.Inan => 0%bigZ
-                                | (Interval_interval_float.Ibnd l r) => (BigZ.max (Dexp l) (Dexp r))
-                                end.
-
-Lemma add_mantissa_digits_helper m1 m2: (BigIntRadix2.valid_mantissa m1) -> (BigIntRadix2.valid_mantissa m2) -> ((BigIntRadix2.EtoZ (BigIntRadix2.mantissa_digits (m1+m2)%bigN)) <= (Z.max (BigIntRadix2.EtoZ (BigIntRadix2.mantissa_digits m1)) (BigIntRadix2.EtoZ (BigIntRadix2.mantissa_digits m2)))+1)%Z. 
-Proof.
-  Compute (BigIntRadix2.EtoZ (BigIntRadix2.mantissa_digits 0%bigN)).
-  move => H1 H2.
-  have [H3 V] := (BigIntRadix2.mantissa_add_correct m1 m2 H1 H2).
-  rewrite /BigIntRadix2.mantissa_add in H3,V.
-  rewrite !BigIntRadix2.mantissa_digits_correct; try by [].
-  rewrite H3.
-  rewrite <- !Interval_generic_proof.digits_conversion.
-  suff Zdigits_add p1 p2 : ((Digits.Zdigits BigIntRadix2.radix (p1+p2)%Z) <= (Z.max (Digits.Zdigits BigIntRadix2.radix p1) (Digits.Zdigits BigIntRadix2.radix p2))+1)%Z by rewrite Pos2Z.inj_add.
-  rewrite <- Digits.Zdigits_abs.
-  rewrite <- (Digits.Zdigits_abs _ p1).
-  rewrite <- (Digits.Zdigits_abs _ p2).
-  have lt : ((Z.abs (p1+p2))%Z <= 2*(Z.max (Z.abs p1) (Z.abs p2)))%Z.
-  - apply /Zle_trans.
-    apply Z.abs_triangle.
-    rewrite <- Z.add_diag.
-    by apply Z.add_le_mono; by [apply Z.le_max_l |apply Z.le_max_r].
-  apply /Zle_trans.
-  apply Digits.Zdigits_le; first by apply Z.abs_nonneg.
-  apply lt.
-  have Zdigits_mult_lt p : ((Digits.Zdigits BigIntRadix2.radix (2*p)) <= (Digits.Zdigits BigIntRadix2.radix p)+1)%Z.
-  - rewrite <- Digits.Zdigits_abs.
-    rewrite <- (Digits.Zdigits_abs _ p).
-    have t : ((Z.abs (2*p)) = (Z.abs p)*2)%Z by lia.
-    rewrite t.
-    by case p => [| p' | p']; try by [];apply Zeq_le; rewrite (Digits.Zdigits_mult_Zpower BigIntRadix2.radix _ 1); try by lia.
-  apply /Zle_trans.
-  apply Zdigits_mult_lt.
-  suff: (Digits.Zdigits BigIntRadix2.radix (Z.max (Z.abs p1) (Z.abs p2)) <=  Z.max (Digits.Zdigits BigIntRadix2.radix (Z.abs p1)) (Digits.Zdigits BigIntRadix2.radix (Z.abs p2)))%Z by lia.
- have P0 u v : ((Z.abs u) <= (Z.abs v))%Z -> ((Z.max (Digits.Zdigits BigIntRadix2.radix (Z.abs u))
-     (Digits.Zdigits BigIntRadix2.radix (Z.abs v))) = (Digits.Zdigits BigIntRadix2.radix (Z.abs v))).
- - move => H.
-   rewrite Z.max_r; first by [].
-    by apply Digits.Zdigits_le; [lia |].
-  case e: ((Z.abs p1) <=? (Z.abs p2))%Z.
-  - apply Z.leb_le in e.
-    rewrite Z.max_r; last by [].
-    rewrite P0; last by [].
-    by lia.
-  apply Z.leb_gt in e.
-  apply Z.lt_le_incl in e.
-  rewrite Z.max_l; last by [].
-  rewrite Z.max_comm.
-  rewrite P0; last by [].
-  by lia.
-Qed.
-
-
-Lemma mantissa_digits_pos m : (0 <= (mantissa_digits m))%bigZ.
-Proof.
-  rewrite /mantissa_digits/BigIntRadix2.mantissa_sign.
-  case (m =? 0)%bigZ; first by [].
-  case m => t; by rewrite /BigIntRadix2.mantissa_digits /BigZ.le BigZ.spec_0 /BigZ.to_Z;apply BigN.spec_pos.
-Qed.
-
-Lemma mantissa_digits_val m m' : (m == m')%bigZ -> (mantissa_digits m == mantissa_digits m')%bigZ.
-Proof.
-  move => H.
-  rewrite /BigZ.eq in H.
-  rewrite /mantissa_digits/BigIntRadix2.mantissa_sign.
-  rewrite !BigZ.spec_eqb.
-  case e : ([m]%bigZ =? [0]%bigZ)%Z.
-  - move : e.
-    rewrite Z.eqb_eq => e.
-    rewrite e in H.
-    symmetry in H.
-    by rewrite H BigZ.spec_0.
-  rewrite <- H.
-  rewrite e.
-  move : H e.
-  rewrite /BigZ.to_Z.
-  have crc := BigIntRadix2.mantissa_digits_correct.
-  rewrite /BigIntRadix2.EtoZ in crc.
-  case m => t;case m' => t' H;rewrite BigN.spec_0;rewrite Z.eqb_neq => e; rewrite /BigZ.eq.
-  - rewrite !crc; try by apply valid_mantissa_bigN; try rewrite <- H.
-    by rewrite /BigIntRadix2.MtoP H.
-  - have lt := (BigN.spec_pos t').
-    have lt' := (BigN.spec_pos t).
-    have tp : ((- [t']%bigN) < 0)%Z by lia.
-    by rewrite H in lt';lia.   
-  - have lt := (BigN.spec_pos t').
-    have lt' := (BigN.spec_pos t).
-    have tp : ((- [t]%bigN) < 0)%Z by lia.
-    by rewrite <- H in lt;lia.   
-    have H' : ([t]%bigN = [t']%bigN)%Z by lia.
-    have e' : ([t]%bigN <> 0)%Z by lia.
-    rewrite !crc; try by apply valid_mantissa_bigN; try rewrite <- H'.
-    by rewrite /BigIntRadix2.MtoP H'.
-Qed.
-
-Lemma mantissa_digits_inv m : ((mantissa_digits m) == (mantissa_digits (-m)%bigZ))%bigZ.
-Proof.
-  rewrite /mantissa_digits/ BigIntRadix2.mantissa_sign.
-  case e : ([m]%bigZ =? 0)%Z;rewrite !BigZ.spec_eqb !BigZ.spec_opp.
-  - have e' : ((-[m]%bigZ =? 0)%Z = true) by move:e; rewrite !Z.eqb_eq;lia.
-    by rewrite e e'.
-  have e' : ((-[m]%bigZ =? 0)%Z = false) by move:e; rewrite !Z.eqb_neq;lia.
-  rewrite e e'.
-  by case m => p //=.
-Qed.
-
-Lemma mantissa_digits_lt m1 m2 : (BigIntRadix2.valid_mantissa m1) -> (BigIntRadix2.valid_mantissa m2) -> (m1 <= m2)%bigN -> ((BigIntRadix2.mantissa_digits m1) <= (BigIntRadix2.mantissa_digits m2))%bigZ.
-Proof.
-  move => H1 H2 le.
-  have c := BigIntRadix2.mantissa_digits_correct.
-  rewrite /BigIntRadix2.EtoZ in c.
-  rewrite /BigZ.le !c; try by [].
-  rewrite <- !Interval_generic_proof.digits_conversion.
-  apply Digits.Zdigits_le; try by [].
-  rewrite /BigN.le in le.
-  move : le.
-  rewrite /BigIntRadix2.MtoP.
-  case [m1]%bigN => [| p | p]; case [m2]%bigN => p'; try by lia.
-Qed.
-
-
-Lemma mantissa_digits_abs m : ((mantissa_digits m) == (mantissa_digits (BigZ.abs m)))%bigZ.
-Proof.
-  case (BigZ.abs_eq_or_opp m) => H; by [apply mantissa_digits_val| rewrite (mantissa_digits_inv m); apply mantissa_digits_val].
-Qed.
-
-Lemma add_mantissa_digits1 m1 m2 : (m1 != 0)%bigZ -> (m2 != 0)%bigZ -> ([(mantissa_digits (m1+m2))]%bigZ <= (Z.max [(mantissa_digits m1)]%bigZ [(mantissa_digits m2)]%bigZ)+1)%Z.
-Proof.
-  move => H1 H2.
-  have [H1' H2'] : (m1 =? 0)%bigZ=false /\ (m2 =? 0)%bigZ=false by split;apply BigZ.eqb_neq.
-  case H3' : ((m1+m2)%bigZ =? 0)%bigZ.
-  - rewrite [mantissa_digits (m1+m2)%bigZ]/mantissa_digits /BigIntRadix2.mantissa_sign H3' BigZ.spec_0.
-    apply /Zle_trans.
-    apply (@mantissa_digits_pos m1).
-    apply /Zle_trans.
-    apply (Z.le_max_l [mantissa_digits m1]%bigZ [mantissa_digits m2]%bigZ).
-    by lia.
-   have abs0 m : ((m =? 0)%bigZ = false) -> ((BigZ.abs m =? 0)%bigZ = false) by rewrite !BigZ.eqb_neq /BigZ.eq BigZ.spec_abs BigZ.spec_0;lia.
-   apply abs0 in H1'.
-   apply abs0 in H2'.
-   have := H3'.
-   rewrite BigZ.eqb_neq /BigZ.eq BigZ.spec_0 => H4'.
-   apply abs0 in H3'.
-   suff : ([mantissa_digits (BigZ.abs (m1+m2))]%bigZ <= (Z.max [(mantissa_digits (BigZ.abs m1))]%bigZ [(mantissa_digits (BigZ.abs m2))]%bigZ)+1)%Z by rewrite <- !mantissa_digits_abs.
-  rewrite /mantissa_digits/BigIntRadix2.mantissa_sign H1' H2' H3' /BigZ.abs.
-  have neqneq x: ([x]%bigZ <> 0)%Z -> ([BigZ.to_N x]%bigN <> 0)%Z by case x => p; try rewrite /BigZ.to_Z/BigZ.to_N;lia.
-  have [V1 [V2 V3]] : (BigIntRadix2.valid_mantissa (BigZ.to_N m1)) /\ (BigIntRadix2.valid_mantissa (BigZ.to_N m2)) /\ (BigIntRadix2.valid_mantissa (BigZ.to_N (m1+m2))) by split; [|split]; by apply valid_mantissa_bigN; apply neqneq.
-  have V4 : (BigIntRadix2.valid_mantissa ((BigZ.to_N m1) + (BigZ.to_N m2))).
-  - apply valid_mantissa_bigN.
-    rewrite BigN.spec_add.
-    have lt0 m: (m != 0)%bigZ -> (0 < [BigZ.to_N m]%bigN)%Z.
-     + have lt1 := (BigN.spec_pos (BigZ.to_N m)).
-       move => H0.
-       suff : ([BigZ.to_N m]%bigN <> 0)%Z by lia.
-       by apply neqneq.
-    have lt0' := (lt0 m1 H1).
-    have lt0'' := (lt0 m2 H2).
-    by lia.
-  apply /Zle_trans.
-  apply (@mantissa_digits_lt _ ((BigZ.to_N (m1))+(BigZ.to_N m2))); try by [].
-  - suff : (BigZ.abs (m1+m2) <= (BigZ.abs m1)+(BigZ.abs m2))%bigZ by rewrite /BigZ.abs/BigZ.le/BigZ.to_Z //=.
-    by apply BigZ.abs_triangle.
-  apply add_mantissa_digits_helper; try by [].
-Qed.  
-
-Lemma add_mantissa_digits0 m1 m2 : (m2 == 0)%bigZ -> ((mantissa_digits (m1+m2)) == (mantissa_digits m1))%bigZ.
-Proof.
-  move => H.
-  suff : (m1+m2 == m1)%bigZ by apply mantissa_digits_val.
-  rewrite H.
-  by apply BigZ.add_0_r.
-Qed.
-
-
-Lemma add_mantissa_digits2 m1 m2 : ([(mantissa_digits (m1+m2))]%bigZ <= (Z.max [(mantissa_digits m1)]%bigZ [(mantissa_digits m2)]%bigZ)+1)%Z.
-Proof.
-  have add_mant_digits_sym m m' : ((mantissa_digits (m+m')) == (mantissa_digits (m'+m)))%bigZ.
-  - suff : (m+m' == m'+m)%bigZ by apply mantissa_digits_val.
-    by rewrite /BigZ.eq !BigZ.spec_add;lia.
-  case m1eq0 : (m1 =? 0)%bigZ; first by rewrite add_mant_digits_sym add_mantissa_digits0; [lia|  move :m1eq0; rewrite BigZ.eqb_eq].
-  case m2eq0 : (m2 =? 0)%bigZ; first by rewrite add_mantissa_digits0; [lia|  move :m2eq0; rewrite BigZ.eqb_eq].
-  by apply add_mantissa_digits1; rewrite <- BigZ.eqb_neq.
-Qed.
-
-Lemma mantissa_digits_ub m : (Rabs (IZR [m]%bigZ)) <= (powerRZ 2 [mantissa_digits m]%bigZ).
-Proof.
-  rewrite /mantissa_digits/BigIntRadix2.mantissa_sign.
-  case e : (m =? 0)%bigZ.
-  - rewrite BigZ.spec_0 /powerRZ.
-    move : e.
-    rewrite BigZ.eqb_eq/BigZ.eq BigZ.spec_0 => e.
-    by rewrite e Rabs_R0 //=;lra.
-  have helper : exists p, ([p]%bigN <> 0)%Z /\ (m = (BigZ.Pos p) \/ (m = (BigZ.Neg p))).
-    - move : e.
-      case m => p;rewrite BigZ.eqb_neq /BigZ.eq BigZ.spec_0 /BigZ.to_Z; exists p; split; try by lia.
-      + by apply or_introl.
-      + by apply or_intror.
-  have posMtoP p : ([p]%bigN <> 0)%Z -> [BigZ.Pos p]%bigZ = (Z.pos (BigIntRadix2.MtoP p)).
-  - move => pneg0.
-    rewrite /BigIntRadix2.MtoP //=.
-    case p' : [p]%bigN => [| a | a]; try by []; try by have ps := (BigN.spec_pos p);lia.
-  have c:= BigIntRadix2.mantissa_digits_correct; rewrite /BigIntRadix2.EtoZ in c.
-  rewrite Rabs_Zabs.
-  have bign_prop p : ([p]%bigN <> 0)%Z -> (IZR (Z.abs [BigZ.Pos p]%bigZ) <= powerRZ 2 [BigIntRadix2.mantissa_digits p]%bigZ).
-  - move => pneg0.
-    rewrite c;try rewrite <- Interval_generic_proof.digits_conversion; try apply valid_mantissa_bigN; try by [].
-    have [_ crc] := (Digits.Zdigits_correct BigIntRadix2.radix [BigZ.Pos p]%bigZ).
-    apply IZR_lt in crc.
-    apply /Rlt_le.
-    apply /Rlt_le_trans.
-    apply crc.
-    rewrite Raux.IZR_Zpower; last by apply Digits.Zdigits_ge_0.
-    have r : (Zaux.radix_val BigIntRadix2.radix) = 2%Z by [].
-    rewrite <- r.
-    rewrite <- Raux.bpow_powerRZ.
-    rewrite posMtoP; last by [].
-    by lra.
-  case helper => p [p_pos pm]; move : pm; case => pm; rewrite pm.
-  - apply bign_prop; last by [].
-    have zabs_neg : (Z.abs [BigZ.Neg p]%bigZ) = (Z.abs [BigZ.Pos p]%bigZ) by rewrite /BigZ.to_Z; lia.
-    rewrite zabs_neg.
-    by apply bign_prop.
-Qed.
-
-Lemma bigZ_abs_pos z: (z != 0)%bigZ -> exists p, [(BigZ.abs z)]%bigZ = (Z.pos p).
-Proof.
-  have rw n: ([n]%bigN <> 0)%Z -> exists p, ([n]%bigN = (Z.pos p)).
-  - have  := (BigN.spec_pos n).
-    case e: [n]%bigN => [| p | p]; try by lia.
-    by exists p.
-  case z => n; by rewrite /BigZ.eq /BigZ.to_Z BigN.spec_0 => H;  apply rw;rewrite /BigZ.to_N;lia.
-Qed.
-
-Lemma round_error : forall (mode: Interval_definitions.rounding_mode) (e:xpnt) (m:mant) p, (1 < p <= (mantissa_digits m))%bigZ -> (Rabs ((Interval_definitions.round SFBI2.radix mode (SFBI2.prec p) (D2R (Float m e))) - (D2R (Float m e)))) <= (powerRZ 2 ([mantissa_digits m]%bigZ+[e]%bigZ+1-[p]%bigZ)).
-Proof.
-  move => mode e m p [P1 P2].
-  rewrite /Interval_definitions.round.
-  apply /Rle_trans.
-  apply Ulp.error_le_ulp; by [apply FLX.FLX_exp_valid; [] | apply Interval_definitions.valid_rnd_of_mode].
-  apply /Rle_trans.
-  apply FLX.ulp_FLX_le; by [].
-  rewrite D2R_Float Raux.bpow_powerRZ Rabs_mult //=.
-  rewrite (Rabs_right (powerRZ _ _)); last by apply Rle_ge; apply powerRZ_le;lra.
-  rewrite Rmult_assoc.
-  rewrite <- powerRZ_add; last by lra.
-  have helper1 : (Z.pos (SFBI2.prec p))=[p]%bigZ.
-  - rewrite /SFBI2.prec/BigIntRadix2.EtoZ.
-    move : P1.
-    case M : [p]%bigZ => [|p'|p']; try by rewrite /BigZ.lt M //=.
-  have helper2 : (1 < (Z.pos (SFBI2.prec p)))%Z by rewrite helper1.
-  have R : ((Z.pos_sub 1 (SFBI2.prec p)) = 1-[p]%bigZ)%Z.
-  - rewrite <- Z.pos_sub_opp.
-    rewrite Z.pos_sub_gt; last by apply helper2.
-    rewrite Pos2Z.inj_sub; last by apply helper2.
-    by rewrite helper1;lia.
-  rewrite R.
-  suff pwr : (Rabs (IZR [m]%bigZ)) <= (powerRZ 2 [mantissa_digits m]%bigZ).
-  - apply /Rle_trans.
-    have rm := (Rmult_le_compat_r (powerRZ 2 ([e]%bigZ + (1 - [p]%bigZ))) _ _ _ pwr).
-    apply rm; first by apply powerRZ_le; lra.
-    rewrite <- powerRZ_add; last by lra.
-    apply Req_le.
-    by rewrite !Z.add_assoc.
-  by apply mantissa_digits_ub.
-Qed.
-
-Lemma mantissa_digits0 m: (m != 0)%bigZ -> ((mantissa_digits m) == (BigIntRadix2.mantissa_digits (BigZ.to_N m)))%bigZ.
-Proof.
-  move => H.
-  have abs_neq0 : (((BigZ.abs m) =? 0)%bigZ = false).
-  - move :H.
-    rewrite BigZ.eqb_neq /BigZ.eq BigZ.spec_abs BigZ.spec_0.
-    by lia.   
-  by rewrite /BigZ.eq mantissa_digits_abs /BigZ.abs /mantissa_digits /BigIntRadix2.mantissa_sign abs_neq0.
-Qed.
-
-Lemma round_no_error2 : forall (mode: Interval_definitions.rounding_mode) (e:xpnt) (m:mant) p, ((mantissa_digits m) <= p)%bigZ -> (Interval_definitions.round SFBI2.radix mode (SFBI2.prec p) (D2R (Float m e)) = (D2R (Float m e))).
-Proof.
-  move => mode e m p.
-  case M: (m =? 0)%bigZ.
-  - rewrite /mantissa_digits /BigIntRadix2.mantissa_sign M.
-    move : M.
-    rewrite BigZ.eqb_eq /BigZ.eq BigZ.spec_0 => M H.
-    by rewrite D2R_Float M Rmult_0_l /Interval_definitions.round Generic_fmt.round_0.
-  have mp : (m != 0)%bigZ by rewrite <- BigZ.eqb_neq.
-  rewrite mantissa_digits0; last by [].
-  apply round_no_error.
-  apply valid_mantissa_bigN.
-  move : mp.
-  rewrite /BigZ.eq BigZ.spec_to_N.
-  by apply Z.neq_mul_0.
-Qed.
-
-Lemma round_error2 : forall (mode: Interval_definitions.rounding_mode) (e:xpnt) (m:mant) p, (1 < p)%bigZ -> (Rabs ((Interval_definitions.round SFBI2.radix mode (SFBI2.prec p) (D2R (Float m e))) - (D2R (Float m e)))) <= (powerRZ 2 ([mantissa_digits m]%bigZ+[e]%bigZ+1-[p]%bigZ)).
-Proof.
-  move => mode e m p P1.
-  case P2: (p <=? (mantissa_digits m))%bigZ.
-  - by apply round_error; split; [ | rewrite <- BigZ.leb_le].
-  rewrite round_no_error2  //=; first by rewrite Rcomplements.Rminus_eq_0 Rabs_R0; apply powerRZ_le;lra.
-  apply BigZ.lt_le_incl.
-  by rewrite <- BigZ.leb_gt.
-Qed.
-
-Lemma exponent_max_spec e e' : (exponent_max e e') = (BigZ.max e e').
-Proof.
-  by rewrite /exponent_max/BigZ.max/BigIntRadix2.exponent_cmp.
-Qed.
-
-Lemma dexp2 e1 e2 mant : (e1 < e2)%bigZ -> (decrease_exp mant e1 e2) = mant.
-Proof.
-  move => H.
-  rewrite /decrease_exp/BigIntRadix2.mantissa_sign.
-  case (mant =? 0)%bigZ; first by [].
-  suff dexp2' p : (decrease_exp' p e1 e2) = p by case mant => p; by rewrite dexp2'.
-  rewrite /decrease_exp'.
-  rewrite BigIntRadix2.exponent_cmp_correct /BigIntRadix2.MtoZ.
-    rewrite /BigZ.lt in H.
-    apply Z.compare_lt_iff in H.
-    by rewrite H.
-Qed.
-
-Lemma dexp2' e1 e2 mant : (e1 <= e2)%bigZ -> (decrease_exp mant e1 e2) = mant.
-Proof.
-  move => H.
-  apply BigZ.lt_eq_cases in H.
-  case H => H'; first by rewrite dexp2.
-  rewrite /decrease_exp/BigIntRadix2.mantissa_sign.
-  case (mant =? 0)%bigZ; first by [].
-  suff dexp2' p : (decrease_exp' p e1 e2) = p by case mant => p; by rewrite dexp2'.
-  rewrite /decrease_exp'/BigIntRadix2.exponent_cmp.
-  have H'' := H'.
-  apply BigZ.compare_eq_iff in H''.
-  by rewrite H''.
-Qed.
-
-Lemma digits_dec_exp m e m' e' : ((Z.max [mantissa_digits (decrease_exp m e e')]%bigZ [mantissa_digits (decrease_exp m' e' e)]%bigZ) <= (Z.max [mantissa_digits m]%bigZ [mantissa_digits m']%bigZ)+[(exponent_max e e')]%bigZ-[(exponent_min e e')]%bigZ)%Z.
-Proof.
-  have dexp:= decrease_exp_mantissa_digits_lt.
-  rewrite /BigIntRadix2.EtoZ in dexp.
-  have expmax e1 e2 : (e1 < e2)%bigZ -> (exponent_max e1 e2) = e2.
-  - move => H.
-    rewrite /exponent_max.
-    rewrite BigIntRadix2.exponent_cmp_correct /BigIntRadix2.MtoZ.
-    rewrite /BigZ.lt in H.
-    apply Z.compare_lt_iff in H.
-    by rewrite H.
-  have expmax' e1 e2 : (e1 <= e2)%bigZ -> [(exponent_max e1 e2)]%bigZ = [e2]%bigZ.
-  - move => H.
-    apply BigZ.lt_eq_cases in H.
-    case H => H'; first by rewrite expmax.
-    rewrite /exponent_max /BigIntRadix2.exponent_cmp //=.
-    have H'' := H'.
-    apply BigZ.compare_eq_iff in H''.
-    rewrite H''.
-    by rewrite /BigZ.eq in H'.
-  have expmin e1 e2 : (e1 < e2)%bigZ -> (exponent_min e1 e2) = e1.
-  - move => H.
-    rewrite /exponent_min.
-    rewrite BigIntRadix2.exponent_cmp_correct /BigIntRadix2.MtoZ.
-    rewrite /BigZ.lt in H.
-    apply Z.compare_lt_iff in H.
-    by rewrite H.
-  have expmin' e1 e2 : (e1 <= e2)%bigZ -> [(exponent_min e1 e2)]%bigZ = [e1]%bigZ.
-  - move => H.
-    apply BigZ.lt_eq_cases in H.
-    case H => H'; first by rewrite expmin.
-    rewrite /exponent_min /BigIntRadix2.exponent_cmp //=.
-    have H'' := H'.
-    apply BigZ.compare_eq_iff in H''.
-    rewrite H''.
-    by rewrite /BigZ.eq in H'.
-  case C0 : (e' <? e)%bigZ.
-  have le := (Z.max_le_compat_r [mantissa_digits (decrease_exp m e e')]%bigZ ([Dmantissa_digits (Float m e) + (e - e')]%bigZ)).
-  - apply /Zle_trans.
-    apply le.
-    apply dexp; last by apply BigZ.ltb_lt.
-    rewrite /Dmantissa_digits.
-    rewrite (@dexp2 e' e m'); last by apply BigZ.ltb_lt.
-    rewrite exponent_min_sym exponent_max_sym.
-    rewrite (expmin e' e); last by apply BigZ.ltb_lt.
-    rewrite (expmax e' e); last by apply BigZ.ltb_lt.
-    rewrite BigZ.spec_add BigZ.spec_sub.
-    apply BigZ.ltb_lt in C0.
-    by rewrite /BigZ.lt in C0; lia.
-  apply BigZ.ltb_ge in C0.
-  rewrite dexp2'; last by [].
-  rewrite expmax'; try by [].
-  rewrite expmin'; try by [].
-  apply BigZ.lt_eq_cases in C0.
-  case C0 => H.
-  have le := (Z.max_le_compat_l [mantissa_digits (decrease_exp m' e' e)]%bigZ ([Dmantissa_digits (Float m' e') + (e' - e)]%bigZ)).
-  apply /Zle_trans.
-  apply le.
-  apply dexp; last by [].
-  rewrite /Dmantissa_digits.
-  - rewrite BigZ.spec_add BigZ.spec_sub.
-    by rewrite /BigZ.lt in H; lia.
-  rewrite /BigZ.eq in H.
-  rewrite dexp2'; last by rewrite /BigZ.le;lia.
-  by lia.
-Qed.
-
-Lemma add_error I J n m p:
-  (1 < p)%bigZ ->
-  bounded I -> diam I <= /2^n -> bounded J -> diam J <= /2^m ->
-  bounded (I.add p I J)
-  /\
-  diam (I.add p I J) <= /2 ^ n + /2 ^ m + (powerRZ 2 (Z.max [(Imantissa_digits I)]%bigZ [(Imantissa_digits J)]%bigZ+(Z.max [Iexp_max I]%bigZ [Iexp_max J]%bigZ)-[p]%bigZ + 3)).
-Proof.
-  move => pgt.
-  case: I => //; case => //lIm lIe; case => //uIm uIe _ ineq; rewrite /= in ineq.
-  case: J => //; case => //lJm lJe; case => //uJm uJe _ ineq'; rewrite /= in ineq'.
-  set  M := (Z.max [(Imantissa_digits (Interval_interval_float.Ibnd (Float lIm lIe) (Float uIm uIe)))]%bigZ [(Imantissa_digits (Interval_interval_float.Ibnd (Float lJm lJe) (Float uJm uJe)))]%bigZ).
-  set  E := (Z.max [(Iexp_max (Interval_interval_float.Ibnd (Float lIm lIe) (Float uIm uIe)))]%bigZ [(Iexp_max (Interval_interval_float.Ibnd (Float lJm lJe) (Float uJm uJe)))]%bigZ).
-  split.
-  - rewrite /I.add /bounded !SFBI2.real_correct !SFBI2.add_correct.
-    rewrite /Xadd.
-    by rewrite !D2R_SFBI2toX.
-  rewrite /I.add.
-  rewrite !SFBI2_add_correct.
-  have t1 :  (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_UP (SFBI2.prec p) ((D2R (Float uIm uIe))+(D2R (Float uJm uJe)))) <= ((D2R (Float uIm uIe))+(D2R (Float uJm uJe)))+(powerRZ 2 ((Z.max [mantissa_digits uIm]%bigZ [mantissa_digits uJm]%bigZ)+[exponent_max uJe uIe]%bigZ-[p]%bigZ+2)).
-  - rewrite add_float.
-    apply (Rcomplements.Rabs_le_between').
-    apply /Rle_trans.
-    apply round_error2; last by [].
-    rewrite !powerRZ_Rpower; try by lra.
-    apply Rle_Rpower; try by lra.
-    apply IZR_le.
-    suff: ([mantissa_digits (decrease_exp uIm uIe uJe + decrease_exp uJm uJe uIe)]%bigZ <=   (Z.max [mantissa_digits uIm]%bigZ [mantissa_digits uJm]%bigZ) + [exponent_max uJe uIe]%bigZ - [exponent_min uIe uJe]%bigZ +1)%Z by lia.
-    apply /Zle_trans.
-    apply add_mantissa_digits2.
-    suff : ((Z.max [mantissa_digits (decrease_exp uIm uIe uJe)]%bigZ [mantissa_digits (decrease_exp uJm uJe uIe)]%bigZ) <= (Z.max [mantissa_digits uIm]%bigZ [mantissa_digits uJm]%bigZ) + [exponent_max uJe uIe]%bigZ - [exponent_min uIe uJe]%bigZ)%Z by lia.
-    apply /Zle_trans.
-    apply digits_dec_exp.
-    by rewrite exponent_max_sym;lia.
-  have t1' : (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_UP (SFBI2.prec p) ((D2R (Float uIm uIe))+(D2R (Float uJm uJe)))) <= ((D2R (Float uIm uIe))+(D2R (Float uJm uJe)))+(powerRZ 2 (M+E-[p]%bigZ+2)%Z).
-  - apply /Rle_trans.
-    apply t1.
-    suff : (powerRZ 2 (Z.max [mantissa_digits uIm]%bigZ [mantissa_digits uJm]%bigZ + [exponent_max uJe uIe]%bigZ - [p]%bigZ + 2)) <= (powerRZ 2 (M + E - [p]%bigZ + 2)) by lra.
-    rewrite !powerRZ_Rpower; try by lra.
-    apply Rle_Rpower; try by lra.
-    apply IZR_le.
-    suff [B1 B2] : ((Z.max [mantissa_digits uIm]%bigZ [mantissa_digits uJm]%bigZ) <= M)%Z /\ ([exponent_max uJe uIe]%bigZ <= E)%Z by lia.
-   split.
-   + by rewrite /M/Imantissa_digits/Dmantissa_digits !BigZ.spec_max //=; lia.
-     by rewrite /E /Iexp_max/Dexp/exponent_max_spec !BigZ.spec_max //=; lia.
-  have t2 :   ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))) <= (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_DN (SFBI2.prec p) ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))))+ (powerRZ 2 ((Z.max [mantissa_digits lIm]%bigZ [mantissa_digits lJm]%bigZ)+[exponent_max lJe lIe]%bigZ-[p]%bigZ+2)) .
-  - rewrite add_float.
-    apply (Rcomplements.Rabs_le_between').
-    rewrite Rabs_minus_sym.
-    apply /Rle_trans.
-    apply round_error2; last by [].
-    rewrite !powerRZ_Rpower; try by lra.
-    apply Rle_Rpower; try by lra.
-    apply IZR_le.
-    suff: ([mantissa_digits (decrease_exp lIm lIe lJe + decrease_exp lJm lJe lIe)]%bigZ <=   (Z.max [mantissa_digits lIm]%bigZ [mantissa_digits lJm]%bigZ) + [exponent_max lJe lIe]%bigZ - [exponent_min lIe lJe]%bigZ +1)%Z by lia.
-    apply /Zle_trans.
-    apply add_mantissa_digits2.
-    suff : ((Z.max [mantissa_digits (decrease_exp lIm lIe lJe)]%bigZ [mantissa_digits (decrease_exp lJm lJe lIe)]%bigZ) <= (Z.max [mantissa_digits lIm]%bigZ [mantissa_digits lJm]%bigZ) + [exponent_max lJe lIe]%bigZ - [exponent_min lIe lJe]%bigZ)%Z by lia.
-    apply /Zle_trans.
-    apply digits_dec_exp.
-    by rewrite exponent_max_sym;lia.
-  have t2' : ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))) <= (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_DN (SFBI2.prec p) ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))))+ (powerRZ 2 ((M+E-[p]%bigZ+2)%Z)) .
-  - apply /Rle_trans.
-    apply t2.
-    suff : (powerRZ 2 (Z.max [mantissa_digits lIm]%bigZ [mantissa_digits lJm]%bigZ + [exponent_max lJe lIe]%bigZ - [p]%bigZ + 2)) <= (powerRZ 2 (M + E - [p]%bigZ + 2)) by lra.
-    rewrite !powerRZ_Rpower; try by lra.
-    apply Rle_Rpower; try by lra.
-    apply IZR_le.
-    suff [B1 B2] : ((Z.max [mantissa_digits lIm]%bigZ [mantissa_digits lJm]%bigZ) <= M)%Z /\ ([exponent_max lJe lIe]%bigZ <= E)%Z by lia.
-   split.
-   + by rewrite /M/Imantissa_digits/Dmantissa_digits !BigZ.spec_max //=; lia.
-     by rewrite /E /Iexp_max/Dexp/exponent_max_spec !BigZ.spec_max //=; lia.
-  rewrite Rcomplements.Rle_minus_l.
-  apply /Rle_trans.
-  apply t1'.
-  have pwr : (powerRZ 2 (M+E - [p]%bigZ + 3)) = (2 * powerRZ 2 (M+E - [p]%bigZ + 2)) by rewrite !(powerRZ_add);try by simpl;lra.
-  rewrite pwr.
-  suff :  (D2R (Float uIm uIe)) + (D2R (Float uJm uJe)) - (/ 2 ^ n) - (/ 2 ^ m) <= (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_DN (SFBI2.prec p) ((D2R (Float lIm lIe)) + (D2R (Float lJm lJe)))) + (powerRZ 2 (M + E - [p]%bigZ + 2)) by lra.
-  have T:= (Rle_trans ((D2R (Float uIm uIe)) + (D2R (Float uJm uJe)) - (/ 2 ^ n) - (/ 2 ^ m))  _ _ _ t2').
-  by apply T; lra.
-Qed.
-
-Lemma mantissa_digits0' m: ((m == 0)%bigZ /\ ([(mantissa_digits m)]%bigZ =0)%Z) \/ (((BigIntRadix2.valid_mantissa (BigZ.to_N m)) /\ mantissa_digits m == (BigIntRadix2.mantissa_digits (BigZ.to_N m)))%bigZ).
-Proof.
-  case e : (m =? 0)%bigZ.
-  - apply or_introl.
-    rewrite <- BigZ.eqb_eq.
-    by rewrite /mantissa_digits /BigIntRadix2.mantissa_sign e.
-  apply or_intror; split; last by apply mantissa_digits0; rewrite <- BigZ.eqb_neq.
-  apply valid_mantissa_bigN.
-  move : e.
-  rewrite BigZ.eqb_neq /BigZ.eq BigZ.spec_0 /BigZ.to_N /BigZ.to_Z.
-  case m => p; by [|lia].
-Qed.
-
-Lemma mantissa_digits_lb m : (m != 0)%bigZ -> (powerRZ 2 ([(mantissa_digits m)]%bigZ-1)) <= (Rabs (IZR [m]%bigZ)).
-Proof.
-case (mantissa_digits0' m) => [[Meq0 P] | [V P]] H; first by [].
-  rewrite P.
-  have c := BigIntRadix2.mantissa_digits_correct.
-  rewrite /BigIntRadix2.EtoZ in c.
-  rewrite c; last by [].
-  rewrite <- Interval_generic_proof.digits_conversion.
-  have [crc _] := (Digits.Zdigits_correct BigIntRadix2.radix (Z.pos (BigIntRadix2.MtoP (BigZ.to_N m)))).
-  have r : (Zaux.radix_val BigIntRadix2.radix) = 2%Z by [].
-  rewrite <- r.
-  rewrite <- Raux.bpow_powerRZ.
-  apply IZR_le in crc.
-  rewrite abs_IZR Raux.IZR_Zpower in crc; last first.
-  - suff: (0 < (Digits.Zdigits BigIntRadix2.radix (Z.pos (BigIntRadix2.MtoP (BigZ.to_N m)))))%Z by lia.
-    by apply Digits.Zdigits_gt_0.
-  suff: (Rabs (IZR (Z.pos (BigIntRadix2.MtoP (BigZ.to_N m))))) = (Rabs (IZR [m]%bigZ)) by move => <-.
-  rewrite !Rabs_Zabs.
-  apply IZR_eq.
-  move : H.
-  case m => n; by rewrite /BigZ.eq BigZ.spec_0 /BigIntRadix2.MtoP  /BigZ.to_Z /BigZ.to_N; have := (BigN.spec_pos n);case [n]%bigN => [| p |p]; try by []; try by lia.
-Qed.
-Lemma exp_lt m e N : (m != 0)%bigZ -> (Rabs (D2R (Float m e))) <= (powerRZ 2 N) ->  ([e]%bigZ <= N)%Z.
-Proof.
-  move => H0.
-  rewrite D2R_Float Rabs_mult.
-  Abort.
-Lemma float_lt m e N : (m != 0)%bigZ -> (Rabs (D2R (Float m e))) <= (powerRZ 2 N) -> ((powerRZ 2 [(mantissa_digits m)]%bigZ) <= (powerRZ 2 (N - [e]%bigZ+1))).
-Proof.
-  move => H0.
-  rewrite D2R_Float Rabs_mult.
-  rewrite [(Rabs (powerRZ _ _))]Rabs_right; last by apply Rle_ge, powerRZ_le;lra.
-  rewrite Rcomplements.Rle_div_r /Rdiv; last by apply Rlt_gt, powerRZ_lt;lra.
-  rewrite <- powerRZ_inv, <-powerRZ_neg, <-powerRZ_add, Z.add_opp_r; try by lra.
-  move => H.
-  suff : (powerRZ 2 ([(mantissa_digits m)]%bigZ-1)) <= (powerRZ 2 (N-[e]%bigZ)) by rewrite !powerRZ_add //=;lra.
-  apply /Rle_trans.
-  apply mantissa_digits_lb; try by [].
-  by [].
- Qed.
-
-Lemma round_error3 : forall (mode: Interval_definitions.rounding_mode) (e:xpnt) (m:mant) p N, (1 < p)%bigZ -> (Rabs (D2R (Float m e))) <= (powerRZ 2 N) -> (Rabs ((Interval_definitions.round SFBI2.radix mode (SFBI2.prec p) (D2R (Float m e))) - (D2R (Float m e)))) <= (powerRZ 2 (N+2-[p]%bigZ)).
-Proof.
-  move => mode e m p N P1 Lt.
-  case P2: (m =? 0)%bigZ; move : P2; [rewrite BigZ.eqb_eq | rewrite BigZ.eqb_neq] => P2.
-  - rewrite D2R_Float P2 BigZ.spec_0 Rmult_0_l Rminus_0_r /Interval_definitions.round Generic_fmt.round_0 Rabs_R0.
-    apply powerRZ_le;lra.
-    apply /Rle_trans.
-    by apply round_error2;  [].
-  rewrite !powerRZ_add; try by lra.
-  apply Rmult_le_compat_r; first by apply powerRZ_le;lra.
-  suff : (powerRZ 2 [mantissa_digits m]%bigZ)*(powerRZ 2 ([e]%bigZ-1)) <= (powerRZ 2 N) by rewrite powerRZ_add; simpl;lra.
-  rewrite Rcomplements.Rle_div_r /Rdiv; last by apply Rlt_gt, powerRZ_lt;lra.
-  rewrite <- powerRZ_inv, <-powerRZ_neg, <-powerRZ_add, Z.add_opp_r, Z.sub_sub_distr; try by lra.
-  by apply float_lt.
-Qed.
-Lemma ID_bound_abs (I : ID) : (bounded I) ->   forall x, x \contained_in I -> (Rabs x) <= (Rabs (lower I))+(diam I).
-Proof.
-  rewrite /lower/upper.
-  case: I => //; case => //lIm lIe; case => //uIm uIe _ x xc.
-  have [Lb Ub] := (contains_le (SFBI2.toX (Float lIm lIe)) (SFBI2.toX (Float uIm uIe)) (Xreal x) xc).
-  rewrite /le_upper D2R_SFBI2toX in Ub.
-  rewrite  D2R_SFBI2toX/le_lower/le_upper//= in Lb.
-  case (Rcase_abs x) => x0; [rewrite Rabs_left | rewrite Rabs_right]; by [|case (Rcase_abs (D2R (Float lIm lIe))) => Ip; [rewrite Rabs_left | rewrite Rabs_right]; by [|lra]].
-Qed.
-
-Lemma ID_bound_simpl (I : ID) n N : (0 <= N)%Z -> (bounded I) -> (diam I ) <= /2^n -> (exists x, x \contained_in I) -> (Rabs (lower I)) <= (powerRZ 2 N) -> (Rabs (upper I)) <= (powerRZ 2 (N+1)).
-Proof.
-  move => Ngt.
-  rewrite /upper/lower.
-  case: I => //; case => //lIm lIe; case => //uIm uIe BI DI nonempty LB.
-  apply /Rle_trans.
-  apply (ID_bound_abs BI).
-  case nonempty => x xp.
-  have c := (contains_upper (SFBI2.toX (Float lIm lIe)) (D2R (Float uIm uIe)) (Xreal x)).
-  rewrite //= !D2R_SFBI2toX in c,xp.
-  rewrite //=!D2R_SFBI2toX.  
-  apply c; apply xp.
-  simpl. 
-  apply /Rle_trans.
-  apply Rplus_le_compat_l.
-  apply DI.
-  apply /Rle_trans.
-  apply Rplus_le_compat_r.
-  apply LB.
-  rewrite powerRZ_add;simpl;last by lra.
-  suff : (/ 2 ^ n) <=(powerRZ 2 N) by lra.
-  suff K : (/ 2 ^ n) <= 1.
-  - apply /Rle_trans.
-    apply K.
-    rewrite powerRZ_Rpower; try by lra.
-    rewrite <- (Rpower_O 2); try by lra.
-    apply (Rle_Rpower 2 0 (IZR N)); by [lra | apply IZR_le].
-    rewrite Rinv_pow; last by lra.
-    case (Nat.eq_0_gt_0_cases n) => H;first by rewrite H //=;lra.
-    apply Rlt_le.
-    apply pow_lt_1_compat; by [lra|].
-Qed.
 Lemma ID_bound_dist I x y : (bounded I) -> (x \contained_in I) -> (y \contained_in I) -> (Rabs (x-y)) <= (diam I).  
   case: I => //; case => //lIm lIe; case => //uIm uIe _.
   rewrite //=!D2R_SFBI2toX.  
@@ -1235,16 +283,17 @@ Proof.
   by lra.
 Qed.
 
-Lemma ID_bound_simpl2 (I : ID) n x N : (0 <= N)%Z -> (bounded I) -> (diam I ) <= /2^n ->  x \contained_in I -> (Rabs x) <= (powerRZ 2 N) -> (Rabs (upper I)) <= (powerRZ 2 (N+1)) /\ (Rabs (lower I)) <= (powerRZ 2 (N+1)).
-Proof.
-  move => Ngt.
-  move => BI DI xc LB.
-  have Rabs_bnd a b c : (Rabs (a-b)) <= c -> (Rabs a <= ((Rabs b) + c)).
+Lemma Rabs_bnd a b c : (Rabs (a-b)) <= c -> (Rabs a <= ((Rabs b) + c)).
     move => H.
     suff : (Rabs a - Rabs b <= c) by lra.
     apply /Rle_trans.
     by apply Rabs_triang_inv.
     by [].
+Qed.
+Lemma ID_bound_simpl2 (I : ID) n x N : (0 <= N)%Z -> (bounded I) -> (diam I ) <= /2^n ->  x \contained_in I -> (Rabs x) <= (powerRZ 2 N) -> (Rabs (upper I)) <= (powerRZ 2 (N+1)) /\ (Rabs (lower I)) <= (powerRZ 2 (N+1)).
+Proof.
+  move => Ngt.
+  move => BI DI xc LB.
   have ne : (not_empty (I.convert I)) by exists x.
   have [U L]  := (upper_lower_contained BI ne).
   have := (ID_bound_dist BI U xc).
@@ -1270,7 +319,32 @@ Proof.
   by have UB := (Rabs x)+(/ 2 ^ n) <=(powerRZ 2 (N+1));rewrite powerRZ_add /=;lra.
 Qed.      
 
-Lemma add_error' I J n m p x y N:
+Lemma SFBI2_BigZ p: (1 < p)%bigZ -> (Z.pos (SFBI2.prec p))=[p]%bigZ.
+ move => pgt.
+  - rewrite /SFBI2.prec/BigIntRadix2.EtoZ.
+    move : pgt.
+    case M : [p]%bigZ => [|p'|p']; try by rewrite /BigZ.lt M //=.
+Qed.
+
+Lemma round_error : forall (mode: Interval_definitions.rounding_mode) x N p, (1 < p)%bigZ -> (Rabs x <= powerRZ 2 N) -> (Rabs ((Interval_definitions.round SFBI2.radix mode (SFBI2.prec p) x) - x)) <= (powerRZ 2 (N+1-[p]%bigZ)).
+Proof.
+  move => mode x N p [pgt B].
+  have helper2 : (1 < (Z.pos (SFBI2.prec p)))%Z by rewrite SFBI2_BigZ.
+  rewrite /Interval_definitions.round.
+  apply /Rle_trans.
+  apply Ulp.error_le_ulp; by [apply FLX.FLX_exp_valid; [] | apply Interval_definitions.valid_rnd_of_mode].
+  apply /Rle_trans.
+  apply FLX.ulp_FLX_le; by [].
+  rewrite Raux.bpow_powerRZ //=.
+  rewrite <- Z.pos_sub_opp, <-Z.add_sub_assoc, Z.pos_sub_gt, Pos2Z.inj_sub, Z.opp_sub_distr; try by [].
+  rewrite Z.add_comm Z.add_opp_r.
+  rewrite powerRZ_add;last by lra.
+  rewrite SFBI2_BigZ; last by [].
+  apply Rmult_le_compat_r; last by [].
+  by apply powerRZ_le; lra.
+Qed.
+
+Lemma add_error I J n m p x y N:
   (1 < p)%bigZ ->
   (0 <= N)%Z ->
   bounded I -> diam I <= /2^n -> bounded J -> diam J <= /2^m ->
@@ -1279,7 +353,7 @@ Lemma add_error' I J n m p x y N:
   (Rabs x) <=  (powerRZ 2 N) -> (Rabs y) <= (powerRZ 2 N) ->
   bounded (I.add p I J)
   /\
-  diam (I.add p I J) <= /2 ^ n + /2 ^ m + (powerRZ 2 (N+5-[p]%bigZ)).
+  diam (I.add p I J) <= /2 ^ n + /2 ^ m + (powerRZ 2 (N+4-[p]%bigZ)).
 Proof.
   move => pgt Ngt.
   move => BI DI BJ DJ xc yc Bx By.
@@ -1305,42 +379,39 @@ Proof.
     apply /Rle_trans.
     apply Rabs_triang.
     by rewrite powerRZ_add //=;lra.
-  have t1 :  (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_UP (SFBI2.prec p) ((D2R (Float uIm uIe))+(D2R (Float uJm uJe)))) <= ((D2R (Float uIm uIe))+(D2R (Float uJm uJe)))+(powerRZ 2 ((N+4-[p]%bigZ))).
-  - rewrite add_float in BP1.
-    rewrite add_float.
+  have t1 :  (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_UP (SFBI2.prec p) ((D2R (Float uIm uIe))+(D2R (Float uJm uJe)))) <= ((D2R (Float uIm uIe))+(D2R (Float uJm uJe)))+(powerRZ 2 ((N+3-[p]%bigZ))).
+  -  
     apply (Rcomplements.Rabs_le_between').
     apply /Rle_trans.
-    apply (round_error3 _ pgt BP1); try by [].
-    suff : ((N + 2 + 2 -[p]%bigZ) = (N + 4 - [p]%bigZ))%Z by move => ->;apply Req_le.
+    apply (round_error _ pgt BP1).
+    suff : ((N + 2 + 1 -[p]%bigZ) = (N + 3 - [p]%bigZ))%Z by move => ->;apply Req_le.
     by lia.
-  have t2 :   ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))) <= (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_DN (SFBI2.prec p) ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))))+ (powerRZ 2 ((N+4-[p]%bigZ))).
-  - rewrite add_float in BP2.
-    rewrite add_float.
-    apply (Rcomplements.Rabs_le_between').
+  have t2 :   ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))) <= (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_DN (SFBI2.prec p) ((D2R (Float lIm lIe))+(D2R (Float lJm lJe))))+ (powerRZ 2 ((N+3-[p]%bigZ))).
+  - apply (Rcomplements.Rabs_le_between').
     rewrite Rabs_minus_sym.
     apply /Rle_trans.
-    apply (round_error3 _ pgt BP2); try by [].
-    suff : ((N + 2 + 2 -[p]%bigZ) = (N + 4 - [p]%bigZ))%Z by move => ->;apply Req_le.
+    apply (round_error _ pgt BP2); try by [].
+    suff : ((N + 2 + 1 -[p]%bigZ) = (N + 3 - [p]%bigZ))%Z by move => ->;apply Req_le.
     by lia.
   rewrite Rcomplements.Rle_minus_l.
   apply /Rle_trans.
   apply t1.
-  have pwr : (powerRZ 2 (N+5 - [p]%bigZ)) = (2*powerRZ 2 (N+4- [p]%bigZ)) by rewrite !(powerRZ_add);try by simpl;lra.
+  have pwr : (powerRZ 2 (N+4 - [p]%bigZ)) = (2*powerRZ 2 (N+3- [p]%bigZ)) by rewrite !(powerRZ_add);try by simpl;lra.
   rewrite pwr.
-  suff :  (D2R (Float uIm uIe)) + (D2R (Float uJm uJe)) - (/ 2 ^ n) - (/ 2 ^ m) <= (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_DN (SFBI2.prec p) ((D2R (Float lIm lIe)) + (D2R (Float lJm lJe)))) + (powerRZ 2 (N + 4 - [p]%bigZ)) by lra.
+  suff :  (D2R (Float uIm uIe)) + (D2R (Float uJm uJe)) - (/ 2 ^ n) - (/ 2 ^ m) <= (Interval_definitions.round SFBI2.radix Interval_definitions.rnd_DN (SFBI2.prec p) ((D2R (Float lIm lIe)) + (D2R (Float lJm lJe)))) + (powerRZ 2 (N + 3 - [p]%bigZ)) by lra.
   have T:= (Rle_trans ((D2R (Float uIm uIe)) + (D2R (Float uJm uJe)) - (/ 2 ^ n) - (/ 2 ^ m))  _ _ _ t2).
   by apply T; lra.
 Qed.
 
 
+
+
 Definition Rplus_rlzrf (phi: questions (IR \*_cs IR)) (n: queries IR):= I.add (nat2p n) (lprj phi n) (rprj phi n).
 Definition Rplus_rlzr: questions (IR \*_cs IR) ->> questions IR := F2MF Rplus_rlzrf.
 
-Lemma powerRZ2_bound x y : exists K, (1 <= K)%nat /\ ((Rabs x) <= (powerRZ 2 (Z.of_nat K))) /\ ((Rabs y) <= (powerRZ 2 (Z.of_nat K))).
-Proof.
-  have tp2_upper t: exists K, (0 <= K)%Z /\ (Rabs t) <= (powerRZ 2 K).
-  - have [A _] := (archimed (Rabs t)).
-    have A' : (Rabs t) <= (IZR (up (Rabs t))) by lra.
+Lemma powerRZ_bound t :  exists K, (0 <= K)%Z /\ (Rabs t) <= (powerRZ 2 K).
+  have [A _] := (archimed (Rabs t)).
+  have A' : (Rabs t) <= (IZR (up (Rabs t))) by lra.
     case e : ((up (Rabs t)) <=? 1)%Z; move : e; [rewrite Z.leb_le | rewrite Z.leb_gt]=>e.
     + exists 1%Z; split; first by lia.
       apply /Rle_trans.
@@ -1356,7 +427,11 @@ Proof.
     apply (IZR_le _ _ lt).
     rewrite (Raux.IZR_Zpower SFBI2.radix); last by apply Z.log2_up_nonneg.
     by rewrite <- (Raux.bpow_powerRZ SFBI2.radix);lra.
-  case (tp2_upper x) => Ux [Uxge0 Uxp]; case (tp2_upper y) => Uy [Uyge0 Uyp].
+Qed.
+
+Lemma powerRZ2_bound x y : exists K, (1 <= K)%nat /\ ((Rabs x) <= (powerRZ 2 (Z.of_nat K))) /\ ((Rabs y) <= (powerRZ 2 (Z.of_nat K))).
+Proof.
+  case (powerRZ_bound x) => Ux [Uxge0 Uxp]; case (powerRZ_bound y) => Uy [Uyge0 Uyp].
   have [T1 T2] : ((Z.to_nat Ux) <= (maxn 1 (maxn (Z.to_nat Ux) (Z.to_nat Uy))))%nat /\ ((Z.to_nat Uy) <= (maxn 1 (maxn (Z.to_nat Ux) (Z.to_nat Uy))))%nat.
   - split.
     apply /leP /Nat.le_trans.
@@ -1384,6 +459,7 @@ Proof.
     rewrite Nat2Z.id.
     by apply /leP.
 Qed.
+
 Lemma Rplus_rlzr_spec : Rplus_rlzr \realizes (F2MF (fun xy => Rplus xy.1 xy.2)).
 Proof.
   rewrite F2MF_rlzr_F2MF => phi [x y] [/=[xephin convx] [yephin convy]].
@@ -1410,11 +486,11 @@ Proof.
     case  k => [|p]; by [lia |rewrite /Z.of_nat Pos.of_nat_succ].
     by suff : ((K+n.+1).+3.+2 <= k)%coq_nat by lia.
   have lt' : (0 <= Z.of_nat K)%Z by lia. 
-  have [bnd err] := (add_error' lt lt' bndl dml bndr dmr (xephin k) (yephin k) Kprp2 Kprp3).
+  have [bnd err] := (add_error lt lt' bndl dml bndr dmr (xephin k) (yephin k) Kprp2 Kprp3).
   split; first by apply bnd.
   apply /Rle_trans.
   apply err.
-  suff H : (powerRZ 2 ((Z.of_nat K)+5 - [nat2p k]%bigZ)) <= (/ 2 ^ n.+1).
+  suff H : (powerRZ 2 ((Z.of_nat K)+4 - [nat2p k]%bigZ)) <= (/ 2 ^ n.+1).
   - apply /Rle_trans.
     apply Rplus_le_compat_l.
     apply H.
@@ -1441,17 +517,15 @@ Proof.
   rewrite <- powerRZ_add; try by [].
   by rewrite <- BigZ.spec_add,<- mult_IZR,<-BigZ.spec_mul.
 Qed.
-Lemma round_error_mul p rnd m1 e1 m2 e2 M: (1 < p)%bigZ -> (Rabs (D2R (Float m1 e1))) <= (powerRZ 2 M) -> (Rabs (D2R (Float m2 e2))) <= (powerRZ 2 M) -> (D2R (Float m1 e1))*(D2R (Float m2 e2)) - (powerRZ 2 (2*M+2-[p]%bigZ)%Z) <= (Interval_definitions.round SFBI2.radix rnd (SFBI2.prec p) ((D2R (Float m1 e1))*(D2R (Float m2 e2)))) <= (D2R (Float m1 e1))*(D2R (Float m2 e2)) + (powerRZ 2 (2*M+2-[p]%bigZ)%Z).
+Lemma round_error_mul p rnd x y M: (1 < p)%bigZ -> (Rabs x) <= (powerRZ 2 M) -> (Rabs y) <= (powerRZ 2 M) -> x*y - (powerRZ 2 (2*M+1-[p]%bigZ)%Z) <= (Interval_definitions.round SFBI2.radix rnd (SFBI2.prec p) (x*y)) <= x*y + (powerRZ 2 (2*M+1-[p]%bigZ)%Z).
 Proof.
   move => pgt H1 H2.
-  rewrite !mul_float.
-  have lt : (Rabs (D2R (Float (m1*m2)%bigZ (e1+e2)%bigZ))) <= (powerRZ 2 (2*M)).
-  - rewrite <- mul_float.
-    rewrite Rabs_mult.
+  have lt : (Rabs (x*y)) <= (powerRZ 2 (2*M)).
+  - rewrite Rabs_mult.
     rewrite <-Z.add_diag, powerRZ_add; last by lra.
     by apply Rmult_le_compat; [apply Rabs_pos | apply Rabs_pos | |].
   apply Rcomplements.Rabs_le_between'.
-  apply round_error3; by [].
+  apply round_error; by [].
 Qed.
 
 Lemma non_empty_diam_pos I x: (bounded I) -> (x \contained_in I) -> (0 <= (upper I - lower I)).
@@ -1471,7 +545,7 @@ Lemma mul_error I J n m p x y N:
   (Rabs x) <=  (powerRZ 2 N) -> (Rabs y) <= (powerRZ 2 N) ->
   bounded (I.mul p I J)
   /\
-  diam (I.mul p I J) <= (powerRZ 2 (N+1-(Z.of_nat n)))+ (powerRZ 2 (N+1-(Z.of_nat m))) + (powerRZ 2 (2*N+5-[p]%bigZ)).
+  diam (I.mul p I J) <= (powerRZ 2 (N+1-(Z.of_nat n)))+ (powerRZ 2 (N+1-(Z.of_nat m))) + (powerRZ 2 (2*N+4-[p]%bigZ)).
 Proof.
   move => pgt Ngt.
   move => BI DI BJ DJ xc yc Bx By.
@@ -1498,7 +572,7 @@ Proof.
     rewrite !powerRZ_add;try by lra.
     rewrite !powerRZ2_neg_pos.
     apply Rplus_le_compat; by apply Rmult_le_compat_r; [apply tpmn_pos | ].
-  have round_sub_simplification M rnd rnd' m1 m2 m3 m4 e1 e2 e3 e4: ((Rabs (D2R (Float m1 e1))) <= (powerRZ 2 M)) -> ((Rabs (D2R (Float m2 e2))) <= (powerRZ 2 M)) -> ((Rabs (D2R (Float m3 e3))) <= (powerRZ 2 M)) -> ((Rabs (D2R (Float m4 e4))) <= (powerRZ 2 M)) -> (SFBI2.mul rnd p (Float m1 e1) (Float m2 e2)) - (SFBI2.mul rnd' p (Float m3 e3) (Float m4 e4)) <= (D2R (Float m1 e1))*(D2R (Float m2 e2)) + (powerRZ 2 (2*M+2-[p]%bigZ)%Z) - ((D2R (Float m3 e3))*(D2R (Float m4 e4)) - (powerRZ 2 (2*M+2-[p]%bigZ)%Z)).
+  have round_sub_simplification M rnd rnd' m1 m2 m3 m4 e1 e2 e3 e4: ((Rabs (D2R (Float m1 e1))) <= (powerRZ 2 M)) -> ((Rabs (D2R (Float m2 e2))) <= (powerRZ 2 M)) -> ((Rabs (D2R (Float m3 e3))) <= (powerRZ 2 M)) -> ((Rabs (D2R (Float m4 e4))) <= (powerRZ 2 M)) -> (SFBI2.mul rnd p (Float m1 e1) (Float m2 e2)) - (SFBI2.mul rnd' p (Float m3 e3) (Float m4 e4)) <= (D2R (Float m1 e1))*(D2R (Float m2 e2)) + (powerRZ 2 (2*M+1-[p]%bigZ)%Z) - ((D2R (Float m3 e3))*(D2R (Float m4 e4)) - (powerRZ 2 (2*M+1-[p]%bigZ)%Z)).
   - move => B1 B2 B3 B4.
     rewrite /D2R !SFBI2.mul_correct /Xmul !D2R_SFBI2toX //=.
      by apply sub_simplification;apply round_error_mul; try by [].
@@ -1511,10 +585,10 @@ Proof.
     rewrite !SFBI2.real_correct !SFBI2.max_correct !SFBI2.min_correct !SFBI2.mul_correct /Xmul.
     by rewrite /Xmin /Xmax !D2R_SFBI2toX.
     rewrite /I.mul.
-    have helper u v u' v' : (u*v + (powerRZ 2 (2*(N+1)+2-[p]%bigZ)))-(u'*v' - (powerRZ 2 (2*(N+1)+2-[p]%bigZ))) = (u*v - u'*v')+(powerRZ 2 (2*N+5-[p]%bigZ)).
-    - suff :  (powerRZ 2 1)*(powerRZ 2 (2 * (N + 1) + 2 - [p]%bigZ))  =  (powerRZ 2 (2*N + 5 - [p]%bigZ)) by simpl;lra.
+    have helper u v u' v' : (u*v + (powerRZ 2 (2*(N+1)+1-[p]%bigZ)))-(u'*v' - (powerRZ 2 (2*(N+1)+1-[p]%bigZ))) = (u*v - u'*v')+(powerRZ 2 (2*N+4-[p]%bigZ)).
+    - suff :  (powerRZ 2 1)*(powerRZ 2 (2 * (N + 1) + 1 - [p]%bigZ))  =  (powerRZ 2 (2*N + 4 - [p]%bigZ)) by simpl;lra.
       rewrite <- powerRZ_add; try by lra.
-      suff H0 :((1 + (2 * (N + 1) + 2 - [p]%bigZ)) =  (2 * N + 5 - [p]%bigZ))%Z by rewrite H0.
+      suff H0 :((1 + (2 * (N + 1) + 1 - [p]%bigZ)) =  (2 * N + 4 - [p]%bigZ))%Z by rewrite H0.
       by lia.
     rewrite diam_absI in ineq.
     rewrite diam_absJ in ineq'.
@@ -1523,7 +597,7 @@ Proof.
     have ineq_triv z k: (Rabs (z - z) <= / 2 ^ k) by rewrite Rcomplements.Rminus_eq_0 Rabs_R0;apply tpmn_pos.
     rewrite Rabs_minus_sym in ineq_rev.
     rewrite Rabs_minus_sym in ineq'_rev.
-    have case_helper rnd rnd' m1 e1 m2 e2 m1' e1' m2' e2' : (Rabs (D2R (Float m1 e1))) <= (powerRZ 2 (N+1)) -> (Rabs (D2R (Float m1' e1'))) <= (powerRZ 2 (N+1)) -> (Rabs (D2R (Float m2 e2))) <= (powerRZ 2 (N+1)) -> (Rabs (D2R (Float m2' e2'))) <= (powerRZ 2 (N+1)) ->  (Rabs ((D2R (Float m1 e1)) - (D2R (Float m1' e1')))) <= / 2 ^ n -> (Rabs ((D2R (Float m2 e2)) - (D2R (Float m2' e2')))) <= / 2 ^ m -> (SFBI2.mul rnd p (Float m1 e1) (Float m2 e2)) - (SFBI2.mul  rnd' p (Float m1' e1') (Float m2' e2')) <= (powerRZ 2 (N+1-(Z.of_nat n)))+(powerRZ 2 (N+1-(Z.of_nat m)))+(powerRZ 2 (2*N + 5 - [p]%bigZ)).
+    have case_helper rnd rnd' m1 e1 m2 e2 m1' e1' m2' e2' : (Rabs (D2R (Float m1 e1))) <= (powerRZ 2 (N+1)) -> (Rabs (D2R (Float m1' e1'))) <= (powerRZ 2 (N+1)) -> (Rabs (D2R (Float m2 e2))) <= (powerRZ 2 (N+1)) -> (Rabs (D2R (Float m2' e2'))) <= (powerRZ 2 (N+1)) ->  (Rabs ((D2R (Float m1 e1)) - (D2R (Float m1' e1')))) <= / 2 ^ n -> (Rabs ((D2R (Float m2 e2)) - (D2R (Float m2' e2')))) <= / 2 ^ m -> (SFBI2.mul rnd p (Float m1 e1) (Float m2 e2)) - (SFBI2.mul  rnd' p (Float m1' e1') (Float m2' e2')) <= (powerRZ 2 (N+1-(Z.of_nat n)))+(powerRZ 2 (N+1-(Z.of_nat m)))+(powerRZ 2 (2*N + 4 - [p]%bigZ)).
     move => H1 H2 H3 H4 H5 H6.
     apply /Rle_trans.
     apply (round_sub_simplification (N+1)%Z); try by [].
@@ -1534,7 +608,7 @@ Proof.
     by apply mul_sub_err'; by [].
   have case_helper2 : (D2R (SFBI2.zero) - (D2R SFBI2.zero)) <=
   powerRZ 2 (N + 1 - Z.of_nat n) + powerRZ 2 (N + 1 - Z.of_nat m) +
-  powerRZ 2 (2 * N + 5 - [p]%bigZ).
+  powerRZ 2 (2 * N + 4 - [p]%bigZ).
   - rewrite /D2R SFBI2.zero_correct Rminus_0_r //=.
     apply Rplus_le_le_0_compat; [apply Rplus_le_le_0_compat |]; by apply powerRZ_le;lra.
   case : (I.sign_large_ (Float lIm lIe) (Float uIm uIe));case : (I.sign_large_ (Float lJm lJe) (Float uJm uJe)); try by (try apply case_helper2; try by (apply case_helper; by [])).
@@ -1545,6 +619,7 @@ Proof.
   rewrite /D2R !SFBI2.max_correct !SFBI2.min_correct /Xmin /Xmax !SFBI2.mul_correct /Xmul  !D2R_SFBI2toX //= .
   apply Rmax_case;apply Rmin_case; try by auto.
 Qed.
+
 Definition Rmult_rlzrf (phi: questions (IR \*_cs IR)) (n: queries IR):= I.mul (nat2p n) (lprj phi n) (rprj phi n).
 Definition Rmult_rlzr: questions (IR \*_cs IR) ->> questions IR := F2MF Rmult_rlzrf.
 Lemma maxN3 x y z B: ((maxn x (maxn  y z)) <= B)%nat -> (x <= B /\ y <= B /\ z <= B)%nat.
@@ -1591,7 +666,7 @@ Proof.
   apply /Rle_trans.
   apply err.
   rewrite powerRZ2_neg_pos.
-  suff H : (powerRZ 2 (2*(Z.of_nat K)+5 - [nat2p k]%bigZ)) <= (/ 2 ^ n.+1).
+  suff H : (powerRZ 2 (2*(Z.of_nat K)+4 - [nat2p k]%bigZ)) <= (/ 2 ^ n.+1).
   - apply /Rle_trans.
     apply Rplus_le_compat_l.
     apply H.
@@ -1617,6 +692,271 @@ Proof.
   by apply Kp1.
 Qed.
 
+Definition QtoIR p q := match q with 
+                        (a#b) => (I.div p  (I.fromZ a) (I.fromZ (Z.pos b)))
+                        end.
+Require Import Qreals.
+Require Import Q_reals.
+
+Lemma QtoIR_correct p q :  (Qreals.Q2R q) \contained_in (QtoIR p q).
+Proof.
+  case q => a b.
+  suff -> : (Xreal (Q2R (a # b))) = (Xdiv (Xreal (IZR a)) (Xreal (IZR (Z.pos b)))).
+  - by apply I.div_correct; apply I.fromZ_correct.
+  rewrite /Xdiv' /is_zero//=.
+  have -> // : (Raux.Req_bool (IZR (Z.pos b)) 0) = false.
+  exact /Raux.Req_bool_false/IZR_nz.
+Qed.
+
+Lemma sign_strict_pos b : (I.sign_strict_ (SFBI2.fromZ (Z.pos b)) (SFBI2.fromZ (Z.pos b))) = Xgt.
+Proof.
+  have := (I.fromZ_correct (Z.pos b)).
+  rewrite /I.fromZ => bcont.
+  have  := (I.sign_strict_correct_ _ _ _ bcont).
+  have blt: (0 < IZR (Z.pos b)) by rewrite /IZR;rewrite <- INR_IPR;apply pos_INR_nat_of_P.
+  case e :(I.sign_strict_ (SFBI2.fromZ (Z.pos b)) (SFBI2.fromZ (Z.pos b))); try by [];try by lra.
+ rewrite /SFBI2.toX !SFBI2.fromZ_correct.
+ by lra.
+Qed.     
+
+Lemma div_real a b r p : (SFBI2.real (SFBI2.div r p (SFBI2.fromZ a) (SFBI2.fromZ (Z.pos b)))).
+Proof.
+  rewrite SFBI2.real_correct.
+  rewrite SFBI2.div_correct.
+  rewrite /SFBI2.toX !SFBI2.fromZ_correct //=.
+  rewrite /Xdiv'.
+  by have -> : (is_zero (IZR (Z.pos b))) = false by apply Raux.Req_bool_false.
+Qed.
+
+Lemma QtoIR_bounded q p : (bounded (QtoIR p q)).
+Proof.
+  rewrite /Q2R /QtoIR.
+  case q => a b.
+  rewrite /SFBI2.fromZ/I.fromZ /I.div /I.Fdivz/bounded.
+  rewrite sign_strict_pos.
+  case : (I.sign_strict_ (SFBI2.fromZ a) (SFBI2.fromZ a)); try by []; try by rewrite !div_real.
+Qed.
+
+Lemma QtoIR_diam q N p: (1 < p)%bigZ -> (Rabs (Q2R q)) <= powerRZ 2 N ->  (diam (QtoIR p q)) <= (powerRZ 2 (N+2-[p]%bigZ)).
+Proof. 
+  rewrite /Q2R /QtoIR /upper/lower.
+  case q => a b pgt qlt.
+  rewrite /SFBI2.fromZ/I.fromZ /I.div /I.Fdivz.
+  rewrite !sign_strict_pos.
+  have rnd_error rnd rnd': (SFBI2.div rnd p (SFBI2.fromZ a) (SFBI2.fromZ (Z.pos b))) - (SFBI2.div rnd' p (SFBI2.fromZ a) (SFBI2.fromZ (Z.pos b))) <= powerRZ 2 (N + 2 - [p]%bigZ).
+  - rewrite /D2R !SFBI2.div_correct.
+    rewrite /Interval_definitions.Xround /SFBI2.toX !SFBI2.fromZ_correct //=.
+    rewrite /Xdiv' //=.
+    have -> : (is_zero (IZR (Z.pos b))) = false by apply Raux.Req_bool_false.
+    rewrite //=.
+    apply Rcomplements.Rabs_le_between.
+    have //= re rnd' := (round_error rnd' pgt qlt).
+    rewrite /Rdiv.
+    have t u v w : (Rabs (u - v)) = (Rabs ((u - w) +  (w - v))) by split_Rabs;lra.
+    rewrite (t _ _ (IZR a * / (IZR (Z.pos b)))).
+    apply /Rle_trans.
+    apply Rabs_triang.
+    have -> : (powerRZ 2 (N + 2 - [p]%bigZ)) = (powerRZ 2 (N + 1 - [p]%bigZ))+(powerRZ 2 (N + 1 - [p]%bigZ)).
+    + have -> : ((N+2-[p]%bigZ) = (N+1-[p]%bigZ+1))%Z by lia.
+      by rewrite powerRZ_add //=; last by lra.
+    by apply Rplus_le_compat; by [apply re | rewrite <- Rabs_minus_sym; apply re].
+    rewrite [SFBI2.real (SFBI2.fromZ _)]//=.
+  case s1: (I.sign_strict_ (SFBI2.fromZ a) (SFBI2.fromZ a)); try by apply rnd_error.
+  rewrite /D2R Rminus_0_r //=.
+  by apply powerRZ_le;lra.
+Qed.
+
+Definition extend J p := (I.add (nat2p p) J (I.bnd (Float (-1)%bigZ (-(BigZ.of_Z (Z.of_nat p)))%bigZ) (Float (1)%bigZ (-(BigZ.of_Z (Z.of_nat p)))%bigZ))).
+
+Lemma extend_diam_lb J p x y: (x \contained_in J) -> (Rabs (y-x)) <= (/ 2 ^ p) -> (y \contained_in (extend J p)). 
+Proof.
+  move => xc dist.
+  set K := (I.bnd (Float (-1)%bigZ (-(BigZ.of_Z (Z.of_nat p)))%bigZ) (Float (1)%bigZ (-(BigZ.of_Z (Z.of_nat p)))%bigZ)).
+  have -> : y = (x + (y-x)) by lra. 
+  suff cnt : ((y-x) \contained_in K) by apply (add_correct_R (nat2p p) xc cnt).
+  rewrite //= !Interval_definitions.FtoR_split Float_prop.F2R_Zopp !Float_prop.F2R_bpow.
+  rewrite !Raux.bpow_powerRZ/BigIntRadix2.EtoZ BigZ.spec_opp //=.
+  apply Rcomplements.Rabs_le_between.
+  by rewrite BigIntRadix2.ZtoE_correct powerRZ2_neg_pos.
+Qed.
+
+Lemma extend_diam_ub J p n x N: (1 < p)%nat -> (0 <= N)%Z ->
+ (bounded J) -> (diam J <= (/ 2 ^ n)) -> (x \contained_in J) -> ((Rabs x) <= (powerRZ 2 N)) -> (diam (extend J p)) <= (/ 2 ^ n)+(/ 2 ^ (p.-1)) + (powerRZ 2 (N + 4 - [nat2p p]%bigZ)).
+Proof.
+  move => plt Nlt B dJ xc xb.
+  set K := (I.bnd (Float (-1)%bigZ (-(BigZ.of_Z (Z.of_nat p)))%bigZ) (Float (1)%bigZ (-(BigZ.of_Z (Z.of_nat p)))%bigZ)).
+  have plt' : (1 < (nat2p p))%bigZ.
+  - rewrite /nat2p.
+    rewrite /SFBI2.PtoP /BigZ.lt //=.
+    rewrite BigN.spec_of_pos.
+    have -> : (p = ((p.-2).+1).+1) by move /leP : plt;lia.
+    have -> : (((phi 1)) = 1)%Z by [].
+    case (p.-2) => [| m]; rewrite //=;lia.
+  have [Bk dK] : (bounded K) /\ ((diam K) <= (/ 2 ^ (p.-1))).
+  - split; first by [].
+    rewrite !D2R_Float //=.
+    have -> : (IZR (phi 1)) = 1 by [].
+    ring_simplify.
+    rewrite BigZ.spec_opp BigIntRadix2.ZtoE_correct powerRZ2_neg_pos//=.
+    have {1}-> : (p = ((p.-1).+1))%nat.
+    + rewrite Nat.succ_pred_pos; first by [].
+      move /leP : plt.
+      by lia.
+    rewrite double.
+    rewrite <- tpmn_half.
+    by lra.
+  have c0 : (0 \contained_in K).
+  - rewrite //= !Interval_definitions.FtoR_split Float_prop.F2R_Zopp !Float_prop.F2R_bpow.
+    rewrite !Raux.bpow_powerRZ/BigIntRadix2.EtoZ BigZ.spec_opp //=.
+    apply Rcomplements.Rabs_le_between.
+    rewrite Rabs_R0.
+    by apply powerRZ_le; lra.
+  apply (add_error plt' Nlt B dJ Bk dK xc c0 xb).
+  by rewrite Rabs_R0; apply powerRZ_le;lra.
+Qed.
+Definition QRtoIR (phi : (Q -> Q)) := (fun p:nat => (extend (QtoIR (nat2p p) (phi (/ (inject_Z (Z.pow 2 (Z.of_nat p))))%Q)) p)).
+
+Lemma eps_simplify p : (Q2R (/ (inject_Z (Z.pow 2 (Z.of_nat p))))%Q) = (/ 2 ^ p).
+Proof.
+  rewrite Q2R_inv.
+  - field_simplify_eq; first by rewrite pow_IZR/inject_Z/Q2R //=;lra. 
+    split; first by apply pow_nonzero;lra.
+    rewrite /inject_Z/Q2R //=.
+    suff: (IZR (2 ^ (Z.of_nat p))) <> (IZR 0) by lra.
+    apply IZR_neq.
+    by apply Z.pow_nonzero; lia.
+  apply Qnot_eq_sym.
+  apply Qlt_not_eq.
+  rewrite /inject_Z //=.
+  apply Rlt_Qlt.
+  rewrite /Q2R //=.
+  suff : (IZR 0) < (IZR (2 ^ (Z.of_nat p))) by lra.
+  apply IZR_lt.
+  apply Z.pow_pos_nonneg; by lia.
+Qed.
+
+Lemma QRtoIR_contains phi x : (phi \describes x \wrt RQ) -> (forall p, (x \contained_in (QRtoIR phi p))).
+  move => //=phin p.
+  rewrite /QRtoIR.
+  set eps := (/ (inject_Z (Z.pow 2 (Z.of_nat p))))%Q.
+  have c := (QtoIR_correct (nat2p p) (phi eps)).
+  apply (extend_diam_lb c).
+  suff <- : (Q2R eps) = (/ 2 ^ p).
+  - apply (phin eps).
+    have -> : (0 = Q2R 0) by lra.
+    apply Qlt_Rlt.
+    apply Qinv_lt_0_compat.
+    have -> : (0%Q = (inject_Z 0)) by compute.
+    rewrite <- Zlt_Qlt.
+    apply Z.pow_pos_nonneg; by lia.
+ rewrite /eps.
+ apply eps_simplify.
+Qed.
+
+Lemma extend_bounded J p : (bounded J) -> (bounded (extend J p)).
+Proof.
+  rewrite /extend.
+  rewrite /I.add //=.
+  case J => [| u l]; first by [].
+  rewrite /bounded !SFBI2.real_correct //=.
+  case u => [|m e]; case l => [|m' e']; try by [].
+  - by rewrite andb_false_r.
+ move => _.
+ rewrite !SFBI2.add_correct.
+ by rewrite !D2R_SFBI2toX.
+Qed.
+
+Definition RQ_IR_id_rlzr: questions RQ ->> questions IR := F2MF QRtoIR.
+Definition RQ_IR_id_rlzr_spec : RQ_IR_id_rlzr \realizes (F2MF (fun x => x)).
+Proof.     
+  rewrite F2MF_rlzr_F2MF => phi x //= phinx.
+  split; first by apply QRtoIR_contains.
+  case (powerRZ_bound x) => K [Kprp1 Kprp2].
+  move => n.
+  exists (((Z.to_nat K)+n).+4.+3)%nat => k kprp.
+  rewrite /QRtoIR.
+  have klt' : (1 < k)%nat.
+    apply /leP.
+    move /leP : kprp.
+    by lia.
+  have klt : (1 < (nat2p k))%bigZ.
+  - suff : (1 < k)%coq_nat; last by apply /leP.
+    rewrite /nat2p/SFBI2.PtoP/BigZ.lt //=.   
+    rewrite BigN.spec_of_pos.
+    rewrite Nat2Z.inj_lt //=.
+    case  k => [|p]; by [lia |rewrite /Z.of_nat Pos.of_nat_succ].
+  set eps := (/ inject_Z (2 ^ Z.of_nat k))%Q.
+  have epsgt0 : (0 < eps) by rewrite eps_simplify;apply tpmn_lt.
+  have lt' : (Rabs (phi eps)) <= (powerRZ 2 (K+1)).
+  - rewrite powerRZ_add; last by lra.
+    simpl;ring_simplify.
+    rewrite double.
+    suff : (Rabs (phi eps))  <= (Rabs x)+(powerRZ 2 K) by lra.
+    apply Rabs_bnd.
+    rewrite Rabs_minus_sym.
+    apply /Rle_trans.
+    apply (phinx eps); first by [].
+    rewrite eps_simplify.
+    rewrite Interval_missing.pow_powerRZ.
+    rewrite !powerRZ_Rpower; try by lra.
+    rewrite <-Rpower_Ropp.
+    apply Rle_Rpower; first by lra.
+    rewrite <- opp_IZR.
+    apply IZR_le.
+    by lia.
+  have diam1 := (QtoIR_diam klt lt' ).
+  have zp : ((Z.pos (Pos.of_nat k)) = (Z.of_nat k)).
+  - move : kprp.
+    case k => [|k' H]; first by rewrite ltn0.
+    rewrite Nat2Pos.inj_succ //=; last by move /leP : H;lia.
+    rewrite Pos.succ_of_nat; last by move /leP : H;lia.
+    by [].
+  have simp_exp : (K+1+2- [nat2p k]%bigZ)%Z = (-Z.of_nat (k - (Z.to_nat K)-3 ))%Z.
+  -  rewrite //= BigN.spec_of_pos.
+     have -> : (3%nat = (Z.to_nat 3%Z))%nat by auto.
+     have -> : (k = (Z.to_nat (Z.of_nat k)))%nat by rewrite Nat2Z.id.
+     rewrite <- !Z2Nat.inj_sub; try by lia.
+     rewrite Z2Nat.id; last first.
+     + suff : ((K+3) < (Z.of_nat k))%Z by lia.
+       suff :((Z.to_nat K) + 3 < k)%coq_nat.
+       * have -> : (3%Z = (Z.of_nat 3%nat))%nat by auto.
+         have {2}-> : (K = (Z.of_nat (Z.to_nat K)))%nat by rewrite Z2Nat.id.
+         rewrite <- Nat2Z.inj_add; try by lia.
+         by apply inj_lt.
+       rewrite /addn/addn_rec.
+       move /ltP : kprp.
+       rewrite /addn/addn_rec.
+       by lia.
+       rewrite Nat2Z.id.
+       by suff : ((Z.pos (Pos.of_nat k)) = (Z.of_nat k))%nat by lia.
+  have Klt : (0 <= K+1)%Z by lia.
+  rewrite simp_exp in diam1.
+  rewrite powerRZ2_neg_pos in diam1.
+  have d := (extend_diam_ub klt' Klt _ diam1 _ lt').
+  split; first by apply extend_bounded;apply QtoIR_bounded.
+  - apply /Rle_trans.
+  apply d; by [apply QtoIR_bounded | apply (QtoIR_correct (nat2p k) (phi eps))].
+  rewrite (tpmn_half n).
+  rewrite {1}(tpmn_half n.+1).
+  apply Rplus_le_compat; [apply Rplus_le_compat;apply /tpmnP;apply /leP | ].
+  - move /leP :  kprp.
+    by rewrite /addn/addn_rec/subn/subn_rec;lia.
+  - move /leP :  kprp.
+    by rewrite /addn/addn_rec/subn/subn_rec;lia.
+  rewrite <- powerRZ2_neg_pos.
+  rewrite !powerRZ_Rpower; try by lra.
+  apply Rle_Rpower; first by lra.
+  apply IZR_le.
+  rewrite /nat2p/SFBI2.PtoP/BigZ.lt. 
+  rewrite [[_]%bigZ]//=.
+  rewrite BigN.spec_of_pos zp.
+  move /leP: kprp.
+  rewrite Nat2Z.inj_le.
+  rewrite !Nat2Z.inj_succ Nat2Z.inj_add.
+  rewrite <- !Z.add_1_r.
+  rewrite Z2Nat.id; last by [].
+  by lia.
+Qed.
 Definition ZtoIR z : (questions IR):= (fun p:nat => (I.fromZ z)).
 Definition FloattoIR m e : (questions IR):= (fun p:nat => (I.bnd (Float (BigZ.of_Z m) (BigZ.of_Z e)) (Float (BigZ.of_Z m) (BigZ.of_Z e)))).
 
@@ -1645,7 +985,6 @@ Definition to_pair (d : D) := match d with
                                        end.
   Compute (logistic_map (FloattoIR 1 (-1)) 120 (-5) 15 400%nat).
 
-Require Import Q_reals.
   Definition Q2RQ (q:Q) := (fun (eps :Q) => q). 
  Fixpoint logistic_map_RQ x0 r N : (name_space RQ)  := match N with
                                        | 0%nat => (Q2RQ x0)
@@ -1680,16 +1019,22 @@ Definition midpoint_err I := (to_pairZ(IZ.midpoint I), to_pairZ(SF2.sub Interval
 Definition midpoint_errI I := (to_pair(I.midpoint I), to_pair(SFBI2.sub Interval_definitions.rnd_UP 1%bigZ (I.upper I) (I.lower I))).
   Definition logistic_map_mp_rlzrZ (N :nat) (n :Z):= (midpoint_err (logistic_map_rlzrfZ (IZ.bnd (Float 1%Z (-1)%Z) (Float 1%Z (-1)%Z)) (IZ.bnd (Float 15%Z (-2)%Z) (Float 15%Z (-2)%Z)) N n)).
   Compute (logistic_map_mp 1 (-1) 120 (-5) 5 10%nat).
-  Compute (logistic_map_mp_rlzr 100 100).
-  Compute (logistic_map_mp_rlzrZ 81 200).
   Require Extraction.
 
   Require ExtrHaskellBasic.
   Require ExtrHaskellZInteger.
   Require ExtrHaskellNatInteger.
   Extraction Language Haskell.
-  Definition log_map_Q N :=(logistic_map_Q (1#2) (15#4) N).
+
+Extract Inlined Constant Z.abs => "(Prelude.abs)".
+Extract Inlined Constant Z.geb => "(Prelude.>=)".
+Extract Inlined Constant Z.leb => "(Prelude.<=)".
+Extract Inlined Constant Z.geb => "(Prelude.>=)".
+Extract Inlined Constant Z.leb => "(Prelude.<=)".
+Extract Inlined Constant Z. => "(Prelude.<=)".
+  Compute (logistic_map_mp_rlzrZ 30 10).
   Extraction "logisticZ" logistic_map_mp_rlzrZ.
+  Definition log_map_Q N :=(logistic_map_Q (1#2) (15#4) N).
   Definition sine_rlzrf (phi: (questions IR)) (n: queries IR) := I.sin (nat2p n) (phi n).
   Definition Pi (n : (queries IR)) : (answers IR)  := (I.pi (nat2p n)).
   Compute (midpoint_errI (sine_rlzrf (Top.Rmult_rlzrf (name_pair (ZtoIR 5001) (Top.Rmult_rlzrf (name_pair Pi (FloattoIR 1%Z (-2)%Z))))) 300%nat)).
@@ -1705,4 +1050,3 @@ Check Z.of_N.
 Print Z.
  Compute (plus_float 3%Z 2%Z (-3)%Z 10%Z 10%nat).
 Compute ((Rplus_rlzrf (name_pair (ZtoIR (Z.pow 4 4000000)) (ZtoIR 4))) 2%nat).
-200u

@@ -16,7 +16,7 @@ Notation "x \is_metric_limit_of xn" := (metric_limit xn x) (at level 2): cs_scop
 Section metric_representation.
   Context (M: MetricSpace) (r: nat -> M). 
   Hypothesis rdense: dense_sequence r.
-
+ 
   Definition metric_representation : (nat -> nat) ->> M := make_mf (fun phi x =>
     forall n, d x (r (phi n))<= /2^n).
   
@@ -193,6 +193,7 @@ Section continuity.
   Proof.
     move => cont.
     have /countable_choice [mu minmod]:= exists_minmod_met (cont (r _)).
+    Print baire.limit.   
     pose F := (make_mf (fun phi Fphi => forall n, exists k,
                               (mu (phi k) n.+1 <= k)%nat
                               /\

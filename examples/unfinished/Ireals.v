@@ -409,6 +409,7 @@ Qed.
 Definition Rplus_rlzrf (phi: questions (IR \*_cs IR)) (n: queries IR):= I.add (nat2p n) (lprj phi n) (rprj phi n).
 Definition Rplus_rlzr: questions (IR \*_cs IR) ->> questions IR := F2MF Rplus_rlzrf.
 
+
 Lemma powerRZ_bound t :  exists K, (0 <= K)%Z /\ (Rabs t) <= (powerRZ 2 K).
   have [A _] := (archimed (Rabs t)).
   have A' : (Rabs t) <= (IZR (up (Rabs t))) by lra.
@@ -692,13 +693,28 @@ Proof.
   by apply Kp1.
 Qed.
 
+
+Definition ZtoIR z : (questions IR):= (fun p:nat => (I.fromZ z)).
+Definition FloattoIR m e : (questions IR):= (fun p:nat => (I.bnd (Float (BigZ.of_Z m) (BigZ.of_Z e)) (Float (BigZ.of_Z m) (BigZ.of_Z e)))).
+(*******************************************************************)
+Definition to_pair (d : D) := match d with
+                         | Fnan => (0%Z, 1%Z)
+                         | (Float m e) => ([m]%bigZ, [e]%bigZ)
+                                end.
+                          
+ Fixpoint logistic_map phi rm re N : (name_space IR)  := match N with
+                                       | 0%nat => phi
+                                       | M.+1 => let P := (logistic_map phi rm re M) in (Rmult_rlzrf (name_pair (FloattoIR rm re) (Rmult_rlzrf (name_pair P (Rplus_rlzrf (name_pair (FloattoIR 1 0) (Rmult_rlzrf (name_pair (FloattoIR (-1) 0) P))))))))
+                                       end.
+(*******************************************************************)
+
 Definition QtoIR p q := match q with 
                         (a#b) => (I.div p  (I.fromZ a) (I.fromZ (Z.pos b)))
                         end.
 Require Import Qreals.
 Require Import Q_reals.
 
-Lemma QtoIR_correct p q :  (Qreals.Q2R q) \contained_in (QtoIR p q).
+Lemma QtoIR_correct p q :  (Q2R q) \contained_in (QtoIR p q).
 Proof.
   case q => a b.
   suff -> : (Xreal (Q2R (a # b))) = (Xdiv (Xreal (IZR a)) (Xreal (IZR (Z.pos b)))).
@@ -710,60 +726,44 @@ Qed.
 
 Lemma sign_strict_pos b : (I.sign_strict_ (SFBI2.fromZ (Z.pos b)) (SFBI2.fromZ (Z.pos b))) = Xgt.
 Proof.
-  have := (I.fromZ_correct (Z.pos b)).
-  rewrite /I.fromZ => bcont.
-  have  := (I.sign_strict_correct_ _ _ _ bcont).
   have blt: (0 < IZR (Z.pos b)) by rewrite /IZR;rewrite <- INR_IPR;apply pos_INR_nat_of_P.
+ have  := (I.sign_strict_correct_ _ _ _ (I.fromZ_correct (Z.pos b))).
   case e :(I.sign_strict_ (SFBI2.fromZ (Z.pos b)) (SFBI2.fromZ (Z.pos b))); try by [];try by lra.
  rewrite /SFBI2.toX !SFBI2.fromZ_correct.
  by lra.
 Qed.     
 
-Lemma div_real a b r p : (SFBI2.real (SFBI2.div r p (SFBI2.fromZ a) (SFBI2.fromZ (Z.pos b)))).
+Lemma div_real a b r p : SFBI2.real (SFBI2.div r p (SFBI2.fromZ a) (SFBI2.fromZ (Z.pos b))).
 Proof.
-  rewrite SFBI2.real_correct.
-  rewrite SFBI2.div_correct.
-  rewrite /SFBI2.toX !SFBI2.fromZ_correct //=.
-  rewrite /Xdiv'.
+  rewrite SFBI2.real_correct SFBI2.div_correct /SFBI2.toX !SFBI2.fromZ_correct //= /Xdiv'.
   by have -> : (is_zero (IZR (Z.pos b))) = false by apply Raux.Req_bool_false.
 Qed.
 
-Lemma QtoIR_bounded q p : (bounded (QtoIR p q)).
+Lemma QtoIR_bounded q p : bounded (QtoIR p q).
 Proof.
-  rewrite /Q2R /QtoIR.
   case q => a b.
-  rewrite /SFBI2.fromZ/I.fromZ /I.div /I.Fdivz/bounded.
-  rewrite sign_strict_pos.
-  case : (I.sign_strict_ (SFBI2.fromZ a) (SFBI2.fromZ a)); try by []; try by rewrite !div_real.
+  rewrite /QtoIR /SFBI2.fromZ/I.fromZ /I.div /I.Fdivz/bounded sign_strict_pos.
+  by case : (I.sign_strict_ (SFBI2.fromZ a) (SFBI2.fromZ a)); try by rewrite !div_real.
 Qed.
 
-Lemma QtoIR_diam q N p: (1 < p)%bigZ -> (Rabs (Q2R q)) <= powerRZ 2 N ->  (diam (QtoIR p q)) <= (powerRZ 2 (N+2-[p]%bigZ)).
+Notation "'\|' x '|' " := (Rabs x) (format "'\|' x '|' ").
+
+Lemma QtoIR_diam (q:Q) N p: (1 < p)%bigZ -> \|q| <= powerRZ 2 N ->  diam (QtoIR p q) <= powerRZ 2 (N+2-[p]%bigZ).
 Proof. 
-  rewrite /Q2R /QtoIR /upper/lower.
   case q => a b pgt qlt.
-  rewrite /SFBI2.fromZ/I.fromZ /I.div /I.Fdivz.
-  rewrite !sign_strict_pos.
-  have rnd_error rnd rnd': (SFBI2.div rnd p (SFBI2.fromZ a) (SFBI2.fromZ (Z.pos b))) - (SFBI2.div rnd' p (SFBI2.fromZ a) (SFBI2.fromZ (Z.pos b))) <= powerRZ 2 (N + 2 - [p]%bigZ).
-  - rewrite /D2R !SFBI2.div_correct.
-    rewrite /Interval_definitions.Xround /SFBI2.toX !SFBI2.fromZ_correct //=.
-    rewrite /Xdiv' //=.
-    have -> : (is_zero (IZR (Z.pos b))) = false by apply Raux.Req_bool_false.
-    rewrite //=.
-    apply Rcomplements.Rabs_le_between.
-    have //= re rnd' := (round_error rnd' pgt qlt).
-    rewrite /Rdiv.
-    have t u v w : (Rabs (u - v)) = (Rabs ((u - w) +  (w - v))) by split_Rabs;lra.
-    rewrite (t _ _ (IZR a * / (IZR (Z.pos b)))).
-    apply /Rle_trans.
-    apply Rabs_triang.
-    have -> : (powerRZ 2 (N + 2 - [p]%bigZ)) = (powerRZ 2 (N + 1 - [p]%bigZ))+(powerRZ 2 (N + 1 - [p]%bigZ)).
-    + have -> : ((N+2-[p]%bigZ) = (N+1-[p]%bigZ+1))%Z by lia.
-      by rewrite powerRZ_add //=; last by lra.
-    by apply Rplus_le_compat; by [apply re | rewrite <- Rabs_minus_sym; apply re].
-    rewrite [SFBI2.real (SFBI2.fromZ _)]//=.
-  case s1: (I.sign_strict_ (SFBI2.fromZ a) (SFBI2.fromZ a)); try by apply rnd_error.
-  rewrite /D2R Rminus_0_r //=.
-  by apply powerRZ_le;lra.
+  suff rnd_error rnd rnd': (SFBI2.div rnd p (SFBI2.fromZ a) (SFBI2.fromZ (Z.pos b))) - (SFBI2.div rnd' p (SFBI2.fromZ a) (SFBI2.fromZ (Z.pos b))) <= powerRZ 2 (N + 2 - [p]%bigZ).
+  - rewrite /QtoIR /I.fromZ /I.div /I.Fdivz !sign_strict_pos [SFBI2.real (SFBI2.fromZ _)]//=.
+    by case:I.sign_strict_; try exact/rnd_error; rewrite /D2R Rminus_0_r;apply powerRZ_le;lra.
+  rewrite /D2R !SFBI2.div_correct.
+  rewrite /SFBI2.toX !SFBI2.fromZ_correct /Xdiv' //=.
+  rewrite /is_zero Raux.Req_bool_false; last exact: IZR_nz.
+  apply Rcomplements.Rabs_le_between.
+  have -> : forall (u v : R), u - v = (u - (a#b)) +  ((a#b) - v) by intros; lra.
+  apply /Rle_trans; first exact/Rabs_triang.
+  have -> : forall k, (N+2 - k = (N+1)-k+1)%Z by intros;lia.
+  rewrite powerRZ_add ; last by lra.
+  rewrite /=Rmult_comm Rmult_1_r double.
+  by apply Rplus_le_compat; last rewrite <- Rabs_minus_sym; apply round_error.
 Qed.
 
 Definition extend J p := (I.add (nat2p p) J (I.bnd (Float (-1)%bigZ (-(BigZ.of_Z (Z.of_nat p)))%bigZ) (Float (1)%bigZ (-(BigZ.of_Z (Z.of_nat p)))%bigZ))).
@@ -867,6 +867,13 @@ Proof.
 Qed.
 
 Definition RQ_IR_id_rlzr: questions RQ ->> questions IR := F2MF QRtoIR.
+Lemma RQ_IR_id_rlzr_cont : RQ_IR_id_rlzr \is_continuous_operator.
+Proof.
+  rewrite cont_F2MF => phi.
+  rewrite /QRtoIR //=.
+  by exists (fun n => [:: (/ inject_Z (2 ^ Z.of_nat n))%Q]) => n psi [] ->.
+Qed.
+
 Definition RQ_IR_id_rlzr_spec : RQ_IR_id_rlzr \realizes (F2MF (fun x => x)).
 Proof.     
   rewrite F2MF_rlzr_F2MF => phi x //= phinx.
@@ -957,34 +964,60 @@ Proof.
   rewrite Z2Nat.id; last by [].
   by lia.
 Qed.
-Definition ZtoIR z : (questions IR):= (fun p:nat => (I.fromZ z)).
-Definition FloattoIR m e : (questions IR):= (fun p:nat => (I.bnd (Float (BigZ.of_Z m) (BigZ.of_Z e)) (Float (BigZ.of_Z m) (BigZ.of_Z e)))).
 
-Definition to_pair (d : D) := match d with
-                         | Fnan => (0%Z, 1%Z)
-                         | (Float m e) => ([m]%bigZ, [e]%bigZ)
-                                end.
-                          
- Definition plus_float m1 e1 m2 e2 (n:nat) := (to_pair (I.midpoint (Rplus_rlzrf (name_pair (FloattoIR m1 e1) (FloattoIR m2 e2)) n))).
-
- Compute (plus_float 12 2 3 2 50).
- Fixpoint times_with_plus m e N : (name_space IR)  := match N with
-                                       | 0%nat => (FloattoIR 0 0)
-                                       | 1%nat => (FloattoIR m e)
-                                       | M.+1 => (Rplus_rlzrf (name_pair (FloattoIR m e) (times_with_plus m e M)))
-                                       end.
-
- Fixpoint power_with_mult m e N : (name_space IR)  := match N with
-                                       | 0%nat => (FloattoIR 1 0)
-                                       | M.+1 => (Rmult_rlzrf (name_pair (FloattoIR m e) (power_with_mult m e M)))
-                                       end.
+Lemma RQ_IR_id_cont : (id : (RQ -> IR)) \is_continuous.
+Proof.
+  exists RQ_IR_id_rlzr.
+  by split; [apply RQ_IR_id_rlzr_spec | apply RQ_IR_id_rlzr_cont].
+Qed.
  
- Fixpoint logistic_map phi rm re N : (name_space IR)  := match N with
-                                       | 0%nat => phi
-                                       | M.+1 => let P := (logistic_map phi rm re M) in (Rmult_rlzrf (name_pair (FloattoIR rm re) (Rmult_rlzrf (name_pair P (Rplus_rlzrf (name_pair (FloattoIR 1 0) (Rmult_rlzrf (name_pair (FloattoIR (-1) 0) P))))))))
-                                       end.
-  Compute (logistic_map (FloattoIR 1 (-1)) 120 (-5) 15 400%nat).
+Print SFBI2.type.
+Definition Float2Q d := match d with
+                        | Fnan => 0%Q
+                        | Float m e => ((inject_Z [m]%bigZ) * (Qpower (1+1)%Q [e]%bigZ))%Q
+                        end.
+Lemma Qpower_Rpower a b: (Q2R (Qpower a b)) = (powerRZ a b).
+Admitted.
+Lemma Float2Q_spec d : (D2R d) = (Q2R (Float2Q d)).
+Proof.
+  rewrite /D2R.
+  case d => //=[| m e]; first by lra.
+  rewrite D2R_SFBI2toX D2R_Float Q2R_mult Qpower_Rpower.
+  by rewrite /Q2R Rinv_1 !Rmult_1_r.
+Qed.
+Definition diamQ I := (Float2Q (upper I)-(Float2Q (lower I)))%Q.
+Lemma diamQ_spec I : (Q2R (diamQ I)) = (diam I).
+Proof.
+   by rewrite  !Float2Q_spec Q2R_minus.
+Qed.
 
+Definition IR_RQ_M In (neps : nat*Q) := let n := neps.1 in
+                              let eps := neps.2 in
+                              if Qle_bool (diamQ (In n)) eps
+                              then Some (Float2Q (lower (In n)))
+                              else None.
+Lemma IR_RQ_M_spec In x: (In \describes x \wrt IR) -> (forall (eps : Q), (0 < eps)-> exists n q, (IR_RQ_M In (n,eps)) = (Some q) /\ (\| q - x| <= (Q2R eps))).                                                 
+Proof.
+  move => [xcont shrink] eps epsgt.
+  case  (dns0_tpmn epsgt) => n nprop.
+  apply Rlt_le in nprop.
+  case (shrink n) => N Nprop.
+  exists N; exists (Float2Q (lower (In N))).
+  rewrite /IR_RQ_M //=.
+  rewrite ifT; last first.
+  - apply Qle_bool_iff.
+    apply Rle_Qle.
+    rewrite diamQ_spec.
+    apply /(Rle_trans _ _  _ _ nprop).
+    by apply (Nprop);apply /leP;lia.
+  split; first by [].
+  apply /(Rle_trans _ _  _ _ nprop).
+  have t : (N <= N)%nat by apply/leP;lia.
+  have [Nprop1 Nprop2] := (Nprop N t).
+  apply /(Rle_trans _ _  _ _ Nprop2).
+  apply ID_bound_dist; try by [].
+  rewrite <- Float2Q_spec.
+  apply upper_lower_contained; try by [].
   Definition Q2RQ (q:Q) := (fun (eps :Q) => q). 
  Fixpoint logistic_map_RQ x0 r N : (name_space RQ)  := match N with
                                        | 0%nat => (Q2RQ x0)
@@ -1029,11 +1062,58 @@ Definition midpoint_errI I := (to_pair(I.midpoint I), to_pair(SFBI2.sub Interval
 Extract Inlined Constant Z.abs => "(Prelude.abs)".
 Extract Inlined Constant Z.geb => "(Prelude.>=)".
 Extract Inlined Constant Z.leb => "(Prelude.<=)".
-Extract Inlined Constant Z.geb => "(Prelude.>=)".
-Extract Inlined Constant Z.leb => "(Prelude.<=)".
-Extract Inlined Constant Z. => "(Prelude.<=)".
-  Compute (logistic_map_mp_rlzrZ 30 10).
+Extract Inlined Constant Z.gtb => "(Prelude.>)".
+Extract Inlined Constant Z.ltb => "(Prelude.<)".
+Extract Inlined Constant Z.opp => "(Prelude.negate)".
+Extract Inlined Constant Z.succ => "(Prelude.succ)".
+Extract Inlined Constant Z.pow_pos => "(Prelude.^)".
+Extract Inlined Constant Z.quotrem => "(Prelude.quotRem)".
+Extract Inlined Constant Z.compare => "(Prelude.compare)".
+Extract Inlined Constant Pos.leb => "(Prelude.<=)".
+Extract Inlined Constant Pos.ltb => "(Prelude.<)".
+Extract Inlined Constant Pos.succ => "(Prelude.succ)".
+Extract Inlined Constant Pos.compare => "(Prelude.compare)".
+Extract Inlined Constant StdZRadix2.mantissa_add => "(Prelude.+)".
+Extract Inlined Constant StdZRadix2.mantissa_sub => "(Prelude.-)".
+Extract Inlined Constant StdZRadix2.mantissa_mul => "(Prelude.*)".
+Extract Inlined Constant StdZRadix2.mantissa_cmp => "(Prelude.compare)".
+Extract Inductive Coq.Init.Datatypes.comparison => "Prelude.Ordering" ["Prelude.EQ" "Prelude.LT" "Prelude.GT"].
+(* Extract Inlined Constant StdZRadix2.digits_aux => "(let da m n = if m Prelude.== 1 then n else (da (m `Prelude.div` 2) (Prelude.succ n)) in da)". *)
   Extraction "logisticZ" logistic_map_mp_rlzrZ.
+  Compute (logistic_map_mp_rlzrZ 400 800).
+  Print StdZRadix2.digits_aux.
+  Fixpoint mantissa_digits n:=
+    match n with
+      | (p~1)%positive | (p~0)%positive => (Pos.succ (mantissa_digits p))
+      | 1%positive => 1%positive
+    end.
+  Lemma mantissa_digits_eq' : forall n k, ((mantissa_digits n)+k)%positive = (StdZRadix2.digits_aux n (Pos.succ k)).
+  Proof.
+  elim => [p IH k | p IH k | k ].
+  rewrite /StdZRadix2.digits_aux //=;rewrite <-IH;by lia.
+  rewrite /StdZRadix2.digits_aux //=;rewrite <-IH;by lia.
+  simpl.
+  case k => [p | p |]; by lia.
+  Qed.
+  Lemma mantissa_digits_eq : forall n, (mantissa_digits n) = (StdZRadix2.digits_aux n 1).
+  Proof.
+    elim => [p IH | p IH | ] //=.
+    have -> :(2%positive = Pos.succ 1) by lia.
+    rewrite <- mantissa_digits_eq'; by lia.
+    have -> :(2%positive = Pos.succ 1) by lia.
+    rewrite <- mantissa_digits_eq'; by lia.
+  Qed.
+  Search _ (Z -> Z).
+  Print Z.pow_pos.
+  Require Import Program.
+  Program Fixpoint digitsUP n m {measure (Z.to_nat (n-(Z.pow_pos 2 m)))} :=
+    match (Z.to_nat (n-(Z.pow_pos 2m))) with
+      0%nat => m |
+    _ => (digitsUP n (2*m)%positive)
+    end.
+  Obligation 1.
+  Admitted.
+  Definition bs_digits n u l 
   Definition log_map_Q N :=(logistic_map_Q (1#2) (15#4) N).
   Definition sine_rlzrf (phi: (questions IR)) (n: queries IR) := I.sin (nat2p n) (phi n).
   Definition Pi (n : (queries IR)) : (answers IR)  := (I.pi (nat2p n)).

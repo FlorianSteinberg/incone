@@ -14,10 +14,8 @@ Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
 Require Import ProofIrrelevance ProofIrrelevanceFacts.
 Require Import Interval.Interval_tactic.
 Import QArith.
-
 From rlzrs Require Import all_rlzrs.
 Require Import all_cs cs_mtrc.
-
 Section names_for_realizers.
   Definition names_RQ := (Q->Q).
   Definition names_RQw := ((nat*Q)->Q).
@@ -232,6 +230,7 @@ Section powerseries_basic_facts.
 
   Definition powerseries1 := {a : nat -> R | series1 a }.
 End powerseries_basic_facts.
+
 Section ps_representation.
   Definition ps_rep : (questions (cs_nat \*_cs cs_nat \*_cs RQ\^w)) ->> powerseries1 := make_mf (fun phi (a : powerseries1) => (rprj phi) \describes (projT1 a) \wrt (RQ\^w) /\ (series_bound (projT1 a) (lprj (lprj phi) tt) (rprj (lprj phi) tt))).
 

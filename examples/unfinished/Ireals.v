@@ -976,27 +976,71 @@ Definition Float2Q d := match d with
                         | Fnan => 0%Q
                         | Float m e => ((inject_Z [m]%bigZ) * (Qpower (1+1)%Q [e]%bigZ))%Q
                         end.
-Lemma Qpower_Rpower a b: (Q2R (Qpower a b)) = (powerRZ a b).
-Admitted.
+Lemma Qpower_spec r n: ~ r == 0 -> (Q2R r) ^ n = Q2R (r^(Z.of_nat n))%Q.
+Proof.
+  case: n => [ | n neq]; first by rewrite /Q2R /= Rinv_1; lra.
+  rewrite /= /Qpower_positive.
+  elim: n => [/= | n ih]; first by rewrite Rmult_1_r; lra.
+  have /= /Qeq_eqR ->:= pow_pos_succ Q_Setoid Qmult_comp Qmult_assoc r (Pos.of_succ_nat n).
+  by rewrite Q2R_mult ih.
+Qed.
+
+Lemma Qpower_minus r z: Qpower r z == Qpower (Qinv r) (Zopp z).
+Proof.
+  suff eq q p: q^ (Z.pos p) == (/q)^(-Zpos p).
+  - case: z => // p.
+    by rewrite -Pos2Z.opp_pos Zopp_involutive -{1}(Qinv_involutive r); symmetry; apply/eq.
+  rewrite -positive_nat_Z.
+  case: (Pos.to_nat p) => //.
+  elim => [ | n /=]; first by rewrite /= Qinv_involutive.
+  rewrite /Qpower_positive => ih.
+  have ->:= pow_pos_succ Q_Setoid Qmult_comp Qmult_assoc q (Pos.of_succ_nat n).
+  have ->:= pow_pos_succ Q_Setoid Qmult_comp Qmult_assoc (Qinv q) (Pos.of_succ_nat n).
+  by rewrite ih Qinv_mult_distr Qinv_involutive.
+Qed.
+
+Lemma Qpower_powerRZ (a:Q) b: (Q2R a <> 0) -> (Q2R (Qpower a b)) = (powerRZ a b).
+Proof.
+  move => e.
+  have e' : (~ a == 0).
+    move => e'.
+    apply Qeq_eqR in e'.
+    by lra.
+  case b=>[//=|p|p]; first by lra.
+  - rewrite <-positive_nat_Z.
+    by rewrite <- Qpower_spec; first by rewrite pow_powerRZ.
+  rewrite (Qeq_eqR _ _ (Qpower_minus a (Z.neg p))).
+  rewrite [Z.opp _]//=.
+  rewrite <- Pos2Z.opp_pos.
+  rewrite powerRZ_neg; try by [].
+  rewrite <- positive_nat_Z.
+  rewrite <- Qpower_spec; last first.
+  - move => //= eq.
+    apply Qeq_eqR in eq.
+    rewrite Q2R_inv in eq; last by [].
+    by apply Rinv_neq_0_compat in e;lra.
+  rewrite pow_powerRZ //= Q2R_inv; try by [].
+Qed.
+
 Lemma Float2Q_spec d : (D2R d) = (Q2R (Float2Q d)).
 Proof.
   rewrite /D2R.
   case d => //=[| m e]; first by lra.
-  rewrite D2R_SFBI2toX D2R_Float Q2R_mult Qpower_Rpower.
+  rewrite D2R_SFBI2toX D2R_Float Q2R_mult Qpower_powerRZ;last by rewrite Q2R_plus RMicromega.IQR_1;lra.
   by rewrite /Q2R Rinv_1 !Rmult_1_r.
 Qed.
+
 Definition diamQ I := (Float2Q (upper I)-(Float2Q (lower I)))%Q.
 Lemma diamQ_spec I : (Q2R (diamQ I)) = (diam I).
 Proof.
    by rewrite  !Float2Q_spec Q2R_minus.
 Qed.
-
-Definition IR_RQ_M In (neps : nat*Q) := let n := neps.1 in
-                              let eps := neps.2 in
-                              if Qle_bool (diamQ (In n)) eps
+Definition IR_RQ_M n (In : (questions IR)) (eps : Q) := 
+                              if Qle_bool eps 0%Q then (Some 0%Q) else
+                              if (bounded (In n)) && (Qle_bool (diamQ (In n)) eps)
                               then Some (Float2Q (lower (In n)))
                               else None.
-Lemma IR_RQ_M_spec In x: (In \describes x \wrt IR) -> (forall (eps : Q), (0 < eps)-> exists n q, (IR_RQ_M In (n,eps)) = (Some q) /\ (\| q - x| <= (Q2R eps))).                                                 
+Lemma IR_RQ_M_spec In x: (In \describes x \wrt IR) -> (forall (eps : Q), (0 < eps)-> exists n q, (IR_RQ_M n In eps) = (Some q) /\ (\| q - x| <= (Q2R eps))).                                                 
 Proof.
   move => [xcont shrink] eps epsgt.
   case  (dns0_tpmn epsgt) => n nprop.
@@ -1004,8 +1048,15 @@ Proof.
   case (shrink n) => N Nprop.
   exists N; exists (Float2Q (lower (In N))).
   rewrite /IR_RQ_M //=.
+  rewrite ifF; last first.
+  -  apply /negP.
+     move => /Qle_bool_iff => H'.
+     apply Qle_Rle in H'.
+     by lra.
   rewrite ifT; last first.
-  - apply Qle_bool_iff.
+  - apply /andP.
+    split; first by apply (Nprop N);apply leqnn.
+    apply Qle_bool_iff.
     apply Rle_Qle.
     rewrite diamQ_spec.
     apply /(Rle_trans _ _  _ _ nprop).
@@ -1018,7 +1069,56 @@ Proof.
   apply ID_bound_dist; try by [].
   rewrite <- Float2Q_spec.
   apply upper_lower_contained; try by [].
+  rewrite /not_empty.
+  exists x; by apply xcont.
+Qed.
+
+Lemma IR_RQ_M_spec' In x n (eps:Q) q : (0 < eps) -> (In \describes x \wrt IR) -> (IR_RQ_M n In eps) = (Some q) -> (\| q -x | <= (Q2R eps)). 
+Proof.
+  move => epsgt [N1 N2].
+  rewrite /IR_RQ_M.
+  rewrite ifF; last first.
+  - apply /negP=> H.
+    apply Qle_bool_iff in H.
+    by apply Qle_Rle in H;lra.
+  case B :(bounded (In n));case e : Qle_bool; try by [].
+  apply Qle_bool_iff in e.
+  case => <-.
+  apply Qle_Rle in e.
+  apply /(Rle_trans _ _  _ _ e).
+  rewrite diamQ_spec.
+  rewrite <- Float2Q_spec.
+  apply ID_bound_dist; try by [].
+  apply upper_lower_contained; try by [].
+  exists x; by apply N1.
+Qed.
+
+Lemma F_M_realizer_IR_RQ : (\F_IR_RQ_M : ( (name_space IR) ->> (name_space RQ))) \realizes mf_id.
+Proof.
+  move => phi x phin dom.
+  split.
+  - apply mach_choice => q'.
+    case gt: (Qle_bool q' 0); first by rewrite/IR_RQ_M ;rewrite gt; exists 0%Q; exists 0%nat.
+    have qf : (0 < q').
+    + move /negP : gt => gt.
+      apply Rnot_le_lt.
+      move => H.
+      apply gt.
+      apply Qle_bool_iff.
+      by apply Rle_Qle;lra.
+    case (IR_RQ_M_spec phin qf) => s.
+    case => q [qs_prop1 qs_prop2].
+    by exists q; exists s.
+  move => psi H.
+  exists x.
+  split => [eps epsgt | ]; last by [].
+  case (H eps) => n np.
+  rewrite Rabs_minus_sym.
+  apply (IR_RQ_M_spec' epsgt phin np).
+Qed.
   Definition Q2RQ (q:Q) := (fun (eps :Q) => q). 
+  Check QRtoIR.
+Compute (IR_RQ_M 5%nat (QRtoIR  (Q2RQ (5#3))) (1#1000)).
  Fixpoint logistic_map_RQ x0 r N : (name_space RQ)  := match N with
                                        | 0%nat => (Q2RQ x0)
                                        | M.+1 => let P := (logistic_map_RQ x0 r M) in (Rmult_rlzrf (name_pair (Q2RQ r) (Rmult_rlzrf (name_pair P (Rplus_rlzrf (name_pair (Q2RQ (1)%Q) (Rmult_rlzrf (name_pair (Q2RQ (-1%Q)) P))))))))
@@ -1052,35 +1152,6 @@ Definition midpoint_err I := (to_pairZ(IZ.midpoint I), to_pairZ(SF2.sub Interval
 Definition midpoint_errI I := (to_pair(I.midpoint I), to_pair(SFBI2.sub Interval_definitions.rnd_UP 1%bigZ (I.upper I) (I.lower I))).
   Definition logistic_map_mp_rlzrZ (N :nat) (n :Z):= (midpoint_err (logistic_map_rlzrfZ (IZ.bnd (Float 1%Z (-1)%Z) (Float 1%Z (-1)%Z)) (IZ.bnd (Float 15%Z (-2)%Z) (Float 15%Z (-2)%Z)) N n)).
   Compute (logistic_map_mp 1 (-1) 120 (-5) 5 10%nat).
-  Require Extraction.
-
-  Require ExtrHaskellBasic.
-  Require ExtrHaskellZInteger.
-  Require ExtrHaskellNatInteger.
-  Extraction Language Haskell.
-
-Extract Inlined Constant Z.abs => "(Prelude.abs)".
-Extract Inlined Constant Z.geb => "(Prelude.>=)".
-Extract Inlined Constant Z.leb => "(Prelude.<=)".
-Extract Inlined Constant Z.gtb => "(Prelude.>)".
-Extract Inlined Constant Z.ltb => "(Prelude.<)".
-Extract Inlined Constant Z.opp => "(Prelude.negate)".
-Extract Inlined Constant Z.succ => "(Prelude.succ)".
-Extract Inlined Constant Z.pow_pos => "(Prelude.^)".
-Extract Inlined Constant Z.quotrem => "(Prelude.quotRem)".
-Extract Inlined Constant Z.compare => "(Prelude.compare)".
-Extract Inlined Constant Pos.leb => "(Prelude.<=)".
-Extract Inlined Constant Pos.ltb => "(Prelude.<)".
-Extract Inlined Constant Pos.succ => "(Prelude.succ)".
-Extract Inlined Constant Pos.compare => "(Prelude.compare)".
-Extract Inlined Constant StdZRadix2.mantissa_add => "(Prelude.+)".
-Extract Inlined Constant StdZRadix2.mantissa_sub => "(Prelude.-)".
-Extract Inlined Constant StdZRadix2.mantissa_mul => "(Prelude.*)".
-Extract Inlined Constant StdZRadix2.mantissa_cmp => "(Prelude.compare)".
-Extract Inductive Coq.Init.Datatypes.comparison => "Prelude.Ordering" ["Prelude.EQ" "Prelude.LT" "Prelude.GT"].
-(* Extract Inlined Constant StdZRadix2.digits_aux => "(let da m n = if m Prelude.== 1 then n else (da (m `Prelude.div` 2) (Prelude.succ n)) in da)". *)
-  Extraction "logisticZ" logistic_map_mp_rlzrZ.
-  Compute (logistic_map_mp_rlzrZ 400 800).
   Print StdZRadix2.digits_aux.
   Fixpoint mantissa_digits n:=
     match n with
@@ -1106,14 +1177,168 @@ Extract Inductive Coq.Init.Datatypes.comparison => "Prelude.Ordering" ["Prelude.
   Search _ (Z -> Z).
   Print Z.pow_pos.
   Require Import Program.
-  Program Fixpoint digitsUP n m {measure (Z.to_nat (n-(Z.pow_pos 2 m)))} :=
-    match (Z.to_nat (n-(Z.pow_pos 2m))) with
-      0%nat => m |
-    _ => (digitsUP n (2*m)%positive)
-    end.
+  Program Fixpoint digitsUP (n m :nat) {measure ((n-(Nat.pow 2 m))%nat)} :=
+    match m with
+      0%nat => 0%nat |
+      _   => match ((n-(Nat.pow 2 m))%nat) with
+              0%nat => m |
+              _ => (digitsUP n (2*m)%nat)
+             end
+      end.
   Obligation 1.
-  Admitted.
-  Definition bs_digits n u l 
+  have lt : ((Nat.pow 2 m) < n)%coq_nat.
+  - apply neq_0_lt in H0.
+    apply /leP.
+    rewrite <- subn_gt0.
+    by apply /ltP.
+  apply /ltP.
+  apply ltn_sub2l; first by apply /ltP.
+  apply /ltP; apply Nat.pow_lt_mono_r; by rewrite /muln/muln_rec;lia.
+Qed.
+
+Program Fixpoint bs_digits n l u {measure (u-l)%nat} :=
+  match (u-l)%nat with
+  | 0%nat | 1%nat => u
+  |  _ => let m := ((u+l) / 2)%nat in
+    if n <? (2 ^ m) then (bs_digits n l m) else (bs_digits n m u)
+ end.
+Obligation 1.
+  have lt : (l < u)%coq_nat.
+  - apply neq_0_lt in H0.
+    apply /leP.
+    rewrite <- subn_gt0.
+    by apply /ltP.
+  apply /leP.
+  apply ltn_sub2r; first by apply /leP;apply lt.
+  rewrite <- (@ltn_pmul2l 2 ); last by apply /leP; lia.
+  apply /leP.
+  have arith : (2%nat <> 0%nat) by lia.
+  have t' := (Nat.mul_div_le ((u + l))%nat _ arith).
+  apply (Nat.le_lt_trans _ _ _ t').
+  rewrite /addn/addn_rec/muln/muln_rec.
+  by suff : (l < u)%coq_nat by lia.
+Qed.    
+Obligation 2.
+  have lt : (l < u)%coq_nat.
+  - apply neq_0_lt in H0.
+    apply /leP.
+    rewrite <- subn_gt0.
+    by apply /ltP.
+  have lt' : (l.+1 < u)%nat.
+  - apply /ltP;apply lt_O_minus_lt.
+    case e: (u-l.+1)%nat => [ | n'].
+    + rewrite subnS in e.
+      apply Nat.eq_pred_0 in e.
+      case e; by lia.
+    apply /ltP.
+    by rewrite <- Rcomplements.SSR_minus, e.
+  apply /leP.
+  apply ltn_sub2l; first by apply /leP;apply lt.
+  apply /leP.
+  have arith : (2%nat <> 0%nat) by lia.
+  apply (Nat.div_le_lower_bound ((u+l)) _ _ arith).
+  suff e : (l.+1 < u)%coq_nat by rewrite /addn/addn_rec/muln/muln_rec;lia.
+  by apply /ltP.
+Qed.
+
+Definition num_digits n := (bs_digits n 0 ((digitsUP n 1))).
+  Require Extraction.
+
+  Require ExtrHaskellBasic.
+  Require ExtrHaskellZInteger.
+  Require ExtrHaskellNatInteger.
+  Extraction Language Haskell.
+
+Definition mantissa_shl m (d : Z) :=
+  match d with
+    (Z.pos p) => (m * (2 ^ p))%positive |
+    _ => 1%positive
+  end.
+
+Lemma mantissa_shl_spec m d : (mantissa_shl m d) = (StdZRadix2.mantissa_shl m d).
+Proof.
+  elim d => [| p//= | p //=]; try by compute.
+  rewrite Zaux.iter_pos_nat.
+  rewrite <-(Pos2Nat.id p) at 1.
+  case (Pos2Nat.is_succ p) => n ->.
+  elim n => [| n' ]; first by rewrite /Pos.pow //=;lia.
+  rewrite !Pos2Nat.id => IH.
+  rewrite Zaux.iter_nat_S.
+  rewrite Nat2Pos.inj_succ; last by lia.
+  rewrite Pos.pow_succ_r.
+  rewrite Pos.mul_assoc.
+  rewrite <- (Pos.mul_comm 2%positive).
+  rewrite <- Pos.mul_assoc, IH. 
+  by lia.
+Qed.
+Print StdZRadix2.mantissa_shr_aux.
+
+Definition mantissa_shr  m d (pos : Interval_generic.position) :=
+  match d with
+  | Z.pos nb => let m' := (Z.div m (2 ^ d)) in
+               let mp := (m' * (2 ^ d))%Z in
+               match pos with
+               | Interval_generic.pos_Eq =>
+                 if (Z.eqb mp m)
+                 then (m', Interval_generic.pos_Eq)
+                 else
+                   if (Z.eqb ((2*m'+1)*(2 ^ (d-1))) m)
+                   then (m', Interval_generic.pos_Mi)
+                   else (m', Interval_generic.pos_Up)
+               | _ =>  
+                 if (Z.eqb mp m)
+                 then (m', Interval_generic.pos_Lo)
+                 else (m', Interval_generic.pos_Up)
+               end
+  | _ => (1%Z, Interval_generic.pos_Eq)
+  end.
+Compute (StdZRadix2.mantissa_shr 105 1 Interval_generic.pos_Eq).
+Compute (mantissa_shr 105 1 Interval_generic.pos_Eq).
+
+Extract Inlined Constant Z.abs => "(Prelude.abs)".
+Extract Inlined Constant Z.geb => "(Prelude.>=)".
+Extract Inlined Constant Z.leb => "(Prelude.<=)".
+Extract Inlined Constant Z.eqb => "(Prelude.==)".
+Extract Inlined Constant Z.gtb => "(Prelude.>)".
+Extract Inlined Constant Z.ltb => "(Prelude.<)".
+Extract Inlined Constant Z.opp => "(Prelude.negate)".
+Extract Inlined Constant Z.succ => "(Prelude.succ)".
+Extract Inlined Constant Z.pow_pos => "(Prelude.^)".
+Extract Inlined Constant Z.pow => "(Prelude.^)".
+Extract Inlined Constant Z.quotrem => "(Prelude.quotRem)".
+Extract Inlined Constant Z.mul => "(Prelude.*)".
+Extract Inlined Constant Z.div => "(Prelude.div)".
+Extract Inlined Constant Nat.leb => "(Prelude.<=)".
+Extract Inlined Constant Nat.ltb => "(Prelude.<)".
+Extract Inlined Constant Nat.succ => "(Prelude.succ)".
+Extract Inlined Constant Nat.add => "(Prelude.+)".
+Extract Inlined Constant Nat.mul => "(Prelude.*)".
+Extract Inlined Constant Nat.div => "(Prelude.div)".
+Extract Inlined Constant addn => "(Prelude.+)".
+Extract Inlined Constant muln => "(Prelude.*)".
+Extract Inlined Constant Nat.pow => "(Prelude.^)".
+Extract Inlined Constant Nat.divmod => "(Prelude.quotRem)".
+Extract Inlined Constant Z.compare => "(Prelude.compare)".
+Extract Inlined Constant Pos.leb => "(Prelude.<=)".
+Extract Inlined Constant Pos.ltb => "(Prelude.<)".
+Extract Inlined Constant Pos.succ => "(Prelude.succ)".
+Extract Inlined Constant Pos.mul => "(Prelude.*)".
+Extract Inlined Constant Pos.pow => "(Prelude.^)".
+Extract Inlined Constant Pos.compare => "(Prelude.compare)".
+Extract Inlined Constant StdZRadix2.mantissa_add => "(Prelude.+)".
+Extract Inlined Constant StdZRadix2.exponent_add => "(Prelude.+)".
+Extract Inlined Constant StdZRadix2.mantissa_sub => "(Prelude.-)".
+Extract Inlined Constant StdZRadix2.exponent_sub => "(Prelude.-)".
+Extract Inlined Constant StdZRadix2.mantissa_mul => "(Prelude.*)".
+Extract Inlined Constant StdZRadix2.mantissa_cmp => "(Prelude.compare)".
+Extract Inlined Constant StdZRadix2.exponent_cmp => "(Prelude.compare)".
+Extract Inductive Coq.Init.Datatypes.comparison => "Prelude.Ordering" ["Prelude.EQ" "Prelude.LT" "Prelude.GT"].
+Extract Inlined Constant StdZRadix2.mantissa_digits => num_digits.
+Extract Inlined Constant StdZRadix2.mantissa_shl => mantissa_shl.
+Extract Inlined Constant StdZRadix2.mantissa_shr => mantissa_shr.
+
+Extraction "logisticZ" num_digits mantissa_shl mantissa_shr logistic_map_mp_rlzrZ.
+  Compute (logistic_map_mp_rlzrZ 400 800).
   Definition log_map_Q N :=(logistic_map_Q (1#2) (15#4) N).
   Definition sine_rlzrf (phi: (questions IR)) (n: queries IR) := I.sin (nat2p n) (phi n).
   Definition Pi (n : (queries IR)) : (answers IR)  := (I.pi (nat2p n)).

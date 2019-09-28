@@ -278,7 +278,7 @@ Section partial_functions.
 
 
   Lemma cont_PF2MF: f \is_continuous <->
-                    forall phi, exists Lf, forall q' psi,
+                    forall (phi: domain f), exists Lf, forall q' (psi: domain f),
                           (sval phi) \and (sval psi) \coincide_on (Lf q') -> f psi q' = f phi q'.
   Proof.
     split => [cont phi | prp phi Fphi [phifd <-]].

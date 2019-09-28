@@ -29,38 +29,6 @@ Section classical_machines.
     by have <-: Mphi = Fphi by apply/ sing; apply prop.
   Qed.
 
-  Lemma exists_listf (somea: A) (cnt: nat -> Q) (F: B ->> B'):
-    cnt \is_surjective ->
-     exists listf, forall phi n, phi \from dom F ->
-	listf (map phi (iseg cnt n)) \from dom F /\
-	(listf (map phi (iseg cnt n))) \and phi \coincide_on (iseg cnt n).
-  Proof.
-    move => sur; have [sec min]:= exists_minsec sur.
-    pose R := make_mf (fun L psiL =>
-      (exists phi, phi \from dom F /\ map phi (iseg cnt (size L)) = L) ->
-      (psiL \from dom F /\ map psiL (iseg cnt (size L)) = L)).
-    have Rtot: R \is_total.
-    move => L.
-    case: (classic (exists phi, phi \from dom F /\
-       (map phi (iseg cnt (size L)) = L))) => [[psil [fd eq]] | neg]; first by exists psil.
-    - by exists (fun _ => somea) => cntr; exfalso; apply neg.
-    have [listf listfprp]:= full_choice _ Rtot.
-    exists listf => phi n phifd.
-    have [ | fd eq]:= listfprp (map phi (iseg cnt n)).
-    - by exists phi; split => //; rewrite !size_map !size_iseg.
-    move: eq; rewrite size_map size_iseg; split => //; move: fd => _.
-    rewrite coin_agre => q lstn.
-    have [m [ineq <-]]:= iseg_ex lstn.
-    have: nth (phi (cnt 0)) ([seq listf [seq phi i | i <- iseg cnt n] i | i <- iseg cnt n]) (n - m).-1 =
-	  nth (phi (cnt 0)) ([seq phi i | i <- iseg cnt n]) (n - m).-1.
-      by rewrite eq.
-    rewrite !(nth_map (cnt 0));
-     try by case: (n) ineq =>// n' ineq; rewrite size_iseg subSn //=; have: n' - m <= n' by rewrite leq_subr.
-    rewrite nth_iseg; suff ->: (n - (n - m).-1).-1 = m by trivial.
-    case: n eq ineq lstn => //n eq ineq lstn.
-    by rewrite !subSn //; [ rewrite subKn | rewrite leq_subr].
-  Qed.
-
   Lemma exists_po (D: subset B): FunctionalChoice_on (seq (Q * A)) (option B) -> exists po,
         dom (pf2MF po) === dom (projection_on D) /\ (projection_on D) \extends pf2MF po.
   Proof.
@@ -465,9 +433,53 @@ Section initial_segment_associate.
     apply/FM_dom => q'.
     have [ | k ineq']:= @n_rec_spec phi q' _ choice; first by exists Fphi.
     set k' := search (fun k => n_rec phi q' k.+1 <= n_rec phi q' k) k.
-    have := @search_correct (fun k => n_rec phi q' k.+1 <= n_rec phi q' k) _ ineq'.    
-  Admitted.
- End initial_segment_associate.  
+    exists (Fphi q').
+    exists k'.+1.
+    have := @search_correct (fun k => n_rec phi q' k.+1 <= n_rec phi q' k) _ ineq'.
+    rewrite -/k' => ineq.
+    rewrite US.
+    suff ->: U psi_iseg phi (k', q') = None.
+    rewrite {1}/psi_iseg /= size_F2GL gs_psig; last by exists Fphi.
+    rewrite size_iseg.
+    set KL := F2GL phi (iseg cnt (n_rec phi q' k')).
+    have [ | phi' /=]:= (dp_dom KL).2.
+    - by exists phi; split; [exists Fphi | apply/icf_GL2MF].
+    case eq: (dp _) => [psi | ]// _.
+    have [md mn]:= mod eq; have [a' crt]:= md q'.
+    suff le: Lf KL q' <= n_rec phi q' k'.
+    - rewrite le; f_equal.      
+      have -> //:= crt psi; last exact/vl; last exact/coin_ref.
+      symmetry.
+      apply/crt/val.
+      have /= := @dp_spec KL psi.
+      rewrite eq => [[]]// [Fpsi val'] /coin_GL2MF coin.
+      exact/coin_subl/coin/iseg_subl.
+    apply/leq_trans/ineq.
+    rewrite /= /n_step eq.
+    apply/leq_trans/leq_maxl.
+    apply/leq_trans/melt_iseg/ms.
+    apply/mn; exists a' => psi' coin.
+    apply/crt/coin_subl/coin => q lstn.
+    by have [ | _ /=/coin_GL2MF/coin_F2GL ->]:= @dp_spec KL psi; first by rewrite /= eq.
+  move: {1 5}k' (leqnn k') ineq.
+  elim => // m ih lt.
+  rewrite US ih // => [ineq | | ]; last first; try by apply/leP; lia.
+  - exact/(@search_correct (fun k => n_rec phi q' k.+1 <= n_rec phi q' k)).
+  - by apply/leq_trans/lt.  
+  rewrite {1}/psi_iseg /=.
+  case: ifP => //.
+  rewrite gs_psig; try by exists Fphi.
+  rewrite size_F2GL size_iseg => le'.
+  suff eq: n_rec phi q' m.+1 <= n_rec phi q' m.
+  - have /leP:= (@search_min (fun k => n_rec phi q' k.+1 <= n_rec phi q' k)) k _ eq.
+    by move/leP: lt; lia.
+  rewrite /= /n_step.
+  case E: dp => [psi | ]//.
+  rewrite geq_max; apply/andP; split => //.
+  have [ | _ /coin_GL2MF/coin_F2GL ->] //:= @dp_spec (F2GL phi (iseg cnt (n_rec phi q' m))) psi.
+  by rewrite /= E.
+Qed.
+End initial_segment_associate.  
 
 Section exists_associate.
   Local Open Scope name_scope.

@@ -1,7 +1,7 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat choice.
 From rlzrs Require Import all_rlzrs.
 From metric Require Import reals pointwise all_metric.
-Require Import all_cs_base cprd classical_cont classical_count.
+Require Import axioms all_cs_base cprd classical_cont classical_count.
 Require Import Qreals Reals Psatz ClassicalChoice ChoiceFacts.
 Require Import Morphisms.
 Local Open Scope cs_scope.
@@ -13,6 +13,7 @@ Local Open Scope R_scope.
 Local Open Scope cs_scope.
 Notation metric_limit:= pseudo_metric_spaces.limit.
 Notation "x \is_metric_limit_of xn" := (metric_limit xn x) (at level 2): cs_scope.
+
 Section metric_representation.
   Context (M: MetricSpace) (T: Type) (T_count: T \is_countable) (r: T -> M).
   Hypothesis rdense: codom (F2MF r) \is_dense_subset.
@@ -23,8 +24,8 @@ Section metric_representation.
   Lemma mrep_sur: metric_representation \is_cototal.
   Proof.
     move => x; have /dns_tpmn prp:= rdense.
-    suff/countable_choice [phi phinx]:
-      forall n, exists t, distance (x, r t) <= /2^n
+    suff/(countable_choice _ nat_count) [ phi phinx]:
+      forall n, exists t, distance (x, r t) <= /2^n.
       by exists phi; apply/phinx.
     by move => n; have [_ [[t <-] dst]]:= prp x n; exists t.
   Qed.
@@ -68,7 +69,7 @@ Section metric_representation.
   Lemma lim_mlim : @limit metric_cs =~= metric_limit.
   Proof.
     move => xn x.
-    split; last first => [/lim_tpmn/countable_choice [mu prp] | [phin [phi [phinxn [phinx /lim_coin lim]]]]].
+    split; last first => [/lim_tpmn/(countable_choice _ nat_count) [mu prp] | [phin [phi [phinxn [phinx /lim_coin lim]]]]].
     - have [phin phinxn]:= get_description (xn: metric_cs\^w).
       have [phi phinx]:= get_description (x: metric_cs).
       exists (fun mn => if (mu mn.2.+1 <= mn.1)%nat then phi mn.2.+1 else phin mn).
@@ -100,12 +101,14 @@ Section metric_representation.
 End metric_representation.
 
 Section continuity.  
-  Context (M: MetricSpace) (r: sequence_in M).
-  Hypothesis rdense: r \is_dense_sequence.
-  Context (N: MetricSpace) (q: sequence_in N).
-  Hypothesis qdense: q \is_dense_sequence.
-  Notation cs_M := (metric_cs nat_count ((dseq_dns r).1 rdense)).
-  Notation cs_N := (metric_cs nat_count ((dseq_dns q).1 qdense)).
+  Context (M: MetricSpace) (T: Type) (r: T -> M).
+  Hypothesis rdense: codom (F2MF r) \is_dense_subset.
+  Context (N: MetricSpace) (T': Type) (q: T' -> N).
+  Hypothesis qdense: codom (F2MF q) \is_dense_subset.
+  Hypothesis Tcount: T \is_countable.
+  Hypothesis T'count: T' \is_countable.
+  Notation cs_M := (metric_cs Tcount rdense).
+  Notation cs_N := (metric_cs T'count qdense).
   
   Lemma scnt_mscnt (f: cs_M -> cs_N):
     f \is_sequentially_continuous <-> ((f: M2PM M -> M2PM N) \is_sequentially_continuous)%metric.
@@ -123,7 +126,7 @@ Section continuity.
   Lemma cont_mcont (f: cs_M -> cs_N):
     f \is_continuous -> ((f: M2PM M -> M2PM N) \is_continuous)%metric.
   Proof.
-    move => [F [/rlzr_F2MF rlzr cont]] x eps epsg0.
+    move => [F [cont /rlzr_F2MF rlzr]] x eps epsg0.
     have [phi' phinx]:= get_description (x: cs_M).
     pose phi n:= phi' n.+1.
     have [n | [Fphi val] prp]:= rlzr phi x; first by apply/Rle_trans/tpmnP; first exact/phinx.
@@ -162,12 +165,12 @@ Section continuity.
   Lemma exists_minmod_met (f : cs_M -> cs_N) x:
     ((f: M2PM M -> M2PM N) \continuous_in x)%metric ->
     exists mu : nat -> nat, forall n,
-      (forall y, (d (x, y)<= /2 ^ (mu n) -> d (f x, f y) <= /2 ^ n))
+      (forall y, d (x, y) <= /2 ^ (mu n) -> d (f x, f y) <= /2 ^ n)
       /\
-      forall m, (forall y, d (x, y) <= /2 ^ m -> d (f x, f y) <= (/2 ^ n)) -> (mu n <= m)%nat. 
+      forall m, (forall y, d (x, y) <= /2 ^ m -> d (f x, f y) <= /2 ^ n) -> (mu n <= m)%nat. 
   Proof.
     move => cont.
-    suff /countable_choice [mu muprp]: forall n, exists m,
+    suff /(countable_choice _ nat_count) [mu muprp]: forall n, exists m,
           (forall y, d (x, y) <= /2 ^ m -> distance (f x, f y) <= /2 ^ n)
           /\
           (forall k : nat,
@@ -183,7 +186,12 @@ Section continuity.
     ((f: M2PM M -> M2PM N) \is_continuous)%metric -> f \is_continuous.
   Proof.
     move => cont.
-    have /countable_choice [mu minmod]:= exists_minmod_met (cont (r _)).
+    have /(countable_choice _ Tcount) [mu minmod]:= exists_minmod_met (cont (r _)).
+    case: (classic (inhabited T')) => [[t'] | ninh]; last first.
+    - exists (mf_empty); split => // ? x _ _.
+      by exfalso; apply/ninh; have [phi _]:= get_name (f x); apply/inhabits/phi/someq.
+    have:= T'count => /count_enum/(enum_inh t') [cnt sur].
+    have [sec ms]:= exists_minsec sur.
     pose F := (make_mf (fun phi Fphi => forall n, exists k,
                               (mu (phi k) n.+1 <= k)%nat
                               /\
@@ -191,10 +199,10 @@ Section continuity.
                               /\
                               distance (q (Fphi n), f (r (phi k))) <= /2 ^ n.+1
                               /\
-                              (forall m, distance (q m, f (r (phi k))) <= /2 ^ n.+1 -> (Fphi n <= m)%nat)
+                              (forall m, distance (q m, f (r (phi k))) <= /2 ^ n.+1 -> (sec (Fphi n) <= sec m)%nat)
               )).
     have Fcont: F \is_continuous_operator.
-    - move => /= phi Fphi /countable_choice [nu nu_prop].
+    - move => /= phi Fphi /(countable_choice _ nat_count) [nu nu_prop].
       exists (fun n => (init_seg (nu n).+1)) => n psi coin Fphi' prop.
       have [k' [ineq [min [dst md]]]]:= prop n.    
       have keqk' : k' = nu n.
@@ -210,22 +218,30 @@ Section continuity.
       rewrite -e0 in nu1 nu4.
       have /leP lt := md (Fphi n) nu1.
       have /leP gt := nu4 (Fphi' n) dst.
+      have <-:= (ms.1 (Fphi' n)).
+      have <-:= (ms.1 (Fphi n)).
+      f_equal.
       lia.
-    exists F; split; last exact/Fcont.
+    exists F; split; try exact/Fcont.
     apply/sing_rlzr_F2MF; first exact/cont_sing.
     split => [phi [x phinx] | phi x Fphi phinx val n].
-    - suff /=/countable_choice [h /countable_choice [h']]: forall n, exists k, exists s : nat,
+    - suff /=/(countable_choice _ nat_count) [h /(countable_choice _ nat_count) [h']]:
+        forall n, exists k, exists s,
             (mu (phi k) n.+1 <= k)%nat /\
-            (forall k' : nat, (mu (phi k') n.+1 <= k')%nat -> (k <= k')%nat) /\
+            (forall k', (mu (phi k') n.+1 <= k')%nat -> (k <= k')%nat) /\
             distance (q s, f (r (phi k))) <= / (2 ^ n.+1) /\
-            (forall m : nat, distance (q m, f (r (phi k))) <= / (2 ^ n.+1) -> (s <= m)%nat).
+            (forall m, distance (q m, f (r (phi k))) <= / (2 ^ n.+1) -> ((sec s) <= (sec m))%nat).
       + by exists h' => n; exists (h n).
       move => n.
       suff /well_order_nat [k []]: exists k, (mu (phi k) n.+1 <= k)%nat.
       - exists k.
-        have /well_order_nat [s [c sprp]]:= @qdense (f (r (phi k))) (/2^n.+1) (tpmn_lt _).      
-        exists s; split => //; split => //.
-        by split => [ | m]; rewrite dst_sym; last apply sprp.
+        have: exists m: nat, distance (f (r (phi k)): N, q (cnt m): N) <= /2^n.+1.
+        + have [_ [[t <-]] prp]:= qdense (f (r (phi k))) (tpmn_lt n.+1).
+          by exists (sec t); apply/Rle_trans/prp/Req_le; rewrite ms.1.
+        move => /well_order_nat [s [c sprp]].
+        exists (cnt s); split => //; split => //.
+        split => [ | m]; rewrite dst_sym //; last first.
+        by move => dst; apply/leq_trans/sprp; first exact/ms.2; rewrite ms.1.
       have [nu nuprp]:= exists_minmod_met (cont x).
       suff modmod: forall l n',
           distance (x, r l) <= /2 ^ (nu n'.+1).+1 -> (mu l n' <= (nu n'.+1).+1)%nat.

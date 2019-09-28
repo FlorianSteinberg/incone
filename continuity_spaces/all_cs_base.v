@@ -4,5 +4,7 @@ Require Export continuity_spaces.cs
         continuity_spaces.prod
         continuity_spaces.sum
         continuity_spaces.func
-        continuity_spaces.iso.
+        continuity_spaces.iso
+cs_names.
+Open Scope name_scope.
 Open Scope cs_scope.

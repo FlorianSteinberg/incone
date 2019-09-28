@@ -50,8 +50,7 @@ Section products.
 
   Lemma fst_hcr (X Y: cs): (@fst X Y) \is_continuous.
   Proof.
-    exists fst_rlzr.
-    split; last exact/cont_F2MF/lprj_cont.
+    exists fst_rlzr; split; first exact/cont_F2MF/lprj_cont.
     by rewrite F2MF_rlzr_F2MF => phi x /prod_name_spec [].
   Qed.
 
@@ -60,7 +59,7 @@ Section products.
   
   Lemma snd_hcr (X Y: cs): (@mf_snd X Y) \has_continuous_realizer.
   Proof.
-    exists snd_rlzr; split; last exact/cont_F2MF/rprj_cont.
+    exists snd_rlzr; split; first exact/cont_F2MF/rprj_cont.
     by rewrite F2MF_rlzr_F2MF => phi x /prod_name_spec [].
   Qed.
 
@@ -81,8 +80,8 @@ Section products.
   Lemma fprd_rlzr_spec (X Y X' Y': cs) (f: X ->> Y) (g: X' ->> Y') F G:
     F \solves f -> G \solves g -> (fprd_rlzr F G) \solves (f ** g).
   Proof.
-    move => /rlzr_spec rlzr /rlzr_spec rlzr'.
-    rewrite rlzr_spec/= !prod_rep_spec fprd_rlzr_comp -!comp_assoc.
+    move => /rlzr_delta rlzr /rlzr_delta rlzr'.
+    rewrite rlzr_delta/= !prod_rep_spec fprd_rlzr_comp -!comp_assoc.
     apply/tight_comp_l.
     rewrite !fprd_id !comp_id_r (comp_assoc (_ ** _)).
     have /sec_cncl ->:= (@pairK (name_space Y) (name_space Y')).
@@ -94,7 +93,7 @@ Section products.
     f \has_continuous_realizer -> g \has_continuous_realizer -> (f ** g) \has_continuous_realizer.
   Proof.
     move => [F [Frf Fcont]] [G [Grg Gcont]]; exists (fprd_rlzr F G).
-    by split; [exact: fprd_rlzr_spec | exact: fprd_cntop].
+    by split; [exact/fprd_cntop | exact/fprd_rlzr_spec].
   Qed.
   
   Lemma fprd_cont (X Y X' Y': cs) (f: X -> Y) (g: X' -> Y'):
@@ -115,7 +114,7 @@ Section products.
     move => [F [rlzr cont]].
     have [phi phinx]:= get_description x.  
     exists (lcry_rlzr F phi).
-    by split; [exact/lcry_rlzr_spec | exact/lcry_cntop].
+    by split; [exact/lcry_cntop | exact/lcry_rlzr_spec].
   Qed.
 
   Lemma lcry_cont (X Y Z: cs) (f: X * Y -> Z) x: f \is_continuous -> (lcry_f f x) \is_continuous.
@@ -136,7 +135,7 @@ Section products.
     move => [F [rlzr cont]].
     have [psi psiny]:= get_description y.  
     exists (rcry_rlzr F psi).
-    by split; [exact/rcry_rlzr_spec | exact/rcry_cntop].
+    by split; [exact/rcry_cntop | exact/rcry_rlzr_spec].
   Qed.
 
   Lemma rcry_cont (X Y Z: cs) (f: X * Y -> Z) y:

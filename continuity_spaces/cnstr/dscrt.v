@@ -97,20 +97,20 @@ Section TERMINAL.
   Definition unit_fun_ass (X: cs) (KLq: seq (queries X * replies X) * queries cs_unit) :=
     inr tt : seq (queries X) + replies cs_unit.
 
-  Lemma unit_fun_ass_eval (X: cs): F_U _ _ (@unit_fun_ass X) =~= unit_fun_rlzr X. 
+  Lemma unit_fun_ass_eval (X: cs): \F_(U (@unit_fun_ass X)) =~= unit_fun_rlzr X. 
   Proof.
     apply/eval_F2MF/mon_eval; first exact/U_mon; first exact/F2MF_sing.
     by move => phi _ <- q'; exists 2; rewrite /U/=.
   Qed.
 
-  Lemma unit_fun_ass_spec (X: cs): associate F_U X cs_unit (@unit_fun_ass X) (@unit_fun X).
+  Lemma unit_fun_ass_spec (X: cs): associate X cs_unit (@unit_fun_ass X) (@unit_fun X).
   Proof. exact/ntrvw.tight_rlzr/eval_F2MF/unit_fun_ass_eval/unit_fun_rlzr_spec. Qed.
 
   Lemma trmnl_uprp_cont (X: cs): exists! f: X c-> cs_unit, True.
   Proof.
-    have cdom: (@unit_fun X) \from codom (associate F_U X cs_unit).
+    have cdom: (@unit_fun X) \from codom (associate X cs_unit).
     - by exists (@unit_fun_ass X); apply/unit_fun_ass_spec.
-    exists (exist (fun p => p \from codom (associate F_U X cs_unit)) _ cdom).
+    exists (exist (fun p => p \from codom (associate X cs_unit)) _ cdom).
     split => // f' _.
     apply/eq_sub/functional_extensionality => x /=.
     by case: (sval f' x); case: (unit_fun x).

@@ -133,7 +133,7 @@ Section isomorphisms.
 
   Definition fun2sig_rlzr: B_ (cs_I c-> X) ->> B_ (X\^I):=
     make_mf (fun (psi: name_space cs_I c-> X) phi =>
-	       forall n, F_U _ _ psi (fun _ => n) (fun q => phi (n, q))).
+	       forall n, \F_(U psi) (fun _ => n) (fun q => phi (n, q))).
 
   Lemma fun2sig_rlzr_spec: fun2sig_rlzr \realizes sval.
   Proof.

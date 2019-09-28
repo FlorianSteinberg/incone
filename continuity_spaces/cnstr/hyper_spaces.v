@@ -169,13 +169,13 @@ Section Opens_and_closeds.
   Qed.
 
   Definition closeds:= make_subset (fun (A: X -> cs_Sirp) =>
-                                      (P2CF (complement A)) \from codom (associate F_U X cs_Sirp)).
+                                      (P2CF (complement A)) \from codom (associate X cs_Sirp)).
   
   Lemma clos_open A: A \from closeds <-> exists (O: \O(X)), projT1 O = P2CF (complement A).
   Proof. by split => [/cfun_spec cont | [[O Ocont/=] <-]] //; exists (exist_c cont). Qed.
 
   Definition rep_clsd := make_mf (fun phi (A: closeds) =>
-                                    associate F_U X cs_Sirp phi (P2CF (complement (projT1 A)))).
+                                    associate X cs_Sirp phi (P2CF (complement (projT1 A)))).
 
   Lemma rep_clsd_sur: rep_clsd \is_cototal.
   Proof. by move => [A [psi ass]/=]; exists psi. Qed.
@@ -237,7 +237,7 @@ Section Opens_and_closeds.
   Qed.
 
   Lemma complement_open (A: \A(X)): (P2CF (complement (sval A))) \is_continuous.
-  Proof. by case: A => [A /= /cfun_spec]. Qed.
+  Proof. by case: A => [A /= [psi ass]]; apply/ass_cont; exists psi. Qed.
 
   Definition complement_closeds (A: \A(X)): \O(X) := exist_c (complement_open A).
   

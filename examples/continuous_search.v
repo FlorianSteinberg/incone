@@ -32,7 +32,7 @@ Section baire_space.
    **)
   Definition F0 phi n := phi n + phi 0.
   Definition F1 (phi: B) n := phi (phi n).
-  
+ 
   Lemma contF0 : F0 \is_continuous_function.
   Proof.
     rewrite /F0 => phi.
@@ -121,6 +121,10 @@ Section baire_space.
      appropriate equality of multivalued functions which is denoted by =~=.
    **)
 
+  Definition f n := pickle ((match unpickle n with Some x => x | None => (0,0) end).1).
+    
+  Compute (@pickle (prod_countType nat_countType nat_countType)).
+  
   Lemma MF_val phi n m: MF phi (n,tt) = Some m -> phi m = 0.
   Proof.
     rewrite /MF.

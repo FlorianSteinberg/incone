@@ -62,7 +62,7 @@ Section SEQ.
   Qed.
 
   Lemma size_cont: (size: cs_seq -> cs_nat) \is_continuous.
-  Proof. by exists size_rlzr; split; [exact/size_rlzr_spec | exact/size_rlzr_cntop]. Qed.
+  Proof. by exists size_rlzr; split; try exact/size_rlzr_spec; exact/size_rlzr_cntop. Qed.
 
   Definition head_rlzrf phi (psi: B_ cs_seq) q := head (phi q) (psi q).
 
@@ -88,7 +88,7 @@ Section SEQ.
   Qed.
 
   Lemma head_cont: (head : X -> cs_seq -> X) \is_continuous.
-  Proof. by exists head_rlzr; split; [exact/head_rlzr_spec | exact/head_rlzr_cntop]. Qed.
+  Proof. by exists head_rlzr; split; try exact/head_rlzr_spec; exact/head_rlzr_cntop. Qed.
    
   Definition cons_rlzrf (phi : name_space X) psi := (fun q => (cons (phi q) (psi q))).
 
@@ -108,6 +108,6 @@ Section SEQ.
 
   Lemma cons_cont: (cons: X -> cs_seq -> cs_seq) \is_continuous.
   Proof.
-    by exists cons_rlzr; split; [exact/cons_rlzr_spec | exact/cons_rlzr_cntop].
+    by exists cons_rlzr; split; try exact/cons_rlzr_spec; exact/cons_rlzr_cntop.
   Qed.
 End SEQ.

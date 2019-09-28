@@ -208,10 +208,11 @@ Section use_first_continuous.
     by apply/coin'/leq_trans; first exact/ineq; exact/search_le.
   Qed.
   
-  Definition get_pf: partial_function B B'.
+  Definition get_partial_function: partial_function B B'.
     exists (make_subset (fun phi => \Phi_(use_first M phi) \is_total)); case => phi tot.
     exact/(evaluate tot).
   Defined.
+  Local Notation get_pf := get_partial_function.
 
   Lemma gtpf_dom phi: phi \from dom get_pf <-> \Phi_(M phi) \is_total.
   Proof. by rewrite -PF2MF_dom /=; symmetry; apply/sfrst_tot. Qed.
@@ -290,6 +291,7 @@ Section use_first_continuous.
     by apply/L2SS_cat; right.
   Qed.
 End use_first_continuous.      
+Notation get_pf := get_partial_function.
 
 Section cost_bounds.
   Local Open Scope name_scope.

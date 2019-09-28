@@ -24,24 +24,24 @@ Section discreteness.
 End discreteness.
 Notation "X \is_discrete" := (discrete X) (at level 40).
 
-Section cs_id.
+Section cs_dscrt.
   Context (S: Type).
-  Definition id_rep:= make_mf (fun phi (s: S) => phi tt = s).
+  Definition discrete_representation:= make_mf (fun phi (s: S) => phi tt = s).
 
-  Lemma id_rep_sur: id_rep \is_cototal.
+  Lemma dscrt_rep_sur: discrete_representation \is_cototal.
   Proof. by move => s; exists (fun str => s). Qed.
   
-  Lemma id_rep_sing: id_rep \is_singlevalued.
+  Lemma dscrt_rep_sing: discrete_representation \is_singlevalued.
   Proof. by move => s t t' <- <-. Qed.
 
   Context (s: S) (S_count: S \is_countable).
 
-  Definition cs_id: cs.
-    exists S (Build_naming_space tt unit_count S_count) id_rep.
-    by split; [apply/id_rep_sur | apply/id_rep_sing].
+  Definition discrete_space: cs.
+    exists S (Build_naming_space tt unit_count S_count) discrete_representation.
+    by split; [apply/dscrt_rep_sur | apply/dscrt_rep_sing].
   Defined.  
 
-  Lemma cs_id_dscrt: discrete cs_id.
+  Lemma dscrt_dscrt: discrete discrete_space.
   Proof.
     move => Y f.
     pose R phi psi := psi \describes (f (phi tt)) \wrt Y.
@@ -50,25 +50,25 @@ Section cs_id.
       exists (make_mf (fun n f => cnt n (f tt))).
       split => [n g h /= val val' | g]; first by apply/fun_ext; case; apply/sing/val'/val.
       by have [n val]:= sur (g tt); exists n.
-    exists (F2MF F); split; first by rewrite F2MF_rlzr_F2MF => fn n <-/=; apply/icf.
+    exists (F2MF F); split; try by rewrite F2MF_rlzr_F2MF => fn n <-/=; apply/icf.
     rewrite cont_F2MF => phi; exists (fun _ => [:: tt]) => q' psi [eq _].
     by have ->: phi = psi by apply/fun_ext => str; elim str.    
   Qed.
-End cs_id.
+End cs_dscrt.
 
 Lemma dscrt_id (X: cs) (x: X) (Xcount: X \is_countable):
-  X \is_discrete -> X ~=~ (cs_id Xcount).
+  X \is_discrete -> X ~=~ (discrete_space Xcount).
 Proof.
   move => dscrt.
-  exists (exist_c (dscrt (cs_id Xcount) id)).
-  by exists (exist_c (@cs_id_dscrt X Xcount X id)).
+  exists (exist_c (dscrt (discrete_space Xcount) id)).
+  by exists (exist_c (@dscrt_dscrt X Xcount X id)).
 Qed.
 
 Section TERMINAL.
-  Canonical cs_unit := cs_id unit_count.
+  Canonical cs_unit := discrete_space unit_count.
 
   Lemma unit_dscrt: discrete cs_unit.
-  Proof. exact/cs_id_dscrt. Qed.
+  Proof. exact/dscrt_dscrt. Qed.
 
   Definition unit_fun (X: cs) (x: X) := tt: cs_unit.
 
@@ -88,7 +88,7 @@ Section TERMINAL.
 
   Lemma unit_fun_cont (X: cs): (@unit_fun X) \is_continuous.
   Proof.
-      by exists (@unit_fun_rlzr X); split; [exact/unit_fun_rlzr_spec | exact/unit_fun_rlzr_cntop].
+      by exists (@unit_fun_rlzr X); split; try exact/unit_fun_rlzr_spec; exact/unit_fun_rlzr_cntop.
   Qed.
 
   Lemma unit_fun_hcr (X: cs): (F2MF (@unit_fun X): X ->> cs_unit) \has_continuous_realizer.
@@ -118,30 +118,30 @@ Section TERMINAL.
 End TERMINAL.
 
 Section BOOL.
-  Canonical cs_bool:= cs_id bool_count.
+  Canonical cs_bool:= discrete_space bool_count.
 
   Lemma bool_dscrt: discrete cs_bool.
-  Proof. exact/cs_id_dscrt. Qed.
+  Proof. exact/dscrt_dscrt. Qed.
 End BOOL.
 
 Section NATURALS.
-  Canonical cs_nat := cs_id nat_count.
+  Canonical cs_nat := discrete_space nat_count.
 
   Lemma S_cont: (S: cs_nat -> cs_nat) \is_continuous.
   Proof.
     exists (F2MF (fun phi q =>S (phi q))).
-    split; first by rewrite F2MF_rlzr => phi n /= ->.
+    split; try by rewrite F2MF_rlzr => phi n /= ->.
     by rewrite cont_F2MF => phi; exists (fun _ => [:: tt]) => str psi []; elim: str => ->.
   Qed.
 
   Lemma nat_dscrt (X: cs) (f: cs_nat -> X): f \is_continuous.
-  Proof. exact/cs_id_dscrt. Qed.
+  Proof. exact/dscrt_dscrt. Qed.
   
   Lemma nat_nat_cont (f: nat -> nat -> nat):
     (fun (p: cs_nat * cs_nat) => f p.1 p.2: cs_nat) \is_continuous.
   Proof.
     exists (F2MF (fun phi q => f (phi (inl tt)).1 (phi (inr tt)).2)).
-    split; first by rewrite F2MF_rlzr => phi [n m] /prod_name_spec [/= <- <-].
+    split; try by rewrite F2MF_rlzr => phi [n m] /prod_name_spec [/= <- <-].
     by rewrite cont_F2MF => phi; exists (fun _ => [:: inl tt; inr tt]) => psi str [-> [->]].
   Qed.
 End NATURALS.

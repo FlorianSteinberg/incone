@@ -1,6 +1,6 @@
 From mathcomp Require Import all_ssreflect.
 From rlzrs Require Import all_rlzrs.
-Require Import all_cs_base classical_func classical_cont dscrt cprd.
+Require Import axioms all_cs_base classical_func classical_cont dscrt cprd.
 Require Import Classical Morphisms ChoiceFacts.
 
 Set Implicit Arguments.
@@ -155,7 +155,8 @@ Section Opens_and_closeds.
   Proof.
     suff cont: continuous (cnst top: X -> cs_Sirp) by exists (exist_c cont).
     exists (mf_cnst (cnst true)).  
-    by split; [apply/F2MF_rlzr_F2MF; split => //; exists 0 | rewrite cont_F2MF; apply cnst_cont].
+    split; try by apply/F2MF_rlzr_F2MF; split => //; exists 0.
+    by rewrite cont_F2MF; apply cnst_cont.
   Qed.
 
   Lemma empty_open: open (@empty X).
@@ -163,7 +164,8 @@ Section Opens_and_closeds.
     suff cont: continuous (cnst bot: X -> cs_Sirp).
     - by exists (exist_c cont).
     exists (F2MF (fun phi q => false)).  
-    by split; [apply/F2MF_rlzr_F2MF; split => [[] | ] | rewrite cont_F2MF; apply cnst_cont].
+    split; try by apply/F2MF_rlzr_F2MF; split => [[] | ].
+    by rewrite cont_F2MF; apply cnst_cont.
   Qed.
 
   Definition closeds:= make_subset (fun (A: X -> cs_Sirp) =>
@@ -225,7 +227,7 @@ Section Opens_and_closeds.
   Lemma cmplO_cont: complement_opens \is_continuous.
   Proof.
     exists mf_id.
-    split; last by apply /cont_F2MF => phi; exists (fun n => [:: n]) => q' psi [].
+    split; try by apply /cont_F2MF => phi; exists (fun n => [:: n]) => q' psi [].
     apply/F2MF_rlzr_F2MF => psi O psinO phi x phinx fd.
     have [ | dm prp]:= psinO phi x phinx; first by exists (sval O x).
     split => // Fphi val.
@@ -242,7 +244,7 @@ Section Opens_and_closeds.
   Lemma cmplA_cont: complement_closeds \is_continuous.
   Proof.
     exists mf_id.
-    split; last by apply/cont_F2MF => phi; exists (fun n => [:: n]) => q' psi [].
+    split; try by apply/cont_F2MF => phi; exists (fun n => [:: n]) => q' psi [].
     apply/F2MF_rlzr_F2MF => psi A psinA phi x phinx fd.
     by have [ | dm prp]:= psinA phi x phinx; first by exists (P2CF (complement (sval A)) x).
   Qed.
@@ -415,10 +417,10 @@ Section Open_subsets_of_nat.
   Qed.  
  
   Lemma ON2Sw_cont: (@P2CF nat: cs_ON -> cs_Sirp\^w) \is_continuous.
-  Proof. by exists ON2Sw_rlzr; split; [apply/ON2Sw_rlzr_spec | apply/ON2Sw_rlzr_cntop]. Qed.
+  Proof. by exists ON2Sw_rlzr; split; try exact/ON2Sw_rlzr_spec; apply/ON2Sw_rlzr_cntop. Qed.
 
   Lemma Sw2ON_cont: (@CF2P nat: cs_Sirp\^w -> cs_ON) \is_continuous. 
-  Proof. by exists Sw2ON_rlzr; split; [apply/Sw2ON_rlzr_spec | apply/Sw2AN_rlzr_cntop]. Qed.
+  Proof. by exists Sw2ON_rlzr; split; try exact/Sw2ON_rlzr_spec; apply/Sw2AN_rlzr_cntop. Qed.
 
   Definition Onat2ON:= CF2P \o_f sval: \O(cs_nat) -> cs_ON.
 
@@ -483,14 +485,14 @@ Section Closed_subsets_of_nat.
 
   Lemma cmpl_cont: (complement: cs_AN -> cs_ON) \is_continuous.
   Proof.
-    exists mf_id; split; last exact/id_cntop.
+    exists mf_id; split; try exact/id_cntop.
     apply/F2MF_rlzr_F2MF => phi A /rep_AN_spec [[cA [phincA <-]] _].
     by rewrite /= complement_involutive.
   Qed.
 
   Lemma cont_cmpl: (complement: cs_ON -> cs_AN) \is_continuous.
   Proof.
-    exists mf_id; split; last exact/id_cntop.
+    exists mf_id; split; try exact/id_cntop.
     apply/F2MF_rlzr_F2MF => phi O phinO.
     by apply/rep_AN_spec; split; [exists O | rewrite F2MF_dom; apply/subs_all].
   Qed.

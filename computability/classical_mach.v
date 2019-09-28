@@ -29,7 +29,7 @@ Section classical_machines.
     by have <-: Mphi = Fphi by apply/ sing; apply prop.
   Qed.
 
-  Lemma exists_po (D: subset B): FunctionalChoice_on (seq (Q * A)) (option B) -> exists po,
+  Lemma exists_po_choice (D: subset B): FunctionalChoice_on (seq (Q * A)) (option B) -> exists po,
         dom (pf2MF po) === dom (projection_on D) /\ (projection_on D) \extends pf2MF po.
   Proof.
     move => choice.
@@ -478,7 +478,7 @@ Section initial_segment_associate.
   rewrite geq_max; apply/andP; split => //.
   have [ | _ /coin_GL2MF/coin_F2GL ->] //:= @dp_spec (F2GL phi (iseg cnt (n_rec phi q' m))) psi.
   by rewrite /= E.
-Qed.
+Qed.  
 End initial_segment_associate.  
 
 Section exists_associate.
@@ -517,7 +517,7 @@ Section exists_associate.
       have [Lf mod]:= cont phi Fphi val.
       symmetry; apply/mod/val'.
       by case (Lf q') => // q; exfalso; apply/nex/inhabits/q.
-    have [ | dp [dp_dom dp_spec]]:= exists_po (dom F).
+    have [ | dp [dp_dom dp_spec]]:= exists_po_choice (dom F).
     - exact/countable_choice/list_count/prod_count/Acount/Qcount.
     have /count_enum/(enum_inh someq) [cnt sur] := Qcount.
     have [sec ms]:= exists_minsec sur.
@@ -532,11 +532,11 @@ Section exists_associate.
     exact/countable_choice.
   Qed. 
 
-  Lemma exists_N: FunctionalChoice_on (seq (Q * A)) (option B) ->
+  Lemma exists_dpN: FunctionalChoice_on (seq (Q * A)) (option B) ->
                   exists N, \F_N \tightens (projection_on (dom F)).
   Proof.
     move => choice.
-    have [dp [dp_dom dp_spec]]:= exists_po (dom F) choice.
+    have [dp [dp_dom dp_spec]]:= exists_po_choice (dom F) choice.
     exists (fun KL nq => if dp KL is Some phi then Some (phi nq.2) else None).
     move => KL /dp_dom [/=]; case val: (dp KL) => [phi | ] // _ _.
     split => [ | phi' /= eq]; first by exists phi => q; exists 0.
@@ -693,7 +693,7 @@ Section mathcomp.
         dom (pf2MF dp) === dom (projection_on (dom F)) /\ (projection_on (dom F)) \extends pf2MF dp.
   Proof.
     move => count count'.
-    apply/exists_po/count_eqT_choice; first exact/list_count/prod_count.
+    apply/exists_po_choice/count_eqT_choice; first exact/list_count/prod_count.
     by right; apply/inhabits/nil.
   Qed.
 End mathcomp.

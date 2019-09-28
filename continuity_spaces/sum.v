@@ -19,7 +19,7 @@ Section sums.
   Qed.
   
   Lemma inl_cont (X Y: cs): (@inl X Y: X -> cs_sum X Y) \is_continuous.
-  Proof. by exists inl_rlzr; split; [exact/inl_rlzr_spec | apply/cntop_cntf/linc_cntf ]. Qed.
+  Proof. by exists inl_rlzr; split; last exact/inl_rlzr_spec; apply/cntop_cntf/linc_cntf. Qed.
   
   Definition inr_rlzr (X Y: cs):= F2MF (@rinc (B_ X) (B_ Y)): _ ->> B_ (cs_sum _ _).
   Arguments inr_rlzr {X} {Y}.
@@ -31,7 +31,7 @@ Section sums.
   Qed.
   
   Lemma inr_cont (X Y: cs): (@inr X Y: _ -> cs_sum _ _) \is_continuous.
-  Proof. by exists inr_rlzr; split; [exact/inr_rlzr_spec | exact/cntop_cntf/rinc_cntf]. Qed.
+  Proof. by exists inr_rlzr; split; last exact/inr_rlzr_spec; exact/cntop_cntf/rinc_cntf. Qed.
 
   Definition paib (T: Type) xx:= match (xx: T + T) with
 		                 | inl x => x
@@ -57,7 +57,7 @@ Section sums.
   Qed.
 
   Lemma paib_cont (X: cs): (@paib X: cs_sum _ _ -> _) \is_continuous.
-  Proof. exists (paib_rlzr X); split; [exact/paib_rlzr_crct | exact/paib_rlzr_cntop]. Qed.
+  Proof. exists (paib_rlzr X); split; last exact/paib_rlzr_crct; exact/paib_rlzr_cntop. Qed.
 
   Lemma fsum_comp S T R S' T' R' (f: S ->> T) (f': S' ->> T') (g: R ->> S) (g': R' ->> S'):
     (f +s+ f') \o (g +s+ g') =~= (f \o g) +s+ (f' \o g').

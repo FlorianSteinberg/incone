@@ -1,19 +1,11 @@
 From mathcomp Require Import ssreflect ssrfun.
 From rlzrs Require Import all_rlzrs.
 From metric Require Import all_metric.
-Require Import all_names cs.
-Require Import ProofIrrelevance ProofIrrelevanceFacts.
+Require Import axioms all_names cs.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
-
-Fact eq_sub T P (a b : {x : T | P x}) : a = b <-> projT1 a = projT1 b.
-Proof.
-  split=> [->//|]; move: a b => [a Pa] [b Pb] /= eqab.
-  case: _ / eqab in Pb *; congr (exist _ _ _).
-  exact/proof_irrelevance.
-Qed.
 
 Section subspace.
   Context (X: cs) (P: subset X).
@@ -38,11 +30,7 @@ Section subspaces.
   Local Open Scope cs_scope.  
   Lemma sub_hcr (X Y: cs) (A: subset X) (f: X ->> Y):
     f \has_continuous_realizer -> (@sub_mf X Y A f) \has_continuous_realizer.
-  Proof.
-    move => [F [rlzr cont]].
-    exists F; split => // phi x.
-    exact/rlzr.
-  Qed.
+  Proof. by move => [F [cont slvs]]; exists F; split => // phi x; apply/slvs. Qed.
   
   Lemma sub_cont (X Y: cs) (A: subset X) (f: X -> Y):
     f \is_continuous -> (@sub_fun X Y A f) \is_continuous.

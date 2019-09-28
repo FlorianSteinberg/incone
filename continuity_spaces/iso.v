@@ -35,6 +35,18 @@ Proof. split; [exact/iso_ref | exact/iso_sym | exact/iso_trans]. Qed.
 End isomorphisms.
 Notation "X ~=~ Y" := (@isomorphic X Y) (at level 2).
 
+Lemma iso_spec X Y: X ~=~ Y <->
+  exists (f: X -> Y), f \is_continuous /\ exists g, g \is_continuous /\ cancel f g /\ cancel g f.
+Proof.
+  split => [[[f ?] [[g ? /=] [? ?]]] | [f [cont [g [cont' [? ?]]]]]].
+  - by exists f; split; first exact/ass_cont; exists g; split; first exact/ass_cont.
+  by exists (exist_c cont); exists (exist_c cont').
+Qed.
+
+Global Instance slvbl_prpr (X X' Y Y':cs):
+  Proper ((@equiv B_(X) B_(Y)) ==> (@equiv X Y) ==> iff) (@realizer _ _ (rep X) _ _ (rep Y)).
+Proof. by move => F G eq f g eq'; rewrite eq' eq. Qed.
+
 Global Instance prod_prpr:
   Proper (isomorphic ==> isomorphic ==> isomorphic) cs_prod.
 Proof.
@@ -48,7 +60,7 @@ Proof.
   split; case => [x y /=]; rewrite /fprd /=.
   - by have /= ->:= cnclf x; have /= ->:= cnclg y.
   by have /= ->:= cnclf' x; have /= ->:= cnclg' y.
-Qed.
+Qed.  
 
 (*
 Global Instance sum_prpr:

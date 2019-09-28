@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs choice_dict.
-Require Import all_names cs smod prod sub func classical_cont classical_mach.
+Require Import axioms all_names cs smod prod sub func classical_cont classical_mach.
 Require Import Classical.
 
 Set Implicit Arguments.
@@ -10,12 +10,12 @@ Unset Printing Implicit Defensive.
 Local Open Scope cs_scope.
 Lemma ass_cont (X Y: cs) (f: X -> Y): f \from (codom (@associate F_U X Y)) -> f \is_continuous.
 Proof.
-  by move => [psi /=rlzr]; exists (F_U _ _ psi); split; last exact/FU_cont.
+  by move => [psi /=rlzr]; exists (F_U _ _ psi); split; first exact/FU_cont.
 Qed.
 
 Lemma cfun_spec (X Y: cs) (f: X -> Y): f \from (codom (@associate F_U X Y)) <-> f \is_continuous.
 Proof.
-  split => [ | [F [rlzr cont]]]; first exact/ass_cont.
+  split => [ | [F [cont rlzr]]]; first exact/ass_cont.
   have [psi val]:= exists_associate (Q_count X) (A_count X) (Q_count Y) cont.
   by exists psi; apply/ntrvw.tight_rlzr/val.
 Qed.
@@ -34,7 +34,7 @@ Proof.
   have Fcont: F \is_continuous.
   - apply/cont_comp; first exact/fprd_cont.
     exists (F2MF (fun phi => pair (phi, phi))).
-    split; first by apply/F2MF_rlzr => phi x; rewrite prod_name_spec.
+    split; last by apply/F2MF_rlzr => phi x; rewrite prod_name_spec.
     apply/cont_F2MF => phi.
     exists (fun q' => match q' with inl q' => [:: q'; someq] | inr q' => [:: q'; someq] end).
     by case => q' psi /=[-> [->]].
@@ -110,14 +110,14 @@ Local Close Scope name_scope.
 Lemma id_cont (X: cs): (@id X) \is_continuous.
 Proof.
   exists (F_U _ _ (@id_ass X)).
-  split; first exact/id_ass_spec.
+  split; last exact/id_ass_spec.
   exact/FU_cont.
 Qed.
 
 Lemma eval_cont (X Y: cs): (@evaluation F_U X Y) \is_continuous.
 Proof.
   exists (eval_rlzr F_U X Y)|_(dom delta).
-  split; last exact/eval_rlzr_cntop.
+  split; first exact/eval_rlzr_cntop.
   rewrite rlzr_F2MF => psiphi fx psiphinfx.
   have [ | [Fpsiphi val] prp]:= eval_rlzr_crct psiphinfx; first exact/F2MF_dom.
   split => [ | Fq [/=_ val']]; first by exists Fpsiphi; split; first by exists fx.
@@ -131,7 +131,7 @@ Proof.
   have [phi phinx]:= get_description x.
   exists (F_U _ _ (D phi: function_names F_U (function_names F_U _ _) _)).
   rewrite rlzr_F2MF.
-  split => [psi f psinf | ]; last exact/FU_cont.
+  split => [ | psi f psinf]; try exact/FU_cont.
   have [ | [Fphi /D_spec val] prp]:= psinf phi x phinx; first exact/F2MF_dom.
   split => [ | Fphi' /D_spec val']; first by exists Fphi.
   have [fa [Fphi'nfa]]:= prp Fphi' val'.
@@ -143,7 +143,7 @@ Definition point_evaluation (X Y: cs) (x: X):= exist_c (@ptvl_val_cont X Y x).
 Lemma ptvl_cont (X Y: cs): (@point_evaluation X Y) \is_continuous.
 Proof.
   exists (F2MF (@D (queries X) (queries Y) (replies X) (replies Y))).
-  rewrite F2MF_rlzr_F2MF; split => [phi x phinx psi f psinf _| ]; last first.
+  rewrite F2MF_rlzr_F2MF; split => [ | phi x phinx psi f psinf _].
   - rewrite cont_F2MF; exact/D_cont.
   have [ | [Fphi /D_spec val] prp]:= psinf phi x phinx; first exact/F2MF_dom.
   split => [ | Fphi' /D_spec val']; first by exists (Fphi).

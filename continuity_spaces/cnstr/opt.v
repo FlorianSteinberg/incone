@@ -1,7 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs.
-Require Import all_cs_base classical_count classical_func cs dscrt.
-Require Import FunctionalExtensionality.
+Require Import axioms all_cs_base classical_count classical_func cs dscrt.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -42,7 +41,7 @@ Section OPTIONSPACES.
   Lemma Some_cont: (@Some X) \is_continuous.
   Proof.
     exists (F2MF (fun phi => Some \o_f phi)).
-    split; first by rewrite F2MF_rlzr_F2MF => phi; exists phi.
+    split; try by rewrite F2MF_rlzr_F2MF => phi; exists phi.
     by rewrite cont_F2MF => phi; exists (fun q => cons q nil) => q psi [/=<-].
   Qed.
 
@@ -54,20 +53,20 @@ Section OPTIONSPACES.
                            end) \is_continuous.
   Proof.
     have [phiy phiny]:= get_description y.
-    move => [F [/rlzr_F2MF rlzr cont]].
+    move => [F [cont /rlzr_F2MF rlzr]].
     exists (make_mf (fun phi Fphi =>
                        (exists psi, phi =1 Some \o_f psi /\ F psi Fphi)
                        \/
                        (phi =1 cnst None /\ Fphi =1 phiy))).
-    split => [ | phi Fpsi [[psi [eq val]] | [eq val]]]; last first.
-    - + exists (fun q => [:: someq]) => q' phi' [coin _] Fphi'.
-        case => [[psi [eq'' val']] | [eq'' ->]]; last by rewrite val.
-        by have /= := eq someq; rewrite coin val eq''.
-      have [mf mod]:= cont psi Fpsi val.
+    split => [phi Fpsi [[psi [eq val]] | [eq val]] | ].
+    - have [mf mod]:= cont psi Fpsi val.
       exists (fun q => someq :: mf q) => q' phi' /coin_agre coin Fpsi'.
       case => [[psi' [eq' val']] | [eq' val']]; last by have:= eq someq; rewrite coin; [rewrite eq' | left].
       apply/mod/val'/coin_agre => q /=lstn.
       by apply/Some_inj; have /= <-:= eq q; have /= <-:= eq' q; apply/coin; right.
+    - exists (fun q => [:: someq]) => q' phi' [coin _] Fphi' /=.
+      case => [[psi [eq'' val']] | [eq'' ->]]; last by rewrite val.
+      by have /= := eq someq; rewrite coin val eq''.      
     rewrite rlzr_F2MF => phi [x [psi [eq psinx]] | phinN]; last first.
     - split => [ | Fphi [[psi [eq val]] | [/=eq val]]]; first by exists phiy; right.
       + by have:= eq someq; rewrite phinN.
@@ -76,7 +75,7 @@ Section OPTIONSPACES.
     split; first by exists Fpsi; left; exists psi; split.
     move => Fpsi' /= [[psi' [eq' val']] | [eq'']]; last by have:= eq'' someq; rewrite eq.
     suff eq'': psi = psi' by apply/prp => //; rewrite eq''.
-    apply/functional_extensionality => q.
+    apply/fun_ext => q.
     by have /= := eq' q; rewrite eq /=; case.
   Qed.
 

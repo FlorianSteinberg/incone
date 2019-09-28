@@ -16,7 +16,7 @@ Section queries.
   Notation "? K" := (@inl (seq Q) A' K) (format "'?' K", at level 50).
   Notation "! a'" := (@inr (seq Q) A' a') (format "'!' a'", at level 50).      
   Context (psi : seq A * Q' -> seq Q + A').
-  
+
   Lemma size_gs phi q' n: size (gather_shapes phi q' n) = size (U_rec psi phi q' n).1.
   Proof.
 

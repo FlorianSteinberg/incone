@@ -310,6 +310,8 @@ Section U_machine.
     have [[Ks a'] [/=cns val]]:= tot q'; exists a'; exists ((size Ks).+1).
     by rewrite US /U cns_U_rec // /gather_queries cns_gs // val.
   Qed.
+
+  
 End U_machine.
 
 Section moduli.
@@ -447,4 +449,3 @@ Section duality_operator.
     by case eq: (U_rec _ _ _) => //.
   Qed.
 End duality_operator.
-  

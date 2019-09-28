@@ -7,6 +7,12 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.  
 
+Lemma subs_count Q (P: mf_set.subset Q): Q \is_countable -> {q: Q | P q} \is_countable.
+Proof.
+  move => [cnt [sing sur]]; exists (make_mf (fun n q => cnt n (sval q))).
+  by split => [n q q' val val'  | q]; [apply/eq_sub/sing/val'/val | apply/sur].
+Qed.
+
 Lemma well_order_nat (P : nat -> Prop):
   (exists n, P n) -> exists n, P n /\ forall m, P m -> n <= m.
 Proof.

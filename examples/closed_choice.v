@@ -69,7 +69,7 @@ Section closed_choice_on_the_naturals.
 
   Lemma CN_not_cont: ~ (closed_choice_on cs_nat) \has_continuous_realizer.
   Proof.
-    apply/CN_CN'_hcr => [[F [rlzr cont]]].
+    apply/CN_CN'_hcr => [[F [cont rlzr]]].
     pose sing0:= (fun n => if n == 0 then top else bot): cs_AN.
     have [phi phin0]:= get_description sing0.
     have [ | [Fphi val] prp] := rlzr _ _ phin0; first by exists 0.

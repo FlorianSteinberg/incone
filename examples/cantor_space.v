@@ -44,7 +44,7 @@ not continuous. Here, the notion of continuity comes from representations
 that the Cantor space and the two point space are equipped with.**)
 Lemma nz_bool_not_cont: ~ nz_bool \has_continuous_realizer.
 Proof.
-  move => [F [rlzr cont]].
+  move => [F [cont rlzr]].
   have nmb: xpred0 \describes false \wrt cs_bool by trivial.
   have nmc: xpred0 \describes xpred0 \wrt Cantor by trivial.
   have [ | [Fxpred0 val] prp]:= rlzr xpred0 xpred0 nmc.
@@ -106,7 +106,7 @@ Qed.
 
 Lemma nz_bool_p_cont: nz_bool_p \has_continuous_realizer.
 Proof.
-  by exists nzb_rlzr; split; [exact/nzb_rlzr_spec | exact/nzb_rlzr_cntop].
+  by exists nzb_rlzr; split; try exact/nzb_rlzr_spec; apply/nzb_rlzr_cntop.
 Qed.
 
 (** Another way to make the function continuous is to use Sirpinski space.
@@ -151,7 +151,7 @@ Proof.
 Qed.
   
 Lemma nz_Sirp_cont: nz_Sirp \has_continuous_realizer.
-Proof. exists nzS_rlzr; split; [exact/nzS_rlzr_spec | exact/nz_rlzr_cntop]. Qed.
+Proof. exists nzS_rlzr; split; try exact/nzS_rlzr_spec; apply/nz_rlzr_cntop. Qed.
 (** Note that the algorithm of a function to Sirpinskispace has a defined behavior
 when the input happens to be the zero function, while a realizer of nz_bool_p
 may behave arbitrary in the zero function. Of course, in this case it must

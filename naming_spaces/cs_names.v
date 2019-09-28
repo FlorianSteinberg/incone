@@ -9,9 +9,11 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope cs_scope.
-Canonical rs_names (B: naming_space): cs.
+Canonical cs_names (B: naming_space): cs.
   by exists B B mf_id; split => [q | ]; last exact/F2MF_sing; exists q.
 Defined.
+
+Coercion cs_names: naming_space >-> cs.
 
 Lemma id_cntf (Q A: Type): (@id (Q -> A)) \is_continuous_functional.
 Proof. by move => phi; exists (fun q => [::q]) => q' psi [->]. Qed.
@@ -19,13 +21,13 @@ Proof. by move => phi; exists (fun q => [::q]) => q' psi [->]. Qed.
 Lemma rep_hcr (X: cs): (rep X) \has_continuous_realizer.
 Proof.
   exists mf_id.
-  split => [/= phi _ <- [x /=] phinx |]; last exact/cont_F2MF/id_cntf.
+  split => [ | /= phi _ <- [x /=] phinx]; first exact/cont_F2MF/id_cntf.
   by split => [| _ <-]; [exists phi | exists x].
 Qed.
 
 Lemma rep_inv_hcr (X: cs): (rep X\^-1) \has_continuous_realizer.
 Proof.
-  exists mf_id; split; last exact/cont_F2MF/id_cntf.
+  exists mf_id; split; first exact/cont_F2MF/id_cntf.
   by apply/slvs_delta; rewrite comp_id_r; apply/icf_spec/id_icf_inv.
 Qed.
 
@@ -56,8 +58,8 @@ Section baire_fprd.
   Lemma cntf_cont (B B': naming_space) (f: B -> B'):
     f \is_continuous_functional <-> f \is_continuous.
   Proof.
-    split => [cntf | [F [/id_rlzr_tight /tight_F2MF -> cont]]]; last exact/cntop_cntf.
-    by exists (F2MF f); split; first exact/id_rlzr_tight/tight_ref; apply/cont_F2MF.
+    split => [cntf | [F [cont /id_rlzr_tight /tight_F2MF]]]; last by rewrite -cntop_cntf => <-.
+    by exists (F2MF f); split; last exact/id_rlzr_tight/tight_ref; apply/cont_F2MF.
   Qed.
       
   Lemma hcr_cntop (B B': naming_space) (F: B ->> B'):
@@ -69,7 +71,7 @@ Section baire_fprd.
   Lemma cntop_hcr (B B': naming_space) (F: B ->> B'):
     F \is_singlevalued -> F \has_continuous_realizer <-> F \is_continuous_operator.
   Proof.
-    move => sing; split => [[G [/id_rlzr_tight rlzr cont]] |cont]; first exact/cont_exte/sing/cont.
+    move => sing; split => [[G [cont /id_rlzr_tight rlzr]] |cont]; first exact/cont_exte/sing/cont.
     by apply/hcr_cntop; exists F; split; try apply/tight_ref.
   Qed.
         
@@ -90,12 +92,12 @@ Section baire_fprd.
       
   Lemma fprd_rlzr_spec (F: B ->> D) (G: B' ->> D'): (fprd_rlzr F G) \solves (F ** G).
   Proof.
-    rewrite rlzr_spec fprd_rlzr_comp -!comp_assoc !prod_rep_spec.
-    have /sec_cncl ->:= (@pairK D D').
-    rewrite comp_id_l; exact/tight_ref.
+    rewrite rlzr_delta fprd_rlzr_comp -!comp_assoc !prod_rep_spec.
+    by have /sec_cncl ->:= (@pairK D D'); rewrite comp_id_l; apply/tight_ref.
   Qed.
 
   Coercion L2SS: seq >-> subset.
+
   Lemma map_inl T T' (L: seq T) t: t \from L -> (inl t:T + T') \from (map inl L).
   Proof.
     by elim: L t => // t L ih t' /=[-> | lstn]; [by left | right; apply/ih].

@@ -29,7 +29,8 @@ Structure continuity_space :=
     representation: name_space ->> space;
     represented: representation \is_representation;
   }.
-Notation delta:= (representation _).
+Notation rep := representation.
+Notation delta := (rep _).
 Coercion space: continuity_space >-> Sortclass.
 Global Instance rep_rep (X: continuity_space): (representation X) \is_representation.
 Proof. exact/represented. Qed.
@@ -42,11 +43,10 @@ Notation "'A_' X" := (replies X) (format "'A_' X", at level 5): cs_scope.
 Notation "'B_' X" := (name_space X) (format "'B_' X", at level 5): cs_scope.
 Notation "F \solves f" := (realizer delta delta F f) (at level 30): cs_scope.
 Notation "F \realizes f" := (F \solves (F2MF f)) (at level 30): cs_scope.
-Notation rep X := (representation X).
-Notation "phi '\describes' x '\wrt' X" := (x \from (rep X) phi) (at level 30): cs_scope.
-Notation "phi '\is_name_of' x" := (x \from delta phi) (at level 30): cs_scope.
-Notation "phi '\is_description_of' x" := (x \from delta phi) (at level 30): cs_scope.
-Definition descriptions_of (X: cs) (x: X) := (rep X)\^-1 x.
+Notation "phi '\describes' x '\wrt' X" := ((representation X) phi x) (at level 30): cs_scope.
+Notation "phi '\is_name_of' x" := (delta phi x) (at level 30): cs_scope.
+Notation "phi '\is_description_of' x" := (delta phi x) (at level 30): cs_scope.
+Definition descriptions_of (X: cs) (x: X) := (representation X)\^-1 x.
 Notation names_of x := (descriptions_of x).
 Notation some_query := (someq (name_space _)).
 
@@ -134,10 +134,34 @@ Section continuity_spaces.
     by have [ | fx [vl ->]]:= rlzr_val rlzr phinx _ val; first exact/F2MF_tot.
   Qed.
 
+  Lemma slvs_dep (X Y: cs) F (f: X ->> Y):
+    F \solves f <-> forall (x: dom f) (phi: names_of (sval x)),
+      (sval phi) \from dom F
+      /\
+      forall (Fphi: F (sval phi)), exists (fx: f (sval x)), (sval Fphi) \is_name_of (sval fx).
+  Proof.
+    split => [slvs [/=x xfd] [/=phi phinx] | slvs phi x phinx xfd]; last first.
+    - have [dm vl]//:= slvs (exist _ _ xfd) (exist _ phi _).
+      by split => // Fphi val; have [[fx]]:= vl (exist _ _ val); exists fx.
+    have [dm vl]:= slvs phi x phinx xfd; split => //; case => Fphi val.
+    by have [fx [Fphinfx val']]:= vl Fphi val; exists (exist _ _ val').
+  Qed.
+
+  Lemma rlzr_spec (X Y: cs) F (f: X -> Y): F \realizes f <->
+    dom delta \is_subset_of (dom F)
+    /\
+    forall phi x, phi \describes x \wrt X -> F phi \is_subset_of names_of (f x).
+  Proof.
+    split => [rlzr | [dm vl]].
+    - by split => [ | phi x]; [apply/rlzr_dom/rlzr | apply/rlzr_val/rlzr].
+    apply/split_rlzr => phi x phinx _; first by apply/dm; exists x.
+    by move => Fphi val; exists (f x); split => //; apply/vl/val.
+  Qed.
+
   Lemma F2MF_slvs (X Y: cs) F (f: X ->> Y): F2MF F \solves f <->
     forall phi x, phi \is_name_of x -> x \from dom f -> exists fx, F phi \is_name_of fx /\ fx \from f x.
   Proof. exact/F2MF_rlzr. Qed.  
-  
+
   Lemma F2MF_rlzr (X Y: cs) F (f: X -> Y):
     F2MF F \realizes f <-> forall phi x, phi \is_name_of x -> F phi \is_name_of f(x).
   Proof. exact/F2MF_rlzr_F2MF. Qed.
@@ -164,7 +188,7 @@ Notation "f \is_continuous_functional" := (continuous_function f) (at level 30):
 
 Section continuity.
   Definition has_continuous_realizer (X Y : cs) (f : X ->> Y) :=
-    exists F, F \solves f /\ F \is_continuous_operator.
+    exists F, F \is_continuous_operator /\ F \solves f.
   Local Notation "f '\has_continuous_realizer'":= (has_continuous_realizer f) (at level 2).
   Local Notation hcr := has_continuous_realizer.
   Global Instance hcr_prpr (X Y: cs):
@@ -177,7 +201,7 @@ Section continuity.
     f \has_continuous_realizer -> g \has_continuous_realizer -> (g \o f) \has_continuous_realizer.
   Proof.
     move => [F [Frf Fcont]] [G [Grg Gcont]].
-    by exists (G \o F); split; [exact/slvs_comp | exact/cont_comp].
+    by exists (G \o F); split; [exact/cont_comp | exact/slvs_comp].
   Qed.
   
   Definition continuous (X Y: cs) (f: X -> Y):= (F2MF f) \has_continuous_realizer.
@@ -202,18 +226,17 @@ Section continuity.
   Lemma cont_spec (X Y: cs) (f: X -> Y): f \is_continuous <->
     exists F, F \is_continuous_operator
               /\
-              dom delta \is_subset_of (dom F)
-              /\
-              forall phi x,
-                phi \describes x \wrt X -> F phi \is_subset_of names_of (f x).
-  Proof.    
-    split => [[F [rlzr cont]] | [F [cont [dm val]]]]; exists F; split => //.
-    - have /sing_rlzr_F2MF [ | dm val] := rlzr; first exact/cont_sing.
-      split => [phi [x phinx] | phi x phinx Fphi]; last exact/val.
-      by apply/dm; exists x.
-    apply/sing_rlzr_F2MF; first exact/cont_sing.
-    by split => [phi [x phinx] | phi x Fphi phinx]; [apply/dm; exists x | apply/val].
-  Qed.
+              F \realizes f.
+  Proof. done. Qed.
+    
+  Lemma F2MF_cont (X Y: cs) (f: X -> Y):
+  (exists F, F \is_continuous_functional
+             /\
+             forall phi x, phi \is_name_of x -> F phi \is_name_of f x)
+  -> f \is_continuous.
+  Proof.
+    by move => [F [cont rlzr]]; exists (F2MF F); split; [apply/cont_F2MF | apply/F2MF_rlzr].
+  Qed.  
 End continuity.
 Notation cntop_spec:= cont.cont_spec. 
 Notation hcr := has_continuous_realizer.
@@ -223,7 +246,7 @@ Notation "f \is_continuous" := (continuous f) (at level 2): cs_scope.
 Section products_and_sums.
   Context (X Y: cs).
   Definition product_representation:=
-    rep X ** rep Y \o F2MF (@unpair (B_ X) (B_ Y)).
+    representation X ** representation Y \o F2MF (@unpair (B_ X) (B_ Y)).
 
   Lemma prod_rep_sur: product_representation \is_cototal.
   Proof. exact/comp_cotot/F2MF_sur/unpair_sur/fprd_cotot/rep_sur/rep_sur/F2MF_sing. Qed.
@@ -237,7 +260,7 @@ Section products_and_sums.
   Defined.
 
   Definition sum_representation :=
-    rep X +s+ rep Y \o (F2MF (@slct (name_space X) (name_space Y))).
+    representation X +s+ representation Y \o (F2MF (@slct (name_space X) (name_space Y))).
   
   Lemma sum_rep_sur: sum_representation \is_cototal.
   Proof. exact/comp_cotot/F2MF_sur/slct_sur/fsum_cotot/rep_sur/rep_sur/F2MF_sing. Qed.
@@ -250,3 +273,4 @@ Section products_and_sums.
     by split; [apply/sum_rep_sur | apply/sum_rep_sing].
   Defined.  
 End products_and_sums.
+Notation "X \*_cs Y":= (cs_prod X Y) (at level 30): cs_scope.

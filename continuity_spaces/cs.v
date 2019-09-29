@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun.
 From rlzrs Require Import all_rlzrs dict.
-Require Import all_cont naming_spaces.
+Require Import all_cont naming_spaces representations.
 Import Morphisms.
 
 Set Implicit Arguments.
@@ -10,30 +10,27 @@ Unset Printing Implicit Defensive.
 Delimit Scope cs_scope with cs.
 Local Open Scope cs_scope.
 
-Class is_representation (B: naming_space) (X: Type) (delta: B ->> X) :=
-  {
-    surjective: delta \is_cototal;
-    deterministic: delta \is_singlevalued;
-  }.
-
-Global Instance R2D `{R: is_representation}: Dictionary delta.
-  by split; first exact/surjective; exact/deterministic.
-Defined.
-
-Notation "delta \is_representation" := (is_representation delta) (at level 30).
-
 Structure continuity_space :=
   {
-    space: Type;
+    space:> Type;
     name_space: naming_space;
     representation: name_space ->> space;
     represented: representation \is_representation;
   }.
 Notation rep := representation.
 Notation delta := (rep _).
-Coercion space: continuity_space >-> Sortclass.
+
 Global Instance rep_rep (X: continuity_space): (representation X) \is_representation.
 Proof. exact/represented. Qed.
+
+Global Instance rep_rep_of (X: continuity_space): representation_of X.
+by exists (name_space X) (representation X); apply/represented.
+Defined.
+
+Definition rep2cs X (delta: representation_of X): continuity_space.
+  exists X (representations.name_space) delta.
+  apply representations.representation.
+Defined.
 
 Notation cs:= continuity_space.
 Notation queries X := (questions (name_space X)).
@@ -183,8 +180,6 @@ Section continuity_spaces.
 End continuity_spaces.  
 Notation get_description:= rep_sur.
 Notation get_name := rep_sur.
-Notation "F \is_continuous_operator" := (continuous F) (at level 30): cs_scope.
-Notation "f \is_continuous_functional" := (continuous_function f) (at level 30): cs_scope.
 
 Section continuity.
   Definition has_continuous_realizer (X Y : cs) (f : X ->> Y) :=
@@ -245,6 +240,7 @@ Notation "f \is_continuous" := (continuous f) (at level 2): cs_scope.
 
 Section products_and_sums.
   Context (X Y: cs).
+
   Definition product_representation:=
     representation X ** representation Y \o F2MF (@unpair (B_ X) (B_ Y)).
 

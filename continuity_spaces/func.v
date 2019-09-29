@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs choice_dict.
-Require Import axioms all_names cs prod sub.
+Require Import axioms all_names representations cs prod sub.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -54,21 +54,34 @@ Section cs_functions.
     elim: K K' => [K' _ q | q K ih K' subl q' /=[<- | lstn]]//; first by apply/map_lstn/subl; left.
     by apply/ih/lstn => ? ?; apply/subl; right.
   Qed.
-  
+
+  Lemma lprj_coin_inl (B B': naming_space) (psiphi psiphi': B \*_ns B') K:
+    psiphi \coincides_with psiphi' \on (map inl K) ->
+    (lprj psiphi) \coincides_with (lprj psiphi') \on K.
+  Proof.
+    by elim: K => // q K ih; rewrite map_cons /lprj /=; case => <- coin; split; last exact/ih.
+  Qed.
+
+  Lemma rprj_coin_inr (B B': naming_space) (psiphi psiphi': B \*_ns B') K:
+    psiphi \coincides_with psiphi' \on (map inr K) ->
+    (rprj psiphi) \coincides_with (rprj psiphi') \on K.
+  Proof.
+    by elim: K => // q K ih; rewrite map_cons /rprj /=; case => <- coin; split; last exact/ih.
+  Qed.
+
   Lemma eval_rlzrM_cntf: eval_rlzrM \is_continuous_functional.
   Proof.
     move => psiphi.
     exists (fun nq' =>
               map inr (gather_queries (lprj psiphi) (rprj psiphi) nq')
-                  ++ map inl (gather_queries (D (rprj psiphi)) (lprj psiphi) nq')
-           ); case => n q' psiphi'.
-    elim: n => // n.
-    rewrite /eval_rlzrM => ih /coin_cat [coin coin'].
-    rewrite /eval_rlzrM US [RHS]US ih; last first.
-    - apply/coin_cat; split; first exact/coin_subl/coin/map_subl/gq_mon.
-      exact/coin_subl/coin'/map_subl/gq_mon.
-    case: U => //.
-  Admitted.
+                  ++ map inl (traces (rprj psiphi) (lprj psiphi) nq')
+           ); case => n q' psiphi' /coin_cat [/rprj_coin_inr coin /lprj_coin_inl coin'].
+    rewrite /eval_rlzrM.
+    rewrite (trcs_modf_U coin').
+    move: coin.
+    rewrite (trcs_modf_gq coin') => coin.
+    exact/gq_modf_U.
+  Qed.
   Local Close Scope name_scope.
 
   Definition eval_rlzr:= get_partial_function eval_rlzrM.

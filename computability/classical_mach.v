@@ -13,15 +13,17 @@ Section classical_machines.
   Notation B' := (Q' -> A').
   Local Open Scope name_scope.
   
-  Lemma sing_cmpt_elt M F n (phi: B) (Fphi: B') q' a': M \evaluates F -> F \is_singlevalued ->
+  Lemma sing_cmpt_elt M F n (phi: B) (Fphi: B') q' a':
+    Q' \is_countable -> M \evaluates F -> F \is_singlevalued ->
     Fphi \from F phi -> M phi (n,q') = Some a' -> a' = Fphi q'.
   Proof.
-    move => comp sing FphiFphi ev.
+    move => count comp sing FphiFphi ev.
     have [ | [Mphi MphiFphi] prop]:= (comp phi _); first by exists Fphi.
     have eq: Mphi = Fphi by rewrite -(sing phi Fphi Mphi); last apply prop.
     move: Mphi eq MphiFphi => _ -> MphiFphi.
     pose Nphi := (fun q a => (q <> q' /\ Fphi q = a) \/ (q' = q /\ a' = a)).
-    have [q | Mphi Mphiprop]:= @full_choice _ _ Nphi.
+    have choice: FunctionalChoice_on Q' A' by apply/countable_choice.
+    have [q | Mphi Mphiprop]:= @choice Nphi.
     - by case: (classic (q = q')) => ass; [exists a'; right | exists (Fphi q); left].
     have MphiMphi: (\F_M) phi Mphi => [q | ].
     - by case: (Mphiprop q) => [[_ <-] | [<- <-]]; [ | exists n].
@@ -81,21 +83,31 @@ Section initial_segment_associate.
     phi \from dom F -> (F2GL phi K) \from dom (pf2MF dp).
   Proof. by move => phifd; apply/dp_dom; exists phi; split; last apply/icf_GL2MF. Qed.
 
-  Lemma exists_modf:
+  Lemma exists_modf_choice:
     FunctionalChoice_on (seq (Q * A)) (Q' -> nat) ->
-    FunctionalChoice_on Q' nat ->
+    FunctionalChoice_on Q' nat -> FunctionalCountableChoice_on bool ->
     exists Lf, forall KL phi, dp KL = some phi -> minimal_modulus F phi (Lf KL).
   Proof.
-    move => choice choice'.
+    move => choice choice' choice''.
     suff /choice [Lf prp]:
       forall KL, exists Lf, forall phi, dp KL = some phi ->
             minimal_modulus F phi (Lf).
     - by exists Lf.
     move => KL.
     case E: (dp KL) => [phi | ]; last by exists (fun _ => 0).
-    have [ | Lf mod]:= (dom_minmod ms F choice' phi).2.
+    have [ | Lf mod]:= (dom_minmod_choice ms F choice' choice'' phi).2.
     - by have /cont_spec cont := F_cont; apply/cont/(dp_val E).
     by exists Lf => _ [<-].
+  Qed.
+
+  Lemma exists_modf: Q' \is_countable -> A \is_countable ->
+    exists Lf, forall KL phi, dp KL = some phi -> minimal_modulus F phi (Lf KL).
+  Proof.
+    move => count count'.
+    apply/exists_modf_choice; apply/countable_choice; try exact/nat_count; try exact/count.
+    apply/list_count/prod_count/count'.
+    apply/enum_count; exists (fun n => Some (cnt n)) => q.
+    by exists (sec q); f_equal; apply ms.
   Qed.
 
   Context (Lf: seq (Q * A) -> (Q' -> nat)).
@@ -138,12 +150,12 @@ Section initial_segment_associate.
     K \is_sublist_of L \/ K \is_sublist_of L' -> K \is_sublist_of (L ++ L').
   Proof. by case => subl q lstn; rewrite L2SS_cat; [left | right]; apply/subl. Qed.
 
-  Lemma n_rec_spec phi q': phi \from dom F -> FunctionalChoice_on Q' nat ->
+  Lemma n_rec_spec phi q': phi \from dom F -> FunctionalChoice_on Q' nat -> FunctionalCountableChoice_on bool ->
     exists n, n_rec phi q' n.+1 <= n_rec phi q' n.
   Proof.
-    move => phifd choice.
+    move => phifd choice choice'.
     pose phin:= dp (F2GL phi (iseg cnt (n_rec phi q' _))).
-    have [ | Lf' [mod' min]]:= (dom_minmod ms F choice phi).2.
+    have [ | Lf' [mod' min]]:= (dom_minmod_choice ms F choice choice' phi).2.
     - by have /cont_spec cont:= F_cont; apply/cont.
     case: (classic (exists n, Lf' q' <= n_rec phi q' n)) => [[n subl] |].
     - exists n; rewrite /= /n_step.
@@ -184,12 +196,13 @@ Section initial_segment_associate.
     then if dp (F2GL phi (iseg cnt k)) then Some (iseg cnt k) else None
     else None.
   
-  Lemma M_mod: FunctionalChoice_on Q' nat -> \F_mod_M \modulus_for F.
+  Lemma M_mod: FunctionalChoice_on Q' nat -> FunctionalCountableChoice_on bool ->
+               \F_mod_M \modulus_for F.
   Proof.
-    move => choice.
+    move => choice choice'.
     split => [phi phifd | phi mf val q'].
     - apply/FM_dom => q'.
-      have [ n ineq]:= n_rec_spec q' phifd choice.
+      have [ n ineq]:= n_rec_spec q' phifd choice choice'.
       exists (iseg cnt (n_rec phi q' n)); exists n.
       rewrite /mod_M ineq.
       case: ifP => //=; case E: (dp _) => [ | ]//.
@@ -260,12 +273,12 @@ Section initial_segment_associate.
     then if dp (F2GL phi (iseg cnt k)) then Some (vf (F2GL phi (iseg cnt k)) nq'.2) else None
     else None.
 
-  Lemma M_spec: FunctionalChoice_on Q' nat -> M \evaluates F.
+  Lemma M_spec: FunctionalChoice_on Q' nat -> FunctionalCountableChoice_on bool -> M \evaluates F.
   Proof.
-    move => choice phi phifd.
+    move => choice choice' phi phifd.
     split => [ | Fphi val].
     - apply/FM_dom => q'.
-      have [ n ineq]:= n_rec_spec q' phifd choice.
+      have [ n ineq]:= n_rec_spec q' phifd choice choice'.
       exists (vf (F2GL phi (iseg cnt (n_rec phi q' n))) q'); exists n.
       rewrite /M ineq.
       case: ifP => //=; case E: (dp _) => [ | ]// _.
@@ -276,13 +289,13 @@ Section initial_segment_associate.
       exact/coin_GL2MF/coin_ref.
     move: phifd => [Fphi' val'].
     suff <-: Fphi' = Fphi by trivial.
-    apply/functional_extensionality => q'.
+    apply/fun_ext => q'.
     have [n]:= val q'.
     rewrite /M /=.
     set k := n_rec phi q' n.
     case: ifP => //= subl.
     case: ifP => //; case eq: (dp _) => [psi | ]// _ [<-].
-    have [dm exte] := M_mod choice.
+    have [dm exte] := M_mod choice choice'.
     have [ | mf md]:= dm phi; first by exists Fphi'.
     have [m eq']:= md q'.
     have eq'': mod_M phi (n, q') = Some (iseg cnt (n_rec phi q' n)) by rewrite /mod_M subl eq /=.
@@ -299,7 +312,7 @@ Section initial_segment_associate.
     apply/crt/vl/eq; rewrite eq'''.
     by apply/coin_sym/coin_GL2MF/dp_icf.
   Qed.  
-  
+
   Definition nu phi nq' := iseg cnt (n_rec phi nq'.2 nq'.1).
 
   Lemma n_rec_coin phi psi q' n:
@@ -410,9 +423,10 @@ Section initial_segment_associate.
          @dp_spec (F2GL phi (iseg cnt (n_rec phi q' k))) psi; first by rewrite /= eq.
   Qed.
     
-  Lemma psi_iseg_spec: FunctionalChoice_on Q' nat -> (U psi_iseg) \evaluates F.
+  Lemma psi_iseg_spec: FunctionalChoice_on Q' nat -> FunctionalCountableChoice_on bool ->
+                       (U psi_iseg) \evaluates F.
   Proof.
-    move => choice phi [Fphi val].
+    move => choice choice' phi [Fphi val].
     split => [ | Fphi' /FU_val_spec val']; last first.
     - suff ->: Fphi' = Fphi by trivial.
       apply/fun_ext => q'.
@@ -431,7 +445,7 @@ Section initial_segment_associate.
       rewrite {1}/KL => /coin_GL2MF coin.
       exact/coin_subl/coin/iseg_subl.      
     apply/FM_dom => q'.
-    have [ | k ineq']:= @n_rec_spec phi q' _ choice; first by exists Fphi.
+    have [ | k ineq']:= @n_rec_spec phi q' _ choice choice'; first by exists Fphi.
     set k' := search (fun k => n_rec phi q' k.+1 <= n_rec phi q' k) k.
     exists (Fphi q').
     exists k'.+1.
@@ -521,15 +535,14 @@ Section exists_associate.
     - exact/countable_choice/list_count/prod_count/Acount/Qcount.
     have /count_enum/(enum_inh someq) [cnt sur] := Qcount.
     have [sec ms]:= exists_minsec sur.
-    have [ | | Lf mod]:= exists_modf cont dp_spec ms.
-    - exact/countable_choice/list_count/prod_count/Acount/Qcount.
-    - exact/countable_choice.
+    have [ | | Lf mod] //:= exists_modf cont dp_spec ms.
     have [ | | | vf val]:= exists_valf dp_spec; first exact/somea'.
     - exact/countable_choice/list_count/prod_count/Acount/Qcount.
     - exact/countable_choice.
     exists (psi_iseg cnt Lf vf).
     apply/psi_iseg_spec; try exact/ms; move => //.
-    exact/countable_choice.
+    - exact/countable_choice.
+    exact/countable_choice/nat_count.
   Qed. 
 
   Lemma exists_dpN: FunctionalChoice_on (seq (Q * A)) (option B) ->

@@ -178,8 +178,7 @@ Section continuity.
     - by exists mu => n; apply/muprp.
     move => n.
     have [ | delta [/dns0_tpmn [m mld] prp]]:= cont (/2^n); first exact/tpmn_lt.
-    apply/well_order_nat; exists m => y dst.
-    exact/prp/Rle_trans/Rlt_le/mld.
+    by apply/well_order_nat; exists m => y dst; apply/prp/Rle_trans/Rlt_le/mld.
   Qed.
 
   Lemma mcont_cont (f: cs_M -> cs_N):

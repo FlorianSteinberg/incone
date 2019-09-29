@@ -3,7 +3,7 @@ Q -> A for some arbitrary types Q and A. It also proves some basic Lemmas about 
 From mathcomp Require Import ssreflect ssrfun seq.
 From mf Require Import all_mf.
 Require Import sets iseg graphs smod.
-Require Import Morphisms FunctionalExtensionality ChoiceFacts.
+Require Import Morphisms ChoiceFacts.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -275,7 +275,6 @@ Section partial_functions.
     split => [det P | eq Fpsi [P <-]]; last exact/eq.
     by apply/det; exists P.
   Qed.
-
 
   Lemma cont_PF2MF: f \is_continuous <->
                     forall (phi: domain f), exists Lf, forall q' (psi: domain f),

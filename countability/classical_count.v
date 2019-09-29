@@ -13,11 +13,13 @@ Proof.
   by split => [n q q' val val'  | q]; [apply/eq_sub/sing/val'/val | apply/sur].
 Qed.
 
-Lemma well_order_nat (P : nat -> Prop):
+Lemma well_order_nat_choice (P : nat -> Prop):
+  FunctionalCountableChoice_on bool ->
   (exists n, P n) -> exists n, P n /\ forall m, P m -> n <= m.
 Proof.
+  move => choice.
   pose R:= (fun n b => P n <-> is_true b).
-  have [ | p prop]:= nat_choice _ R.
+  have [ | p prop]:= @choice R.
     by move => n; case: (classic (P n)) => pn; [exists true|exists false]; split.
   move => [m Pm].
   have ex: exists n, p n by exists m; apply prop.
@@ -25,10 +27,14 @@ Proof.
   by exists n; split => [ | k Pk ]; [ | apply min]; apply prop.
 Qed.
 
-Lemma count_enum T: T \is_countable -> enumerable T.
+Lemma well_order_nat (P : nat -> Prop):
+  (exists n, P n) -> exists n, P n /\ forall m, P m -> n <= m.
+Proof. exact/well_order_nat_choice/countable_choice/nat_count. Qed.
+
+Lemma count_enum_choice T: FunctionalCountableChoice_on (option T) -> T \is_countable -> enumerable T.
 Proof.
-  move => [R [sing tot]].
-  have [ | cnt tight]:= exists_pchoice R; first exact/nat_choice.
+  move => choice [R [sing tot]].
+  have [ | cnt tight]:= exists_pchoice R; first exact/choice.
   exists cnt.
   apply/pf2MF_cotot => t.
   have [n val] := tot t.
@@ -38,6 +44,9 @@ Proof.
   by apply/sing/val/subs => /=; rewrite E.
 Qed.
 
+Lemma count_enum T: T \is_countable -> enumerable T.
+Proof. exact/count_enum_choice/countable_choice/nat_count. Qed.  
+  
 Lemma minsec_eqdec Q cnt sec:
   minimal_section Q cnt sec -> forall (q q': Q), {q = q'} + {~ q = q'}.
 Proof.
@@ -116,6 +125,7 @@ Qed.
 Lemma count_eqT_choice (Q: eqType) T: Q \is_countable ->
                                       inhabited T \/ inhabited Q -> FunctionalChoice_on Q T.
 Proof.
+  have nat_choice: FunctionalCountableChoice by apply/countable_choice/nat_count.
   case: (classic (inhabited Q)) => [[someq] count impl F tot | ninh count [[somet] | inh] F tot].
   - move: count => /count_enum/(enum_inh someq) [cnt sur].
     pose R n t:= F (cnt n) t.

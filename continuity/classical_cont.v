@@ -41,10 +41,11 @@ Section classical_lemmas.
     by split; last exists Fpsi.
   Qed.
 
-  Lemma dom_minmod (F: B ->> B'): FunctionalChoice_on Q' nat ->
+  Lemma dom_minmod_choice (F: B ->> B'):
+    FunctionalChoice_on Q' nat -> FunctionalCountableChoice_on bool ->
     dom (minimal_modulus F) === dom (continuity_modulus F).
   Proof.
-    move => choice phi.
+    move => choice choice' phi.
     split => [[mf [mod min]] | [Lf mod]]; first by exists (fun q' => init_seg (mf q')).
     pose R q' n :=
       (exists a', certificate F (init_seg n) phi q' a')
@@ -55,30 +56,40 @@ Section classical_lemmas.
       have ex: exists n, p n.
       - exists (max_elt (Lf q')); have [a' crt]:= (mod q').
         by exists a'; apply/crt_exte/crt/iseg_melt.
-      have [n [prp min]]:= well_order_nat ex; exists n; split => //L [a' crt].
+      have [n [prp min]]:= well_order_nat_choice choice' ex; exists n; split => //L [a' crt].
       by apply/min; exists a'; apply/crt_exte/crt/iseg_melt.
     have [mf mfprop] := choice _ Rtot; exists mf.
     by split => [q' | L q']; [apply/(mfprop q').1 | apply/(mfprop q').2].
   Qed.
-  
+
+  Lemma dom_minmod (F: B ->> B'):
+    Q' \is_countable -> dom (minimal_modulus F) === dom (continuity_modulus F).
+  Proof.
+    move => count.
+    apply/dom_minmod_choice; try apply/countable_choice => //.
+    exact/nat_count.
+  Qed.
+
   Lemma exists_minmod_choice (F: B ->> B'):
     FunctionalChoice_on Q' nat -> FunctionalChoice_on B (Q' -> nat) ->
+    FunctionalCountableChoice_on bool ->
     F \is_continuous ->
     exists mf, forall phi, phi \from dom F -> minimal_modulus F phi (mf phi).
   Proof.
-    move => choice' choice.
+    move => choice' choice choice''.
     have [mf icf]:= exists_choice (minimal_modulus F) (fun _ => 0) choice => /cont_spec cont.
     exists mf => phi [Fphi val].
-    have [ | mf' mod']:= (dom_minmod F choice' phi).2; first by apply/cont; exists Fphi.
+    have [ | mf' mod']:= (dom_minmod_choice F choice' choice'' phi).2.
+    - by apply/cont; exists Fphi.
     by split => [q' | Lf mod q']; have [ | cont' prp]:= icf phi; try apply/prp; try by exists mf'.
   Qed.
-
+  
   Lemma exists_modmod_fullchoice (F: B ->> B'):
     F \is_continuous ->
     exists mu, mu \modulus_for F /\ mu \modulus_for mu.
   Proof.
     move => cont.
-    have [mu mod]:= exists_minmod_choice full_choice full_choice cont.
+    have [mu mod]:= exists_minmod_choice full_choice full_choice full_choice cont.
     exists ((F2MF (fun phi q' => iseg cnt (mu phi q')))|_(dom F)).
     split.
     - split => [phi phifd | phi _ [phifd <-]]; first by exists (fun q' => init_seg (mu phi q')).
@@ -92,12 +103,12 @@ Section classical_lemmas.
     have ->:= md' psi coin (mu psi); last by split; last exact/mod.
     by have ->:= md' phi (coin_ref _ _) (mu phi); last by split; last exact/mod.
   Qed.
-
 End classical_lemmas.  
 
 Lemma scnt_cont Q A Q' A' (F: (Q -> A) ->> (Q' -> A')):
   Q \is_countable -> Q' \is_countable -> F \is_sequentially_continuous -> F \is_continuous.
 Proof.
+  have nat_choice: FunctionalCountableChoice by apply/countable_choice/nat_count.
   case: (classic (inhabited Q)) => [[someq] | neg _ _ scnt]; last first.
   - move => phi Fphi val; exists (fun _ => nil) => q' phi' coin Fphi' val'.
     suff lmt: Fphi \is_limit_of (cnst Fphi').
@@ -106,7 +117,7 @@ Proof.
     move => q; exists 0 => m ineq.
     by exfalso; apply/neg/inhabits/q.
   move => /count_enum/(enum_inh someq) [cnt sur] count' scnt phi Fphi val.
-  have [sec ms]:= exists_minsec sur.  
+  have [sec ms]:= exists_minsec sur.
   suff: forall q', exists L, certificate F L phi q' (Fphi q') by apply countable_choice.
   move => q'.
   apply/not_all_not_ex => prp.

@@ -1,7 +1,7 @@
 From mathcomp Require Import ssreflect ssrfun seq .
 From mf Require Import all_mf.
 From rlzrs Require Import all_rlzrs.
-Require Import all_cont naming_spaces cs.
+Require Import all_cont naming_spaces representations cs.
 Require Import Morphisms.
 
 Set Implicit Arguments.

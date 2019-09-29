@@ -12,12 +12,11 @@ Section continuous_universals.
   Structure continuous_universal :=
     {
       function_names: naming_space -> naming_space -> naming_space;
-      F_M: forall B B', function_names B B' -> B ->> B';
-      FM_univ: forall (B B': naming_space) (F: B ->> B'),
-          F \is_continuous -> exists psi, (F_M psi) \tightens F;
-      FM_cont: forall (B B': naming_space) (psi: function_names B B'), (F_M psi) \is_continuous;
+      run: forall B B', function_names B B' -> B ->> B';
+      eval: forall B B',
+          {E: function_names ((function_names B B') \*_ns B) B' |
+               forall d, run E d === run (unpair d).1 (unpair d).2};
     }.
-  Coercion F_M: continuous_universal >-> Funclass.
 End continuous_universals.
 
 Section U_universal.

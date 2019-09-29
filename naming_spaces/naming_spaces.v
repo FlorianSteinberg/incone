@@ -1,5 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq .
 From mf Require Import all_mf.
+From rlzrs Require Import all_rlzrs.
 Require Import all_cont.
 Require Import Morphisms.
 

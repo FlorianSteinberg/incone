@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs.
-Require Import axioms all_names cs cs_names.
+Require Import axioms all_names representations cs cs_names.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

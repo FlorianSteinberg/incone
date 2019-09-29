@@ -7,7 +7,6 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
   
 Section CM2A.
-  (*
   Context (Q: eqType) (someq: Q) ( Q' A A': Type).
   Notation B := (Q -> A).
   Notation B' := (Q' -> A').

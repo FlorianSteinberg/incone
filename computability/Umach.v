@@ -63,7 +63,7 @@ Section U_machine.
     match Ks with
     | nil => True
     | K :: Ks' => psi (F2GL phi (flatten Ks'), q') = inl K /\ consistent q' Ks'  end.
-  
+
   Lemma rev_eq T (L L': seq T): rev L = rev L' <-> L = L'.
   Proof. by split; first rewrite -{2}(revK L) -{2}(revK L'); move ->. Qed.
   
@@ -349,7 +349,7 @@ Section moduli.
     rewrite !US -ih // /U_step /F2GL -(gq_modf_gq coin') (coin_map coin').
     by case: (U psi phi _) => //; case: (psi _).
   Qed.
-
+  
   Lemma U_cntf: (U psi) \is_continuous_function.
   Proof. exact/modf_cont/gq_modf_U. Qed.
 
@@ -368,6 +368,49 @@ Section moduli.
   Lemma gq_monm: monotone_modulus (gather_queries psi).
   Proof. by move => phi q' n; apply/gq_mon. Qed.
 End moduli.
+
+Section traces.
+  (* Q: Questions, A: Answers *)
+  Context (Q Q' A A' : Type).
+  (* B: Baire space *)
+  Notation B := (Q -> A).
+  Notation B' := (Q' -> A').
+  Notation "? K" := (@inl (list Q) A' K) (format "'?' K", at level 50).
+  Notation "! a'" := (@inr (list Q) A' a') (format "'!' a'", at level 50).
+  Implicit Types (psi: seq (Q * A) * Q' -> seq Q + A').
+  
+  Definition traces phi psi nq' :=
+    iseg (fun n => (F2GL phi (gather_queries psi phi (n,nq'.2)), nq'.2)) nq'.1.
+
+  Lemma trcs_mon phi psi q' n:
+    (traces phi psi (n,q')) \is_sublist_of (traces phi psi (n.+1, q')).
+  Proof. by move => q lstn; right. Qed.
+    
+  Local Open Scope name_scope.
+  Lemma trcs_modf_gs phi:
+    traces phi \modulus_function_for (fun psi nq' => gather_shapes psi phi nq'.2 nq'.1).
+  Proof.
+    move => psi [n q] psi'.
+    elim: n => // n ih /= [eq coin].
+    by move: eq; rewrite /gather_queries !ih //= => ->.
+  Qed.
+  
+  Lemma trcs_modf_gq phi:
+    traces phi \modulus_function_for (fun psi nq' => gather_queries psi phi nq').
+  Proof. by move => ? ? ? coin; rewrite /gather_queries; have ->:= trcs_modf_gs coin. Qed.
+
+  Lemma trcs_modf_U phi:
+    traces phi \modulus_function_for (fun psi nq' => U psi phi nq').
+  Proof.
+    move => psi [n q] psi'.
+    elim: n => // n ih coin.
+    rewrite !US ih; last exact/coin_subl/coin/trcs_mon.
+    case: (U _ _ _) => //.
+    rewrite coin.1 /=.
+    have /trcs_modf_gq ->//: psi \coincides_with psi' \on (traces phi psi (n, q)).
+    exact/coin_subl/coin/trcs_mon.
+  Qed.
+End traces.
 
 Section duality_operator.
   (* Q: Questions, A: Answers *)
@@ -389,7 +432,7 @@ Section duality_operator.
                         end
     end.
 
-  Fixpoint D (phi: B) (Ka'sq': seq (seq (Q * A) * Q' * (seq Q + A')) * Q') : seq (seq (Q * A) * Q') + A' :=
+  Fixpoint D (phi: B) (Ka'sq': seq (seq (Q * A) * Q' * (seq Q + A')) * Q'): seq (seq (Q * A) * Q') + A' :=
     if map snd Ka'sq'.1 is inr a' :: _ then inr a'
     else inl [::(F2GL phi (collect_left (map snd Ka'sq'.1)), Ka'sq'.2)].
   
@@ -403,7 +446,7 @@ Section duality_operator.
     rewrite /D /=; case: Ka's coin => // [[_ []]]//= K Ka's coin.
     by f_equal; f_equal; rewrite /F2GL (coin_map coin).
   Qed.
-
+    
   Lemma U_rec_D psi phi q' n:
     U_rec (D phi) psi q' n =
     if n == 0 then inl nil
@@ -435,10 +478,10 @@ Section duality_operator.
     - by rewrite (ih L).
     by rewrite E in val.    
   Qed.
-
+  
   Lemma U_D_val psi phi q' n: U psi phi (n,q') = U (D phi) psi (n.+1, q').
   Proof. by rewrite /U U_rec_D /=; case: (U_rec _ _ _ _). Qed.
-
+        
   Lemma D_spec psi phi: \F_(U (D phi)) psi === \F_(U psi) phi.
   Proof.
     move => Fphi.

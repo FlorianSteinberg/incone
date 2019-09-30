@@ -5,10 +5,10 @@
 -arg -w -arg -compatibility-notation
 -arg -w -arg -non-reversible-notation
 
-computability/graphs.v
-naming_spaces/smod.v
-continuity/iseg.v
-continuity/sets.v
+countability/graphs.v
+countability/iseg.v
+countability/sets.v
+continuity/smod.v
 continuity/cont.v
 continuity/minm.v
 countability/count.v

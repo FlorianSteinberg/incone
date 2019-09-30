@@ -2,64 +2,12 @@
 Q -> A for some arbitrary types Q and A. It also proves some basic Lemmas about this notion.*)
 From mathcomp Require Import ssreflect ssrfun seq.
 From mf Require Import all_mf.
+Require Import graphs.
 Require Import Morphisms FunctionalExtensionality.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
-
-Section agree_on.
-  Context (Q A : Type).
-  (* Q is for questions, A is for answers*)
-  Local Notation B := (Q -> A).
-  (* The topology on Baire space is the topology of pointwise convergence the following are
-     the basic open ets (in the sens that for each finite list L and each element phi of Baire
-     space the set {psi | coin phi psi L} is a basic open set *)
-
-  Definition agree_on P (phi psi: B):= forall q, q \from P -> phi q = psi q.
-
-  Lemma agre_ref L: Reflexive (agree_on L).
-  Proof. done. Qed.
-  
-  Lemma agre_sym L: Symmetric (agree_on L).
-  Proof. by move => phi psi coin q Lq; rewrite coin. Qed.
-  
-  Lemma agre_trans L: Transitive (agree_on L).
-  Proof. by move => phi psi psi' coin coin' q Lq; rewrite coin // coin'. Qed.
-
-  Global Instance agre_equiv L: Equivalence (agree_on L).
-  Proof. by split; [apply agre_ref | apply agre_sym | apply agre_trans]. Qed.
-
-  Notation "phi '\agrees_with' psi '\on' P" := (agree_on P phi psi) (at level 2).
-
-  Global Instance agre_prpr:
-    Proper (@set_equiv Q ==> @eqfun A Q ==> @eqfun A Q ==> iff) agree_on.
-  Proof.
-    move => P P' Peq phi phi' phieq psi psi' psieq.
-    split => agre q /Peq Pq; first by rewrite -phieq -psieq; apply /agre.
-    by rewrite phieq psieq; apply/agre.
-  Qed.
-
-  Lemma agre_union (P P': subset _) phi psi: phi \agrees_with psi \on (P \u P') <->
-        phi \agrees_with psi \on P /\ phi \agrees_with psi \on P'.
-  Proof.
-    split => [agre | [agre agre'] q [Pq | P'q]]; [ | apply agre | apply agre'] => //.
-    by split => q Pq; apply/agre; [left | right].
-  Qed.
-  
-  Lemma agre_spec P phi psi:
-    phi \agrees_with psi \on P <-> (F2MF phi)|_P =~= (F2MF psi)|_P.
-  Proof.
-    split => [coin s t | eq q Pq]; last by have []:= (eq q (phi q)).1.
-    by split; case => Ps <-; [rewrite coin | rewrite -coin].
-  Qed.
-
-  Lemma agre_subs phi psi P P':
-    P \is_subset_of P' -> phi \agrees_with psi \on P' -> phi \agrees_with psi \on P.
-  Proof. by move => subs agre q /subs Pq; apply/agre. Qed.
-End agree_on.
-Notation "phi '\agrees_with' psi '\on' P" :=
-  (agree_on (P: subset _) phi psi) (at level 2): mf_scope.
 
 Section smodulus.
   Context (Q A Q' A' : Type).

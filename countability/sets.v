@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrbool eqtype ssrnat.
 From mf Require Import all_mf.
-Require Import iseg smod graphs.
+Require Import iseg graphs.
 Require Import Morphisms ChoiceFacts.
 
 Axiom functional_extensionality: forall Q A (f g: Q -> A), f =1 g -> f = g.

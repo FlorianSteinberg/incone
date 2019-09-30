@@ -1,7 +1,7 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat eqtype bigop.
 From rlzrs Require Import all_rlzrs.
 From metric Require Import all_metric reals standard Qmetric.
-Require Import axioms all_cs cs_mtrc baire_metric hyper_spaces.
+Require Import axioms all_cs cs_mtrc metric_names hyper_spaces.
 Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
 
 Set Implicit Arguments.

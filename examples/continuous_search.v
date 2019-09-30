@@ -5,7 +5,7 @@
 Require Import Psatz.
 From mathcomp Require Import all_ssreflect.
 From metric Require Import all_metric.
-Require Import all_names baire_metric classical_cont classical_count.
+Require Import all_names metric_names classical_cont classical_count.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

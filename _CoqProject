@@ -32,7 +32,7 @@ continuity_spaces/cs.v
 naming_spaces/cs_names.v
 naming_spaces/Uuniv.v
 computability/classical_mach.v
-naming_spaces/baire_metric.v
+naming_spaces/metric_names.v
 naming_spaces/all_names.v
 
 continuity_spaces/prod.v

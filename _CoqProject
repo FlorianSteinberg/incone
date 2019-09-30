@@ -61,3 +61,4 @@ examples/Q_reals.v
 #extras that are not currently part of the library but can be compiled on demand:
 #computability/multivalued_application.v
 #computability/multivalued_composition.v
+#naming_spaces/naming_spaces_as_data_structure.v

@@ -1,5 +1,14 @@
-(* This file provides a definition of continuity of functions between spaces of the form
-Q -> A for some arbitrary types Q and A. It also proves some basic Lemmas about this notion.*)
+(**
+   This file provides a definition of continuity for partial operators F:B -> B' where B = Q -> A
+   and B' = Q' -> A' are spaces of functions between concrete types that are considered discrete
+   (Q is for questions and A is for answers).
+   Partiallity is handled via specification through relations, i.e. the notion is defined for
+   a multivalued operator F: B ->> B' in such a way that it implies F to be singlevalued
+   (see "cont_sing"). There are specifications of this notion for the more important special
+   cases, i.e. if F = PF2MF f comes from a function f: {phi: B | phi \from domain f} -> B' that
+   introduces partiality through dependent types (see cont_PF2MF) and if F = F2MF f comes from
+   a function directly (see cont_F2MF).
+**)
 From mathcomp Require Import ssreflect ssrfun seq.
 From mf Require Import all_mf.
 Require Import sets iseg graphs smod.
@@ -17,26 +26,49 @@ Section continuity.
   Notation B := (Q -> A).
   Notation B' := (Q' -> A').
   (* B is for Baire space. *)
+
+  Definition certificate (F: B ->> B') K phi := make_mf (fun q' a' =>
+    forall psi, phi \and psi \coincide_on K -> determines F psi q' a').
+
+  (**
+     This means that the return-value F(phi)(q') is determined from the values of phi on the list
+     K and should be read as follows:
+   **)
+  Local Notation "K '\is_certificate_that' F '\returns' a' '\on_inputs' phi '\and' q'" :=
+    (certificate F K phi q' a') (at level 30).
+
   Context (F: B ->> B').
 
-  Definition certificate L phi := make_mf (fun q' a' =>
-    forall psi, phi \and psi \coincide_on L -> determines F psi q' a').
-
-  Lemma crt_cert L phi: certificate L phi =~= cert F (L2SS L) phi.
+  (**
+     The file "smod.v" introduces a more general concept for subsets instead of lists and names
+     it "cert", the two notions are equivalent:
+   **)
+  Lemma crt_cert L phi: certificate F L phi =~= cert F (L2SS L) phi.
   Proof. by split => crt psi/coin_agre; apply/crt. Qed.
 
-  Lemma crt_exte L K phi: L \is_sublist_of K -> certificate K phi \extends certificate L phi.
+  Lemma crt_exte L K phi: L \is_sublist_of K -> certificate F K phi \extends certificate F L phi.
   Proof. by rewrite !crt_cert => subl; apply/cert_exte. Qed.
 
-  Lemma crt_icf L phi Fphi: Fphi \from F phi -> Fphi \is_choice_for (certificate L phi).
+  Lemma crt_icf L phi Fphi: Fphi \from F phi -> Fphi \is_choice_for (certificate F L phi).
   Proof.
     move => val q' [a' /crt_cert crt].
     by rewrite crt_cert; apply/cert_icf => //; exists a'.
   Qed.
 
+  (**
+     A modulus of continuity of F should return on any inputs phi and q' a certificate, i.e. the
+     specification of moduli of continuity of F is given by
+   **)
   Definition continuity_modulus := make_mf (fun phi Lf =>
-    forall q', exists a', certificate (Lf q') phi q' a').
-  
+    forall q', exists a', certificate F (Lf q') phi q' a').
+
+  (** 
+      note that this specification has a domain that is in general strictly contained in the
+      domain of F. Indeed, the domain of continuity modulus contains the domain of F if and only
+      if F is continuous (see cont_spec below).
+      An inclusion in the other direction is almost never given since an inspection of
+      "certificate" shows that it is trivially true for elements outside of the domain of F.
+   **)
   Lemma mod_cmod phi Lf:
     Lf \from continuity_modulus phi <-> (LF2MF Lf) \from modulus F phi.
   Proof. by split => mod q'; have [a' /crt_cert crt]:= mod q'; exists a'. Qed.
@@ -60,7 +92,7 @@ Section continuity.
   Qed.
 
   Definition continuous := forall phi Fphi,
-      Fphi \from F phi -> exists Lf, forall q', certificate (Lf q') phi q' (Fphi q').
+      Fphi \from F phi -> exists Lf, forall q', certificate F (Lf q') phi q' (Fphi q').
 
   Lemma cont_spec: continuous <->
                    dom F \is_subset_of (dom continuity_modulus).
@@ -72,14 +104,22 @@ Section continuity.
     by exists Lf => q'; apply/crt_icf/mod.
   Qed.
 
-  Definition continuity_points := intersection (dom continuity_modulus) (dom F).
+  (**
+     Since "certificate" is trivialy true whenever phi is outside of the domain of F,
+     the definition of the set of continuity points of F takes the intersection of the
+     domain of the specification of continuity moduli with the domain of F.
+   **)
+  Definition continuity_points := (dom continuity_modulus) \n (dom F).
 
-  Lemma cont_dom : continuous -> dom F === continuity_points.
+  Lemma cont_dom: continuous -> dom F === continuity_points.
   Proof.
     move => /cont_spec cont phi.
     by split => [dm | ]; [split; first exact/cont | case].
   Qed.
 
+  Lemma cont_cntp_spec: continuous <-> continuity_points === dom F.
+  Proof. by split => [cont | eq]; [rewrite cont_dom | rewrite cont_spec -eq => phi []]. Qed.
+    
   Definition modulus_for mu :=
     dom F \is_subset_of dom mu /\ continuity_modulus \extends mu.
 

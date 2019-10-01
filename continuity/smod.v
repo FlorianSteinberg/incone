@@ -1,9 +1,16 @@
-(* This file provides a definition of continuity of functions between spaces of the form
-Q -> A for some arbitrary types Q and A. It also proves some basic Lemmas about this notion.*)
+(**
+   In preparation of defining continuity using lists to code finite subsets in the next file,
+   this file provides all of the same concepts but not relativized to finite subsets but for
+   predicates interpreted as arbitrary subsets. For a closer explanation why these concepts are
+   interesting, the file about continuity should be consulted.
+   In general the object of investigation is a possibly multivalued operator F: B ->> B', where
+   B = Q -> A and B' = Q' -> A' are spaces of functions (Q is for questions and A is for answers
+   and all of these are considered discrete).
+ **)
 From mathcomp Require Import ssreflect ssrfun seq.
 From mf Require Import all_mf.
-Require Import graphs.
-Require Import Morphisms FunctionalExtensionality.
+Require Import graphs sets.
+Require Import Morphisms.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -18,7 +25,7 @@ Section smodulus.
   Context (F: B ->> B').
 
   Definition determines phi := make_mf (fun q' a' =>
-	       forall Fphi, Fphi \from F phi -> Fphi q' = a').
+                                          forall Fphi, Fphi \from F phi -> Fphi q' = a').
 
   Global Instance det_prpr: Proper (@eqfun A Q ==> @equiv Q' A') determines.
   Proof.

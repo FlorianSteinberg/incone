@@ -7,23 +7,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Lemma lstn_flatten T (Ln: seq (seq T)) t:
-  t \from L2SS (flatten Ln) <-> exists L, t \from L2SS L /\ L \from L2SS Ln.
-Proof.
-  split.
-  - elim: Ln => [| L Ln ih /=]// /lstn_app [lstn | lstn]; first by exists L; split => //; left.
-    by have [K []] := ih lstn; exists K; split => //; right.
-  elim: Ln => [[L []] | L Ln ih [K [lstn /=[-> | lstn']]]]//; apply/lstn_app; first by left.
-  by right; apply/ih; exists K.
-Qed.
-
-Lemma flatten_subl T (Ln Kn: seq (seq T)):
-  Ln \is_sublist_of Kn -> (flatten Ln) \is_sublist_of (flatten Kn).
-Proof.
-move => subl t /lstn_flatten [L [lstn lstn']].
-by rewrite lstn_flatten; exists L; split; last apply subl.
-Qed.
-
 Section initial_segments.
   Context (Q: Type) (cnt: nat -> Q).
 

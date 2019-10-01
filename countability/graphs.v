@@ -83,6 +83,23 @@ Section lists_and_subsets.
 End lists_and_subsets.
 Notation "L '\is_sublist_of' K" := (L2SS L \is_subset_of L2SS K) (at level 2).
 
+Lemma L2SS_flatten T (Ln: seq (seq T)) t:
+  t \from L2SS (flatten Ln) <-> exists L, t \from L2SS L /\ L \from L2SS Ln.
+Proof.
+  split.
+  - elim: Ln => [| L Ln ih /=]// /lstn_app [lstn | lstn]; first by exists L; split => //; left.
+    by have [K []] := ih lstn; exists K; split => //; right.
+  elim: Ln => [[L []] | L Ln ih [K [lstn /=[-> | lstn']]]]//; apply/lstn_app; first by left.
+  by right; apply/ih; exists K.
+Qed.
+
+Lemma flatten_subl T (Ln Kn: seq (seq T)):
+  Ln \is_sublist_of Kn -> (flatten Ln) \is_sublist_of (flatten Kn).
+Proof.
+  move => subl t /L2SS_flatten [L [lstn lstn']].
+  by rewrite L2SS_flatten; exists L; split; last apply subl.
+Qed.
+
 Section auxiliary_lemmas.
   Lemma zip_nill S T (L: seq T): zip ([::]:seq S) L = nil.
   Proof. by case: L. Qed.

@@ -62,3 +62,7 @@ examples/Q_reals.v
 #computability/multivalued_application.v
 #computability/multivalued_composition.v
 #naming_spaces/naming_spaces_as_data_structure.v
+#examples/unfinished/Ireals.v
+#examples/unfinished/lp.v
+#examples/unfinished/sd_reals.v
+#examples/unfinished/sdvsc.v

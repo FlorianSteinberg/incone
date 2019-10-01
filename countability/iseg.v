@@ -194,6 +194,21 @@ Proof.
   by rewrite !segnn ass //; apply/andP.
 Qed.
 
+Local Open Scope name_scope.
+Lemma coin_iseg Q A (phi psi: Q -> A) cnt n m:
+  n <= m -> phi \coincides_with psi \on (iseg cnt m) -> phi \coincides_with psi \on (iseg cnt n).
+Proof. by move => ineq; apply/coin_subl; first apply/iseg_subl/ineq. Qed.
+
+Lemma list_melt Q A (cnt: nat -> Q) (sec: Q -> nat) K (phi psi: Q -> A):
+  cancel sec cnt ->
+  phi \coincides_with psi \on (iseg cnt (max_elt sec K)) -> phi \coincides_with psi \on K.
+Proof.
+  move => cncl; apply/coin_subl; elim: K => // q K subl q' /=[-> | lstn].
+  - exact/iseg_subl/lstn_iseg_S/cncl/leq_maxl.
+  exact/iseg_subl/subl/lstn/leq_maxr.
+Qed.
+Local Close Scope name_scope.
+
 Section naturals.
   Lemma seg_iota n k: segment id n (n + k) = rev (iota n k.+1).
   Proof.

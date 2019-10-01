@@ -19,8 +19,6 @@ Section continuity.
   (* B is for Baire space. *)
   Context (F: B ->> B').
 
-  Definition LF2MF S T (Lf: S -> seq T):= make_mf (fun s => L2SS (Lf s)).
-
   Definition certificate L phi := make_mf (fun q' a' =>
     forall psi, phi \and psi \coincide_on L -> determines F psi q' a').
 

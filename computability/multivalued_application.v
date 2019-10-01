@@ -8,32 +8,13 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Section evaluation_aux.
+Section N2LF.
   Local Open Scope name_scope.
-  Context (Q A Q' A': Type). 
+  Context (Q: eqType) (A Q' A': Type). 
   Notation B := (Q -> A).
   Notation B' := (Q' -> A').
   Notation subset T := (mf_set.subset T).
-
-  Fixpoint GL2LF (T: eqType) T' (KL: seq (T * T')) q:=
-    match KL with
-    | nil => nil
-    | qa :: KL' => if qa.1 == q
-                   then qa.2 :: GL2LF KL' q
-                   else GL2LF KL' q
-    end.
-    
-  Lemma GL2LF_spec (T: eqType) T' (KL: (seq (T * T'))):
-    LF2MF (GL2LF KL) =~= GL2MF KL.
-  Proof.    
-    rewrite /GL2MF.
-    elim: KL => // [[t t'] KL] ih t'' t''' /=.
-    case: ifP => [/eqP eq | neq].
-    - split; first by case => [-> | ]; [left; rewrite eq | right; apply/ih].
-      by case => [[<- <-] | ]; [left | right; apply/ih].
-    split; first by right; apply/ih.
-    by case => [[/eqP] | lstn]; [rewrite neq | apply/ih].
-  Qed.
+  Context (N: nat * Q -> option A).
 
   Fixpoint omap T T' (F: T -> option T') (L: seq T) :=
     match L with
@@ -43,15 +24,6 @@ Section evaluation_aux.
                  | None => omap F L'
                  end
     end.
-End evaluation_aux.
-
-Section N2LF.
-  Local Open Scope name_scope.
-  Context (Q: eqType) (A Q' A': Type). 
-  Notation B := (Q -> A).
-  Notation B' := (Q' -> A').
-  Notation subset T := (mf_set.subset T).
-  Context (N: nat * Q -> option A).
 
   Definition N2LF KL q:= omap (fun n => N(n,q)) (GL2LF KL q).
 
@@ -192,43 +164,6 @@ Section N2LF.
   Lemma lstd_cat KL KL': list_dom (KL ++ KL') = list_dom KL ++ list_dom KL'.
   Proof. by elim: KL => // [[q n]] KL /= ->; case: (N(n,q)). Qed.
 End N2LF.
-
-Section extend.
-  Local Open Scope name_scope.
-  Context (Q: eqType) (A Q' A': Type). 
-  Notation B := (Q -> A).
-  Notation B' := (Q' -> A').
-  Notation subset T := (mf_set.subset T).
-  Context (default: A).
-  Definition extend (phi: Q -> seq A) q := head default (phi q).
-
-  Lemma extend_spec phi: (extend phi) \is_choice_for (LF2MF phi).
-  Proof.
-    rewrite /extend => q [a /=].
-    by case: (phi q) => // q' K /= [-> | ]; left.
-  Qed.
-
-  Fixpoint check_sublist (K L: seq Q):=
-    match K with
-    | nil => true
-    | q :: K' => (q \in L) && check_sublist K' L
-    end.
-
-  Lemma clP K L: reflect (K \is_sublist_of L) (check_sublist K L).
-  Proof.
-    apply/(iffP idP).
-    elim: K => [_ q | q K ih ]//= /andP [lstn cl].
-    by apply/cons_subs; split; [exact/inP | apply/ih].
-    elim: K => // q K ih /cons_subs [lstn subl] /=.
-    by apply/andP; split; [exact/inP | apply/ih].
-  Qed.
-
-  Lemma zip_nill S T (L: seq T): zip ([::]:seq S) L = nil.
-  Proof. by case: L. Qed.
-
-  Lemma zip_nilr S T (K: seq S): zip K ([::]:seq T) = nil.
-  Proof. by case: K. Qed.
-End extend.
 
 Section function_application.
   (**
@@ -466,13 +401,39 @@ Section function_application.
   Qed.
 End function_application.
 
+Section limitations.
+  Local Open Scope name_scope.
+  Context (A' Q': Type) (Q: eqType) A (default: A). 
+  Notation B := (Q -> A).
+  Notation B' := (Q' -> A').
+
+  Lemma PhiN_clsd (N: nat * Q -> option A):
+    closed (make_subset (fun phi => phi \is_choice_for \Phi_N)).
+  Proof.
+    apply/clsd_subs => phi /= clsr q qfd.
+    by have [psi [[-> _] icf]]:= clsr [:: q]; apply/icf.
+  Qed.
+    
+  Definition f phi n := if n <= phi 0 then 1 else 0.
+
+  Lemma codom_f: ~ closed (codom (F2MF f)).
+  Proof.
+    move => clsd.
+    suff [phi /= eq]: cnst 0 \from codom (F2MF f).
+    - have : f phi 0 = 0 by rewrite eq.
+      by rewrite /f leq0n.
+    apply/clsd.
+    
+
+End limitations.
+  
 Section Baire_subset.
   Context (A Q: Type).
   Notation B := (Q -> A).
   Local Notation "Q ~> A" := (nat * Q -> option A) (at level 2).
 
   Definition phi (N: Q ~> A) := make_subset (fun phi => forall L, exists n,
-                                         forall q, q \from L2SS L -> N(n,q) = some (phi q)).
+                                         forall q, q \from L2SS L -> N (n,q) = some (phi q)).
 
   Local Notation "\phi_ N" := (phi N) (format "'\phi_' N", at level 2).
 
@@ -484,4 +445,6 @@ Section Baire_subset.
     exists n => q lstn.
     by rewrite prp //; f_equal; symmetry; apply/agre.
   Qed.
+
+  Lemma PhiN_clsd N: closed (make_subset (fun phi => phi \is_choice_for Phi)).
 End Baire_subset.

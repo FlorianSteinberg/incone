@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrnat ssrbool eqtype seq choice ssrfun.
 From mf Require Import all_mf.
-Require Import iseg sets cont.
+Require Import graphs iseg sets cont.
 Require Import Psatz.
 
 Set Implicit Arguments.

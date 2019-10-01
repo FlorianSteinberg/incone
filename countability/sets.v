@@ -1,3 +1,15 @@
+(** 
+    This file introduces some basic notions on the space of functions B:=Q -> A where Q and A are
+    arbitrary input and output types (Q is for questions, a is for answers) and are considered
+    with the discrete topology. The limit operator lim: (nat -> B) ->> B is the singlevalued
+    multifunction such that phi: Q -> A is the eligible return value for a sequence of functions
+    of type Q -> A if and only if the sequence converges to phi with respect to the pointwise
+    convergence relation. I.e. for any input q there exists a number N such that for any m >= N
+    the m-th element of the sequence returns phi q when evaluated in q.
+    The file also gives some descriptions of the more common topological concepts when the topology
+    corresponding to this convergence relation is used. That these notions can be recovered using
+    an appropriate metric is the topic of the file "metric_names.v".
+**)
 From mathcomp Require Import ssreflect ssrfun seq ssrbool eqtype ssrnat.
 From mf Require Import all_mf.
 Require Import iseg graphs.
@@ -12,6 +24,37 @@ Unset Printing Implicit Defensive.
 
 Delimit Scope name_scope with name.
 Local Open Scope name_scope.
+
+Section opens.
+  Context (Q A: Type).
+  Notation B := (Q -> A).
+
+  (**
+     The basic opens of Baire-space are given by the cylinders.
+   **)
+  Definition cylinder := make_mf (fun KL (phi: Q -> A) => phi \is_choice_for (GL2MF KL)).
+
+  Lemma cldr_spec (phi: B) KL: phi \from cylinder KL <-> phi \is_choice_for (GL2MF KL).
+  Proof. done. Qed.
+
+  (**
+     BO2O (basic opens (BO) to (2) opens (O)) takes a family of lists, interprets each member as
+     cylinder and takes the union of all members of the family to obtain an open set.
+   **)
+  Definition BO2O (P: subset (seq (Q * A))):=
+    make_subset (fun phi => exists KL, KL \from P /\ phi \from cylinder KL).
+
+  Definition open (U: subset B) := exists P, U === BO2O P.
+
+  (**
+     The interior of an arbirtary subset is the union of all basic open sets contained in the set.
+   **)
+  Definition interior (U: subset B) := BO2O (make_subset (fun KL => cylinder KL \is_subset_of U)).
+
+  Lemma open_intr (U: subset B): open (interior U).
+  Proof. by exists (make_subset (fun KL => cylinder KL \is_subset_of U)). Qed.
+End opens. 
+Arguments cylinder {Q} {A}.
 
 Section sequences.
   Context (Q A: Type).
@@ -49,10 +92,15 @@ Section sequences.
     rewrite (prp (maxn n m)); last exact/leq_maxl.
     by rewrite (prp' (maxn n m)); last exact/leq_maxr.
   Qed.
+
+  Definition complement T (A: subset T) := make_subset(fun phi => ~ phi \from A).
+
+  Lemma cmpl_prpr T: Proper (@set_equiv T ==> @set_equiv T) (@complement T).
+  Proof. by move => U U' eq t; split => tcU tU; apply/tcU/eq. Qed.
 End sequences.
 Arguments limit {Q} {A}.
 Notation "phi \is_limit_of phin" := (phi \from limit phin) (at level 23): name_scope.
-  
+
 Section closures.
   Context (Q A : Type).
   Notation B := (Q -> A).
@@ -91,25 +139,8 @@ Section closures.
     rewrite img_subs; case => /lim_coin lim elts L; have [n prp] := lim L.
     by exists (phin n); split => //; apply (prp n).
   Qed.
-End closures.
 
-Definition complement T (A: subset T) := make_subset(fun phi => ~ phi \from A).
-
-Lemma cmpl_prpr T: Proper (@set_equiv T ==> @set_equiv T) (@complement T).
-Proof. by move => U U' eq t; split => tcU tU; apply/tcU/eq. Qed.
-
-Section opens.
-  Context (Q A: Type).
-  Notation B := (Q -> A).
-
-  Definition cylinder := make_mf (fun KL (phi: Q -> A) => phi \is_choice_for (GL2MF KL)).
-
-  Definition U (P: subset (seq (Q * A))):=
-    make_subset (fun phi => exists KL, KL \from P /\ phi \from cylinder KL).
-
-  Definition open (A: subset B) := exists P, A === U P.
-
-  Lemma open_closed (U: subset B): open U -> closed (complement U).
+  Lemma open_sclsd (U: subset B): open U -> closed (complement U).
   Proof.
     move => [P eq] phi.
     split => [clsr /= | ]; last exact/subs_clos.
@@ -119,16 +150,12 @@ Section opens.
     split => // q /GL2MF_dom qfd.
     by have <-:= coin q; first by apply/phiKL/GL2MF_dom.
   Qed.
-End opens.    
-Arguments cylinder {Q} {A}.
+End closures.
     
 Section overtness.
   Local Open Scope name_scope.
   Context (Q A: Type). 
   Notation B := (Q -> A).
-
-  Lemma cldr_spec (phi: B) KL: phi \from cylinder KL <-> phi \is_choice_for (GL2MF KL).
-  Proof. done. Qed.
 
   Definition overt (P: subset B):= exists (ov: nat -> option B),
       (codom (pf2MF ov) \is_subset_of P) /\ P \is_subset_of (closure (codom (pf2MF ov))).
@@ -179,5 +206,3 @@ Section mathcomp.
     by exists (q, phi q); [exact/inP | exact/andP].
   Qed.
 End mathcomp.
-
-  

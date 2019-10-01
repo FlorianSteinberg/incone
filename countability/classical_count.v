@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrnat ssrbool choice eqtype ssrfun seq.
 From mf Require Import all_mf classical_mf.
-Require Import iseg sets minm count axioms.
+Require Import iseg sets search count axioms.
 Require Import ClassicalChoice ChoiceFacts ConstructiveEpsilon.
 
 Set Implicit Arguments.

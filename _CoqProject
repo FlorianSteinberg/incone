@@ -10,7 +10,7 @@ countability/iseg.v
 countability/sets.v
 continuity/smod.v
 continuity/cont.v
-continuity/minm.v
+continuity/search.v
 countability/count.v
 axioms.v
 

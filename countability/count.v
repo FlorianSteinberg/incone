@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun choice ssrnat ssrbool eqtype.
 From mf Require Import all_mf.
-Require Import iseg minm.
+Require Import iseg search.
 Require Import Reals Morphisms ChoiceFacts ConstructiveEpsilon.
 
 Set Implicit Arguments.

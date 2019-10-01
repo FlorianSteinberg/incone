@@ -1,7 +1,7 @@
 (* This file provides an abstract envelope for computability theoretical considerations *)
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype choice seq.
 From mf Require Import all_mf.
-Require Import iseg sets graphs smod cont seq_cont minm.
+Require Import iseg sets graphs smod cont seq_cont search.
 Require Import ClassicalChoice ConstructiveEpsilon.
 
 Set Implicit Arguments.

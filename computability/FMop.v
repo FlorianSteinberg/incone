@@ -1,7 +1,7 @@
 (* This file provides an abstract envelope for computability theoretical considerations *)
 From mathcomp Require Import all_ssreflect.
 From mf Require Import all_mf.
-Require Import all_cont PhiN seq_cont.
+Require Import all_cont PhiN seq_cont search.
 Require Import axioms Classical Psatz.
 
 Set Implicit Arguments.
@@ -139,7 +139,7 @@ Section use_first.
   Proof.
     rewrite tight_spec.
     split => [phi [Fphi val] | phi Fphi [phifd val q']]; last first.
-    - by have [n eq]:= val q';exists (search (fun k => M phi (k,q')) n).
+    - by have [n eq]:= val q'; exists (search (fun k => M phi (k,q')) n).
     rewrite /=.
     suff /full_choice: forall q', exists a', exists n, use_first phi (n,q') = Some a' by trivial.
     move => q'; have [n eq]:= val q'.

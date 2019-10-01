@@ -9,7 +9,7 @@
    introduces partiality through dependent types (see cont_PF2MF) and if F = F2MF f comes from
    a function directly (see cont_F2MF).
 **)
-From mathcomp Require Import ssreflect ssrfun seq.
+From mathcomp Require Import ssreflect ssrfun seq eqtype ssrnat ssrbool.
 From mf Require Import all_mf.
 Require Import sets iseg graphs smod.
 Require Import Morphisms ChoiceFacts.
@@ -336,3 +336,72 @@ Section partial_functions.
     by split => mod psi q'; [rewrite coin_agre| rewrite -coin_agre]; apply/mod.
   Qed.
 End partial_functions.
+
+Local Open Scope name_scope.
+
+Section minimal_modulus.
+  Context (Q Q' A A': Type).
+  Notation B := (Q -> A).
+  Notation B' := (Q' -> A').
+  Context (F: B ->> B').
+  Context (cnt: nat -> Q).
+  Context (sec: Q -> nat).
+  Notation init_seg := (iseg cnt).
+  Notation max_elt := (max_elt sec).
+
+  Definition minimal_modulus S T (F: B ->> (S -> T)) := make_mf (fun phi mf =>
+	((fun q' => init_seg (mf q')) \is_modulus_of F \on_input phi)
+	/\
+	forall L q', (exists a', certificate F L phi q' a') -> mf q' <= max_elt L).
+  
+  Lemma cntp_spec: continuity_points F === dom (continuity_modulus F)|_(dom F).
+  Proof.
+   by move => phi; split => [[] | [Fphi] []]; [rewrite dom_restr_spec | split; first by exists Fphi].
+  Qed.
+End minimal_modulus.
+
+Section minimal_moduli.
+  Context (Q': eqType) (Q A A': Type).
+  Notation B := (Q -> A).
+  Notation B' := (Q' -> A').
+  Local Open Scope name_scope.
+  Context (F: B ->> B'). 
+  Context (cnt: nat -> Q).
+  Context (sec: Q -> nat).
+  Hypothesis (ms: minimal_section Q cnt sec).
+  Notation init_seg := (iseg cnt).
+  Notation max_elt := (max_elt sec).
+  Notation minimal_modulus := (minimal_modulus cnt sec).
+
+  Lemma mod_minm phi mf: (minimal_modulus F) phi mf ->
+    (fun q' => init_seg (mf q')) \is_modulus_of (minimal_modulus F) \on_input phi.
+  Proof.
+    move => [mod min] q'.
+    exists (mf q') => psi coin mf' [mod' min'].
+    have ineq: mf' q' <= mf q'.
+    - apply/leq_trans/melt_iseg/ms/min'; have [a' crt]:= mod q'.
+      by exists a' => phi' coin'; apply/crt/coin_trans/coin'.
+    apply/eqP; rewrite eqn_leq; apply/andP; split => //.
+    apply/leq_trans/melt_iseg/ms/min.
+    have [a' crt] := mod' q'; exists a' => phi' coin'.
+    exact/crt/coin_trans/coin'/coin_subl/coin_sym/coin/iseg_subl.
+  Qed.
+
+  Lemma minm_cont: (minimal_modulus F) \is_continuous.
+  Proof.
+    move => phi mf mod; exists (fun q' => init_seg (mf q')) => q'.    
+    exact/crt_icf/mod_minm.
+  Qed.
+
+  Lemma minm_modmod mu:
+    (forall phi, phi \from dom F -> minimal_modulus F phi (mu phi)) ->
+    ((F2MF (fun phi q' => init_seg (mu phi q')))|_(dom F)) \modulus_for (minimal_modulus F)|_(dom F).
+  Proof.
+    move => prp.
+    split => [phi [mf [mod phifd]] | phi _ [phifd <-] q'].
+    - by exists (fun q' => init_seg (mu phi q')).
+    have [n crt]:= mod_minm (prp phi phifd) q'.
+    exists n => psi coin Fpsi [psifd val]. 
+    exact/crt/val.
+  Qed.    
+End minimal_moduli.

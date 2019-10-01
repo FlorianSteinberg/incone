@@ -5,7 +5,7 @@
 Require Import Psatz.
 From mathcomp Require Import all_ssreflect.
 From metric Require Import all_metric.
-Require Import all_names metric_names classical_cont classical_count.
+Require Import all_names metric_names search classical_cont classical_count.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -15,7 +15,6 @@ Local Open Scope name_scope.
 Section baire_space.
   Context (Q A Q' A': Type).
   Notation B := (nat -> nat).
-
   (**
      We are interested in continuity of operators f of type B -> B and partial such operators.
      Continuity of such an operator is defined to mean that for any input function phi

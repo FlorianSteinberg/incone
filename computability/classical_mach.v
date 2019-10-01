@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrnat ssrbool eqtype.
 From mf Require Import all_mf classical_mf.
-Require Import all_cont classical_count classical_cont minm PhiN FMop Umach Uuniv.
+Require Import all_cont search PhiN FMop Umach classical_count classical_cont.
 Require Import axioms Classical ChoiceFacts Psatz.
 
 Set Implicit Arguments.

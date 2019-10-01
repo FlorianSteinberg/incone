@@ -213,7 +213,7 @@ End eqTypes.
 Section countTypes.
   Context (Q: countType) (noq: Q) (noq_spec: pickle noq = 0).
 
-  Definition inverse_pickle n:= match pickle_inv Q n with
+  Definition inverse_pickle n:= match @pickle_inv Q n with
 	                        | Some q => q
 	                        | None => noq
                                 end.
@@ -222,6 +222,6 @@ Section countTypes.
   Proof.
     rewrite /inverse_pickle; split => [q | q n <-]; first by rewrite pickleK_inv.
     case E: pickle_inv => [a  | ]; last by rewrite noq_spec.
-    by have := pickle_invK Q n; rewrite /oapp E => <-.
+    by have := @pickle_invK Q n; rewrite /oapp E => <-.
   Qed.
 End countTypes.

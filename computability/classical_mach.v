@@ -27,7 +27,7 @@ Section classical_machines.
     - by case: (classic (q = q')) => ass; [exists a'; right | exists (Fphi q); left].
     have MphiMphi: (\F_M) phi Mphi => [q | ].
     - by case: (Mphiprop q) => [[_ <-] | [<- <-]]; [ | exists n].
-    apply Some_inj; case: (Mphiprop q') => [[ctr] | [_ ->]] //.
+    apply/Some_inj; case: (Mphiprop q') => [[ctr] | [_ ->]] //.
     by have <-: Mphi = Fphi by apply/ sing; apply prop.
   Qed.
 

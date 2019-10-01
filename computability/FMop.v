@@ -58,7 +58,7 @@ Section FM_operator.
     (fun phi nq => Some(F phi nq.2)) \evaluates (F2MF F).
   Proof.
     move => phi _; split => [ | Fphi ev]; first by exists (F phi) => q'; exists 0.
-    by apply functional_extensionality => q'; have [c val]:= ev q'; apply Some_inj.
+    by apply/fun_ext => q'; have [c []] := ev q'.
   Qed.
 
   Definition monotone_in (M: B o~> B') phi q' := monotone_in (M phi) q'.

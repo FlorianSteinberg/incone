@@ -237,7 +237,7 @@ Section composition.
   Proof.
     rewrite/Phi_comp => q d.
     split => [[n] | [a [[m eq] [k eq']]]]; last by exists (pickle (m,k)); rewrite pickleK_inv eq.
-    case: (pickle_inv _ n) => // [[m k]]; case E: (N'(m,q)) => [a |]// eq.
+    case: (@pickle_inv _ n) => // [[m k]]; case E: (N'(m,q)) => [a |]// eq.
     by exists a; split; [exists m | exists k].
   Qed.
 

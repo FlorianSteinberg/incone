@@ -7,6 +7,19 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+(**
+   This file provides an interface for using an enumeration cnt: nat -> Q of a type Q to obtain
+   a family of lists such that exhausts all the elements eventually if the enumeration is
+   surjective. One could do this using the iota function from the standard library, i.e. by con-
+   sidering the n-th initial-segment to be map cnt (iota 0 n), however for this the natural
+   operation to append is rcons instead of cons. To get a more direct correspondence bewteen
+   initial segments and potentially infinite lists in this file we consider the lists "backwards".
+   For instance if cnt is chosen to be the identity function as enumeration of the natural numbers
+   then iseg (@id nat) 5, i.e. initial segment of length 5, i.e. [:: 4, 3, 2, 1, 0] and the next
+   the next initial segment can be obtained using cons. The file also provides a notion of
+   segment i j, which is the list of elements with indices k such that i <= k <= j.
+**)
+
 Section initial_segments.
   Context (Q: Type) (cnt: nat -> Q).
 
@@ -25,10 +38,10 @@ Section initial_segments.
   Proof. by rewrite /segment subSn // subnn /= addn0. Qed.
     
   Lemma seg_nil i j: (j < i)%nat -> segment i j = [::].
-  Proof. by rewrite -subn_eq0 /segment => /eqP -> /=. Qed.
+  Proof. by rewrite -subn_eq0 /segment => /eqP ->. Qed.
 
-  Lemma size_seg n m: size (segment n m) = m.+1-n.
-  Proof. by rewrite /segment; apply size_seg_rec. Qed.
+  Lemma size_seg n m: size (segment n m) = m.+1 - n.
+  Proof. exact/size_seg_rec. Qed.
   
   Lemma seg_recr n m : n <= m.+1 ->
 	               segment n m.+1 = segment m.+1 m.+1 ++ segment n m.
@@ -114,7 +127,7 @@ Section initial_segments.
 
   Definition pickle_min:= forall n, max_elt (iseg n) <= n.
   
-  Lemma lstn_melt K a: a \from L2SS K -> sec a < max_elt K.
+  Lemma L2SS_melt K a: a \from L2SS K -> sec a < max_elt K.
   Proof.
     elim: K a => // a K ih a'/=.
     by case => [<- | lstn]; apply/leq_trans; [|exact: leq_maxl|apply ih|exact: leq_maxr].
@@ -126,13 +139,13 @@ Section initial_segments.
     elim: L => //a L ih /=subl.
     case/orP: (leq_total (sec a).+1 (max_elt L)) => [/maxn_idPr -> | /maxn_idPl ->].
     - by apply/ih => q lstn; apply/subl; right.
-    by apply/lstn_melt/subl; left.
+    by apply/L2SS_melt/subl; left.
   Qed.
 
-  Lemma lstn_iseg_S a: cancel sec cnt -> List.In a (iseg (sec a).+1).
+  Lemma L2SS_iseg_S a: cancel sec cnt -> a \from L2SS (iseg (sec a).+1).
   Proof. by move => cncl; left. Qed.
 
-  Lemma lstn_iseg q m:
+  Lemma L2SS_iseg q m:
     q \from L2SS (iseg m) <-> exists n, n < m /\ cnt n = q. 
   Proof.
     split => [ | [n []]]; first exact/iseg_ex; elim: m => // m ih.
@@ -155,7 +168,7 @@ Section initial_segments.
   Qed.
 
   Lemma iseg_melt K: sec \from minimal_section cnt -> K \is_sublist_of (iseg (max_elt K)).
-  Proof. by move => [cncl min] q lstn; apply/iseg_subl/lstn_iseg_S/cncl/lstn_melt. Qed.
+  Proof. by move => [cncl min] q lstn; apply/iseg_subl/L2SS_iseg_S/cncl/L2SS_melt. Qed.
 End initial_segments.
 
 Lemma leqVlt i j: (i <= j \/ j < i)%nat.
@@ -187,7 +200,7 @@ Lemma list_melt Q A (cnt: nat -> Q) (sec: Q -> nat) K (phi psi: Q -> A):
   phi \coincides_with psi \on (iseg cnt (max_elt sec K)) -> phi \coincides_with psi \on K.
 Proof.
   move => cncl; apply/coin_subl; elim: K => // q K subl q' /=[-> | lstn].
-  - exact/iseg_subl/lstn_iseg_S/cncl/leq_maxl.
+  - exact/iseg_subl/L2SS_iseg_S/cncl/leq_maxl.
   exact/iseg_subl/subl/lstn/leq_maxr.
 Qed.
 Local Close Scope name_scope.

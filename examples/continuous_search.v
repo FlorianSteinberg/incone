@@ -85,11 +85,11 @@ Section baire_space.
     move => phi nf [val prp].
     exists (fun _ => init_seg (nf tt).+1); case => psi /coin_agre coin nf' [val' prp'].  
     apply/eqP; rewrite eqn_leq; apply/andP.
-    split; [apply/prp'; rewrite -coin// | apply/prp]; first by apply/lstn_iseg; exists (nf tt).
+    split; [apply/prp'; rewrite -coin// | apply/prp]; first by apply/L2SS_iseg; exists (nf tt).
     rewrite -coin // in val'.
-    apply/lstn_iseg; exists (nf' tt); split => //.
+    apply/L2SS_iseg; exists (nf' tt); split => //.
     suff ineq: (nf' tt).+1 <= (nf tt).+1 by apply/ineq.
-    by apply/prp'; rewrite -coin //; apply/lstn_iseg; exists (nf tt).
+    by apply/prp'; rewrite -coin //; apply/L2SS_iseg; exists (nf tt).
   Qed.
 
   (**
@@ -190,7 +190,7 @@ Section baire_space.
     have [m md]:= cont phi n.+1.
     exists (init_seg m) => psi /coin_funeq coin.
     have /coin_funeq/coin_agre prp:= md psi coin.
-    by apply/prp/lstn_iseg; exists n.
+    by apply/prp/L2SS_iseg; exists n.
   Qed.
 
   (* The same can be done for partial operators: *)
@@ -214,6 +214,6 @@ Section baire_space.
     exists (init_seg m)=> phi' /coin_funeq coin.
     case val': (F phi') => [psi' | ]// _ <-.
     have /coin_funeq/coin_agre prp:= md phi' psi' val' coin.
-    by symmetry; apply/prp/lstn_iseg; exists n.
+    by symmetry; apply/prp/L2SS_iseg; exists n.
   Qed.
 End baire_space.

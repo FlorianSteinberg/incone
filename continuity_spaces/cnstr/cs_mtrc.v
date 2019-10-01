@@ -96,7 +96,7 @@ Section metric_representation.
     apply/Rle_trans/Rplus_le_compat/phinxn/m/phinx.
     suff ->: phin (m, n.+1) = phi n.+1 by rewrite [X in _ <= _ + X]dst_sym; apply/dst_trngl.
     rewrite prp' //.
-    by apply/lstn_iseg; exists n.+1.
+    by apply/L2SS_iseg; exists n.+1.
   Qed.
 End metric_representation.
 
@@ -210,7 +210,7 @@ Section continuity.
         have /leP lt:= (min (nu n) nu_prop1).
         suff e0 : psi k' = phi k' by rewrite e0 in ineq; have /leP gt := (nu_prop2 k' ineq); lia.
         have [cs _] := coin_agre (init_seg (nu n).+1) phi psi.
-        have [_ lst] := (lstn_iseg (@id nat) k' (nu n).+1).
+        have [_ lst] := (L2SS_iseg (@id nat) k' (nu n).+1).
         by symmetry; apply/(cs coin k')/lst; exists k'; split; first apply/leP; lia.
       have e0 : f (r (psi k')) = f (r (phi (nu n))) by rewrite keqk' coin.1.        
       have [_ [_ [nu1 nu4]]] := nu_prop n.

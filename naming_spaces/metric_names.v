@@ -76,8 +76,8 @@ Section baire_metric.
     baire_val_seq (phi, psi) n = n <-> phi \coincides_with psi \on (iseg cnt n).
   Proof.
     rewrite coin_agre -bvls_spec.
-    split => [prp q /lstn_iseg [m [ineq <-]] | prp m ineq]; first exact/prp.
-    by apply/prp/lstn_iseg; exists m.
+    split => [prp q /L2SS_iseg [m [ineq <-]] | prp m ineq]; first exact/prp.
+    by apply/prp/L2SS_iseg; exists m.
   Qed.
     
   Lemma coin_bvls phi psi n: phi \and psi \coincide_on (iseg cnt (baire_val_seq (phi, psi) n)).

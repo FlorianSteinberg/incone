@@ -116,7 +116,7 @@ Proof.
     apply/scnt/val; last by move => n; apply/val'.
     move => q; exists 0 => m ineq.
     by exfalso; apply/neg/inhabits/q.
-  move => /count_enum/(enum_inh someq) [cnt sur] count' scnt phi Fphi val.
+  move => /count_enum/(inh_enum someq) [cnt sur] count' scnt phi Fphi val.
   have [sec ms]:= exists_minsec sur.
   suff: forall q', exists L, certificate F L phi q' (Fphi q') by apply countable_choice.
   move => q'.

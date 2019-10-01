@@ -189,7 +189,7 @@ Section continuity.
     case: (classic (inhabited T')) => [[t'] | ninh]; last first.
     - exists (mf_empty); split => // ? x _ _.
       by exfalso; apply/ninh; have [phi _]:= get_name (f x); apply/inhabits/phi/someq.
-    have:= T'count => /count_enum/(enum_inh t') [cnt sur].
+    have:= T'count => /count_enum/(inh_enum t') [cnt sur].
     have [sec ms]:= exists_minsec sur.
     pose F := (make_mf (fun phi Fphi => forall n, exists k,
                               (mu (phi k) n.+1 <= k)%nat

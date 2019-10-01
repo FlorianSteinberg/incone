@@ -116,7 +116,7 @@ Lemma exists_minsec Q (cnt: nat -> Q):
 Proof.
   move => sur.
   have choice: FunctionalChoice_on (Q * Q) bool.
-  - by apply countable_choice; apply prod_count; apply/enum_count/(enum_inh (cnt 0)); exists cnt.
+  - by apply countable_choice; apply prod_count; apply/enum_count/(inh_enum (cnt 0)); exists cnt.
   have [eqC _]:= classic_eqClass choice.
   pose eqQ:= @Equality.Pack Q eqC Q.
   by have := @exists_minsec_eqT eqQ cnt sur.
@@ -127,7 +127,7 @@ Lemma count_eqT_choice (Q: eqType) T: Q \is_countable ->
 Proof.
   have nat_choice: FunctionalCountableChoice by apply/countable_choice/nat_count.
   case: (classic (inhabited Q)) => [[someq] count impl F tot | ninh count [[somet] | inh] F tot].
-  - move: count => /count_enum/(enum_inh someq) [cnt sur].
+  - move: count => /count_enum/(inh_enum someq) [cnt sur].
     pose R n t:= F (cnt n) t.
     have [n | f fprp]:= nat_choice _ R; first by have [t val]:= tot (cnt n); exists t.
     have [sec [cncl min]]:= exists_minsec_eqT sur.

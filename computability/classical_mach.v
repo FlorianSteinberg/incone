@@ -533,7 +533,7 @@ Section exists_associate.
       by case (Lf q') => // q; exfalso; apply/nex/inhabits/q.
     have [ | dp [dp_dom dp_spec]]:= exists_po_choice (dom F).
     - exact/countable_choice/list_count/prod_count/Acount/Qcount.
-    have /count_enum/(enum_inh someq) [cnt sur] := Qcount.
+    have /count_enum/(inh_enum someq) [cnt sur] := Qcount.
     have [sec ms]:= exists_minsec sur.
     have [ | | Lf mod] //:= exists_modf cont dp_spec ms.
     have [ | | | vf val]:= exists_valf dp_spec; first exact/somea'.
@@ -686,7 +686,7 @@ Section mathcomp.
     move => /prod_count prd {}/prd/list_count count.
     have choice: FunctionalChoice_on (seq (Q * A)) B.
     - by apply/count_eqT_choice; first exact/count; right; apply/inhabits/nil.
-    move: count => /count_enum/(enum_inh nil) [cnt sur].
+    move: count => /count_enum/(inh_enum nil) [cnt sur].
     have /choice [p prp]: forall KL, exists phi, phi \from P /\
           ((exists psi, psi \from P /\ psi \from cylinder KL) -> phi \from cylinder KL).
     - move => KL.

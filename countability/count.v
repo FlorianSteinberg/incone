@@ -1,3 +1,12 @@
+(**
+   This file provides a very weak definition of countability: T is called countable if it is
+   possible to specify a surjective partial function from nat to T. The notion is then compared
+   to the more common one that it is provable that there exists a surjection from nat to T.
+   Without axioms the former notion is strictly weaker than the later, if the meta-theory is
+   classical and countable choice is assumed they are equivalent (a proof of the latter can be
+   found in the file classical_count.v). The last section proves a number of types countable.
+**)
+
 From mathcomp Require Import ssreflect ssrfun choice ssrnat ssrbool eqtype.
 From mf Require Import all_mf.
 Require Import iseg search.
@@ -10,7 +19,7 @@ Unset Printing Implicit Defensive.
 Section enumerability.
   Definition enumerable Q := exists cnt: nat -> option Q, cnt \is_psurjective.
   
-  Lemma pfun_enum Q: enumerable Q /\ inhabited Q <->
+  Lemma enum_inh Q: enumerable Q /\ inhabited Q <->
                      (exists cnt: nat -> Q, cnt \is_surjective).   
   Proof.
     split => [[[cnt sur] [someq]] | [cnt /F2MF_cotot sur]].
@@ -114,7 +123,7 @@ Section countability.
                        | 0 => t = None
                        | n.+1 => exists s, t = Some s /\ (cnt n s)
                        end)).
-    split => [[/=_ _ -> -> | /= n t t' [s [-> cntns] [s' [-> cntns']]]]// | [s | ]]; last by exists 0.
+    split => [[/=_ _->->|/=n t t' [s [-> cntns] [s' [-> cntns']]]]// | [s | ]]; last by exists 0.
     - f_equal; apply/sing/cntns'/cntns.
     by have [n cntns]:= sur s; exists n.+1; exists s.
   Qed.
@@ -143,9 +152,10 @@ Section countability.
   Qed.
 End countability.
 Notation "T '\is_countable'" := (countable T) (at level 2).
+Notation "T '\is_enumerable'" := (enumerable T) (at level 2).
 
 Section mathcomp.
-  Lemma enum_inh T (t: T):
+  Lemma inh_enum T (t: T):
     enumerable T <-> exists cnt: nat -> T, cnt \is_surjective.
   Proof.
     split => [[cnt sur] | [cnt sur]]; last by exists (Some \o_f cnt); apply/sur_psur.
@@ -172,11 +182,10 @@ Section mathcomp.
     exact/(constructive_ground_epsilon_spec_nat (p q)).
   Qed.
 
-
   Lemma cT_inh_enum (T:countType) (somet: T):
     exists (cnt: nat -> T) (sec: T -> nat), minimal_section T cnt sec.
   Proof.
-    have /(enum_inh somet) [cnt sur]:= countType_enum T.
+    have /(inh_enum somet) [cnt sur]:= countType_enum T.
     by exists cnt; apply/exists_minsec_eqT.
   Qed.
 
@@ -271,12 +280,11 @@ Section enumerable_types.
   Lemma enum_eqT_choice (Q: eqType) T: inhabited Q -> enumerable Q ->
                                      FunctionalCountableChoice_on T -> FunctionalChoice_on Q T.
   Proof.
-    move => [someq] /(enum_inh someq) [cnt sur] countable_choice F tot.
+    move => [someq] /(inh_enum someq) [cnt sur] countable_choice F tot.
     pose R n t:= F (cnt n) t.
     have [n | f fprp]:= countable_choice R; first by have [t val]:= tot (cnt n); exists t.
     have [sec [cncl min]]:= exists_minsec_eqT sur.
     exists (f \o_f sec) => q /=.
     by have:= fprp (sec q); rewrite /R cncl.
   Qed.
-
 End enumerable_types.

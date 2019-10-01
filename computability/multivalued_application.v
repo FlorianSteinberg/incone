@@ -447,7 +447,7 @@ Section limitations.
     (fun phi n => [::tt]) \modulus_function_for f.
   Proof. by rewrite /f => phi n psi [] <-. Qed.
 
-  Lemma Phi_not_sufficient:
+  Lemma appN_Phi_not_sufficient:
     ~ exists machine_application,
         forall (f: (unit -> nat) -> (nat -> bool)) mu, mu \modulus_function_for f ->
                      forall N, \Phi_N \is_total ->

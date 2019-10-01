@@ -1,7 +1,7 @@
 (* This file provides an abstract envelope for computability theoretical considerations *)
 From mathcomp Require Import all_ssreflect.
 From mf Require Import all_mf.
-Require Import all_cont PhiN multivalued_application FMop seq_cont.
+Require Import all_cont search PhiN multivalued_application FMop seq_cont.
 Require Import axioms Classical Psatz.
 
 Set Implicit Arguments.
@@ -172,7 +172,7 @@ Section machine_evaluation.
     (fun q' => LM phi (n,q')) \is_modulus_of (F2MF (fun phi q' => LM phi (n,q'))) \on_input phi.
   Proof. by move: phi n; apply/modmod_spec/modmod. Qed.
 
-  Definition KL_step n KL L q':= zip (LM (extend default (N2LF N KL)) (n,q')) L ++ KL.
+  Definition KL_step n KL L q':= zip (LM (LF2F default (N2LF N KL)) (n,q')) L ++ KL.
 
   Context (phi: B).
   Hypothesis (tot: \Phi_N \is_total).
@@ -180,16 +180,16 @@ Section machine_evaluation.
 
   Lemma KL_step_spec KL q' n:
     exists L,
-      let K := LM (extend default (N2LF N KL)) (n,q') in
+      let K := LM (LF2F default (N2LF N KL)) (n,q') in
       size L = size K
       /\
       ((L2SS K) \n (dom \Phi_N)) \is_subset_of dom (N2MF N (KL_step n KL L q'))
       /\
-      ((extend default (N2LF N KL)) \agrees_with phi \on (dom (N2MF N KL)) ->
-       (extend default (N2LF N (KL_step n KL L q'))) \agrees_with phi \on ((L2SS K) \n (dom \Phi_N))).
+      ((LF2F default (N2LF N KL)) \agrees_with phi \on (dom (N2MF N KL)) ->
+       (LF2F default (N2LF N (KL_step n KL L q'))) \agrees_with phi \on ((L2SS K) \n (dom \Phi_N))).
   Proof.
     rewrite /KL_step.
-    elim: (LM (extend default (N2LF N KL)) (n,q')) => [ | q K [L [sze [subs agre]]]].
+    elim: (LM (LF2F default (N2LF N KL)) (n,q')) => [ | q K [L [sze [subs agre]]]].
     - by exists nil; split => //; split => [q [] | agre' q []].
     case: (classic (q \from dom \Phi_N)) => [/icf [k val] | ndm].
     - exists (k :: L); split; first by rewrite /= sze.
@@ -198,12 +198,12 @@ Section machine_evaluation.
       + have [ | a' prp]//:= subs q1.
         exists a'; move: prp; rewrite N2LF_cons.
         by case: ifP => // /eqP <-; rewrite val; right.          
-      + by rewrite /extend N2LFq_cons val.
-      by rewrite /extend N2LF_cons; case: ifP => [/eqP <- | _]; [rewrite val | apply/agre].
+      + by rewrite /LF2F N2LFq_cons val.
+      by rewrite /LF2F N2LF_cons; case: ifP => [/eqP <- | _]; [rewrite val | apply/agre].
     exists (0:: L); split; first by rewrite /= sze.
     split => [q1 [/=[<- ex | lstn dm]] | agre' q1 [/=[<- dm | lstn ex]]].
     - by exfalso; apply/ndm/ex.
-    - by rewrite /extend N2LF_cons; case: ifP => //.
+    - by rewrite /LF2F N2LF_cons; case: ifP => //.
     - by exfalso; apply/ndm/dm.
     by have [ | a prp]//:= subs q1; exists a; rewrite N2LFq_cons; case: ifP => // /eqP eq.
   Qed.
@@ -213,7 +213,7 @@ Section machine_evaluation.
                             | L :: s' => KL_step n (KL_rec n s' q') L q'
                             end.
   
-  Definition phi_rec n s q' := extend default (N2LF N (KL_rec n s q')).
+  Definition phi_rec n s q' := LF2F default (N2LF N (KL_rec n s q')).
 
   Lemma phi_rec_spec n q':
     exists s, phi \and (phi_rec n s q') \coincide_on (LM phi (n,q'))
@@ -225,7 +225,7 @@ Section machine_evaluation.
                           | 0 => nil
                           | S m' => KL_step n (KL m') (sf (KL m')) q'
                           end.
-    pose phin m:= extend default (N2LF N (KL m)).
+    pose phin m:= LF2F default (N2LF N (KL m)).
 
     have phin_agre: forall m, (phin m) \agrees_with phi \on (dom (N2MF N (KL m))).
     - elim => [q [] | m ih q dm]//.
@@ -238,9 +238,9 @@ Section machine_evaluation.
        * by rewrite zip_nill.
        by rewrite N2LF_cons; case: ifP => [/eqP | _ lstn]; [left | right; apply/ih'/lstn].
       case E: (q \in (LM (phin m) (n,q'))); first by apply/agre; last split; try apply/inP.
-      move: E; rewrite /phin /= /KL_step {2}/extend N2LF_cat /=.
+      move: E; rewrite /phin /= /KL_step {2}/LF2F N2LF_cat /=.
       move: (sf (KL m)).
-      elim: (LM (extend default (N2LF N (KL m))) (n,q')) => [sfKL _ | a' L ih' sfKL lstn'].
+      elim: (LM (LF2F default (N2LF N (KL m))) (n,q')) => [sfKL _ | a' L ih' sfKL lstn'].
       + by rewrite zip_nill /=; apply/ih; exists a.
         case: (sfKL) => [ | a'' L']; first by rewrite zip_nilr; apply/ih; exists a.
       rewrite /= N2LF_cons.
@@ -274,7 +274,7 @@ Section machine_evaluation.
         exact/phinm_agre/fd.
       move => /not_ex_all_not nex.
       exists default; exists 0 => m _.
-      suff : N2LF N (KL m) q = nil by rewrite /phin/=/extend/= => ->.
+      suff : N2LF N (KL m) q = nil by rewrite /phin/=/LF2F/= => ->.
       case E: (N2LF N (KL m) q) => [ | a L] //.
       exfalso; apply/(nex m).
       by exists a; rewrite /N2MF /= E; left.
@@ -384,7 +384,7 @@ Section machine_evaluation.
       apply/coin_subl; first exact/subl'.
       apply/coin_agre => q /lstd_spec fd.
       apply/sing; last exact/icf.
-      exact/N2MF_spec/extend_spec.
+      exact/N2MF_spec/LF2F_spec.
     rewrite /Fphia => q'1.
     case: ifP => [/eqP -> | _]; last exact/val.
     exists n.
@@ -393,7 +393,7 @@ Section machine_evaluation.
     apply/coin_subl; first exact/subl.
     apply/coin_agre => q /lstd_spec fd.
     apply/sing; last exact/icf.
-    exact/N2MF_spec/extend_spec.
+    exact/N2MF_spec/LF2F_spec.
   Qed.
 
   Lemma mapp_sing_spec Fphi:
@@ -443,14 +443,14 @@ Section machine_composition.
     apply/coin_agre => q' lstn.
     have/lstd_spec := subl q' lstn.
     rewrite /phi_rec => fd.    
-    have vl:= @extend_spec _ _ default' _ q' fd.
+    have vl:= @LF2F_spec _ _ default' _ q' fd.
     have /=[k eq]:= N2MF_spec vl.
     pose Mphi' q'0 := if q'0 == q'
-                      then (extend default'
-                                   (N2LF (M phi)
-                                         (KL_rec default' LM' (M phi) n s q'')
-                                   )
-                                   q')
+                      then (LF2F default'
+                                 (N2LF (M phi)
+                                       (KL_rec default' LM' (M phi) n s q'')
+                                 )
+                                 q')
                       else Mphi q'0.
     have val''': \F_M phi Mphi'.
     - move => q'0.

@@ -1,7 +1,7 @@
 (* This file provides an abstract envelope for computability theoretical considerations *)
-From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype choice seq.
+From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype choice seq bigop.
 From mf Require Import all_mf.
-Require Import all_cont seq_cont PhiN.
+Require Import all_cont search seq_cont PhiN.
 Require Import ClassicalChoice ConstructiveEpsilon.
 
 Set Implicit Arguments.
@@ -188,21 +188,21 @@ Section function_application.
 
   Context (N: nat * Q -> option A).
   
-  Definition KL_step KL L q':= zip (mu (extend default (N2LF N KL)) q') L ++ KL.
+  Definition KL_step KL L q':= zip (mu (LF2F default (N2LF N KL)) q') L ++ KL.
 
   Lemma KL_step_spec KL q' phi:
     phi \is_choice_for (\Phi_N) ->
-    (L2SS (mu (extend default (N2LF N KL)) q')) \is_subset_of dom \Phi_N ->
+    (L2SS (mu (LF2F default (N2LF N KL)) q')) \is_subset_of dom \Phi_N ->
     exists L,
-      size L = size (mu (extend default (N2LF N KL)) q')
+      size L = size (mu (LF2F default (N2LF N KL)) q')
       /\
-      (L2SS (mu (extend default (N2LF N KL)) q')) \is_subset_of dom (N2MF N (KL_step KL L q'))
+      (L2SS (mu (LF2F default (N2LF N KL)) q')) \is_subset_of dom (N2MF N (KL_step KL L q'))
       /\
-      ((extend default (N2LF N KL)) \agrees_with phi \on (dom (N2MF N KL)) ->
-      (extend default (N2LF N (KL_step KL L q'))) \and phi \coincide_on (mu (extend default (N2LF N KL)) q')).
+      ((LF2F default (N2LF N KL)) \agrees_with phi \on (dom (N2MF N KL)) ->
+      (LF2F default (N2LF N (KL_step KL L q'))) \and phi \coincide_on (mu (LF2F default (N2LF N KL)) q')).
   Proof.
     rewrite /KL_step => icf subs.
-    elim: (mu (extend default (N2LF N KL)) q') subs => [dm | q K ih /cons_subs [fd subs]].
+    elim: (mu (LF2F default (N2LF N KL)) q') subs => [dm | q K ih /cons_subs [fd subs]].
     - by exists nil; split; last by split => // q [].
     have [L [sze [subs' coin]]]:= ih subs.
     have [n val']:= icf _ fd.
@@ -211,8 +211,8 @@ Section function_application.
     split => [ | agre].
     - apply/cons_subs; split; last exact/subs_trans/exte_dom/N2MF_cons/subs'.
       by exists (phi q) => /=; rewrite N2LF_cons eq_refl val'; left.
-    apply/coin_agre => q'' /= [<- | lstn]; first by rewrite /extend N2LF_cons eq_refl val'.
-    rewrite /extend N2LF_cons.
+    apply/coin_agre => q'' /= [<- | lstn]; first by rewrite /LF2F N2LF_cons eq_refl val'.
+    rewrite /LF2F N2LF_cons.
     case: ifP => [/eqP <- | _]; first by rewrite val' .
     by move: q'' lstn; apply/coin_agre/coin.
   Qed.
@@ -222,7 +222,7 @@ Section function_application.
                           | L :: s' => KL_step (KL_rec s' q') L q'
                           end.
   
-  Definition phi_rec s q' := extend default (N2LF N (KL_rec s q')).
+  Definition phi_rec s q' := LF2F default (N2LF N (KL_rec s q')).
 
   Hypothesis (tot: \Phi_N \is_total).
 
@@ -233,14 +233,14 @@ Section function_application.
               L2SS (mu (phi_rec s q') q') \is_subset_of dom (N2MF N (KL_rec s q')).
   Proof.
     move => icf.
-    have prp: forall KL, L2SS (mu (extend default (N2LF N KL)) q') \is_subset_of dom \Phi_N.
+    have prp: forall KL, L2SS (mu (LF2F default (N2LF N KL)) q') \is_subset_of dom \Phi_N.
     - by move => KL; rewrite ((tot_spec \Phi_N).1 tot); apply/subs_all.
     have /choice [sf sfprp]:= KL_step_spec icf (prp _).
     pose KL:= fix KL n := match n with
                           | 0 => nil
                           | S n' => KL_step (KL n') (sf (KL n')) q'
                           end.
-    pose phin n:= extend default (N2LF N (KL n)).
+    pose phin n:= LF2F default (N2LF N (KL n)).
 
     have phin_dom: forall n m, n < m -> L2SS (mu (phin n) q') \is_subset_of dom (N2MF N (KL m)).
     - move => n m /subnK <-.
@@ -259,9 +259,9 @@ Section function_application.
       apply/coin_agre => q lstn.
       case E: (q \in (mu (phin n) q')).
       + by move /coin_agre: prp' => -> //; apply/inP; rewrite E.
-      move: E; rewrite /phin /= /KL_step {2}/extend N2LF_cat /=.
+      move: E; rewrite /phin /= /KL_step {2}/LF2F N2LF_cat /=.
       move: (sf (KL n)).
-      elim: (mu (extend default (N2LF N (KL n))) q') => [sfKL _ | a L ih' sfKL lstn'].
+      elim: (mu (LF2F default (N2LF N (KL n))) q') => [sfKL _ | a L ih' sfKL lstn'].
       + by rewrite zip_nill /=; apply/ih.
       case: (sfKL) => [ | a' L']; first by rewrite zip_nilr; apply/ih.
       rewrite /= N2LF_cons.
@@ -293,7 +293,7 @@ Section function_application.
         by have /coin_agre ->:= phinm_coin n n (leqnn n).
       move => /not_ex_all_not nex.
       exists default; exists 0 => m _.
-      suff : N2LF N (KL m) q = nil by rewrite /phin/=/extend/= => ->.
+      suff : N2LF N (KL m) q = nil by rewrite /phin/=/LF2F/= => ->.
       case E: (N2LF N (KL m) q) => [ | a L] //.
       exfalso; apply/(nex m).
       by exists a; rewrite /N2MF /= E; left.
@@ -371,17 +371,17 @@ Section function_application.
     set s := inverse_pickle [::] n.
     set s' := inverse_pickle [::] n'.
     move => subl subl'.
-    pose phi := extend default (N2LF N (KL_rec s q' ++ KL_rec s' q')).
+    pose phi := LF2F default (N2LF N (KL_rec s q' ++ KL_rec s' q')).
     have /modf_spec mod' := mod.
     apply/(@eq_trans _ _ (f phi q')).
     - symmetry; apply/crt_icf; [ | apply/mod' | | ] => //.    
       apply/coin_agre => q lstn.
-      apply/sing; apply/N2MF_spec/extend_spec; first exact/lstd_spec/subl.
+      apply/sing; apply/N2MF_spec/LF2F_spec; first exact/lstd_spec/subl.
       by apply/lstd_spec; rewrite lstd_cat; apply/lstn_app; left; apply/subl.
     apply/crt_icf; [ | apply/mod' | | ] => //.    
     apply/coin_agre => q lstn.
     have /lstd_spec [b val]:=subl' q lstn.
-    apply/sing; apply/N2MF_spec/extend_spec; first exact/lstd_spec/subl'.
+    apply/sing; apply/N2MF_spec/LF2F_spec; first exact/lstd_spec/subl'.
     by apply/lstd_spec; rewrite lstd_cat; apply/lstn_app; right; apply/subl'.
   Qed.
     
@@ -402,49 +402,70 @@ Section function_application.
 End function_application.
 
 Section limitations.
+  (**
+     This part considers a counterexample that proves that using Phi_N a full specification of
+     application can not be achieved in the case of multivaluedness whenever A and Q' are
+     properly infinte and A' has at least two elements. That is in particular in the case where
+     f is a function from the natural numbers to cantor space. This is done by proving that any
+     set of functions that choose through some \Phi_N is a closed set while there is an operator
+     That does not map every such set to a closed set.
+     We interpret the desired specification as follows: We are looking for some function mapp
+     that takes an f, a modulus mu of f and an N and returns something that describes the value-
+     sets of f on the inputset described by N, i.e. such that
+     {f phi | phi \is_choice_for \Phi_N} = {fphi | fphi \is_choice_for \Phi_(mapp f mu N)}.
+     We only require this to work for N that are total so that it is not partiality issues that
+     make a problem here.
+     We roughly proceed by first showing that the sets as above are always closed and pointing out
+     that there exists a continuous operator whose image is not closed.
+   **)
   Local Open Scope name_scope.
-  Context (A' Q': Type) (Q: eqType) A (default: A). 
-  Notation B := (Q -> A).
-  Notation B' := (Q' -> A').
+  Definition D Q A (N: nat * Q -> option A) := make_subset (fun phi => phi \is_choice_for \Phi_N).
 
-  Lemma PhiN_clsd (N: nat * Q -> option A):
-    closed (make_subset (fun phi => phi \is_choice_for \Phi_N)).
+  Lemma PhiN_clsd Q A (N: nat * Q -> option A): closed (D N).
   Proof.
     apply/clsd_subs => phi /= clsr q qfd.
     by have [psi [[-> _] icf]]:= clsr [:: q]; apply/icf.
   Qed.
     
-  Definition f phi n := if n <= phi 0 then 1 else 0.
+  Definition f phi n := if n <= phi tt then false else true.
 
-  Lemma codom_f: ~ closed (codom (F2MF f)).
+  Lemma not_clsd_codom_f: ~ closed (codom (F2MF f)).
   Proof.
     move => clsd.
-    suff [phi /= eq]: cnst 0 \from codom (F2MF f).
-    - have : f phi 0 = 0 by rewrite eq.
-      by rewrite /f leq0n.
-    apply/clsd.
-    
-
-End limitations.
-  
-Section Baire_subset.
-  Context (A Q: Type).
-  Notation B := (Q -> A).
-  Local Notation "Q ~> A" := (nat * Q -> option A) (at level 2).
-
-  Definition phi (N: Q ~> A) := make_subset (fun phi => forall L, exists n,
-                                         forall q, q \from L2SS L -> N (n,q) = some (phi q)).
-
-  Local Notation "\phi_ N" := (phi N) (format "'\phi_' N", at level 2).
-
-  Lemma cls_Phi N: closure \phi_N \is_subset_of \phi_N.
-  Proof.
-    move => phi phifc L.
-    have [psi [/coin_agre agre val]]:= phifc L.
-    have [n prp]:= val L.
-    exists n => q lstn.
-    by rewrite prp //; f_equal; symmetry; apply/agre.
+    suff [phi /= eq]: cnst false \from codom (F2MF f).
+    - have prp: forall q, f phi q = false by rewrite eq.
+      by have := prp (phi tt).+1; rewrite /f ltnn.
+    apply/clsd => K.
+    exists (fun n => if n <= \max_(m <- K) m then false else true).
+    split; last by exists (cnst (\max_(m <- K) m)).
+    apply/coin_agre => q lstn.
+    case: ifP => // /leP fls.
+    by exfalso; apply/fls/leP/leq_bigmax.
   Qed.
 
-  Lemma PhiN_clsd N: closed (make_subset (fun phi => phi \is_choice_for Phi)).
-End Baire_subset.
+  Lemma modf_f:
+    (fun phi n => [::tt]) \modulus_function_for f.
+  Proof. by rewrite /f => phi n psi [] <-. Qed.
+
+  Lemma Phi_not_sufficient:
+    ~ exists machine_application,
+        forall (f: (unit -> nat) -> (nat -> bool)) mu, mu \modulus_function_for f ->
+                     forall N, \Phi_N \is_total ->
+                               D (machine_application f mu N) === img (F2MF f) (D N).
+  Proof.
+    move => [mapp mapp_prp].
+    apply/not_clsd_codom_f.
+    pose mu (phi: unit -> nat) (n: nat):= [::tt].
+    pose N (ntt: nat * unit) := Some ntt.1.
+    have tot: \Phi_N \is_total by exists 0; exists 0.
+    suff eq:
+      codom (F2MF f) === (make_subset (fun fphi => fphi \is_choice_for (\Phi_(mapp f mu N)))).
+    - apply/clsd_prpr; first exact/eq.
+      by have := PhiN_clsd (mapp f mu N).
+    move => fphi.
+    split => [[phi <-] | /= icf].
+    - apply/mapp_prp; try exact/tot; try exact/modf_f.
+      by exists phi; split => // s _; exists (phi tt); case: s.
+    by have [s [<- _]]:= (mapp_prp f mu modf_f N tot fphi).1 icf; exists s.
+  Qed.
+End limitations.

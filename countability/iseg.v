@@ -1,4 +1,4 @@
-From mathcomp Require Import ssreflect seq ssrnat ssrbool eqtype ssrfun choice.
+From mathcomp Require Import ssreflect seq ssrnat ssrbool eqtype ssrfun choice bigop.
 From mf Require Import all_mf.
 Require Import graphs.
 Require Import Morphisms Psatz.
@@ -239,5 +239,11 @@ Section naturals.
     elim: n => // n ih prp /=.
     rewrite ih => [ | i ineq]; first f_equal; apply/prp => //.
     exact/leqW.
+  Qed.
+
+  Lemma leq_bigmax T (F: T -> nat) (K: seq T) i: i \from L2SS K -> (F i <= \max_(i <- K) F i)%nat.
+  Proof.
+    elim: K => // q K ih /=[-> | lstn]; rewrite big_cons; first exact/leq_maxl.
+    exact/leq_trans/leq_maxr/ih.
   Qed.
 End naturals.

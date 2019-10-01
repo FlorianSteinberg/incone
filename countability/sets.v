@@ -108,6 +108,13 @@ Section closures.
   Definition closure (P: subset B):=
     make_subset (fun phi => forall L, exists psi, phi \and psi \coincide_on L /\ P psi).
 
+  Lemma clos_prpr:
+    Proper (@set_equiv B ==> @set_equiv B) closure.
+  Proof.
+    move => P P' eq phi.
+    by split => clsr K; have [psi ]:= clsr K; exists psi; [rewrite -eq | rewrite eq].
+  Qed.
+
   Lemma subs_clos P: P \is_subset_of (closure P).
   Proof. by move => phi; exists phi; split => //; apply: coin_ref. Qed.
   Arguments subs_clos (P) : clear implicits.
@@ -132,7 +139,13 @@ Section closures.
     split => [eq q | subs]; first by rewrite eq.
     by apply/set_eq_subs; split => //; apply/subs_clos.
   Qed.
-  
+
+  Lemma clsd_prpr: Proper (@set_equiv B ==> iff) closed.
+  Proof.
+    move => P P' eq; rewrite !clsd_subs.
+    by split => subs q clsr; apply/eq/subs; apply/clos_prpr/clsr => //; symmetry.
+  Qed.
+    
   Lemma conv_cP P phin psi:
     psi \is_limit_of phin /\ (image phin \is_subset_of P) -> psi \from closure P.
   Proof.

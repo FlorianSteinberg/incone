@@ -50,7 +50,7 @@ Section closed_choice_on_the_naturals.
   Qed.
 
   Lemma bigmax_lt T (L: seq T) (t: T) (phi: T -> nat):
-    List.In t L -> phi t < \max_(n <- L) (phi n).+1.
+    t \from L2SS L -> phi t < \max_(n <- L) (phi n).+1.
   Proof.
     elim: L => // n L ih.
     rewrite big_cons => /=[[<- | lstn]].
@@ -112,3 +112,4 @@ Section closed_choice_on_the_naturals.
     by rewrite valeq eq1.
   Qed.
 End closed_choice_on_the_naturals.
+  

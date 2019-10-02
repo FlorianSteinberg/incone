@@ -54,7 +54,7 @@ Compute U psi_F' f (0,8).
 Compute U psi_F' f (1,8).
 Compute U psi_F' f (2,8).
 Compute U psi_F' f (3,8).
-
+  
 (* To prove correctness of the associate we can use relational semantics. An operator F is assigned
    the relation, or multivalued function F2MF F: (Q -> A) -> (Q' -> A') -> Prop specified by
    (F2MF F) f Ff <-> F f = Ff. For such a binary relation that is supposed to be interpreted
@@ -73,12 +73,12 @@ Proof.
   apply/functional_extensionality => n.
   have [[// | [// | [// | k]]]]:= ass n.  
   suff ->: U psi_F' s (k.+3, n) = Some (F' s n) by case.
-  have /mon_spec prp:= @U_mon nat nat nat nat psi_F' s.  
-  exact/(prp _ _ 3).
+  have /mon_spec prp:= @U_mon _ _ _ _ psi_F'.
+  exact/(prp _ _ _ 3).
 Qed.
-(* The detailed specification of U can be found in the lemma FU_spec and by unfolding the
+(* The detailed specification of U can be found in the lemma U_val_spec and by unfolding the
    definitions of the involved operations (operator is what \F_(_) is a notation for) *)
-Check FU_spec.
+Check U_val_spec.
 Print communication.
 Print consistent.
 Print operator.
@@ -94,8 +94,7 @@ Compute gather_queries psi_F' f (0,8).
 Compute gather_queries psi_F' f (1,8).
 Compute gather_queries psi_F' f (2,8).
 
-
-(* It is also pssible to do higher order stuff. *)
+(* It is also possible to do higher order stuff. *)
 Definition Phi F: nat -> nat:= F (@id nat).
 
 Definition psi_Phi := @D nat nat nat nat id.

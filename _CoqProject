@@ -51,7 +51,8 @@ continuity_spaces/cnstr/cs_mtrc.v
 continuity_spaces/cnstr/hyper_spaces.v
 continuity_spaces/all_cs.v
 
-examples/continuous_search.v
+examples/basic_continuity.v
+examples/implementing_operators.v
 examples/closed_choice.v
 examples/cantor_space.v
 examples/KleeneKreisel.v

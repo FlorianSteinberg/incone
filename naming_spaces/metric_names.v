@@ -2,9 +2,9 @@
     Given an enumeration of Q it defines a metric and proves that the
     notions of continuity for functions on Baire space and functions
     of the constructed metric space coincide. **)
-From mathcomp Require Import all_ssreflect.
-From metric Require Import reals all_metric standard.
+From mathcomp Require Import ssreflect eqtype seq ssrbool ssrfun ssrnat.
 From Coquelicot Require Import Coquelicot.
+From metric Require Import reals all_metric standard.
 Require Import all_count all_cont search seq_cont  classical_cont classical_count.
 Require Import Reals Psatz.
 
@@ -342,6 +342,32 @@ Section continuity.
     exact/(metric_spaces.cont_scnt cont).
   Qed.
 
+  Lemma cont_pcont (F: partial_function B B):
+    F \is_continuous <-> (@continuous_wrt (@sub_met B d (domain F)) d F).
+  Proof.
+    split => [/cont_scnt cont | /metrics.cont_scnt cont].
+    - apply/metrics.scnt_cont => phi phin lmt; rewrite lim_lim.
+      - apply/(cont (sval phi) (fun n => sval (phin n))).
+        by rewrite -lim_lim; apply/lmt.
+      - move => n /=; rewrite /pointwise.ptw.
+        by exists (svalP (phin n)); f_equal; apply/eq_sub.               
+      by exists (svalP phi); f_equal; apply/eq_sub.
+    apply/scnt_cont => [ | | phi phin Fphin Fphi /lim_lim lmt valn [phifd <-]].
+    - exists (F2MF cnt); split; first exact/F2MF_sing.
+      by rewrite -F2MF_cotot; apply/sur.
+    - exists (F2MF cnt); split; first exact/F2MF_sing.
+      by rewrite -F2MF_cotot; apply/sur.
+    apply/lim_lim.
+    have phinfd n: (phin n) \from domain F by have [phinfd _]:= valn n.
+    have ->: Fphin = ptwn F (fun n => exist _ _ (phinfd n)).
+    - apply/ functional_extensionality => n.
+      by have [phinfd' <-]:= (valn n); rewrite /ptwn; f_equal; apply/eq_sub.
+    move => eps eg0.
+    have [N prp]:= cont (exist _ _ phifd) (fun n => exist _ _ (phinfd n)) lmt eps eg0.
+    exists N => m ineq.
+    by have := prp m ineq.
+  Qed.
+  
   Lemma cont_cont (F: B ->> B) f: F =~= (F2MF f)|_(dom F) ->
     F \is_continuous <->
     (continuous_wrt (@d (subspace (dom F))) baire_distance (sub_fun f))%metric.

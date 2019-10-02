@@ -151,6 +151,13 @@ Section use_first.
   Lemma sfrst_dom: dom (\F_M) === dom (\F_use_first).
   Proof. by move => phi; split => [phifd | ]; rewrite FM_dom -sfrst_tot -FM_dom. Qed.
 
+  Lemma sfrst_val: \F_M \extends \F_use_first.
+  Proof.
+    move => phi Fphi val.
+    apply/tight_val/val; first exact/sfrst_spec.
+    by rewrite sfrst_dom; exists Fphi.
+  Qed.
+  
   Lemma mon_sfrst_spec: M \is_monotone <-> forall phi n q', M phi (n,q') = use_first phi (n,q').
   Proof. by split => mon phi; apply/mon_sfrst/mon. Qed.
 

@@ -82,6 +82,7 @@ Section lists_and_subsets.
   Qed.
 End lists_and_subsets.
 Notation "L '\is_sublist_of' K" := (L2SS L \is_subset_of L2SS K) (at level 2).
+Coercion L2SS: seq >-> subset.
 
 Lemma L2SS_flatten T (Ln: seq (seq T)) t:
   t \from L2SS (flatten Ln) <-> exists L, t \from L2SS L /\ L \from L2SS Ln.

@@ -228,13 +228,8 @@ Section continuity.
   Proof. done. Qed.
     
   Lemma F2MF_cont (X Y: cs) (f: X -> Y):
-  (exists F, F \is_continuous_functional
-             /\
-             forall phi x, phi \is_name_of x -> F phi \is_name_of f x)
-  -> f \is_continuous.
-  Proof.
-    by move => [F [cont rlzr]]; exists (F2MF F); split; [apply/cont_F2MF | apply/F2MF_rlzr].
-  Qed.  
+  (exists F, F \is_continuous_functional /\ (F2MF F) \realizes f) -> f \is_continuous.
+  Proof. by move => [F [cont rlzr]]; exists (F2MF F); split; try apply/cont_F2MF. Qed.  
 End continuity.
 Notation cntop_spec:= cont.cont_spec. 
 Notation hcr := has_continuous_realizer.

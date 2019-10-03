@@ -469,10 +469,10 @@ Section cs_names.
     rewrite -sig_iso_fun; apply/iso_spec.
     exists id; split.
     - apply/F2MF_cont; exists (fun phi ntt => phi (ntt.1)).
-      by split => [phi | phi/= _ <-] //; exists (fun ntt => [:: ntt.1]) => ntt psi [<-].
+      by split; try apply/F2MF_rlzr => ? _ <- //; exists (fun ntt => [:: ntt.1]) => ntt psi [<-].
     exists id; split => //; apply/F2MF_cont; exists (fun phi n => phi (n,tt)).
-    split => [phi | phi x eq]; last by apply/fun_ext.
-    by exists (fun n => [:: (n, tt)]) => ? ? [].
+    split; first by exists (fun n => [:: (n, tt)]) => ? ? [].
+    - by apply/F2MF_rlzr => /= phi x eq; apply/fun_ext/eq.
     Unshelve.
     apply/default_question.
   Qed.

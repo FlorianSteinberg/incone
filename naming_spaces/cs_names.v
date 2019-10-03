@@ -96,8 +96,6 @@ Section baire_fprd.
     by have /sec_cncl ->:= (@pairK D D'); rewrite comp_id_l; apply/tight_ref.
   Qed.
 
-  Coercion L2SS: seq >-> subset.
-
   Lemma map_inl T T' (L: seq T) t: t \from L -> (inl t:T + T') \from (map inl L).
   Proof.
     by elim: L t => // t L ih t' /=[-> | lstn]; [by left | right; apply/ih].

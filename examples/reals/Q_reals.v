@@ -14,18 +14,27 @@ Notation "'\|' x '|'" := (Rabs x) (at level 30).
 
 Section reals_via_rational_approximations.
   Coercion Q2R: Q >-> R.
-  (*
+  (**
     One way to encode real numbers is to use functions phi: Q -> Q on the rationals that
     return approximations when given an accuracy requirement "eps", i.e. such that
     forall eps > 0, |x - phi(eps)| <= eps. This representation is very straight forward to
     specify by a relation. This relation should be marked as a specification of a function,
     which in particularly means that the arguments should not be treated interchangably.
-    This is done by constructing a multifunction (mf) from the relation.
-   *)
-  
-  Definition rep_RQ := make_mf (fun (phi: Q -> Q) x =>
-                       forall (eps: Q), 0 < eps -> \|x - phi eps| <= eps).
-
+    This is done by constructing a multifunction (mf) from the relation. To assert that this
+    defines a representation we have to provide some additional proofs:
+   **)
+  Print representation_of.
+  Print naming_space.
+  Print is_representation.
+  (** 
+      Let's start by bundleing the information that witnesses that Q is eligible as discrete
+      data to construct "naming space" that we will call names_RQ, here "RQ" is what we want
+      to call the represented space to construct in the end.
+   **)
+  Definition names_RQ:= Build_naming_space 0%Q count.Q_count count.Q_count.
+  (** now we can define the representation as indicated in the beginning: **)
+  Definition rep_RQ := make_mf (fun (phi: names_RQ) x =>
+                                  forall (eps: Q), 0 < eps -> \|x - phi eps| <= eps).  
   (*
     The first thing to check is that this relation is deterministic so that it uniquely specifies
     a partial function. For multivalued functions this property is called being "singlevalued".
@@ -61,24 +70,18 @@ Section reals_via_rational_approximations.
     by rewrite -[X in _ <= X]Rmult_1_l; apply/Rmult_le_compat; lra.
   Qed.
 
-  (*
-    To define a represented space, we first bundle the information that justifies that Q can be
-    used as discrete data, namly that it is an inhabited and countable type. The bundle we name
-    B_RQ, where "B" is for Baire space and "RQ" is for "reals encoded by rationals".
-   *)
-  Definition B_RQ: naming_space.
-    by exists Q Q; try exact/count.Q_count; exact/0%Q.
-  Defined.
+  (** now we can bundle this data to obtain a representation of the real numbers. **)
 
+  Definition Q_representation: representation_of R.
+    by exists names_RQ rep_RQ; split; try apply/rep_RQ_sing; try apply/rep_RQ_sur.
+  Defined.        
   (**
      And afterwards define a represented space ("continuity_space" or for short "cs" in incone)
      of Cauchy real numbers. We use "Canonical" instead of "Definition" so that the additional
      Structure that we added will be automatically found by Coq whenever it is needed (or at
      least in most cases).
    **)
-  Canonical RQ: continuity_space.
-    by exists R B_RQ rep_RQ; split; [apply/rep_RQ_sur | apply/rep_RQ_sing].
-  Defined.
+  Canonical RQ := rep2cs Q_representation.
 End reals_via_rational_approximations.
   
 Section addition.
@@ -112,7 +115,7 @@ Section addition.
      Note that this defines a proper function, to prove correctness we cast this function to
      its specification which is done by the function F2MF (for "function to multi-function").
    **)
-  Lemma Ropp_rlzr_spec: (F2MF Ropp_rlzrf: B_RQ ->> B_RQ) \realizes (Ropp: RQ -> RQ).
+  Lemma Ropp_rlzr_spec: (F2MF Ropp_rlzrf) \realizes Ropp.
   Proof.
     rewrite F2MF_rlzr => phi x phinx eps epsg0 /=.
     by rewrite Q2R_opp; move: (phinx eps epsg0); split_Rabs; lra.
@@ -127,7 +130,7 @@ Section addition.
     by rewrite /Ropp_rlzrf => phi; exists (fun eps => [:: eps]) => psi q' [<-].
   Qed.
 
-  Lemma Ropp_cont: (Ropp: RQ -> RQ) \is_continuous.
+  Lemma Ropp_cont: Ropp \is_continuous.
   Proof.
     by exists (F2MF Ropp_rlzrf); split; try exact/Ropp_rlzr_spec; apply/cntop_cntf/Ropp_rlzr_cntf.
   Qed.
@@ -136,20 +139,17 @@ Section addition.
      The same can be done for the other arithmetic operations. For the binary operations, the
      product of representes spacs can be used.
    **)
-  Definition Rplus_rlzrf (phi: B_RQ \*_ns B_RQ) (eps: Q) :=
+  Definition Rplus_rlzrf (phi: names_RQ \*_ns names_RQ) (eps: Q) :=
     (lprj phi (eps/(1+1)) + rprj phi (Qdiv eps (1+1)))%Q.
-
-  Definition Rplus_rlzr: B_(RQ \*_cs RQ) ->> B_RQ:= F2MF Rplus_rlzrf.
 
   (**
      Note that the type of Rplus is R -> R -> R, so to make the function a function between
      represented spaces it needs to first be curried to have type R * R.
    **)
-  Lemma Rplus_rlzr_spec:
-    Rplus_rlzr \realizes (curry Rplus: RQ \*_cs RQ -> RQ).
+  Lemma Rplus_rlzr_spec: F2MF Rplus_rlzrf \realizes (curry Rplus).
   Proof.
     apply/F2MF_rlzr => phi x /prod_name_spec phinx eps eg0.
-    rewrite /Rplus_rlzr Q2R_plus.
+    rewrite Q2R_plus.
     set r := Q2R (lprj phi (Qdiv eps (1 + 1))).
     set q := Q2R (rprj phi (Qdiv eps (1 + 1))).
     have ->: (x.1 + x.2 - (r + q)) = (x.1 - r + (x.2 - q)) by field.
@@ -159,16 +159,16 @@ Section addition.
     by rewrite eq; apply: Rplus_le_compat; apply phinx; lra.
   Qed.
 
-  Lemma Rplus_rlzr_cntop: Rplus_rlzr \is_continuous_operator.
+  Lemma Rplus_rlzrf_cntf: Rplus_rlzrf \is_continuous_function.
   Proof.
-    rewrite cont_F2MF => phi.
     exists (fun eps => [:: inl (Qdiv eps (1 + 1)); inr (Qdiv eps (1 + 1))]).
     by rewrite /Rplus_rlzrf/lprj/rprj => psi q' /= [-> [->]].
   Qed.
 
   Lemma Rplus_cont: (curry Rplus) \is_continuous.
   Proof.
-    by exists Rplus_rlzr; split; try exact/Rplus_rlzr_spec; apply/Rplus_rlzr_cntop.
+    apply/F2MF_cont; exists Rplus_rlzrf.
+    by split; try apply/Rplus_rlzr_spec; try apply/Rplus_rlzrf_cntf.
   Qed.
 End addition.
 
@@ -238,18 +238,16 @@ Section multiplication.
   (**
      Which leaves us with the following algorithm for multiplication:
    **)
-  Definition Rmult_rlzrf (phi: B_RQ \*_ns B_RQ) (eps: Q) :=
+  Definition Rmult_rlzr (phi: names_RQ \*_ns names_RQ) (eps: Q) :=
     (lprj phi (trunc eps / (1 + 1)/(get_ub (rprj phi)))
      *
      (rprj phi (eps / (1 + 1)/(get_ub (lprj phi)))))%Q.
-
-  Definition Rmult_rlzr : B_(RQ \*_cs RQ) ->> B_RQ:= F2MF Rmult_rlzrf.
 
   (**
      The proof of correctness is now pretty straight forward.
    **)
   Lemma Rmult_rlzr_spec:
-    Rmult_rlzr \realizes (curry Rmult: RQ \*_cs RQ -> RQ).
+    (F2MF Rmult_rlzr) \realizes (curry Rmult: RQ \*_cs RQ -> RQ).
   Proof.
     rewrite F2MF_rlzr => phi [x y] /prod_name_spec [phinx psiny] eps eg0 /=.
     rewrite Q2R_mult; have eq: eps * /2 = (eps/(1 + 1))%Q by rewrite Q2R_div /Q2R /=; try lra.
@@ -295,17 +293,20 @@ Section multiplication.
     by intros; apply/Rmult_lt_0_compat/zlg; try lra.
   Qed.
 
-  Lemma Rmult_rlzr_cntop: Rmult_rlzr \is_continuous_operator.
+  Lemma Rmult_rlzr_cntf: Rmult_rlzr \is_continuous_functional.
   Proof.
-    apply/cont_F2MF => phi; rewrite /Rmult_rlzrf /=.
+    rewrite /Rmult_rlzr => phi.
     exists (fun eps => [:: inl (1 # 2); inr (1 # 2);
                         inl (trunc eps / (1 + 1) / get_ub (rprj phi))%Q;
                         inr (eps / (1 + 1) / get_ub (lprj phi))%Q]).
       by rewrite /get_ub/lprj/rprj => eps psi /= [-> [-> [-> [->]]]].
   Qed.  
 
-  Lemma Rmult_cont: (fun (xy: cs_prod RQ RQ) => xy.1 * xy.2: RQ) \is_continuous.
-  Proof. by exists Rmult_rlzr; split; try exact/Rmult_rlzr_spec; apply/Rmult_rlzr_cntop. Qed.
+  Lemma Rmult_cont: (curry Rmult) \is_continuous.
+  Proof.
+    apply/F2MF_cont; exists Rmult_rlzr.
+    by split; try apply/Rmult_rlzr_spec; try apply/Rmult_rlzr_cntf.
+  Qed.
 End multiplication.    
     
 Section limit.
@@ -445,7 +446,7 @@ Section metric_Qreals.
     exact/cont_F2MF/Rm2RQ_rlzr_cntop.
   Qed.
 
-  Definition RQ2Rm_rlzrf (phi: B_RQ) n := phi (Qpower (1 + 1) (-Z.of_nat n)).
+  Definition RQ2Rm_rlzr (phi: names_RQ) n := phi (Qpower (1 + 1) (-Z.of_nat n)).
 
   Lemma Qpower_spec r n: ~ r == 0 -> Q2R (r^(Z.of_nat n))%Q = (Q2R r) ^ n.
   Proof.
@@ -478,7 +479,7 @@ Section metric_Qreals.
     rewrite /Q2R /=; lra.
   Qed.
 
-  Lemma RQ2Rm_rlzrf_spec: (F2MF RQ2Rm_rlzrf) \realizes (id: RQ -> Rm).
+  Lemma RQ2Rm_rlzrf_spec: (F2MF RQ2Rm_rlzr) \realizes (id: RQ -> Rm).
   Proof.
     apply/F2MF_rlzr.
     move => phi x phinx n /=.
@@ -492,8 +493,8 @@ Section metric_Qreals.
 
   Lemma RQ2Rm_cont: (id: RQ -> Rm) \is_continuous.
   Proof.
-    exists (F2MF RQ2Rm_rlzrf); split; try exact RQ2Rm_rlzrf_spec.
-    apply/cont_F2MF => phi; rewrite /RQ2Rm_rlzrf.
+    exists (F2MF RQ2Rm_rlzr); split; try exact RQ2Rm_rlzrf_spec.
+    apply/cont_F2MF => phi; rewrite /RQ2Rm_rlzr.
     by exists (fun n => [::Qpower (1 + 1) (-Z.of_nat n)]) => n psi [->].
   Qed.
 

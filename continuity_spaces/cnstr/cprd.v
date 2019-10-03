@@ -384,45 +384,47 @@ Section limits.
   Arguments limit {X}.
   Local Notation "x \is_limit_of xn" := (limit xn x).
 
-  (*
   Lemma lim_prd (X Y: cs) xn (x: X) yn (y: Y):
     (x, y) \is_limit_of (@cs_zip nat 0 nat_count _ _ (xn, yn))
     <->
     x \is_limit_of xn /\ y \is_limit_of yn.
   Proof.
-    split => [[phipsin [phipsi [nm [[lnm rnm] lmt]]]] |].
+    split => [[phipsin [phipsi [nm [/prod_name_spec[lnm rnm] lmt]]]] |].
     - split.
       + exists (lprj (nzip_rlzrf phipsin)); exists (lprj phipsi).
-        split => [i | ]; [by have []:= nm i | split => // q].
+        split => [i | ]; [by have /prod_name_spec []:= nm i | split => // q].
         have [N prp]:= lmt (inl q).
         exists N => m ineq /=; have := prp m ineq.
         by rewrite /lprj /= => ->.
       exists (rprj (nzip_rlzrf phipsin)); exists (rprj phipsi).
-      split => [i | ]; [by have []:= nm i | split => // q].
+      split => [i | ]; [by have /prod_name_spec[]:= nm i | split => // q].
       have [N prp]:= lmt (inr q).
       exists N => m ineq /=; have := prp m ineq.
       by rewrite /rprj /= => ->.
     move => [[phin [phi [phinxn [phinx lmt]]]] [psin [psi [psinxn [psinx lmt']]]]].
     exists (fun iqq' => match iqq'.2 with
-                        | inl q => (phin (iqq'.1, q), somea)
-                        | inr q' => (somea, psin (iqq'.1, q'))
+                        | inl q => (phin (iqq'.1, q), psin (iqq'.1, someq))
+                        | inr q' => (phin (iqq'.1, someq), psin (iqq'.1, q'))
                         end).
-    exists (name_pair phi psi).
-    split => [i | ]; first by split; rewrite /lprj/rprj/=; [apply/phinxn | apply/psinxn].
-    split => //; apply/lim_coin.
-    elim => [ | [q | q'] L [N ih]]; first by exists 0.
+    exists (pair (phi,psi)); split => [i | ].
+    - by apply/prod_name_spec; split; rewrite /lprj/rprj/=; [apply/phinxn | apply/psinxn].
+    split; first exact/prod_name_spec.
+    apply/lim_coin; elim => [ | [q | q'] L [N ih]]; first by exists 0.
     - have [N' coin]:= lmt q.
-      exists (maxn N N') => m ineq.
-      split; last exact/ih/leq_trans/ineq/leq_maxl.
+      have [N'' coin']:= lmt' someq.
+      exists (maxn (maxn N N') N'') => m ineq.
+      split; last exact/ih/leq_trans/ineq/leq_trans/leq_maxl/leq_maxl.
       rewrite /uncurry/=.
-      by have -> //:= coin m; apply/leq_trans/ineq/leq_maxr.
+      have -> //:= coin m; last exact/leq_trans/ineq/leq_trans/leq_maxl/leq_maxr; f_equal.
+      by have -> //:= coin' m; apply/leq_trans/ineq/leq_maxr.
     have [N' coin]:= lmt' q'.
-    exists (maxn N N') => m ineq.
-    split; last exact/ih/leq_trans/ineq/leq_maxl.
+    have [M coin']:= lmt someq.
+    exists (maxn (maxn N N') M) => m ineq.
+    split; last exact/ih/leq_trans/ineq/leq_trans/leq_maxl/leq_maxl.
     rewrite /uncurry/=.
-    by have ->//:= coin m; first by apply/leq_trans/ineq/leq_maxr.
+    have ->//:= coin m; last exact/leq_trans/ineq/leq_trans/leq_maxl/leq_maxr; f_equal.
+    by have -> //:= coin' m; apply/leq_trans/ineq/leq_maxr.
   Qed.
-   *)
    
   Definition sequential_continuity_point (X Y: cs) (f: X -> Y) x:=
     forall xn, x \is_limit_of xn -> (f x) \is_limit_of (ptw f xn).

@@ -334,13 +334,6 @@ Section limit.
   Lemma Q_sqnc_name qn:
     (fun neps => qn neps.1) \describes (fun n => Q2R (qn n)) \wrt (RQ\^w).
   Proof. by move => n eps ineq /=; split_Rabs; lra. Qed.
-
-  Lemma leq_bigmax T (F: T -> nat) (K: seq T) i:
-    i \from K -> (F i <= \max_(i <- K) F i)%nat.
-  Proof.
-    elim: K => // q K ih /=[-> | lstn]; rewrite big_cons; first exact/leq_maxl.
-    exact/leq_trans/leq_maxr/ih.
-  Qed.
   
   Lemma lim_not_cont: ~ (lim: RQ\^w ->> RQ) \has_continuous_realizer.
   Proof.
@@ -581,6 +574,12 @@ Section inversion.
     | right _ => r'
     end.
 
+  Lemma Rmin_Qmin (r r': Q): Rmin r r' = Qmin r r'.
+  Proof.
+    rewrite /Rmin /Qmin; symmetry.
+    by case: (Qlt_le_dec r r') => [/Qlt_Rlt | /Qle_Rle]; case: (Rle_dec r r'); lra.
+  Qed.
+  
   Definition RQinv_M phi neps :=
     let n := neps.1 in
     let eps := neps.2 in
@@ -640,8 +639,17 @@ Section inversion.
     - by rewrite -Qabs_Rabs; apply/Rnot_le_lt => tmp'; apply/tmp/Rle_Qle.
     move: tmp => _ [<-].    
     set r := (phi(Qmin (del /(1 + 1)) (eps * (del * del) / (1 + 1))))%Q.
-    have neq' : 0 <> r by admit.      
-    rewrite Q2R_inv; last by move => /Qeq_eqR; lra.
+    have tpmm_spec: / 2 ^ m = tpmm.
+    - rewrite /tpmm Qpower_spec; last by rewrite /Qinv /=; lra.
+      rewrite Q2R_inv /Q2R/=; try lra.
+      by rewrite Rinv_1 Rmult_1_r -Rinv_pow; lra.
+    have : 0 < tpmm by rewrite -tpmm_spec; apply/tpmn_lt.
+    have neq' : 0 <> r.
+    - rewrite /r.
+      suff:0<\|x - phi (Qmin (del /(1 + 1)) (eps * (del * del)/(1 + 1))) - x| by split_Rabs; nra.
+      apply/Rlt_le_trans/Rabs_triang_inv.
+      have := phinx (Qmin (del/ (1 + 1)) (eps * (del * del)/(1 + 1))).
+      rewrite Q2R_inv; last by move => /Qeq_eqR; lra.
     have ->: /x - /r = (r - x)/(x * r) by field; lra.
     rewrite Rabs_mult.
     apply/Rle_trans.
@@ -652,10 +660,25 @@ Section inversion.
       - by rewrite Q2R_div //; apply/Rdiv_lt_0_compat; last by rewrite /Q2R /=; lra.
       rewrite Q2R_div //; apply/Rdiv_lt_0_compat; last by rewrite /Q2R/=; lra.
       by rewrite !Q2R_mult; apply/Rmult_lt_0_compat/Rmult_lt_0_compat.
-    rewrite /Qmin; case: Qlt_le_dec => le; last first.
+    move: neq'; rewrite /r /Qmin; case: Qlt_le_dec => le neq'; last first.    
     apply/Rle_trans; first by apply/Rmult_le_compat_r; [apply/Rabs_pos | apply/Qle_Rle/le].
+    rewrite Rabs_Rinv; try nra.
     
+    suff: 0 < \|x - phi (eps * (del * del)/(1 + 1))%Q - x| by split_Rabs; nra.
+    apply/Rlt_le_trans/Rabs_triang_inv.
+    have := Rabs_triang_inv.
+    have eq: forall r, r = r - x + x by intros; ring.
+    rewrite (eq (phi _)) => eq'.
     
+    have := tpmn_lt n.
+    have del_pos: 0 < del by rewrite /del Q2R_minus Qabs_Rabs; lra.    
+    have eg0': 0 < (eps * (del * del)/ (1 + 1))%Q.
+    - rewrite !Q2R_mult Q2R_inv; try lra.
+      apply/Rmult_lt_0_compat/Rinv_0_lt_compat; try by rewrite /Q2R /=; lra.
+      exact/Rmult_lt_0_compat/Rmult_lt_0_compat.
+    have := phinx (eps * (del * del)/(1 + 1))%Q eg0'.
+      rewrite 
+    rewrite Rabs_mult.
   Admitted.
   
   Lemma M_cont: RQinv_M \is_continuous_functional.

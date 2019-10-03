@@ -33,12 +33,14 @@ Definition rep2cs X (delta: representation_of X): continuity_space.
 Defined.
 
 Notation cs:= continuity_space.
+Definition solution (X Y: cs) (f: X ->> Y) (F: name_space X ->> name_space Y):=
+  realizer delta delta F f.
 Notation queries X := (questions (name_space X)).
 Notation replies X := (answers (name_space X)).
 Notation "'Q_' X" := (queries X) (format "'Q_' X", at level 5): cs_scope.
 Notation "'A_' X" := (replies X) (format "'A_' X", at level 5): cs_scope.
 Notation "'B_' X" := (name_space X) (format "'B_' X", at level 5): cs_scope.
-Notation "F \solves f" := (realizer delta delta F f) (at level 30): cs_scope.
+Notation "F \solves f" := (solution f F) (at level 30): cs_scope.
 Notation "F \realizes f" := (F \solves (F2MF f)) (at level 30): cs_scope.
 Notation "phi '\describes' x '\wrt' X" := ((representation X) phi x) (at level 30): cs_scope.
 Notation "phi '\is_name_of' x" := (delta phi x) (at level 30): cs_scope.
@@ -74,7 +76,7 @@ Section continuity_spaces.
 
   Lemma rlzr_comp (X Y Z: cs) F G (f: Y -> Z) (g: X -> Y):
     F \realizes f -> G \realizes g -> (F \o G) \realizes (f \o_f g).
-  Proof. by rewrite -F2MF_comp_F2MF; apply/slvs_comp. Qed.
+  Proof. by rewrite /solution -F2MF_comp_F2MF; apply/slvs_comp. Qed.
 
   Lemma slvs_tight (X Y: cs) F (f g: X ->> Y):
     F \solves f -> f \tightens g -> F \solves g.
@@ -168,7 +170,7 @@ Section continuity_spaces.
                       /\
                       forall phi x, phi \is_name_of x -> F phi \is_subset_of names_of (f x).
   Proof.
-    move => sing; rewrite sing_rlzr_F2MF //.
+    move => sing; rewrite /solution sing_rlzr_F2MF //.
     by split; case => subs val; split => // phi x a b; exact/val.
   Qed.
 
@@ -189,7 +191,8 @@ Section continuity.
   Global Instance hcr_prpr (X Y: cs):
     Proper (@equiv X Y ==> iff) (@hcr X Y).
   Proof.
-    by move => f g feg; split; move => [F [Frf Fcont]]; exists F; [rewrite -feg | rewrite feg].
+    move => f g feg.
+    by split; move => [F [Frf Fcont]]; exists F; [rewrite /solution -feg | rewrite /solution feg].
   Qed.
   
   Lemma comp_hcr (X Y Z: cs) (f: X ->> Y) (g: Y ->> Z):

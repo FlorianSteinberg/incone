@@ -41,7 +41,7 @@ Section OPTIONSPACES.
   Lemma Some_cont: (@Some X) \is_continuous.
   Proof.
     exists (F2MF (fun phi => Some \o_f phi)).
-    split; try by rewrite F2MF_rlzr_F2MF => phi; exists phi.
+    split; try by rewrite F2MF_rlzr => phi; exists phi.
     by rewrite cont_F2MF => phi; exists (fun q => cons q nil) => q psi [/=<-].
   Qed.
 
@@ -67,16 +67,15 @@ Section OPTIONSPACES.
     - exists (fun q => [:: someq]) => q' phi' [coin _] Fphi' /=.
       case => [[psi [eq'' val']] | [eq'' ->]]; last by rewrite val.
       by have /= := eq someq; rewrite coin val eq''.      
-    rewrite rlzr_F2MF => phi [x [psi [eq psinx]] | phinN]; last first.
+    move => phi [x [psi [eq psinx]] | phinN]; last first.
     - split => [ | Fphi [[psi [eq val]] | [/=eq val]]]; first by exists phiy; right.
       + by have:= eq someq; rewrite phinN.
-      by have ->: Fphi = phiy by apply/functional_extensionality => q; rewrite val.
+      by exists y; have ->: Fphi = phiy by apply/functional_extensionality => q; rewrite val.
     have [[Fpsi FpsiFpsi] prp]:= rlzr psi x psinx.
     split; first by exists Fpsi; left; exists psi; split.
     move => Fpsi' /= [[psi' [eq' val']] | [eq'']]; last by have:= eq'' someq; rewrite eq.
-    suff eq'': psi = psi' by apply/prp => //; rewrite eq''.
-    apply/fun_ext => q.
-    by have /= := eq' q; rewrite eq /=; case.
+    suff eq'': psi = psi' by exists (f x); split; first by apply/prp; rewrite ?eq''.
+    by apply/fun_ext => q; have /= := eq' q; rewrite eq /=; case.
   Qed.
 
   (*

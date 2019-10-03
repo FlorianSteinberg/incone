@@ -50,7 +50,7 @@ Section cs_dscrt.
       exists (make_mf (fun n f => cnt n (f tt))).
       split => [n g h /= val val' | g]; first by apply/fun_ext; case; apply/sing/val'/val.
       by have [n val]:= sur (g tt); exists n.
-    exists (F2MF F); split; try by rewrite F2MF_rlzr_F2MF => fn n <-/=; apply/icf.
+    exists (F2MF F); split; try by rewrite F2MF_rlzr => fn n <-/=; apply/icf.
     rewrite cont_F2MF => phi; exists (fun _ => [:: tt]) => q' psi [eq _].
     by have ->: phi = psi by apply/fun_ext => str; elim str.    
   Qed.
@@ -81,7 +81,7 @@ Section TERMINAL.
     := (F2MF (fun _ => (fun _ => tt))).
 
   Lemma unit_fun_rlzr_spec (X: cs) : (@unit_fun_rlzr X) \realizes (@unit_fun X).
-  Proof. by rewrite F2MF_rlzr_F2MF. Qed.
+  Proof. by rewrite F2MF_rlzr. Qed.
 
   Lemma unit_fun_rlzr_cntop (X: cs): (@unit_fun_rlzr X) \is_continuous_operator.
   Proof. by rewrite cont_F2MF; exists (fun _ => nil). Qed.

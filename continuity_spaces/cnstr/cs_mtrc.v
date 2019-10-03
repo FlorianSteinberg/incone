@@ -182,7 +182,7 @@ Section continuity.
   Qed.
 
   Lemma mcont_cont (f: cs_M -> cs_N):
-    ((f: M2PM M -> M2PM N) \is_continuous)%metric -> f \is_continuous.
+    ((f: M -> N) \is_continuous)%metric -> f \is_continuous.
   Proof.
     move => cont.
     have /(countable_choice _ Tcount) [mu minmod]:= exists_minmod_met (cont (r _)).

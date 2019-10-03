@@ -105,3 +105,4 @@ Proof.
   rewrite /Phi /psi_Phi => psi F eq Fphi.
   by split => [/D_spec val | <-]; [apply/eq | apply/D_spec; rewrite eq].
 Qed.
+

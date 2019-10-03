@@ -363,8 +363,7 @@ Section Open_subsets_of_nat.
 
   Definition ON2Sw_rlzr:= F2MF ON2Sw_rlzrf: name_space cs_ON ->> name_space (cs_Sirp\^w).
   
-  Lemma ON2Sw_rlzr_spec:
-    ON2Sw_rlzr \realizes (@P2CF nat).
+  Lemma ON2Sw_rlzr_spec: ON2Sw_rlzr \realizes (@P2CF nat: cs_ON -> cs_Sirp\^w).
   Proof.
     apply/F2MF_rlzr_F2MF => phi A phinA n.
     have := phinA n; rewrite /P2CF.
@@ -393,10 +392,9 @@ Section Open_subsets_of_nat.
 
   Definition Sw2ON_rlzr:= F2MF Sw2ON_rlzrf : name_space (cs_Sirp\^w) ->> name_space cs_ON.
              
-  Lemma Sw2ON_rlzr_spec:
-    Sw2ON_rlzr \realizes (@CF2P nat).
+  Lemma Sw2ON_rlzr_spec: Sw2ON_rlzr \realizes (@CF2P nat: cs_Sirp\^w -> cs_ON).
   Proof.
-    rewrite F2MF_rlzr_F2MF => phi A phinA n.
+    rewrite F2MF_rlzr => phi A phinA n.
     have := phinA n; rewrite/CF2P.
     case: (A n) => [[]|].
     - case => [_ []// m eq]; split => // _.

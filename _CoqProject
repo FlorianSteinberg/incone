@@ -56,8 +56,8 @@ examples/implementing_operators.v
 examples/closed_choice.v
 examples/cantor_space.v
 examples/KleeneKreisel.v
-examples/Rstruct.v
-examples/Q_reals.v
+examples/reals/Rstruct.v
+examples/reals/Q_reals.v
 
 #extras that are not currently part of the library but can be compiled on demand:
 #computability/multivalued_application.v

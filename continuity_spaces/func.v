@@ -98,10 +98,10 @@ Section cs_functions.
   
   Lemma eval_rlzr_crct: eval_rlzr \realizes evaluation.
   Proof.
-    rewrite rlzr_F2MF => phi [[f fhcr] x] [[_ [<-  [phinf phinx]]]].
+    move => phi [[f fhcr] x] [[_ [<-  [phinf phinx]]]].
     rewrite /function_representation/= in phinf.
     split => [ | Fphi RphiFphi]; last first.
-    - by apply/rlzr_val_sing; [apply/F2MF_sing | | apply/phinx | | apply/eval_rlzr_val ].
+    - by exists (f x); split; first apply/rlzr_val/eval_rlzr_val/RphiFphi.
     have [ | Fphi FphiFphi]:= ntrvw.rlzr_dom phinf phinx; first by apply F2MF_tot.
     by exists Fphi; apply/eval_rlzr_val.
   Qed.

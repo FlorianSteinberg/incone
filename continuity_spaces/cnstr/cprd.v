@@ -105,11 +105,11 @@ Section isomorphisms.
 
   Lemma sig2fun_rlzr_spec: sig2fun_rlzr \realizes sig2fun.
   Proof.
-    rewrite F2MF_rlzr_F2MF => phi xn phinxn.
-    rewrite /= rlzr_F2MF => nf /= n eq.
+    rewrite F2MF_rlzr => phi xn phinxn.
+    rewrite /= => nf /= n eq.
     split => [ | psi val].
     - by exists (fun q => phi (n, q)) => q'; exists 2; rewrite /Umach.U/= eq.
-    suff <-: (fun q => phi (n, q)) = psi by apply/phinxn.
+    suff <-: (fun q => phi (n, q)) = psi by exists (xn n); split; first apply/phinxn.
     apply/fun_ext => q.
     have [m eq']:= val q; case: m eq' => //m; case: m => //m.
     have ->: Umach.U (sig2fun_rlzrf phi) nf (m.+2,q) = Umach.U (sig2fun_rlzrf phi) nf (2,q).
@@ -137,10 +137,10 @@ Section isomorphisms.
 
   Lemma fun2sig_rlzr_spec: fun2sig_rlzr \realizes sval.
   Proof.
-    rewrite rlzr_F2MF => psi xn /rlzr_F2MF rlzr.
+    rewrite /solution rlzr_F2MF => psi xn /rlzr_F2MF rlzr.
     split => [ | phin Fpsiphi n].
     - have prp: forall (i: I), exists phi: queries X -> replies X, forall q,
-      exists c : nat, Umach.U psi (fun _ : unit => i) (c,q) = Some (phi q).
+      exists c : nat, U psi (fun _ : unit => i) (c,q) = Some (phi q).
       + move => n.
         have [ | [phi val prp]]//:= rlzr (fun _ => n) n.
         by exists phi => q; apply/val.
@@ -203,7 +203,7 @@ Section isomorphisms.
   
   Lemma zip_rlzr_spec: zip_rlzr \realizes cs_zip.
   Proof.
-    rewrite rlzr_F2MF => phipsi [xn yn] /prod_name_spec [nm nm'].
+    rewrite /solution rlzr_F2MF => phipsi [xn yn] /prod_name_spec [nm nm'].
     split => [ | _ <- i]; first exact/F2MF_dom.
     by apply/prod_name_spec; split; [apply/nm | apply/nm'].
   Qed.
@@ -337,7 +337,7 @@ Section pointwise.
     pose np := (@pair B_ X B_ X: _ -> B_(X \*_cs X)).
     exists (make_mf (fun (phi: B_ (_\^I \*_cs _\^I)) psi => forall n,
 	 F (np (fun q => lprj phi (n, q), fun q => rprj phi (n, q))) (fun q => psi (n, q)))).
-    rewrite rlzr_F2MF; split => [ | phi [xn yn] /prod_name_spec [phinxn phinyn]].
+    rewrite /solution rlzr_F2MF; split => [ | phi [xn yn] /prod_name_spec [phinxn phinyn]].
     - apply cont_choice => [ | phi Fphi /=FphiFphi [n q]].
       + exact/countable_choice/prod_count/Q_count.
       pose phin:= np (fun q => lprj phi (n, q), fun q => rprj phi (n, q)).

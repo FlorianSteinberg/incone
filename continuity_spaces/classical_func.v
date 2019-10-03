@@ -81,7 +81,7 @@ Definition point_evaluation (X Y: cs) (x: X):= exist_c (@ptvl_val_cont X Y x).
 Lemma ptvl_cont (X Y: cs): (@point_evaluation X Y) \is_continuous.
 Proof.
   exists (F2MF (@D (queries X) (queries Y) (replies X) (replies Y))).
-  rewrite F2MF_rlzr_F2MF; split => [ | phi x phinx psi f psinf _].
+  rewrite F2MF_rlzr; split => [ | phi x phinx psi f psinf _].
   - rewrite cont_F2MF; exact/D_cont.
   have [ | [Fphi /D_spec val] prp]:= psinf phi x phinx; first exact/F2MF_dom.
   split => [ | Fphi' /D_spec val']; first by exists (Fphi).

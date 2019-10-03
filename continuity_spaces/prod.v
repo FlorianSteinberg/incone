@@ -27,10 +27,10 @@ Section products.
   Local Arguments snd_rlzr {X} {Y}.
 
   Lemma fst_rlzr_spec (X Y: cs): fst_rlzr \realizes (@fst X Y).
-  Proof. by rewrite F2MF_rlzr_F2MF  => phi x /prod_name_spec []. Qed.
+  Proof. by rewrite F2MF_rlzr  => phi x /prod_name_spec []. Qed.
 
   Lemma snd_rlzr_spec (X Y: cs): (@snd_rlzr X Y) \realizes snd.
-  Proof. by rewrite F2MF_rlzr_F2MF => phi x /prod_name_spec []. Qed.
+  Proof. by rewrite F2MF_rlzr => phi x /prod_name_spec []. Qed.
 
   Definition diag_rlzr (X: cs): name_space X ->> name_space _:=
     F2MF (fun (phi: name_space X) => pair (phi, phi)).
@@ -38,7 +38,7 @@ Section products.
 
   Lemma diag_rlzr_spec (X: cs):
     diag_rlzr \solves (@mf_diag X: X ->> _).
-  Proof. by rewrite F2MF_rlzr_F2MF => ? ? ?; apply/prod_name_spec. Qed.
+  Proof. by rewrite F2MF_rlzr => ? ? ?; apply/prod_name_spec. Qed.
 
   Lemma lprj_pair (X Y: cs) (phi: name_space X) (psi: name_space Y):
     lprj (pair (phi,psi)) =  phi.
@@ -51,7 +51,7 @@ Section products.
   Lemma fst_hcr (X Y: cs): (@fst X Y) \is_continuous.
   Proof.
     exists fst_rlzr; split; first exact/cont_F2MF/lprj_cont.
-    by rewrite F2MF_rlzr_F2MF => phi x /prod_name_spec [].
+    by rewrite F2MF_rlzr => phi x /prod_name_spec [].
   Qed.
 
   Lemma fst_cont (X Y: cs): (@fst X Y) \is_continuous.
@@ -60,7 +60,7 @@ Section products.
   Lemma snd_hcr (X Y: cs): (@mf_snd X Y) \has_continuous_realizer.
   Proof.
     exists snd_rlzr; split; first exact/cont_F2MF/rprj_cont.
-    by rewrite F2MF_rlzr_F2MF => phi x /prod_name_spec [].
+    by rewrite F2MF_rlzr => phi x /prod_name_spec [].
   Qed.
 
   Lemma snd_cont (X Y: cs): (@snd X Y) \is_continuous.

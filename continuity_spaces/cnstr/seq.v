@@ -37,7 +37,7 @@ Section SEQ.
     by apply/rep_sing; [apply/phinaL.2.1 | apply/phina'L'.2.1].
   Qed.
 
-  Definition cs_seq: continuity_space.
+  Canonical cs_seq: continuity_space.
     exists (seq X) (Build_naming_space someq (Q_count X) (list_count (A_count X))) rep_seq.
     by split; [apply/rep_seq_sur | apply/rep_seq_sing].
   Defined.
@@ -52,7 +52,7 @@ Section SEQ.
     by exists (fun _ => [::someq]) => q' psi /= [-> _].
   Qed.
     
-  Lemma size_rlzr_spec: size_rlzr \realizes size.
+  Lemma size_rlzr_spec: size_rlzr \realizes (size: cs_seq -> cs_nat).
   Proof.
     apply/F2MF_rlzr_F2MF => phi L/=; rewrite /size_rlzrf.
     elim : L phi => [phi -> | a L IH phi phinaL]//=.    
@@ -61,7 +61,7 @@ Section SEQ.
     by rewrite size_behead /= E.
   Qed.
 
-  Lemma size_cont: (size: cs_seq -> cs_nat) \is_continuous.
+  Lemma size_cont: size \is_continuous.
   Proof. by exists size_rlzr; split; try exact/size_rlzr_spec; exact/size_rlzr_cntop. Qed.
 
   Definition head_rlzrf phi (psi: B_ cs_seq) q := head (phi q) (psi q).
@@ -87,7 +87,7 @@ Section SEQ.
     by rewrite /head_rlzrf; have:= neq q; case: (rprj phi q) => //.
   Qed.
 
-  Lemma head_cont: (head : X -> cs_seq -> X) \is_continuous.
+  Lemma head_cont: head \is_continuous.
   Proof. by exists head_rlzr; split; try exact/head_rlzr_spec; exact/head_rlzr_cntop. Qed.
    
   Definition cons_rlzrf (phi : name_space X) psi := (fun q => (cons (phi q) (psi q))).
@@ -106,7 +106,7 @@ Section SEQ.
     by apply/F2MF_rlzr => phi L /prod_name_spec phinL /=; split => //; split => [a | ]; apply phinL.
   Qed.
 
-  Lemma cons_cont: (cons: X -> cs_seq -> cs_seq) \is_continuous.
+  Lemma cons_cont: cons \is_continuous.
   Proof.
     by exists cons_rlzr; split; try exact/cons_rlzr_spec; exact/cons_rlzr_cntop.
   Qed.

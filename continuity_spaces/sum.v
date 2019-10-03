@@ -14,7 +14,7 @@ Section sums.
 
   Lemma inl_rlzr_spec (X Y: cs): inl_rlzr \realizes (inl: X -> cs_sum X Y).
   Proof.
-    rewrite F2MF_rlzr_F2MF => phi x phinx.
+    rewrite F2MF_rlzr => phi x phinx.
     by split => [ | _ <-]; [eexists; split; first exact/eq_refl | exists (inl x)].
   Qed.
   
@@ -26,7 +26,7 @@ Section sums.
   
   Lemma inr_rlzr_spec (X Y: cs): inr_rlzr \realizes (inr: Y -> cs_sum X Y).
   Proof.
-    rewrite F2MF_rlzr_F2MF => phi y phiny.
+    rewrite F2MF_rlzr => phi y phiny.
     by split => [ | _ <-]; [eexists; split; first exact/eq_refl | exists (inr y)].
   Qed.
   
@@ -44,7 +44,7 @@ Section sums.
   
   Lemma paib_rlzr_crct (X: cs): (paib_rlzr X) \realizes (paib: cs_sum X X -> X).
   Proof.
-    rewrite F2MF_rlzr_F2MF => phi.
+    rewrite F2MF_rlzr => phi.
     by case => x; case; case => psi [eq /=psinx] //=; rewrite eq; case: psi psinx eq => //.
   Qed.
 

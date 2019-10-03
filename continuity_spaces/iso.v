@@ -61,7 +61,7 @@ Section isomorphisms.
   Definition isomorphic (X Y: cs):= exists f, @isomorphism X Y f.
   Arguments isomorphic {X Y}.
   
-  Notation "X ~=~ Y" := (@isomorphic X Y) (at level 2).
+  Notation "X ~=~ Y" := (@isomorphic X Y) (at level 30).
   
   Lemma iso_ref: Reflexive (@isomorphic).
   Proof. by move => X; exists (exist_c (id_cont X)); exists (exist_c (id_cont X)). Qed.
@@ -79,7 +79,7 @@ Section isomorphisms.
   Global Instance iso_equiv: Equivalence (@isomorphic).
   Proof. split; [exact/iso_ref | exact/iso_sym | exact/iso_trans]. Qed.
   End isomorphisms.
-  Notation "X ~=~ Y" := (@isomorphic X Y) (at level 2).
+  Notation "X ~=~ Y" := (@isomorphic X Y) (at level 30).
   
   Lemma iso_spec X Y: X ~=~ Y <->
                       exists (f: X -> Y), f \is_continuous

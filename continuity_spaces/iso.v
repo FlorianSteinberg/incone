@@ -29,6 +29,18 @@ Section equivalence.
   Global Instance equiv_equiv: Equivalence (@equivalent T).
   Proof. by split; try apply/equiv_ref; try apply/equiv_sym; try apply/equiv_trans. Qed.
 
+  Global Instance prod_rep_prpr T':
+    Proper ((@equivalent T) ==> (@equivalent T') ==> (@equivalent (T * T')))
+           (fun delta delta' => delta_(rep2cs delta \*_cs rep2cs delta')).
+  Proof.
+    move => deltaT delta'T [hcr rch] deltaT' delta'T' [hcr' rch'].
+    split.
+    - have:= fprd_hcr (X:= rep2cs _) (Y:= rep2cs _) (X':= rep2cs _) (Y':= rep2cs _) hcr hcr'.
+      by rewrite fprd_id.
+    have:= fprd_hcr (X:= rep2cs _) (Y:= rep2cs _) (X':= rep2cs _) (Y':= rep2cs _) rch rch'.
+    by rewrite fprd_id.
+  Qed.
+
   Global Instance hcr_prpr T' (f: T ->> T'):
     Proper ((@equivalent T) ==> (@equivalent T') ==> iff)
            (fun delta delta' => hcr (f: rep2cs delta ->> rep2cs delta')).
@@ -99,8 +111,8 @@ Section isomorphisms.
   Proof. exact/rep2cs_prpr. Qed.
 
   Global Instance slvbl_prpr (X X' Y Y':cs):
-    Proper ((@equiv B_(X) B_(Y)) ==> (@equiv X Y) ==> iff) (@realizer _ _ (rep X) _ _ (rep Y)).
-  Proof. by move => F G eq f g eq'; rewrite eq' eq. Qed.
+    Proper ((@equiv X Y) ==> (@equiv B_(X) B_(Y)) ==> iff) (@solution X Y).
+  Proof. by rewrite/solution => F G eq f g eq'; rewrite eq' eq. Qed.
   
   Global Instance prod_prpr:
     Proper (isomorphic ==> isomorphic ==> isomorphic) cs_prod.

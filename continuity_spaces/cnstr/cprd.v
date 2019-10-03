@@ -60,7 +60,7 @@ Section sequence_space.
     move => rlzr; apply/rlzr_F2MF => /= phi z phinz.
     split => [ | Fphi val i]; last first.
     - by have /rlzr_F2MF rlzr':= rlzr i; have [_ prp]:= rlzr' _ _ phinz; apply/prp/val.
-    suff /full_choice [tphi_i tphi_ic] :
+    suff /(countable_choice _ I_count) [tphi_i tphi_ic] :
       forall i, exists phi_i, phi_i \describes ((f i) z) \wrt X /\ F i phi phi_i.
     - by exists (fun nq => tphi_i nq.1 nq.2) => n; have []:= tphi_ic n.
     move => i; have /rlzr_F2MF rlzr':= (rlzr i).
@@ -73,13 +73,13 @@ Section sequence_space.
   Proof.
     suff fcont: continuous ((fun z => (fun n => sval (f n) z)) : (Z -> cs_Iprod)).
     - by exists (exist_c fcont).
-    have /full_choice [F Fprp]: forall i, (sval (f i)) \is_continuous.
+    have /(countable_choice _ I_count) [F Fprp]: forall i, (sval (f i)) \is_continuous.
     - by move => i; apply/cfun_spec; case: (f i).
     have rlzr: forall i, (F i) \realizes (sval (f i)) by apply Fprp.
     have cont: forall i, (F i) \is_continuous_operator by apply Fprp.
     exists (make_mf (fun phi psi => forall i, (F i) phi (fun q => (psi (i,q))))).
     split => [ phi Fphi val /= |]; try exact/cprd_rlzr.
-    have /full_choice[tLf mod]:
+    have /(countable_choice _ I_count)[tLf mod]:
       forall i, exists Lf, forall Fphi,
             (F i) phi Fphi -> forall q', certificate (F i) (Lf q') phi q' (Fphi q').
     - move => i; have [Lf mod]:= cont i phi (fun q => Fphi (i, q)) (val i).
@@ -108,22 +108,22 @@ Section isomorphisms.
     end.
 
   Definition sig2fun_rlzr: B_ (X\^I) ->> B_ (cs_I c-> X) := F2MF sig2fun_rlzrf.
-
+  
   Lemma sig2fun_rlzr_spec: sig2fun_rlzr \realizes sig2fun.
   Proof.
     rewrite F2MF_rlzr => phi xn phinxn.
     rewrite /= => nf /= n eq.
     split => [ | psi val].
-    - by exists (fun q => phi (n, q)) => q'; exists 2; rewrite /Umach.U/= eq.
+    - by exists (fun q => phi (n, q)) => q'; exists 2; rewrite /U/= eq.
     suff <-: (fun q => phi (n, q)) = psi by exists (xn n); split; first apply/phinxn.
     apply/fun_ext => q.
     have [m eq']:= val q; case: m eq' => //m; case: m => //m.
-    have ->: Umach.U (sig2fun_rlzrf phi) nf (m.+2,q) = Umach.U (sig2fun_rlzrf phi) nf (2,q).
-    - elim: m => // m; rewrite -addn1 -addn1 /Umach.U /=.
+    have ->: U (sig2fun_rlzrf phi) nf (m.+2,q) = U (sig2fun_rlzrf phi) nf (2,q).
+    - elim: m => // m; rewrite -addn1 -addn1 /U /=.
       by case: (U_rec (sig2fun_rlzrf phi) nf q).
-    by rewrite /Umach.U/= eq => [[]].
+    by rewrite /U/= eq => [[]].
   Qed.
-
+  
   Lemma sig2fun_rlzr_cntop: sig2fun_rlzr \is_continuous_operator.
   Proof.
     rewrite cont_F2MF.
@@ -131,7 +131,7 @@ Section isomorphisms.
     case E: Lq'.1 => [ | n L]; first by exists [::] => psi _; rewrite /sig2fun_rlzrf E.
     by exists ([:: (n.2, Lq'.2)]); rewrite /sig2fun_rlzrf E => psi [->].
   Qed.
-
+                                                                 
   Lemma sig2fun_cont: sig2fun \is_continuous.
   Proof.
     by exists sig2fun_rlzr; split; try exact/sig2fun_rlzr_spec; apply/sig2fun_rlzr_cntop.
@@ -150,7 +150,7 @@ Section isomorphisms.
       + move => n.
         have [ | [phi val prp]]//:= rlzr (fun _ => n) n.
         by exists phi => q; apply/val.
-      have [phin nm]:= full_choice _ prp.
+      have [phin nm]:= (countable_choice _ I_count _ _ prp).
       by exists (fun nq => phin nq.1 nq.2) => n q /=; apply nm.
     have [ | [phi val prp]]//:= rlzr (fun _ => n) n.
     apply/prp => q.
@@ -160,7 +160,8 @@ Section isomorphisms.
   Lemma fun2sig_rlzr_cntop: fun2sig_rlzr \is_continuous_operator.
   Proof.
     move => phi Fphi val.
-    suff /full_choice: forall nq', exists L, certificate fun2sig_rlzr L phi nq' (Fphi nq') by trivial.
+    suff /(countable_choice _ (Q_count _)):
+      forall nq', exists L, certificate fun2sig_rlzr L phi nq' (Fphi nq') by trivial.
     move => [n q'].
     have [ | mf mod]:= @FU_cont _ _ _ _ (D (fun _ => n)) phi (fun q => Fphi (n, q)).
     - by rewrite D_spec; apply/val.
@@ -269,8 +270,8 @@ Section pointwise.
   Lemma ptw_rlzr_cntop Q A Q' A' (F: (Q -> A) ->> (Q' -> A')):
     F \is_continuous_operator -> (ptw_rlzr F) \is_continuous_operator.
   Proof.
-    move => cont => phin Fphin val.
-    have /full_choice [Lf mod]//:
+    move => cont phin Fphin val.
+    have /(countable_choice _ I_count) [Lf mod]//:
          forall i, exists Lf, forall q',
                certificate F (Lf q') (fun  q => phin (i, q)) q' (Fphin (i, q')).
     - by move => i; apply/cont/val.
@@ -285,11 +286,11 @@ Section pointwise.
   Proof.
     move => slvs phin xs phinxs [ys val].
     split => [ | Fphi val'].
-    - suff /full_choice [Fphi prp]: forall i, exists Fphi, F (fun q => phin (i, q)) Fphi.
+    - suff /(countable_choice _ I_count) [Fphi prp]: forall i, exists Fphi, F (fun q => phin (i, q)) Fphi.
       - by exists (fun iq => Fphi iq.1 iq.2).
       move => i; have []//:= slvs (fun q => phin (i, q)) (xs i); first exact/phinxs.
       by exists (ys i); apply/val.
-    suff /full_choice [fa prp] i: exists fai,
+    suff /(countable_choice _ I_count) [fa prp] i: exists fai,
                     (fun q' => Fphi (i, q')) \describes fai \wrt Y
                     /\
                     f (xs i) fai. 
@@ -332,7 +333,7 @@ Section pointwise.
     (cptw_op op) = (@ptw (X * Y) Z op) \o_f (@cs_zip I somei I_count _ _).
   Proof. done. Qed.
   
-  Lemma cptw_cont X (op: cs_prod X X -> X): op \is_continuous -> (cptw_op op) \is_continuous.
+  Lemma cptw_cont X (op: X \*_cs X -> X): op \is_continuous -> (cptw_op op) \is_continuous.
   Proof.
     move => [F [Fcont /rlzr_F2MF Frop]].
     pose np := (@pair B_ X B_ X: _ -> B_(X \*_cs X)).

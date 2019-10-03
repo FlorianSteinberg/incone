@@ -67,3 +67,4 @@ examples/reals/Q_reals.v
 #examples/unfinished/lp.v
 #examples/unfinished/sd_reals.v
 #examples/unfinished/sdvsc.v
+#examples/unfinished/division_for_Q_reals.v

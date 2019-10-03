@@ -372,8 +372,9 @@ Qed.
 Local Open Scope cs_scope.
 Lemma UI2UIi_cont: (@id _: UI_inc -> cs_UI) \is_continuous.
 Proof.
-  exists (F2MF UI_inc_to_UI); split; first exact/F2MF_rlzr/UI_inc_to_UI_correct.
+  exists (F2MF UI_inc_to_UI); split; last exact/F2MF_rlzr/UI_inc_to_UI_correct.
   apply/cont_F2MF => phi.
+  
 Admitted.
 
 Lemma UIi2UI_cont: (@id _: cs_UI -> UI_inc) \is_continuous.
@@ -435,7 +436,7 @@ Section all_reals.
     by exists (Pos.to_nat p).+1; rewrite /count_pos Pos2Nat.id.
   Qed.
 
-  Definition cs_Z:= @cs_id Z Z_count.
+  Definition cs_Z:= discrete_space Z_count.
 
   Definition rep_R := (F2MF ZUI2R) \o (@representation (cs_prod cs_Z cs_UI)).
 

@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs.
-Require Import all_cont cs naming_spaces cs_names.
+Require Import all_cont representations cs naming_spaces cs_names.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -146,12 +146,11 @@ End products.
 Class Uncurry T (f : T) src tgt := {prog : src -> tgt}.
 Arguments prog {T} f {src tgt _}.
 
-Instance Uncurry_base (A B : cs) f : @Uncurry (A -> B) f _ _ :=
-  {| prog := f |}.
-Instance Uncurry_step (A B : cs) C (f : A -> B -> C)
-                       T (g : forall a, @Uncurry (B -> C) (f a) B T) :
-                                          @Uncurry (A -> B -> C) f (cs_prod A B) T :=
-  {| prog := (fun x : A * B => @prog _ _ _ _ (g (fst x)) (snd x)) |}.
+Instance Uncurry_base (X Y: cs) f: @Uncurry (X -> Y) f _ _ := {| prog := f |}.
+Instance Uncurry_step (X Y: cs) Z (f : X -> Y -> Z)
+                       T (g: forall a, @Uncurry (Y -> Z) (f a) Y T) :
+                                          @Uncurry (X -> Y -> Z) f (cs_prod X Y) T :=
+  {| prog := (fun x : X \*_cs Y => @prog _ _ _ _ (g (fst x)) (snd x)) |}.
 Notation "f '\is_continuous'" := (@continuous _ _ (prog f)) (at level 2): curry_scope.
 Delimit Scope curry_scope with curry.
 Open Scope curry_scope.

@@ -18,10 +18,11 @@ Section metric_representation.
   Context (M: MetricSpace) (T: Type) (T_count: T \is_countable) (r: T -> M).
   Hypothesis rdense: codom (F2MF r) \is_dense_subset.
 
-  Definition metric_representation : (nat -> T) ->> M := make_mf (fun phi x =>
-    forall n, d(x, r (phi n)) <= /2^n).
+  Definition metric_names:= Build_naming_space 0%nat nat_count T_count.
+
+  Local Notation rep_met := (make_mf (fun (phi: metric_names) x => forall n, d(x, r (phi n)) <= /2^n)).
   
-  Lemma mrep_sur: metric_representation \is_cototal.
+  Lemma mrep_sur: rep_met \is_cototal.
   Proof.
     move => x; have /dns_tpmn prp:= rdense.
     suff/(countable_choice _ nat_count) [ phi phinx]:
@@ -30,10 +31,7 @@ Section metric_representation.
     by move => n; have [_ [[t <-] dst]]:= prp x n; exists t.
   Qed.
 
-  Lemma mrep_spec phi: metric_representation phi === efficient_limit (r \o_f phi).
-  Proof. done. Qed.
-
-  Lemma mrep_sing: metric_representation \is_singlevalued.
+  Lemma mrep_sing: rep_met \is_singlevalued.
   Proof.
     move => phi x y phinx phiny.
     apply/dst0_eq/cond_eq_f => [ | n _]; first exact/accf_tpmn.
@@ -43,17 +41,15 @@ Section metric_representation.
     by rewrite Rabs_pos_eq; [apply/dst_trngl | apply/dst_pos].
   Qed.
 
-  Definition metric_names: naming_space.
-    exists nat T.
-    - exact/0%nat.
-    - exact/nat_count.
-    exact/T_count.
-  Defined.
+  Lemma mrep_rep: rep_met \is_representation.
+  Proof. by split; try apply/mrep_sing; try apply/mrep_sur. Qed.
+
+  Definition metric_representation: representation_of M:= Build_representation_of mrep_rep.
+
+  Lemma mrep_spec phi: metric_representation phi === efficient_limit (r \o_f phi).
+  Proof. done. Qed.
   
-  Definition metric_cs: cs.
-    exists M metric_names metric_representation.
-    split; [apply/mrep_sur | apply/mrep_sing].
-  Defined.
+  Definition metric_cs:= rep2cs metric_representation.
 
   Lemma cnst_dscr t:
     (cnst t) \describes (r t) \wrt metric_cs.
@@ -138,7 +134,7 @@ Section continuity.
     have [psi' psi'ny]:= get_description (y: cs_M).
     pose psi k := if (k < (foldr maxn 0%nat (Lf n)).+1)%nat then phi k else psi' k.
     have [ | [Fpsi val'] prp']:= rlzr psi y.
-    - rewrite /psi => k.
+    - rewrite /= /psi => k.
       case E: (k < (foldr maxn 0 (Lf n)).+1)%nat; [ | apply psi'ny].
       apply/dst_le; first by rewrite dst_sym; apply/dst.
       + exact/phinx.
@@ -223,7 +219,7 @@ Section continuity.
       lia.
     exists F; split; try exact/Fcont.
     apply/sing_rlzr_F2MF; first exact/cont_sing.
-    split => [phi [x phinx] | phi x Fphi phinx val n].
+    split => [phi [x phinx] | phi x Fphi phinx val /= n].
     - suff /=/(countable_choice _ nat_count) [h /(countable_choice _ nat_count) [h']]:
         forall n, exists k, exists s,
             (mu (phi k) n.+1 <= k)%nat /\

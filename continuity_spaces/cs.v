@@ -17,20 +17,22 @@ Structure continuity_space :=
     representation: name_space ->> space;
     represented: representation \is_representation;
   }.
-Notation rep := representation.
-Notation delta := (rep _).
 
 Global Instance rep_rep (X: continuity_space): (representation X) \is_representation.
 Proof. exact/represented. Qed.
-
-Global Instance rep_rep_of (X: continuity_space): representation_of X.
-by exists (name_space X) (representation X); apply/represented.
-Defined.
 
 Definition rep2cs X (delta: representation_of X): continuity_space.
   exists X (representations.name_space) delta.
   apply representations.representation.
 Defined.
+
+Definition get_representation_of (X: continuity_space): representation_of X.
+  by exists (name_space X) (representation X); apply/represented.
+Defined.
+
+Notation rep := get_representation_of.
+Notation "'delta_' X" := (get_representation_of X) (at level 30, format "'delta_' X").
+Notation delta := (get_representation_of _).
 
 Notation cs:= continuity_space.
 Definition solution (X Y: cs) (f: X ->> Y) (F: name_space X ->> name_space Y):=

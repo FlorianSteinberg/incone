@@ -1,7 +1,7 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrnat ssrbool.
 From rlzrs Require Import all_rlzrs.
 Require Import  axioms classical_count classical_cont classical_mach classical_func.
-Require Import all_names all_cs_base dscrt seq_cont sub.
+Require Import all_names all_cs_base dscrt seq_cont.
 From metric Require Import pointwise.
 Require Import ClassicalChoice ChoiceFacts.
 
@@ -135,7 +135,7 @@ Section isomorphisms.
     make_mf (fun (psi: name_space cs_I c-> X) phi =>
 	       forall n, \F_(U psi) (fun _ => n) (fun q => phi (n, q))).
 
-  Lemma fun2sig_rlzr_spec: fun2sig_rlzr \realizes sval.
+  Lemma fun2sig_rlzr_spec: fun2sig_rlzr \realizes (sval: _ c-> _ -> _).
   Proof.
     rewrite /solution rlzr_F2MF => psi xn /rlzr_F2MF rlzr.
     split => [ | phin Fpsiphi n].

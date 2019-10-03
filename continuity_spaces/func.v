@@ -21,24 +21,24 @@ Section cs_functions.
 
   Local Notation "X c-> Y" := (codom associate) (at level 2).
 
-  Definition function_representation := make_mf (fun psi (f: X c-> Y) =>
-                                                        associate psi (projT1 f)).
+  Local Notation rep_fun := (make_mf (fun (psi:function_names _ _) (f: X c-> Y) => associate psi (projT1 f))).
 
-  Lemma fun_rep_sur: function_representation \is_cototal.
+  Lemma fun_rep_sur: rep_fun \is_cototal.
   Proof. by move => [f [psi ass]]/=; exists psi. Qed.
 
-  Lemma fun_rep_sing: function_representation \is_singlevalued.
+  Lemma fun_rep_sing: rep_fun \is_singlevalued.
   Proof.
     move => phi [f [psi ass]] [f' [psi' ass']] rlzr rlzr'.
     exact/eq_sub/(mf_rlzr_f_sing rlzr rlzr').
   Qed.
 
-  Canonical cs_fun: cs.
-    exists {x | x \from X c-> Y} (function_names B_ _ B_ _) function_representation.
-    by split; [apply/fun_rep_sur | apply/fun_rep_sing].
+  Definition function_representation : representation_of (X c-> Y).
+    exists (function_names _ _) rep_fun; split; try apply/fun_rep_sing; try apply/fun_rep_sur.
   Defined.
 
-  Definition evaluation (fx: cs_prod cs_fun X) := (projT1 fx.1) fx.2.  
+  Canonical cs_functions:= rep2cs function_representation.
+
+  Definition evaluation (fx: cs_functions \*_cs X) := (projT1 fx.1) fx.2.  
 
   Local Open Scope name_scope.
   Definition eval_rlzrM (psiphi: function_names B_(X) B_(Y) \*_ns B_(X)) :=
@@ -106,7 +106,7 @@ Section cs_functions.
     by exists Fphi; apply/eval_rlzr_val.
   Qed.
 End cs_functions.
-Notation "X c-> Y" := (cs_fun X Y) (at level 2): cs_scope.
+Notation "X c-> Y" := (cs_functions X Y) (at level 2): cs_scope.
 
 Section associates.
   Definition id_ass X KLq := match KLq.1: seq (queries X * replies X) with

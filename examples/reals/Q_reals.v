@@ -172,14 +172,14 @@ Section addition.
   Qed.
 End addition.
 
-  Definition Qabs r := Zabs (Qnum r) # (Qden r).
+Definition Qabs r := Zabs (Qnum r) # (Qden r).
 
-  Lemma Qabs_Rabs r: Q2R (Qabs r) = \|r|.
-  Proof.
-    rewrite /Qabs/Q2R/= -Rabs_Zabs -{1}(Rabs_pos_eq (/QDen r)).
-    - by symmetry; apply/Rabs_mult.
-    by apply/Rlt_le/Rinv_0_lt_compat; have /IZR_lt:= Pos2Z.is_pos (Qden r).
-  Qed.
+Lemma Qabs_Rabs r: Q2R (Qabs r) = \|r|.
+Proof.
+  rewrite /Qabs/Q2R/= -Rabs_Zabs -{1}(Rabs_pos_eq (/QDen r)).
+  - by symmetry; apply/Rabs_mult.
+  by apply/Rlt_le/Rinv_0_lt_compat; have /IZR_lt:= Pos2Z.is_pos (Qden r).
+Qed.
 
 Section multiplication.
   (**
@@ -498,11 +498,11 @@ Section metric_Qreals.
     by exists (fun n => [::Qpower (1 + 1) (-Z.of_nat n)]) => n psi [->].
   Qed.
 
+  Lemma equiv_RQ_Rm: (delta_ RQ) \equivalent_to (delta_ Rm).
+  Proof. by split; try apply/Rm2RQ_cont; try apply/RQ2Rm_cont. Qed.
+    
   Lemma iso_RQ_Rm: RQ ~=~ Rm.
-  Proof.
-    apply/iso_spec; exists id; split; first exact/RQ2Rm_cont.
-    by exists id; split; first exact/Rm2RQ_cont.
-  Qed.
+  Proof. exact/equiv_iso/equiv_RQ_Rm. Qed.
 
   Lemma RQ_Rm_lim: @limit RQ =~= @limit Rm.
   Proof.

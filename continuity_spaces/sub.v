@@ -1,15 +1,17 @@
 From mathcomp Require Import ssreflect ssrfun.
 From rlzrs Require Import all_rlzrs.
 From metric Require Import all_metric.
-Require Import axioms all_names cs.
+Require Import axioms all_names representations cs.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+Local Open Scope cs_scope.
 Section subspace.
   Context (X: cs) (P: subset X).
-  Definition rep_sub:=  make_mf (fun phi (t: {x | P x}) => rep X phi (sval t)).
+
+  Local Notation rep_sub:= (make_mf (fun phi (t: {x | P x}) => phi \describes (sval t) \wrt X)).
 
   Lemma rep_sub_sur: rep_sub \is_cototal.
   Proof. by move => [s Ps]; have [phi phins]:= get_description s; exists phi. Qed.
@@ -20,10 +22,12 @@ Section subspace.
     by apply eq_sub; apply (@rep_sing X phi x y).
   Qed.
 
-  Canonical cs_sub: cs.
-    exists {x | x \from P} (name_space _) rep_sub.
-    by split; [apply/rep_sub_sur | apply/rep_sub_sing].
-  Defined.
+  Lemma rep_sub_rep: rep_sub \is_representation.
+  Proof. by split; try apply/rep_sub_sing; try apply/rep_sub_sur. Qed.
+
+  Definition sub_representation := Build_representation_of rep_sub_rep. 
+
+  Canonical sub_space := rep2cs sub_representation.
 End subspace.
 
 Section subspaces.

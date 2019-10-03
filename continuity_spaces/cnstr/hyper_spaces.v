@@ -186,7 +186,7 @@ Section Opens_and_closeds.
     rewrite -(CF2PK (sval A)) -(CF2PK (sval A')).
     rewrite -(complement_involutive (CF2P (sval A))) -(complement_involutive (CF2P (sval A'))).
     f_equal; f_equal; rewrite -[LHS]P2CFK -[RHS]P2CFK.
-    by have ->:= choice_dict.mf_rlzr_f_sing phinA phinA'.    
+    by have /= ->:= choice_dict.mf_rlzr_f_sing phinA phinA'.    
   Qed.  
 
   Definition names_closeds:= Build_naming_space someq (Q_count \O(X)) (A_count \O(X)).

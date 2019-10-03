@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun.
 From rlzrs Require Import all_rlzrs.
-Require Import all_names representations cs prod sum func classical_func.
+Require Import axioms all_names representations cs prod sum func classical_func.
 Require Import Morphisms.
 
 Set Implicit Arguments.
@@ -8,6 +8,40 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope cs_scope.
+Section equivalence.
+  Context (T: Type).
+  Lemma equiv_ref: Reflexive (@equivalent T).
+  Proof. by move => delta; split; apply/(id_cont (rep2cs delta)). Qed.
+
+  Lemma equiv_sym: Symmetric (@equivalent T).
+  Proof. by move => ? ?; case. Qed.
+
+  Lemma equiv_trans: Transitive (@equivalent T).
+  Proof.
+    move => delta delta' delta'' [hcr rch] [hcr' rch'].
+    split.
+    - have := (@comp_hcr (rep2cs delta) (rep2cs delta') (rep2cs delta'') mf_id mf_id hcr hcr').
+      by rewrite comp_id_r.
+    have := (@comp_hcr (rep2cs delta'') (rep2cs delta') (rep2cs delta) mf_id mf_id rch' rch).
+    by rewrite comp_id_r.
+  Qed.
+
+  Global Instance equiv_equiv: Equivalence (@equivalent T).
+  Proof. by split; try apply/equiv_ref; try apply/equiv_sym; try apply/equiv_trans. Qed.
+
+  Global Instance hcr_prpr T' (f: T ->> T'):
+    Proper ((@equivalent T) ==> (@equivalent T') ==> iff)
+           (fun delta delta' => hcr (f: rep2cs delta ->> rep2cs delta')).
+  Proof.
+    move => deltaT delta'T [hcr rch] deltaT' delta'T' [hcr' rch'].
+    split => cont.
+    - rewrite -(comp_id_l f) -(comp_id_r f).
+      exact/(comp_hcr (Y:= rep2cs deltaT'))/hcr'/(comp_hcr (Y := rep2cs deltaT))/cont/rch.
+    rewrite -(comp_id_l f) -(comp_id_r f).
+    exact/(comp_hcr (Y:= rep2cs delta'T'))/rch'/(comp_hcr (Y:= rep2cs delta'T))/cont/hcr.
+  Qed.
+End equivalence.
+
 Section isomorphisms.
   Definition isomorphism (X Y: cs) (f: X c-> Y) :=
     exists (g: Y c-> X), cancel (projT1 f) (projT1 g) /\ cancel (projT1 g) (projT1 f).
@@ -46,7 +80,7 @@ Section isomorphisms.
     - by exists f; split; first exact/ass_cont; exists g; split; first exact/ass_cont.
     by exists (exist_c cont); exists (exist_c cont').
   Qed.
-
+  
   Definition rep2cs X (delta: representation_of X): cs.
     exists X (representations.name_space) delta.
     apply representations.representation.

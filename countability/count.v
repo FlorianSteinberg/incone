@@ -92,10 +92,10 @@ Section enumerability.
 End enumerability.
 
 Section countability.
-  Definition countable Q := exists cnt: nat ->> Q, cnt \is_singlevalued /\ cnt \is_cototal.
-  Notation "T '\is_countable'" := (countable T) (at level 2).
+  Definition is_countable Q := exists cnt: nat ->> Q, cnt \is_singlevalued /\ cnt \is_cototal.
+  Notation "T '\is_countable'" := (is_countable T) (at level 2).
 
-  Lemma enum_count Q: enumerable Q -> countable Q.
+  Lemma enum_count Q: enumerable Q -> Q \is_countable.
   Proof. by move => [cnt /pf2MF_cotot sur]; exists (pf2MF cnt); split; first exact/pf2MF_sing. Qed.
 
   Lemma pfun_count Q: (exists cnt: nat -> option Q, cnt \is_psurjective) -> Q \is_countable.
@@ -151,7 +151,7 @@ Section countability.
     exact/comp_cotot/pf2MF_cotot/unpickle_sur/map_sur/sur/pf2MF_sing.
   Qed.
 End countability.
-Notation "T '\is_countable'" := (countable T) (at level 2).
+Notation "T '\is_countable'" := (is_countable T) (at level 2).
 Notation "T '\is_enumerable'" := (enumerable T) (at level 2).
 
 Section mathcomp.
@@ -274,10 +274,10 @@ Section enumerable_types.
     by rewrite -F2MF_cotot; case => e d; exists (e, d).
   Qed.
 
-  Lemma Q_count: countable (QArith_base.Q).
+  Lemma Q_count: is_countable (QArith_base.Q).
   Proof. exact/enum_count/Q_enum. Qed.
 
-  Lemma enum_eqT_choice (Q: eqType) T: inhabited Q -> enumerable Q ->
+  Lemma enum_eqT_choice (Q: eqType) T: inhabited Q -> Q \is_enumerable ->
                                      FunctionalCountableChoice_on T -> FunctionalChoice_on Q T.
   Proof.
     move => [someq] /(inh_enum someq) [cnt sur] countable_choice F tot.
@@ -288,3 +288,7 @@ Section enumerable_types.
     by have:= fprp (sec q); rewrite /R cncl.
   Qed.
 End enumerable_types.
+
+Ltac countability :=
+  repeat apply/list_count || apply/prod_count || apply/sum_count || apply/option_count
+  || apply/unit_count || apply/bool_count || apply/nat_count || apply/Z_count || apply/Q_count.      

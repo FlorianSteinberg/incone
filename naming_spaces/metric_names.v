@@ -5,7 +5,7 @@
 From mathcomp Require Import ssreflect eqtype seq ssrbool ssrfun ssrnat.
 From Coquelicot Require Import Coquelicot.
 From metric Require Import reals all_metric standard.
-Require Import all_count all_cont search seq_cont  classical_cont classical_count.
+Require Import axioms all_count all_cont search seq_cont  classical_cont classical_count.
 Require Import Reals Psatz.
 
 Set Implicit Arguments.
@@ -330,7 +330,7 @@ Section continuity.
   Lemma cont_f_cont (F: B -> B): F \is_continuous_function <-> (F \is_continuous)%metric.
   Proof.
     split => [/cont_F2MF cont | cont].
-    - apply/metric_spaces.scnt_cont => phi phin.
+    - apply/metric_spaces.scnt_cont => [ | phi phin]; first exact/countable_choice/nat_count. 
       rewrite lim_lim => lmt.
       by apply/(cont_scnt cont); first exact/lmt.
     apply/cont_F2MF/scnt_cont.
@@ -346,7 +346,8 @@ Section continuity.
     F \is_continuous <-> (@continuous_wrt (@sub_met B d (domain F)) d F).
   Proof.
     split => [/cont_scnt cont | /metrics.cont_scnt cont].
-    - apply/metrics.scnt_cont => phi phin lmt; rewrite lim_lim.
+    - apply/metrics.scnt_cont => [ | phi phin lmt]; first exact/countable_choice/nat_count.
+      rewrite lim_lim.
       - apply/(cont (sval phi) (fun n => sval (phin n))).
         by rewrite -lim_lim; apply/lmt.
       - move => n /=; rewrite /pointwise.ptw.
@@ -373,7 +374,8 @@ Section continuity.
     (continuous_wrt (@d (subspace (dom F))) baire_distance (sub_fun f))%metric.
   Proof.
     move => eq; split => [/cont_scnt cont | /metrics.cont_scnt cont].
-    - apply/metrics.scnt_cont => phi phin lmt; rewrite lim_lim.
+    - apply/metrics.scnt_cont => [ | phi phin lmt]; first exact/countable_choice/nat_count.
+      rewrite lim_lim.
       - apply/(cont (sval phi) (fun n => sval (phin n))).
         by rewrite -lim_lim; apply/lmt.
       - move => n /=; rewrite /pointwise.ptw /sub_fun/=.

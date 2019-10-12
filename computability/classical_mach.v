@@ -679,7 +679,7 @@ Section mathcomp.
   Notation B' := (Q' -> A').
   Local Open Scope name_scope.
 
-  Lemma all_ovrt (P: subset B): countable Q -> countable A -> overt P.
+  Lemma all_ovrt (P: subset B): Q \is_countable -> A \is_countable -> overt P.
   Proof.
     case: (classic (exists phi, phi \from P)) => [[sp spP] | nex]; last first.
     - by exists (fun _ => None); split => [phi [] | phi phiP]//; exfalso; apply/nex; exists phi.
@@ -706,7 +706,7 @@ Section mathcomp.
         dom (pf2MF dp) === dom (projection_on (dom F)) /\ (projection_on (dom F)) \extends pf2MF dp.
   Proof.
     move => count count'.
-    apply/exists_po_choice/count_eqT_choice; first exact/list_count/prod_count.
+    apply/exists_po_choice/count_eqT_choice; first by countability.
     by right; apply/inhabits/nil.
   Qed.
 End mathcomp.

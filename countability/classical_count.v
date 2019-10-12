@@ -147,3 +147,6 @@ Proof.
   apply (@count_eqT_choice eTQ); first exact/count.
   by right; apply/inhabits/someq.
 Qed.
+
+Ltac classical_countability := apply/countable_choice || apply/count_enum || apply/count_eqT_choice;
+                               countability.

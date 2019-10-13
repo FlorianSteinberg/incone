@@ -16,7 +16,7 @@ Section SEQ.
     match L with
       | nil => forall q, phi q = [::]
       | x :: L' => (forall q, phi q <> [::])
-                     /\ (forall a, (fun q => head a (phi q)) \describes x \wrt X)
+                     /\ (forall a, (fun q => head a (phi q)) \describes x \wrt (delta_ X))
                      /\ rep_seq_rec (fun q => behead (phi q)) L'
       end.
 

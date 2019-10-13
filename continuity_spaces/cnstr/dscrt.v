@@ -42,7 +42,7 @@ Section cs_dscrt.
   Lemma dscrt_dscrt: discrete discrete_space.
   Proof.
     move => Y f.
-    pose R phi psi := psi \describes (f (phi tt)) \wrt Y.
+    pose R phi psi := psi \describes (f (phi tt)) \wrt delta.
     have [ | | F icf]:= countable_choice _ _ _ R; try by move => phi; apply/rep_sur.
     - have [cnt [sing sur]]:= S_count.
       exists (make_mf (fun n f => cnt n (f tt))).

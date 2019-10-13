@@ -52,14 +52,14 @@ Section metric_representation.
   Definition metric_cs:= repf2cs metric_representation.
 
   Lemma cnst_dscr t:
-    (cnst t) \describes (r t) \wrt metric_cs.
+    (cnst t) \describes (r t) \wrt (delta_ metric_cs).
   Proof. by move => n; rewrite dstxx; apply/tpmn_pos. Qed.
 
-  Lemma cnst_sqnc_dscr t: (cnst t) \describes (cnst (r t)) \wrt (metric_cs\^w).
-  Proof. by apply/Iprd_base => n m; rewrite dstxx; apply/tpmn_pos. Qed.
+  Lemma cnst_sqnc_dscr t: (cnst t) \describes (cnst (r t)) \wrt (delta_ (metric_cs\^w)).
+  Proof. by apply/srep_base => n m; rewrite dstxx; apply/tpmn_pos. Qed.
   
   Lemma Q_sqnc_dscr tn:
-    (fun neps => tn neps.1) \describes (fun n => r (tn n)) \wrt (metric_cs\^w).
+    (fun neps => tn neps.1) \describes (fun n => r (tn n)) \wrt (delta_(metric_cs\^w)).
   Proof. by move => k m; rewrite dstxx; exact/tpmn_pos. Qed.
 
   Lemma lim_mlim : @limit metric_cs =~= metric_limit.

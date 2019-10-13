@@ -36,7 +36,6 @@ Notation "'A_' X" := (replies X) (format "'A_' X", at level 5): cs_scope.
 Definition solution (X Y: cs) f F := (solution_wrt (delta_ X) (delta_ Y) f F).
 Notation "F \solves f" := (solution f F) (at level 30): cs_scope.
 Notation "F \realizes f" := (F \solves (F2MF f)) (at level 30): cs_scope.
-Notation "phi '\describes' x '\wrt' X" := ((representation X) phi x) (at level 30): cs_scope.
 Notation "phi '\is_name_of' x" := (delta phi x) (at level 30): cs_scope.
 Notation "phi '\is_description_of' x" := (delta phi x) (at level 30): cs_scope.
 Definition descriptions_of (X: cs) (x: X) := (representation X)\^-1 x.
@@ -44,7 +43,7 @@ Notation names_of x := (descriptions_of x).
 Notation some_query := (someq (name_space _)).
 
 Section continuity_spaces.
-  Lemma Q_count (X: cs): (queries X) \is_countable.
+  Lemma Q_count (X: cs): (Q_ X) \is_countable.
   Proof. exact/Q_count. Qed.
 
   Lemma Q_inh (X: cs): inhabited (queries X).
@@ -143,7 +142,7 @@ Section continuity_spaces.
   Lemma rlzr_spec (X Y: cs) F (f: X -> Y): F \realizes f <->
     dom delta \is_subset_of (dom F)
     /\
-    forall phi x, phi \describes x \wrt X -> F phi \is_subset_of names_of (f x).
+    forall phi x, phi \describes x \wrt (delta_ X) -> F phi \is_subset_of names_of (f x).
   Proof.
     split => [rlzr | [dm vl]].
     - by split => [ | phi x]; [apply/rlzr_dom/rlzr | apply/rlzr_val/rlzr].

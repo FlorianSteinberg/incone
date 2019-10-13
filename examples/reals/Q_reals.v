@@ -326,14 +326,14 @@ Section limit.
      considered as sequences of real numbers.
    **)
   
-  Lemma cnst_name q: (cnst q) \describes (Q2R q) \wrt RQ.
+  Lemma cnst_name q: (cnst q) \describes (Q2R q) \wrt (delta_ RQ).
   Proof. by rewrite /cnst => eps; split_Rabs; lra. Qed.
   
-  Lemma cnst_sqnc_name q: (cnst q) \describes (cnst (Q2R q)) \wrt (RQ\^w).
+  Lemma cnst_sqnc_name q: (cnst q) \describes (cnst (Q2R q)) \wrt (delta_(RQ\^w)).
   Proof. by rewrite /cnst => n eps ineq; split_Rabs; lra. Qed.
   
   Lemma Q_sqnc_name qn:
-    (fun neps => qn neps.1) \describes (fun n => Q2R (qn n)) \wrt (RQ\^w).
+    (fun neps => qn neps.1) \describes (fun n => Q2R (qn n)) \wrt (delta_(RQ\^w)).
   Proof. by move => n eps ineq /=; split_Rabs; lra. Qed.
   
   Lemma lim_not_cont: ~ (lim: RQ\^w ->> RQ) \has_continuous_realizer.
@@ -349,7 +349,7 @@ Section limit.
     have mprop n eps: (n, eps) \from (Lf 1%Q) -> (n <= m)%nat by move => /(leq_bigmax fst) /=.
     pose yn:= (fun n => Q2R (if (n <= m)%nat then 0%Q else 3#1)): RQ\^w.
     pose rn (p: nat * Q) := if (p.1 <= m)%nat then 0%Q else 3#1.
-    have rnyn: rn \describes yn \wrt (RQ\^w) by apply/Q_sqnc_name.
+    have rnyn: rn \describes yn \wrt (delta_(RQ\^w)) by apply/Q_sqnc_name.
     have limyn3: lim (yn: nat -> M2PM metric_R) 3.
     - exists (S m) => n /leP ineq; rewrite /yn.
       by case: ifP => [/leP ineq' | ]; [lia | rewrite /distance/=; split_Rabs; lra].
@@ -363,10 +363,10 @@ Section limit.
     - have [a' crt]:= Lmod 1%Q; rewrite (crt rn coin phi)// (crt (cnst 0%Q) _ psi) //.
       exact/coin_ref.
     have := Qeq_eqR (psi 1%Q) (phi 1%Q) eq.
-    have psin0: psi \describes 0 \wrt ( RQ).
+    have psin0: psi \describes 0 \wrt (delta_(RQ)).
     - apply /(rlzr_val_sing _ rlzr)/Fqnpsi/lim_cnst; first exact/metric_spaces.lim_sing.
       by rewrite /cnst/=/Q2R /=; split_Rabs; lra.
-    have phin3: phi \describes 3 \wrt RQ.
+    have phin3: phi \describes 3 \wrt (delta_(RQ)).
     - by apply/(rlzr_val_sing _ rlzr)/Frnphi/limyn3; first exact/metric_spaces.lim_sing.
     have l01: 0 < Q2R 1 by rewrite /Q2R/=; lra.
     have:= psin0 1%Q l01; have:= phin3 1%Q l01.

@@ -13,7 +13,7 @@ Section OPTIONSPACES.
 
   Definition rep_opt:= make_mf (fun (phi: option_names) (ox: option X) =>
                match ox with
-               | some x => exists psi, phi =1 Some \o_f psi /\ psi \describes x \wrt X
+               | some x => exists psi, phi =1 Some \o_f psi /\ psi \describes x \wrt (delta_ X)
                | None => phi =1 cnst None
                end).
 

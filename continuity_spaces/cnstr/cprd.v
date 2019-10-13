@@ -9,25 +9,26 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Section sequence_space.
-  Context (X: cs) (I: Type) (somei: I) (I_count: I \is_countable).
-
+Section sequence_representation.
+  Context X (delta: representation_of X) (I: Type) (somei: I).
+  Hypothesis (I_count: I \is_countable).
+  
   Definition Iprod_names : naming_space.
-    exists (I * (queries X))%type (replies X).
+    exists (I * (questions (name_space delta)))%type (answers (name_space delta)).
     - exact/(somei,someq).
     - exact/prod_count/Q_count/I_count.
     exact/A_count.
   Defined.
 
-  Local Notation rep_Iprod := (make_mf (fun (phi: Iprod_names) (xn: I -> space X) =>
-    forall i, (fun p => (phi (i,p))) \describes (xn i) \wrt X)).
+  Local Notation rep_Iprod := (make_mf (fun (phi: Iprod_names) (xn: I -> X) =>
+    forall i, (fun p => (phi (i,p))) \describes (xn i) \wrt delta)).
   
   Lemma rep_Iprod_sur: rep_Iprod \is_cototal.
   Proof.
-    move => xn.
-    pose R n phi:= phi \describes (xn n) \wrt X.
+    have [sur sing]:= represented delta => xn.
+    pose R n phi:= phi \describes (xn n) \wrt delta.
     have [ | phi phiprp]:= countable_choice I I_count _ R; last by exists (fun p => phi p.1 p.2).
-    by move => n; have [phi phinx]:= (get_description (xn n)); exists phi.
+    by move => n; have [phi phinx]:= sur (xn n); exists phi.
   Qed.
 
   Lemma rep_Iprod_sing: rep_Iprod \is_singlevalued.
@@ -40,14 +41,22 @@ Section sequence_space.
   Lemma rep_Iprod_rep: rep_Iprod \is_representation.
   Proof. by split; try apply/rep_Iprod_sing; try apply/rep_Iprod_sur. Qed.
 
-  Definition sequence_representation:= Build_representation_of rep_Iprod_rep.
-
-  Canonical cs_Iprod: cs := repf2cs sequence_representation.
+  Canonical sequence_representation:= Build_representation_of rep_Iprod_rep.
   
-  Lemma Iprd_base (an: cs_Iprod) (phi: B_ cs_Iprod):
-    phi \describes an \wrt cs_Iprod <-> forall i, (fun q => phi (i,q)) \describes (an i) \wrt X.
+  Lemma srep_base (an: I -> X) phi:
+    phi \describes an \wrt sequence_representation
+    <->
+    forall i, (fun q => phi (i,q)) \describes (an i) \wrt delta.
   Proof. done. Qed.
+End sequence_representation.
 
+Section sequence_space.
+  Context (X: cs) (I: Type) (somei: I).
+  Hypothesis (I_count: I \is_countable).
+
+  Canonical sequence_space := repf2cs (sequence_representation (delta_ X) somei I_count).
+
+  Notation cs_Iprod := sequence_space.
   Lemma cprd_rlzr (Z: cs) (f: I -> Z -> X) F:
     (forall i, (F i) \realizes (f i)) ->
     (make_mf (fun phi psi => forall i, F i phi (fun q => (psi (i, q)))):_ ->> B_ cs_Iprod)
@@ -58,7 +67,7 @@ Section sequence_space.
     split => [ | Fphi val i]; last first.
     - by have /rlzr_F2MF rlzr':= rlzr i; have [_ prp]:= rlzr' _ _ phinz; apply/prp/val.
     suff /(countable_choice _ I_count) [tphi_i tphi_ic] :
-      forall i, exists phi_i, phi_i \describes ((f i) z) \wrt X /\ F i phi phi_i.
+      forall i, exists phi_i, phi_i \describes ((f i) z) \wrt (delta_ X) /\ F i phi phi_i.
     - by exists (fun nq => tphi_i nq.1 nq.2) => n; have []:= tphi_ic n.
     move => i; have /rlzr_F2MF rlzr':= (rlzr i).
     have [[phi_i val] prp]:= rlzr' _ _ phinz.
@@ -88,7 +97,8 @@ Section sequence_space.
   Qed.
 End sequence_space.
 Notation "X '\^w'" :=
-  (cs_Iprod X 0 nat_count) (at level 7, format "X '\^w'").    
+  (sequence_space X 0 nat_count) (at level 7, format "X '\^w'").    
+Notation cs_Iprod := sequence_space.
 
 Section isomorphisms.
   Context (I: Type) (somei: I) (I_count: I \is_countable).
@@ -287,7 +297,7 @@ Section pointwise.
       move => i; have []//:= slvs (fun q => phin (i, q)) (xs i); first exact/phinxs.
       by exists (ys i); apply/val.
     suff /(countable_choice _ I_count) [fa prp] i: exists fai,
-                    (fun q' => Fphi (i, q')) \describes fai \wrt Y
+                    (fun q' => Fphi (i, q')) \describes fai \wrt (delta_ Y)
                     /\
                     f (xs i) fai. 
     - by exists fa; split => i; have []:= prp i.
@@ -379,9 +389,9 @@ Notation ptwn := (@ptw nat).
 Section limits.
   Definition limit X: X\^w ->> X:= make_mf (fun xn x =>
     exists phin phi,
-      phin \describes xn \wrt (X\^w)
+      phin \describes xn \wrt (delta_(X\^w))
       /\
-      phi \describes x \wrt X
+      phi \describes x \wrt (delta_ X)
       /\
       (phi \is_limit_of (curry phin))%name).
   Arguments limit {X}.
@@ -471,7 +481,8 @@ Notation "F \is_sequentially_continuous_operator":= (seq_cont.sequentially_conti
 Section cs_names.
   Lemma BequivB (B: naming_space):
     delta_(B) \equivalent_to
-          (sequence_representation (discrete_space (A_count B)) (default_question B) (Q_count B)).
+          (sequence_representation
+             (discrete_representation (A_count B)) (default_question B) (Q_count B)).
   Proof.
     split.
     - apply/F2MF_cont; exists (fun phi ntt => phi (ntt.1)).

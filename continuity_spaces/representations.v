@@ -20,9 +20,12 @@ Section representations.
   realizer delta delta' F f.
 
   Definition has_continuous_solution_wrt
-      (B B': naming_space) (X X': Type) (delta: B ->> X) (delta': B' ->> X') (f: X ->> X') :=
+      (B B': naming_space) X X' (delta: B ->> X) (delta': B' ->> X') (f: X ->> X') :=
     exists F, F \is_continuous_operator /\ solution_wrt delta delta' f F. 
 
+  Definition continuous_wrt (B B': naming_space) X X' (delta: B ->> X) (delta': B' ->> X') f :=
+    has_continuous_solution_wrt delta delta' (F2MF f).
+  
   Global Instance unpair_is_rep (B B': naming_space):
     is_representation (F2MF (@unpair B B')).
     split; [apply/unpair_sur | apply/F2MF_sing].
@@ -79,4 +82,8 @@ Section representations_of.
     by have := @sum_is_representation _ _ _ (represented delta) _ _ _ (represented delta').
   Defined.
 End representations_of.
-Notation "delta '\equivalent_to' delta'" := (equivalent delta delta') (at level 30).
+Notation "delta '\equivalent_to' delta'" := (equivalent delta delta') (at level 30): cs_scope.
+Notation "phi '\names' x '\wrt' delta" :=
+  (delta (phi: name_space delta) x) (at level 30): cs_scope.
+Notation "phi '\describes' x '\wrt' delta" :=
+  (delta (phi: name_space delta) x) (at level 30): cs_scope.

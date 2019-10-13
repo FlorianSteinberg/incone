@@ -45,8 +45,8 @@ that the Cantor space and the two point space are equipped with.**)
 Lemma nz_bool_not_cont: ~ nz_bool \has_continuous_realizer.
 Proof.
   apply/hcs_spec => [[F [cont rlzr]]].
-  have nmb: xpred0 \describes false \wrt cs_bool by trivial.
-  have nmc: xpred0 \describes xpred0 \wrt Cantor by trivial.
+  have nmb: xpred0 \describes false \wrt (delta_ cs_bool) by trivial.
+  have nmc: xpred0 \describes xpred0 \wrt (delta_ Cantor) by trivial.
   have [ | [Fxpred0 val] prp]:= rlzr xpred0 xpred0 nmc; first by exists false; split => // [[]].
   have [b [eq' Fxnf ]]//:= prp Fxpred0 val.
   move: eq' => [[]]//; apply/negP => eq'; have eq: b = false by case: b eq' Fxnf.
@@ -58,7 +58,7 @@ Proof.
   suff nz_valfalse: nz_bool chi false by have:= (nz_bool_sing nz_valtrue nz_valfalse).
   have [psi psinchi] := get_description (chi: Cantor).  
   have [ | [Fpsi val'] cnd]:= rlzr psi chi psinchi; first exact/nz_bool_tot.
-  suff Fpsinf: Fpsi \describes (false: cs_bool) \wrt _.
+  suff Fpsinf: Fpsi \is_description_of (false: cs_bool).
   - by have [b [? Fpsinb ]]:= cnd Fpsi val'; have <-:= (rep_sing Fpsinb Fpsinf).  
   rewrite /= -Fxnf; apply/mod/val'.
   apply/coin_agre => [[n []]] lstn; rewrite psinchi.

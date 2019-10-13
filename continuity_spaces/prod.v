@@ -118,7 +118,7 @@ Section products.
   Proof. by move => cont; rewrite /continuous F2MF_lcry; exact/lcry_hcr. Qed.
 
   Lemma rcry_rlzr_spec (X Y Z: cs) F (f: X * Y ->> Z) psi y:
-    F \solves f -> psi \describes y \wrt Y ->
+    F \solves f -> psi \is_description_of y ->
     (rcry_rlzr F psi) \solves (rcry f y).
   Proof.
     move => rlzr psiny phi x phinx xyfd.

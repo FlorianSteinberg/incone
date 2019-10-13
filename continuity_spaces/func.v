@@ -36,7 +36,7 @@ Section cs_functions.
     exists (function_names _ _) rep_fun; split; try apply/fun_rep_sing; try apply/fun_rep_sur.
   Defined.
 
-  Canonical cs_functions:= rep2cs function_representation.
+  Canonical cs_functions:= repf2cs function_representation.
 
   Definition evaluation (fx: cs_functions \*_cs X) := (projT1 fx.1) fx.2.  
 
@@ -98,10 +98,10 @@ Section cs_functions.
   
   Lemma eval_rlzr_crct: eval_rlzr \realizes evaluation.
   Proof.
-    move => phi [[f fhcr] x] [[_ [<-  [phinf phinx]]]].
+    move => phi [[f fhcr] x] [[? ?] [[<- <-] [phinf phinx]]].
     rewrite /function_representation/= in phinf.
     split => [ | Fphi RphiFphi]; last first.
-    - by exists (f x); split; first apply/rlzr_val/eval_rlzr_val/RphiFphi.
+    - by exists (f x); split; last apply/rlzr_val/eval_rlzr_val/RphiFphi.
     have [ | Fphi FphiFphi]:= ntrvw.rlzr_dom phinf phinx; first by apply F2MF_tot.
     by exists Fphi; apply/eval_rlzr_val.
   Qed.

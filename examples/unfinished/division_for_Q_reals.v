@@ -132,39 +132,12 @@ Section inversion.
     have : 0 < tpmm by rewrite -tpmm_spec; apply/tpmn_lt.
     have neq' : 0 <> r.
     - rewrite /r.
-      suff:0<\|x - phi (Qmin (del /(1 + 1)) (eps * (del * del)/(1 + 1))) - x| by split_Rabs; nra.
-      apply/Rlt_le_trans/Rabs_triang_inv.
-      have := phinx (Qmin (del/ (1 + 1)) (eps * (del * del)/(1 + 1))).
-      rewrite Q2R_inv; last by move => /Qeq_eqR; lra.
-    have ->: /x - /r = (r - x)/(x * r) by field; lra.
-    rewrite Rabs_mult.
-    apply/Rle_trans.
-    - apply/Rmult_le_compat_r; try exact/Rabs_pos.
-      rewrite Rabs_minus_sym; apply/phinx; rewrite /Qmin.
-      have del_pos: 0 < del by rewrite /del Q2R_minus Qabs_Rabs; lra.
-      case : Qlt_le_dec => _.
-      - by rewrite Q2R_div //; apply/Rdiv_lt_0_compat; last by rewrite /Q2R /=; lra.
-      rewrite Q2R_div //; apply/Rdiv_lt_0_compat; last by rewrite /Q2R/=; lra.
-      by rewrite !Q2R_mult; apply/Rmult_lt_0_compat/Rmult_lt_0_compat.
-    move: neq'; rewrite /r /Qmin; case: Qlt_le_dec => le neq'; last first.    
-    apply/Rle_trans; first by apply/Rmult_le_compat_r; [apply/Rabs_pos | apply/Qle_Rle/le].
-    rewrite Rabs_Rinv; try nra.
-    
-    suff: 0 < \|x - phi (eps * (del * del)/(1 + 1))%Q - x| by split_Rabs; nra.
-    apply/Rlt_le_trans/Rabs_triang_inv.
-    have := Rabs_triang_inv.
-    have eq: forall r, r = r - x + x by intros; ring.
-    rewrite (eq (phi _)) => eq'.
-    
-    have := tpmn_lt n.
-    have del_pos: 0 < del by rewrite /del Q2R_minus Qabs_Rabs; lra.    
-    have eg0': 0 < (eps * (del * del)/ (1 + 1))%Q.
-    - rewrite !Q2R_mult Q2R_inv; try lra.
-      apply/Rmult_lt_0_compat/Rinv_0_lt_compat; try by rewrite /Q2R /=; lra.
-      exact/Rmult_lt_0_compat/Rmult_lt_0_compat.
-    have := phinx (eps * (del * del)/(1 + 1))%Q eg0'.
-      rewrite 
-    rewrite Rabs_mult.
+      suff: \|x - phi (Qmin (del /(1 + 1)) (eps * (del * del)/(1 + 1)))| < \|x| by split_Rabs; nra.
+      apply/Rle_lt_trans/ineq/Rle_trans; first apply/phinx.
+      rewrite -Rmin_Qmin.
+      rewrite /Rmin.
+      case: Rle_dec.
+
   Admitted.
   
   Lemma M_cont: RQinv_M \is_continuous_functional.

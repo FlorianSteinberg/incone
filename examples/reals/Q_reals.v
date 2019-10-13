@@ -1,4 +1,5 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat eqtype bigop.
+From mathcomp.analysis Require Import reals.
 From rlzrs Require Import all_rlzrs.
 From metric Require Import all_metric reals standard Qmetric.
 Require Import axioms all_cs cs_mtrc metric_names hyper_spaces.
@@ -81,7 +82,7 @@ Section reals_via_rational_approximations.
      Structure that we added will be automatically found by Coq whenever it is needed (or at
      least in most cases).
    **)
-  Canonical RQ := rep2cs Q_representation.
+  Canonical RQ := repf2cs Q_representation.
 End reals_via_rational_approximations.
   
 Section addition.
@@ -146,7 +147,7 @@ Section addition.
      Note that the type of Rplus is R -> R -> R, so to make the function a function between
      represented spaces it needs to first be curried to have type R * R.
    **)
-  Lemma Rplus_rlzr_spec: F2MF Rplus_rlzrf \realizes (curry Rplus).
+  Lemma Rplus_rlzr_spec: F2MF Rplus_rlzrf \realizes (uncurry Rplus).
   Proof.
     apply/F2MF_rlzr => phi x /prod_name_spec phinx eps eg0.
     rewrite Q2R_plus.
@@ -165,7 +166,7 @@ Section addition.
     by rewrite /Rplus_rlzrf/lprj/rprj => psi q' /= [-> [->]].
   Qed.
 
-  Lemma Rplus_cont: (curry Rplus) \is_continuous.
+  Lemma Rplus_cont: (uncurry Rplus) \is_continuous.
   Proof.
     apply/F2MF_cont; exists Rplus_rlzrf.
     by split; try apply/Rplus_rlzr_spec; try apply/Rplus_rlzrf_cntf.
@@ -246,8 +247,7 @@ Section multiplication.
   (**
      The proof of correctness is now pretty straight forward.
    **)
-  Lemma Rmult_rlzr_spec:
-    (F2MF Rmult_rlzr) \realizes (curry Rmult: RQ \*_cs RQ -> RQ).
+  Lemma Rmult_rlzr_spec: (F2MF Rmult_rlzr) \realizes (uncurry Rmult).
   Proof.
     rewrite F2MF_rlzr => phi [x y] /prod_name_spec [phinx psiny] eps eg0 /=.
     rewrite Q2R_mult; have eq: eps * /2 = (eps/(1 + 1))%Q by rewrite Q2R_div /Q2R /=; try lra.
@@ -302,7 +302,7 @@ Section multiplication.
       by rewrite /get_ub/lprj/rprj => eps psi /= [-> [-> [-> [->]]]].
   Qed.  
 
-  Lemma Rmult_cont: (curry Rmult) \is_continuous.
+  Lemma Rmult_cont: (uncurry Rmult) \is_continuous.
   Proof.
     apply/F2MF_cont; exists Rmult_rlzr.
     by split; try apply/Rmult_rlzr_spec; try apply/Rmult_rlzr_cntf.
@@ -391,7 +391,7 @@ Section limit.
   Definition lim_eff_rlzrf phin eps :=
       phin ((Pos_size (Qden eps)).+1, (eps/(1 + 1))%Q): Q.
     
-  Definition lim_eff_rlzr : name_space (RQ\^w) ->> name_space RQ := F2MF lim_eff_rlzrf.
+  Definition lim_eff_rlzr : B_(RQ\^w) ->> B_ RQ := F2MF lim_eff_rlzrf.
     
   Lemma lim_eff_rlzr_spec:
     lim_eff_rlzr \solves lim_eff.

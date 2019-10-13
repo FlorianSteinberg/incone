@@ -9,23 +9,27 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope cs_scope.
-Canonical cs_names (B: naming_space): cs.
-  by exists B B mf_id; split => [q | ]; last exact/F2MF_sing; exists q.
-Defined.
+Global Instance id_name_is_rep (B: naming_space): (@mf_id B) \is_representation.
+by split => [q | ]; last exact/F2MF_sing; exists q.
+Qed.
+
+Canonical name_rep (B: naming_space) := Build_representation_of (id_name_is_rep B).
+
+Canonical cs_names B := repf2cs (name_rep B).
 
 Coercion cs_names: naming_space >-> cs.
 
 Lemma id_cntf (Q A: Type): (@id (Q -> A)) \is_continuous_functional.
 Proof. by move => phi; exists (fun q => [::q]) => q' psi [->]. Qed.
 
-Lemma rep_hcr (X: cs): (rep X) \has_continuous_realizer.
+Lemma rep_hcs (X: cs): (delta_ X) \has_continuous_solution.
 Proof.
   exists mf_id.
   split => [ | /= phi _ <- [x /=] phinx]; first exact/cont_F2MF/id_cntf.
   by split => [| _ <-]; [exists phi | exists x].
 Qed.
 
-Lemma rep_inv_hcr (X: cs): (rep X\^-1) \has_continuous_realizer.
+Lemma rep_inv_hcr (X: cs): (delta_ X\^-1) \has_continuous_realizer.
 Proof.
   exists mf_id; split; first exact/cont_F2MF/id_cntf.
   by apply/slvs_delta; rewrite comp_id_r; apply/icf_spec/id_icf_inv.
@@ -33,13 +37,11 @@ Qed.
 
 Lemma prod_rep_spec D D': delta =~= F2MF (@unpair D D').
 Proof.
-  rewrite /= /product_representation comp_F2MF.
-  by move => phipsi [phi psi] /=; split; case => // <- <-.
+  by rewrite /= rcmp_F2MF => phipsi [phi psi] /=; split; case => // <- <-.
 Qed.
 
 Lemma sum_rep_spec D D': delta =~= F2MF (@slct D D').
 Proof.
-  rewrite /= /sum_representation sing_rcmp; last exact/F2MF_sing.
   move => phipsi [phi | psi]/=.
   split => [[[phi' [-> ->] | psi' []]]// | ->]; last by exists (inl phi).
   by split => [[[phi' []| psi' [-> ->]]] | ->]; last by exists (inr psi).
@@ -62,8 +64,8 @@ Section baire_fprd.
     by exists (F2MF f); split; last exact/id_rlzr_tight/tight_ref; apply/cont_F2MF.
   Qed.
       
-  Lemma hcr_cntop (B B': naming_space) (F: B ->> B'):
-    F \has_continuous_realizer <-> exists G, G \tightens F /\ G \is_continuous_operator.
+  Lemma hcs_cntop (B B': naming_space) (F: B ->> B'):
+    F \has_continuous_solution <-> exists G, G \tightens F /\ G \is_continuous_operator.
   Proof.
     by split => [[G [rlzr cont]] | [G [tight cont]]]; exists G; split; try apply/id_rlzr_tight.
   Qed.
@@ -72,7 +74,7 @@ Section baire_fprd.
     F \is_singlevalued -> F \has_continuous_realizer <-> F \is_continuous_operator.
   Proof.
     move => sing; split => [[G [cont /id_rlzr_tight rlzr]] |cont]; first exact/cont_exte/sing/cont.
-    by apply/hcr_cntop; exists F; split; try apply/tight_ref.
+    by apply/hcs_cntop; exists F; split; try apply/tight_ref.
   Qed.
         
   Context (B B' D D': naming_space).

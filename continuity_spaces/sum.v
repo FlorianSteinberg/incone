@@ -8,15 +8,12 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope cs_scope.  
 Section sums.
-  Definition inl_rlzr (X Y: cs) := F2MF (@linc (name_space X) (name_space Y)): _ ->> name_space (cs_sum _ _).
+  Definition inl_rlzr (X Y: cs) := F2MF (@linc (B_ X) (B_ Y)): _ ->> B_ (_ \+_cs _).
   Arguments inl_rlzr {X} {Y}.
   Arguments mf_inl {S} {T}.
 
   Lemma inl_rlzr_spec (X Y: cs): inl_rlzr \realizes (inl: X -> cs_sum X Y).
-  Proof.
-    rewrite F2MF_rlzr => phi x phinx.
-    by split => [ | _ <-]; [eexists; split; first exact/eq_refl | exists (inl x)].
-  Qed.
+  Proof. by rewrite F2MF_rlzr => phi x phinx; eexists; split; first exact/eq_refl. Qed.
   
   Lemma inl_cont (X Y: cs): (@inl X Y: X -> cs_sum X Y) \is_continuous.
   Proof. by exists inl_rlzr; split; last exact/inl_rlzr_spec; apply/cntop_cntf/linc_cntf. Qed.
@@ -25,10 +22,7 @@ Section sums.
   Arguments inr_rlzr {X} {Y}.
   
   Lemma inr_rlzr_spec (X Y: cs): inr_rlzr \realizes (inr: Y -> cs_sum X Y).
-  Proof.
-    rewrite F2MF_rlzr => phi y phiny.
-    by split => [ | _ <-]; [eexists; split; first exact/eq_refl | exists (inr y)].
-  Qed.
+  Proof. by rewrite F2MF_rlzr => phi y phiny; eexists; split; first exact/eq_refl. Qed.
   
   Lemma inr_cont (X Y: cs): (@inr X Y: _ -> cs_sum _ _) \is_continuous.
   Proof. by exists inr_rlzr; split; last exact/inr_rlzr_spec; exact/cntop_cntf/rinc_cntf. Qed.
@@ -40,13 +34,10 @@ Section sums.
   Arguments paib {T}.
   
   Definition paib_rlzr (X: cs):=
-    F2MF (@paib (name_space X) \o_f (@slct (B_ X) (B_ X))): B_ (cs_sum _ _) ->> _.
+    F2MF (@paib (B_ X) \o_f (@slct (B_ X) (B_ X))): B_ (_ \+_cs _) ->> _.
   
   Lemma paib_rlzr_crct (X: cs): (paib_rlzr X) \realizes (paib: cs_sum X X -> X).
-  Proof.
-    rewrite F2MF_rlzr => phi.
-    by case => x; case; case => psi [eq /=psinx] //=; rewrite eq; case: psi psinx eq => //.
-  Qed.
+  Proof. by rewrite F2MF_rlzr => phi [] x [] [] psi [eq /= psinx]//=; rewrite eq.  Qed.
 
   Lemma paib_rlzr_cntop (X: cs): (@paib_rlzr X) \is_continuous_operator.
   Proof.

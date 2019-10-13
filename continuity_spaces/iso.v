@@ -11,7 +11,7 @@ Local Open Scope cs_scope.
 Section equivalence.
   Context (T: Type).
   Lemma equiv_ref: Reflexive (@equivalent T).
-  Proof. by move => delta; split; apply/(id_cont (rep2cs delta)). Qed.
+  Proof. by move => delta; split; apply/(id_cont (repf2cs delta)). Qed.
 
   Lemma equiv_sym: Symmetric (@equivalent T).
   Proof. by move => ? ?; case. Qed.
@@ -20,9 +20,9 @@ Section equivalence.
   Proof.
     move => delta delta' delta'' [hcr rch] [hcr' rch'].
     split.
-    - have := (@comp_hcr (rep2cs delta) (rep2cs delta') (rep2cs delta'') mf_id mf_id hcr hcr').
+    - have := (@comp_hcs (repf2cs delta) (repf2cs delta') (repf2cs delta'') mf_id mf_id hcr hcr').
       by rewrite comp_id_r.
-    have := (@comp_hcr (rep2cs delta'') (rep2cs delta') (rep2cs delta) mf_id mf_id rch' rch).
+    have := (@comp_hcs (repf2cs delta'') (repf2cs delta') (repf2cs delta) mf_id mf_id rch' rch).
     by rewrite comp_id_r.
   Qed.
 
@@ -31,26 +31,26 @@ Section equivalence.
 
   Global Instance prod_rep_prpr T':
     Proper ((@equivalent T) ==> (@equivalent T') ==> (@equivalent (T * T')))
-           (fun delta delta' => delta_(rep2cs delta \*_cs rep2cs delta')).
+           (@product_representation T T').
   Proof.
     move => deltaT delta'T [hcr rch] deltaT' delta'T' [hcr' rch'].
     split.
-    - have:= fprd_hcr (X:= rep2cs _) (Y:= rep2cs _) (X':= rep2cs _) (Y':= rep2cs _) hcr hcr'.
+    - have:= fprd_hcr hcr hcr'.
       by rewrite fprd_id.
-    have:= fprd_hcr (X:= rep2cs _) (Y:= rep2cs _) (X':= rep2cs _) (Y':= rep2cs _) rch rch'.
+    have:= fprd_hcr rch rch'.
     by rewrite fprd_id.
   Qed.
 
-  Global Instance hcr_prpr T' (f: T ->> T'):
-    Proper ((@equivalent T) ==> (@equivalent T') ==> iff)
-           (fun delta delta' => hcr (f: rep2cs delta ->> rep2cs delta')).
+  Global Instance hcs_prpr T':
+    Proper ((@equivalent T) ==> (@equivalent T') ==> (@equiv T T') ==> iff) 
+           (fun delta delta' f => has_continuous_solution_wrt delta delta' f).
   Proof.
-    move => deltaT delta'T [hcr rch] deltaT' delta'T' [hcr' rch'].
+    move => deltaT delta'T [hcr rch] deltaT' delta'T' [hcr' rch'] f f' eq.
     split => cont.
-    - rewrite -(comp_id_l f) -(comp_id_r f).
-      exact/(comp_hcr (Y:= rep2cs deltaT'))/hcr'/(comp_hcr (Y := rep2cs deltaT))/cont/rch.
-    rewrite -(comp_id_l f) -(comp_id_r f).
-    exact/(comp_hcr (Y:= rep2cs delta'T'))/rch'/(comp_hcr (Y:= rep2cs delta'T))/cont/hcr.
+    - rewrite -eq -(comp_id_l f) -(comp_id_r f).
+      exact/comp_hcs/hcr'/comp_hcs/cont/rch.
+    rewrite -(comp_id_l f) -(comp_id_r f) eq.
+    exact/comp_hcs/rch'/comp_hcs/cont/hcr.
   Qed.
 End equivalence.
 
@@ -92,14 +92,9 @@ Section isomorphisms.
     - by exists f; split; first exact/ass_cont; exists g; split; first exact/ass_cont.
     by exists (exist_c cont); exists (exist_c cont').
   Qed.
-  
-  Definition rep2cs X (delta: representation_of X): cs.
-    exists X (representations.name_space) delta.
-    apply representations.representation.
-  Defined.
 
-  Global Instance rep2cs_prpr X:
-    Proper (@equivalent X ==> isomorphic) (@rep2cs X).
+  Global Instance repf2cs_prpr X:
+    Proper (@equivalent X ==> isomorphic) (@repf2cs X).
   Proof.
     move => delta delta'; case; case => F [cont rlzr] [F' [cont' rlzr']].
     apply/iso_spec; exists id; split; first by exists F.
@@ -107,12 +102,12 @@ Section isomorphisms.
   Qed.
 
   Lemma equiv_iso X (delta delta': representation_of X):
-    delta \equivalent_to delta' -> (rep2cs delta) ~=~ (rep2cs delta').
-  Proof. exact/rep2cs_prpr. Qed.
+    delta \equivalent_to delta' -> (repf2cs delta) ~=~ (repf2cs delta').
+  Proof. exact/repf2cs_prpr. Qed.
 
-  Global Instance slvbl_prpr (X X' Y Y':cs):
+  Global Instance slvbl_prpr (X Y: cs):
     Proper ((@equiv X Y) ==> (@equiv B_(X) B_(Y)) ==> iff) (@solution X Y).
-  Proof. by rewrite/solution => F G eq f g eq'; rewrite eq' eq. Qed.
+  Proof. by move => F G eq f g eq'; rewrite /solution /solution_wrt eq' eq. Qed.
   
   Global Instance prod_prpr:
     Proper (isomorphic ==> isomorphic ==> isomorphic) cs_prod.

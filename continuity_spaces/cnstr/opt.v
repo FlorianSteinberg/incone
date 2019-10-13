@@ -8,7 +8,10 @@ Unset Printing Implicit Defensive.
 
 Section OPTIONSPACES.
   Context (X: cs).
-  Definition rep_opt:= make_mf (fun phi (ox: option X) =>
+
+  Definition option_names:= Build_naming_space someq (Q_count X) (option_count (A_count X)).
+
+  Definition rep_opt:= make_mf (fun (phi: option_names) (ox: option X) =>
                match ox with
                | some x => exists psi, phi =1 Some \o_f psi /\ psi \describes x \wrt X
                | None => phi =1 cnst None
@@ -33,14 +36,16 @@ Section OPTIONSPACES.
     by have:= (eq' someq); rewrite eq.
   Qed.
 
-  Canonical cs_opt: cs.
-  exists (option X) (Build_naming_space someq (Q_count X) (option_count (A_count X))) rep_opt.
-  by split; [apply/rep_opt_sur | apply/rep_opt_sing].
-  Defined.
+  Lemma rep_opt_rep: rep_opt \is_representation.
+  Proof. split; try exact/rep_opt_sur; exact/rep_opt_sing. Qed.
 
+  Canonical option_representation:= Build_representation_of rep_opt_rep.
+
+  Canonical cs_opt: cs:= repf2cs option_representation.
+  
   Lemma Some_cont: (@Some X) \is_continuous.
   Proof.
-    exists (F2MF (fun phi => Some \o_f phi)).
+    apply/hcs_spec; exists (F2MF (fun phi => Some \o_f phi)).
     split; try by rewrite F2MF_rlzr => phi; exists phi.
     by rewrite cont_F2MF => phi; exists (fun q => cons q nil) => q psi [/=<-].
   Qed.
@@ -74,7 +79,7 @@ Section OPTIONSPACES.
     have [[Fpsi FpsiFpsi] prp]:= rlzr psi x psinx.
     split; first by exists Fpsi; left; exists psi; split.
     move => Fpsi' /= [[psi' [eq' val']] | [eq'']]; last by have:= eq'' someq; rewrite eq.
-    suff eq'': psi = psi' by exists (f x); split; first by apply/prp; rewrite ?eq''.
+    suff eq'': psi = psi' by exists (f x); split; last by apply/prp; rewrite ?eq''.
     by apply/fun_ext => q; have /= := eq' q; rewrite eq /=; case.
   Qed.
 

@@ -12,7 +12,9 @@ Section Sirpinskispace.
 
   Local Notation top := (Some tt: Sirp).
   Local Notation bot := (None: Sirp).
-  Definition rep_Sirp := make_mf (fun phi s => (exists n: nat, phi n = true) <-> s = top).
+
+  Definition names_Sirp := Build_naming_space 0 nat_count bool_count.
+  Definition rep_Sirp := make_mf (fun (phi: names_Sirp) s => (exists n: nat, phi n = true) <-> s = top).
 
   Lemma rep_Sirp_tot: rep_Sirp \is_total.
   Proof.
@@ -20,25 +22,17 @@ Section Sirpinskispace.
     by case: (classic (exists n, phi n = true)) => [ | nex]; [exists top | exists bot].
   Qed.
                                                                           
-  Lemma rep_Sirp_sur: rep_Sirp \is_cototal.
+  Lemma rep_Sirp_rep: rep_Sirp \is_representation.
   Proof.
-    case => [[] | ]; first by exists (cnst true); split => // _; exists 0.
-    by exists (cnst false); split => //; case.
-  Qed.
-
-  Lemma rep_Sirp_sing: rep_Sirp \is_singlevalued.
-  Proof.
-    move => phi s s' [imp imp'] [pmi pmi'].
+    split => [[[] | ] | ? s s' [imp imp'] [pmi pmi']]; first by exists (cnst true); split => // _; exists 0.
+    - by exists (cnst false); split => //; case.
     case E: s => [[]|]; first by symmetry; apply/pmi/imp'.
     by case E': s' => [[]|]; first by rewrite -E; apply/imp/pmi'.
   Qed. 
 
-  Definition names_Sirp := Build_naming_space 0 nat_count bool_count.
+  Canonical Sirpinski_representation:= Build_representation_of rep_Sirp_rep.
 
-  Canonical cs_Sirp: cs.
-    exists Sirp names_Sirp rep_Sirp.
-    by split; [apply/rep_Sirp_sur | apply/rep_Sirp_sing].
-  Defined.
+  Canonical cs_Sirp:= repf2cs Sirpinski_representation.
 
   Context (X: Type).
 
@@ -174,14 +168,14 @@ Section Opens_and_closeds.
   Lemma clos_open A: A \from closeds <-> exists (O: \O(X)), projT1 O = P2CF (complement A).
   Proof. by split => [/cfun_spec cont | [[O Ocont/=] <-]] //; exists (exist_c cont). Qed.
 
-  Definition rep_clsd := make_mf (fun phi (A: closeds) =>
+  Definition names_closeds:= Build_naming_space someq (Q_count \O(X)) (A_count \O(X)).
+
+  Definition rep_clsd := make_mf (fun (phi: names_closeds) (A: closeds) =>
                                     associate X cs_Sirp phi (P2CF (complement (projT1 A)))).
 
-  Lemma rep_clsd_sur: rep_clsd \is_cototal.
-  Proof. by move => [A [psi ass]/=]; exists psi. Qed.
-  
-  Lemma rep_clsd_sing: rep_clsd \is_singlevalued.
+  Lemma rep_clsd_rep: rep_clsd \is_representation.
   Proof.
+    split; first by move => [A [psi ass]/=]; exists psi.
     move => phi A A' /= phinA phinA'; apply/eq_sub => /=.
     rewrite -(CF2PK (sval A)) -(CF2PK (sval A')).
     rewrite -(complement_involutive (CF2P (sval A))) -(complement_involutive (CF2P (sval A'))).
@@ -189,12 +183,8 @@ Section Opens_and_closeds.
     by have /= ->:= choice_dict.mf_rlzr_f_sing phinA phinA'.    
   Qed.  
 
-  Definition names_closeds:= Build_naming_space someq (Q_count \O(X)) (A_count \O(X)).
-
-  Definition cs_closeds: cs.
-    exists closeds names_closeds rep_clsd.
-    by split; [apply/rep_clsd_sur | apply/rep_clsd_sing].
-  Defined.
+  Definition closeds_representation:= Build_representation_of rep_clsd_rep.
+  Definition cs_closeds:= repf2cs closeds_representation.
   
   Local Notation "\A(X)" := cs_closeds.
 
@@ -232,7 +222,7 @@ Section Opens_and_closeds.
     have [ | dm prp]:= psinO phi x phinx; first by exists (sval O x).
     split => // Fphi val.
     have [s [Fphins /= eq]]:= prp Fphi val.
-    exists s; split => //=; rewrite -eq.
+    exists s; split => //=.
     by rewrite P2CF_cmpl.
   Qed.
 
@@ -292,21 +282,19 @@ End admissibility.
 Section Kleeneans.
   Inductive Kleeneans := false_K | true_K | bot_K.
 
+  Definition names_Kleeneans:= Build_naming_space 0 nat_count (option_count bool_count).
+
   Definition rep_K :=
-    make_mf (fun phi (t: Kleeneans) =>
+    make_mf (fun (phi: names_Kleeneans) (t: Kleeneans) =>
 	       match t with
 	       | false_K => exists (n: nat), phi n = Some false /\ forall m, m < n -> phi m = None
 	       | true_K => exists (n: nat), phi n = Some true /\ forall m, m < n -> phi m = None
 	       | bot_K => forall n, phi n = None
 	       end).
   
-  Lemma rep_K_sur: rep_K \is_cototal.
+  Lemma rep_K_rep: rep_K \is_representation.
   Proof.
-      by case; [exists (fun _ => Some false) | exists (fun _ => Some true) | exists (fun _ => None)]; try exists 0.
-  Qed.
-  
-  Lemma rep_K_sing: rep_K \is_singlevalued.
-  Proof.
+    split; first by case; [exists (cnst (Some false)) | exists (cnst (Some true))|exists (cnst None)]; try exists 0.
     move => phi t t'.
     case: t; case t' => //; try (move => [n [eq prp]] prp'; by rewrite prp' in eq);
       try (move => prp; case => n []; by rewrite prp); move => [n [eq prp]] [m []].
@@ -318,50 +306,38 @@ Section Kleeneans.
     by case/orP: ineq => [/eqP <- | ineq eq' prp']; [rewrite eq | rewrite prp' in eq].
   Qed.
 
-  Definition names_Kleeneans:= Build_naming_space 0 nat_count (option_count bool_count).
+  Canonical Kleeneans_representation := Build_representation_of rep_K_rep.
 
-  Definition cs_Kleeneans: cs.
-    exists Kleeneans names_Kleeneans rep_K.
-    by split; [apply/rep_K_sur | apply/rep_K_sing].
-  Defined.
+  Canonical cs_Kleeneans:= repf2cs Kleeneans_representation.
 End Kleeneans.
 
 Section Open_subsets_of_nat.
 
   Lemma ON_iso_Sirpw : \O(cs_nat) ~=~ (cs_Sirp\^w).
   Proof. by rewrite sig_iso_fun; apply/iso_ref. Qed.
+  Definition names_ON:= Build_naming_space 0 nat_count nat_count.
 
-  Definition rep_ON := make_mf(fun (phi: nat -> nat) (p: pred nat) =>
+  Definition rep_ON := make_mf(fun (phi: names_ON) (p: pred nat) =>
                                forall n, p n <-> exists m, phi m = n.+1).
 
-  Lemma rep_ON_sur: rep_ON \is_cototal.
+  Lemma rep_ON_rep: rep_ON \is_representation.
   Proof.
-    move => p /=.
-    exists (fun n => if p n then n.+1 else 0) => n.
-    split => [eq | [m]]; first by exists n; rewrite eq.
-    by case E: (p m) => [|] => [[<-] | ].                                     
-  Qed.
-
-  Lemma rep_ON_sing: rep_ON \is_singlevalued.
-  Proof.
-    move => phi A B phinA phinB.
-    apply/functional_extensionality => n.
-    have := phinA n.
-    have <-:= phinB n.
+    split => [p /= | phi A B phinA phinB].
+    - exists (fun n => if p n then n.+1 else 0) => n.
+      split => [eq | [m]]; first by exists n; rewrite eq.
+      by case E: (p m) => [|] => [[<-] | ].                                     
+    apply/fun_ext => n; have := phinA n; have <-:= phinB n.
     case: (A n); case: (B n) => // eq; last exact/eq.
     by symmetry; apply/eq.
   Qed.
 
-  Definition names_ON:= Build_naming_space 0 nat_count nat_count.
+  Canonical ON_representation := Build_representation_of rep_ON_rep.
 
-  Definition cs_ON:cs.
-    exists (pred nat) names_ON rep_ON.
-    by split; [apply/rep_ON_sur | apply/rep_ON_sing].
-  Defined.
+  Canonical cs_ON:= repf2cs ON_representation.
   
   Definition ON2Sw_rlzrf (phi: nat -> nat) (nm: nat * nat):= ((phi nm.2) == nm.1.+1).
 
-  Definition ON2Sw_rlzr:= F2MF ON2Sw_rlzrf: name_space cs_ON ->> name_space (cs_Sirp\^w).
+  Definition ON2Sw_rlzr:= F2MF ON2Sw_rlzrf: B_ cs_ON ->> B_(cs_Sirp\^w).
   
   Lemma ON2Sw_rlzr_spec: ON2Sw_rlzr \realizes (@P2CF nat: cs_ON -> cs_Sirp\^w).
   Proof.
@@ -390,7 +366,7 @@ Section Open_subsets_of_nat.
     | Some nm => if phi nm then nm.1.+1 else 0
     end.
 
-  Definition Sw2ON_rlzr:= F2MF Sw2ON_rlzrf : name_space (cs_Sirp\^w) ->> name_space cs_ON.
+  Definition Sw2ON_rlzr:= F2MF Sw2ON_rlzrf : B_(cs_Sirp\^w) ->> B_ cs_ON.
              
   Lemma Sw2ON_rlzr_spec: Sw2ON_rlzr \realizes (@CF2P nat: cs_Sirp\^w -> cs_ON).
   Proof.
@@ -425,7 +401,7 @@ Section Open_subsets_of_nat.
   Lemma Onat2ON_cont: Onat2ON \is_continuous.
   Proof.
     rewrite /continuous -F2MF_comp_F2MF.
-    exact/(@comp_hcr _ (cs_Sirp\^w))/Sw2ON_cont/fun2sig_cont.
+    exact/(@comp_hcs _ (cs_Sirp\^w))/Sw2ON_cont/fun2sig_cont.
   Qed.
 
   Definition ON2Onat : cs_ON -> \O(cs_nat):= (@sig2fun _ 0 nat_count cs_Sirp) \o_f P2CF.
@@ -433,7 +409,7 @@ Section Open_subsets_of_nat.
   Lemma ON2Onat_cont: ON2Onat \is_continuous.
   Proof.
     rewrite /continuous -F2MF_comp_F2MF.
-    exact/(@comp_hcr _ (cs_Sirp\^w))/sig2fun_cont/ON2Sw_cont.    
+    exact/(@comp_hcs _ (cs_Sirp\^w))/sig2fun_cont/ON2Sw_cont.    
   Qed.
 
     
@@ -447,7 +423,8 @@ Section Open_subsets_of_nat.
 End Open_subsets_of_nat.
 
 Section Closed_subsets_of_nat.
-  Definition rep_AN := make_mf(fun (phi: nat -> nat) (A: pred nat) =>
+  Definition names_AN := Build_naming_space 0 nat_count nat_count.
+  Definition rep_AN := make_mf(fun (phi: names_AN) (A: pred nat) =>
                                  forall n, ~~ A n <-> exists m, phi m = n.+1).
 
   Lemma rep_AN_spec : rep_AN =~= (F2MF complement) \o rep_ON.
@@ -462,21 +439,15 @@ Section Closed_subsets_of_nat.
   Lemma involutive_sur T (f: T -> T): involutive f -> f \is_surjective.
   Proof. by move => invo t; exists (f t); apply/invo. Qed.
 
-  Lemma rep_AN_sur: rep_AN \is_cototal.
+  Lemma rep_AN_rep: rep_AN \is_representation.
   Proof.
-    rewrite rep_AN_spec; apply/comp_cotot/rep_ON_sur; first exact/rep_ON_sing.
+    split; last by rewrite rep_AN_spec; apply/comp_sing/(@rep_sing cs_ON)/F2MF_sing.
+    rewrite rep_AN_spec; apply/comp_cotot/rep_sur; first exact/(@rep_sing cs_ON).
     by rewrite -F2MF_cotot; apply/involutive_sur/complement_involutive.
   Qed.
 
-  Lemma rep_AN_sing: rep_AN \is_singlevalued.
-  Proof. by rewrite rep_AN_spec; apply/comp_sing/rep_ON_sing/F2MF_sing. Qed.
-
-  Definition names_AN := Build_naming_space 0 nat_count nat_count.
-  
-  Definition cs_AN: cs.
-    exists (pred nat) names_AN rep_AN.
-    by split; [apply/rep_AN_sur | apply/rep_AN_sing].
-  Defined.
+  Canonical AN_representation:= Build_representation_of rep_AN_rep.
+  Definition cs_AN:= repf2cs AN_representation.
 
   Lemma id_cntop Q A: (@mf_id (Q -> A)) \is_continuous_operator.
   Proof. by apply/cont_F2MF => phi; exists (fun n => [:: n]) => q psi []. Qed.
@@ -511,14 +482,14 @@ Section Closed_subsets_of_nat.
     have <-: F2MF (complement_opens \o_f complement_closeds) =~= @mf_id \A(cs_nat).
     - by split => <-//; apply/eq_sub/functional_extensionality => x/=; rewrite P2CF_cmpl.
     rewrite -F2MF_comp_F2MF -comp_assoc.
-    apply/comp_hcr; first exact/cmplA_cont.
+    apply/comp_hcs; first exact/cmplA_cont.
     rewrite /continuous -(comp_id_l (F2MF _)).
     have <-: F2MF (complement \o_f complement) =~= @mf_id cs_AN.
     - by move => p A /=; rewrite complement_involutive.
     rewrite -F2MF_comp_F2MF !comp_assoc.
-    apply/(@comp_hcr _ cs_ON); last exact/cont_cmpl.
+    apply/(@comp_hcs _ cs_ON); last exact/cont_cmpl.
     suff ->: F2MF (@complement cs_nat) \o (F2MF (fun e n => isSome (sval e n)) \o F2MF complement_opens) =~= (F2MF CF2P) \o F2MF sval.
-    - by apply/(@comp_hcr _ (cs_Sirp\^w))/Sw2ON_cont/fun2sig_cont.
+    - by apply/(@comp_hcs _ (cs_Sirp\^w))/Sw2ON_cont/fun2sig_cont.
     move => x y; rewrite !comp_F2MF /=; split => <-.
     - by rewrite -{1}(P2CF_cmpl (sval x)) P2CFK.
     by rewrite -{2}(P2CF_cmpl (sval x)) P2CFK.
@@ -534,12 +505,12 @@ Section Closed_subsets_of_nat.
     have <-: F2MF (complement_opens \o_f complement_closeds) =~= @mf_id \A(cs_nat).
     - by split => <-//; apply/eq_sub/functional_extensionality => x/=; rewrite P2CF_cmpl.
     rewrite -F2MF_comp_F2MF comp_assoc.
-    apply/comp_hcr; last exact/cmplO_cont.
+    apply/comp_hcs; last exact/cmplO_cont.
     rewrite -(comp_id_r (F2MF AN2Anat)).
     have <-: F2MF (complement \o_f complement) =~= @mf_id cs_AN.
     - by move => p A /=; rewrite complement_involutive.
     rewrite -F2MF_comp_F2MF -!comp_assoc.
-    apply/(@comp_hcr _ cs_ON); first exact/cmpl_cont.
+    apply/(@comp_hcs _ cs_ON); first exact/cmpl_cont.
     suff ->: (F2MF complement_closeds \o F2MF AN2Anat) \o F2MF complement =~= F2MF ON2Onat.
     - by apply/ON2Onat_cont.
     move => x y; rewrite !comp_F2MF /=; split => <-.
@@ -549,5 +520,4 @@ Section Closed_subsets_of_nat.
     by rewrite /P2CF/complement; do 4 case: ifP => //.
   Qed.    
 End Closed_subsets_of_nat.
-
   

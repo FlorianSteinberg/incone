@@ -32,6 +32,7 @@ Proof. exact/questions_countable. Qed.
 Lemma A_count B: (answers B) \is_countable.
 Proof. exact/answers_countable. Qed.
 
+Ltac countability := repeat apply/Q_count || apply/A_count || countability.count.countability.
 Section name_product.
   (** A naming space has a defined input and output type. This file specifies
       possible input and ouptut types for pairs of functions and proves them to be
@@ -45,10 +46,8 @@ Section name_product.
   Local Notation A' := (answers B').
 
   Definition product_names: naming_space.
-    exists (Q + Q')%type (A * A')%type.
+    exists (Q + Q')%type (A * A')%type; try countability.
     exact/inl/someq.
-    exact/sum_count/Q_count/Q_count.
-    exact/prod_count/A_count/A_count.
   Defined.
   
   Definition lprj (phipsi: product_names) := fst \o_f phipsi \o_f inl.
@@ -189,4 +188,3 @@ Section diagonal_mapping.
                         end) => [/=[|] q psi [] -> [->]].
   Qed.
 End diagonal_mapping.
-

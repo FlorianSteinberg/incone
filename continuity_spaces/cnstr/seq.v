@@ -8,9 +8,11 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section SEQ.
-  Local Open Scope curry_scope.
   Context (X: cs).
-  Fixpoint rep_seq_rec phi L :=
+
+  Definition list_names := Build_naming_space someq (Q_count X) (list_count (A_count X)).
+  
+  Fixpoint rep_seq_rec (phi: list_names) L :=
     match L with
       | nil => forall q, phi q = [::]
       | x :: L' => (forall q, phi q <> [::])
@@ -20,16 +22,12 @@ Section SEQ.
 
   Definition rep_seq := make_mf rep_seq_rec.
 
-  Lemma rep_seq_sur: rep_seq \is_cototal.
+  Lemma rep_seq_rep: rep_seq \is_representation.
   Proof.
-    elim => [ | a L' [phi']]; first by exists (fun q => [::]).
-    have [phi phip] := (get_description a).
-    by exists (fun q => (phi q)::(phi' q)).
-  Qed.
-  
-  Lemma rep_seq_sing: rep_seq \is_singlevalued.
-  Proof.
-    move => phi L.
+    split => [ | phi L].
+    - elim => [ | a L' [phi']]; first by exists (fun q => [::]).
+      have [phi phip] := (get_description a).
+      by exists (fun q => (phi q)::(phi' q)).
     elim: L phi => [phi [ | x L' phinL [prp]]//| x L ih phi [[prp] | x' L' phinaL phina'L']//];
                      try by have := prp someq.
     f_equal; last by apply/ih; [apply phinaL | apply phina'L'].
@@ -37,14 +35,13 @@ Section SEQ.
     by apply/rep_sing; [apply/phinaL.2.1 | apply/phina'L'.2.1].
   Qed.
 
-  Canonical cs_seq: continuity_space.
-    exists (seq X) (Build_naming_space someq (Q_count X) (list_count (A_count X))) rep_seq.
-    by split; [apply/rep_seq_sur | apply/rep_seq_sing].
-  Defined.
-  
-  Definition size_rlzrf (phi : (name_space cs_seq)) (tt: unit) := (size (phi someq)).
+  Canonical list_representation:= Build_representation_of rep_seq_rep.
 
-  Definition size_rlzr: name_space cs_seq ->> name_space cs_nat := F2MF size_rlzrf.
+  Canonical cs_seq:= repf2cs list_representation.
+  
+  Definition size_rlzrf (phi : (B_ cs_seq)) (tt: unit) := (size (phi someq)).
+
+  Definition size_rlzr: B_ cs_seq ->> B_ cs_nat := F2MF size_rlzrf.
 
   Lemma size_rlzr_cntop: size_rlzr \is_continuous_operator.
   Proof.
@@ -87,12 +84,12 @@ Section SEQ.
     by rewrite /head_rlzrf; have:= neq q; case: (rprj phi q) => //.
   Qed.
 
-  Lemma head_cont: head \is_continuous.
+  Lemma head_cont: (uncurry head) \is_continuous.
   Proof. by exists head_rlzr; split; try exact/head_rlzr_spec; exact/head_rlzr_cntop. Qed.
    
-  Definition cons_rlzrf (phi : name_space X) psi := (fun q => (cons (phi q) (psi q))).
+  Definition cons_rlzrf (phi : B_ X) psi := (fun q => (cons (phi q) (psi q))).
 
-  Definition cons_rlzr: name_space (cs_prod X cs_seq) ->> (name_space cs_seq) :=
+  Definition cons_rlzr: B_ (X \*_cs cs_seq) ->> (B_ cs_seq) :=
     F2MF (fun (phi: B_ (cs_prod X cs_seq)) => cons_rlzrf (lprj phi) (rprj phi)).
   
   Lemma cons_rlzr_cntop: cons_rlzr \is_continuous_operator.
@@ -106,8 +103,6 @@ Section SEQ.
     by apply/F2MF_rlzr => phi L /prod_name_spec phinL /=; split => //; split => [a | ]; apply phinL.
   Qed.
 
-  Lemma cons_cont: cons \is_continuous.
-  Proof.
-    by exists cons_rlzr; split; try exact/cons_rlzr_spec; exact/cons_rlzr_cntop.
-  Qed.
+  Lemma cons_cont: (uncurry cons) \is_continuous.
+  Proof. by exists cons_rlzr; split; try exact/cons_rlzr_spec; exact/cons_rlzr_cntop. Qed.
 End SEQ.

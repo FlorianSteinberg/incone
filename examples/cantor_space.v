@@ -44,13 +44,12 @@ not continuous. Here, the notion of continuity comes from representations
 that the Cantor space and the two point space are equipped with.**)
 Lemma nz_bool_not_cont: ~ nz_bool \has_continuous_realizer.
 Proof.
-  move => [F [cont rlzr]].
+  apply/hcs_spec => [[F [cont rlzr]]].
   have nmb: xpred0 \describes false \wrt cs_bool by trivial.
   have nmc: xpred0 \describes xpred0 \wrt Cantor by trivial.
-  have [ | [Fxpred0 val] prp]:= rlzr xpred0 xpred0 nmc.
-  - by exists false; split => // [[]].
-  have [b [Fxnf [[]]]]//:= prp Fxpred0 val.
-  apply/negP => eq'; have eq: b = false by case: b eq' Fxnf.
+  have [ | [Fxpred0 val] prp]:= rlzr xpred0 xpred0 nmc; first by exists false; split => // [[]].
+  have [b [eq' Fxnf ]]//:= prp Fxpred0 val.
+  move: eq' => [[]]//; apply/negP => eq'; have eq: b = false by case: b eq' Fxnf.
   move: eq' => _; rewrite eq // in Fxnf; move: b eq => _ _.
   have [mf mod]:= cont xpred0 Fxpred0 val.
   set N:= foldr maxn 0 (map fst (mf tt)).
@@ -60,7 +59,7 @@ Proof.
   have [psi psinchi] := get_description (chi: Cantor).  
   have [ | [Fpsi val'] cnd]:= rlzr psi chi psinchi; first exact/nz_bool_tot.
   suff Fpsinf: Fpsi \describes (false: cs_bool) \wrt _.
-  - by have [b [Fpsinb ]]:= cnd Fpsi val'; have ->:= (rep_sing Fpsinb Fpsinf).  
+  - by have [b [? Fpsinb ]]:= cnd Fpsi val'; have <-:= (rep_sing Fpsinb Fpsinf).  
   rewrite /= -Fxnf; apply/mod/val'.
   apply/coin_agre => [[n []]] lstn; rewrite psinchi.
   suff ineq: n <= N by rewrite /chi ineq.
@@ -87,7 +86,7 @@ Proof. by move => tot; have [[[n []] | [n []]]]//:= tot xpred0. Qed.
 
 (** But, it is continuous. Too prove this, it is necessary to explcitly work
 with the encodings **)
-Definition nzb_rlzr : name_space Cantor ->> name_space cs_bool :=
+Definition nzb_rlzr : B_ Cantor ->> B_ cs_bool :=
   make_mf(fun psi b =>
             exists n, psi (n, tt) = true /\ b tt = true).
 
@@ -95,7 +94,7 @@ Lemma nzb_rlzr_spec: nzb_rlzr \solves nz_bool_p.
 Proof.
   move => psi chi psinchi [b [n [eq eq']]].
   split => [ | Fpsi [k [vq vq']]]; first by exists (fun _ => true); exists n; rewrite psinchi.
-  by exists true; split; last exists n. 
+  by exists true; split; try exists n. 
 Qed.
 
 Lemma nzb_rlzr_cntop: nzb_rlzr \is_continuous_operator.
@@ -132,16 +131,16 @@ Qed.
 
 (** In contrast to the realizer of the partial function above, the realizer
 on Sirpinski-space can be written down explicitly and not only as a relation. **)
-Definition nzS_rlzr: name_space Cantor ->> name_space cs_Sirp
+Definition nzS_rlzr: B_ Cantor ->> B_ cs_Sirp
   := F2MF (fun phi q => phi (q, tt): replies cs_Sirp).
 
 Lemma nzS_rlzr_spec: nzS_rlzr \solves nz_Sirp.
 Proof.
   rewrite F2MF_slvs => phi chi phinchi chifd.  
   case: (classic (exists n, chi n = true)) => [[n eq] | ass].
-  - exists top; split; last by split => // _; exists n.
+  - exists top; split; try by split => // _; exists n.
     by split => // _; exists n; rewrite phinchi.
-  exists bot; split; [split => // [[n eq]] | by split].
+  exists bot; split; [by split | split => // [[n eq]]].
   by exfalso; apply/ass; exists n; rewrite -phinchi.
 Qed.
 

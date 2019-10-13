@@ -8,22 +8,19 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope cs_scope.
 Section products.
-  Lemma prod_rep_spec (X Y: cs) : product_representation X Y =~= delta ** delta \o delta.
-  Proof. by rewrite prod_rep_spec. Qed.
+  Lemma prod_rep_spec (X Y: cs) : delta_ (X \*_cs Y) =~= delta ** delta \o delta.
+  Proof. by rewrite prod_rep_spec /= sing_rcmp; last exact/F2MF_sing. Qed.
 
   Lemma prod_name_spec (X Y: cs) phi (x: X) (y: Y):
     phi \is_name_of (x,y) <-> (lprj phi) \is_name_of x /\ (rprj phi) \is_name_of y.
-  Proof.
-    split => [[[[_ _] [[<- <-]] []]] | [phinx phiny]]//.
-    by split => [ | [_ _] [<- <-]]; [exists (lprj phi, rprj phi) | exists (x, y)].
-  Qed.
+  Proof. by split => [[[? ?] [<-]] | []] //; exists (lprj phi, rprj phi). Qed.
   
-  Definition fst_rlzr (X Y: cs): name_space _ ->> name_space X :=
-    F2MF (@lprj (name_space X) (name_space Y)).
+  Definition fst_rlzr (X Y: cs): B_ _ ->> B_ X :=
+    F2MF (@lprj (B_ X) (B_ Y)).
   Local Arguments fst_rlzr {X} {Y}.
 
-  Definition snd_rlzr (X Y: cs): name_space _ ->> name_space Y:=
-    F2MF (@rprj (name_space X) (name_space Y)).
+  Definition snd_rlzr (X Y: cs): B_ _ ->> B_ Y:=
+    F2MF (@rprj (B_ X) (B_ Y)).
   Local Arguments snd_rlzr {X} {Y}.
 
   Lemma fst_rlzr_spec (X Y: cs): fst_rlzr \realizes (@fst X Y).
@@ -32,45 +29,45 @@ Section products.
   Lemma snd_rlzr_spec (X Y: cs): (@snd_rlzr X Y) \realizes snd.
   Proof. by rewrite F2MF_rlzr => phi x /prod_name_spec []. Qed.
 
-  Definition diag_rlzr (X: cs): name_space X ->> name_space _:=
-    F2MF (fun (phi: name_space X) => pair (phi, phi)).
+  Definition diag_rlzr (X: cs): B_ X ->> B_ _:=
+    F2MF (fun (phi: B_ X) => pair (phi, phi)).
   Local Arguments diag_rlzr {X}.
 
   Lemma diag_rlzr_spec (X: cs):
     diag_rlzr \solves (@mf_diag X: X ->> _).
   Proof. by rewrite F2MF_rlzr => ? ? ?; apply/prod_name_spec. Qed.
 
-  Lemma lprj_pair (X Y: cs) (phi: name_space X) (psi: name_space Y):
+  Lemma lprj_pair (X Y: cs) (phi: B_ X) (psi: B_ Y):
     lprj (pair (phi,psi)) =  phi.
   Proof. by trivial. Qed.
   
-  Lemma rprj_pair (X Y: cs) (phi: name_space X) (psi: name_space Y):
+  Lemma rprj_pair (X Y: cs) (phi: B_ X) (psi: B_ Y):
     rprj (pair (phi, psi)) =  psi.
   Proof. by trivial. Qed.
 
-  Lemma fst_hcr (X Y: cs): (@fst X Y) \is_continuous.
+  Lemma fst_hcs (X Y: cs): (@fst X Y) \is_continuous.
   Proof.
-    exists fst_rlzr; split; first exact/cont_F2MF/lprj_cont.
+    apply/hcs_spec; exists fst_rlzr; split; first exact/cont_F2MF/lprj_cont.
     by rewrite F2MF_rlzr => phi x /prod_name_spec [].
   Qed.
 
   Lemma fst_cont (X Y: cs): (@fst X Y) \is_continuous.
-  Proof. exact/fst_hcr. Qed.
+  Proof. exact/fst_hcs. Qed.
   
-  Lemma snd_hcr (X Y: cs): (@mf_snd X Y) \has_continuous_realizer.
+  Lemma snd_hcs (X Y: cs): (@mf_snd X Y) \has_continuous_realizer.
   Proof.
-    exists snd_rlzr; split; first exact/cont_F2MF/rprj_cont.
+    apply/hcs_spec; exists snd_rlzr; split; first exact/cont_F2MF/rprj_cont.
     by rewrite F2MF_rlzr => phi x /prod_name_spec [].
   Qed.
 
   Lemma snd_cont (X Y: cs): (@snd X Y) \is_continuous.
-  Proof. exact/snd_hcr. Qed.
+  Proof. exact/snd_hcs. Qed.
   
   Definition fprd_frlzr (X Y X' Y': cs)
-             (F: (name_space X) -> (name_space Y)) (G: (name_space X') -> (name_space Y'))
+             (F: (B_ X) -> (B_ Y)) (G: (B_ X') -> (B_ Y'))
     phipsi:= pair (F (lprj phipsi),G (rprj phipsi)).
 
-  Lemma	fprd_frlzr_rlzr (X Y X' Y': cs) (F: (name_space X) -> (name_space Y)) (G: (name_space X') -> (name_space Y')):
+  Lemma	fprd_frlzr_rlzr (X Y X' Y': cs) (F: (B_ X) -> (B_ Y)) (G: (B_ X') -> (B_ Y')):
     F2MF (fprd_frlzr F G) =~= fprd_rlzr (F2MF F) (F2MF G).
   Proof.
     move => phi FGphi; rewrite {1}/F2MF.
@@ -81,10 +78,10 @@ Section products.
     F \solves f -> G \solves g -> (fprd_rlzr F G) \solves (f ** g).
   Proof.
     move => /rlzr_delta rlzr /rlzr_delta rlzr'.
-    rewrite rlzr_delta/= !prod_rep_spec fprd_rlzr_comp -!comp_assoc.
-    apply/tight_comp_l.
-    rewrite !fprd_id !comp_id_r (comp_assoc (_ ** _)).
-    have /sec_cncl ->:= (@pairK (name_space Y) (name_space Y')).
+    rewrite rlzr_delta prod_rep_spec (prod_rep_spec (X:= Y)) fprd_rlzr_comp -!comp_assoc.
+    apply/tight_comp_l => /=.
+    rewrite !fprd_id (comp_assoc (_ ** _)) rcmp_id_l.
+    have /sec_cncl ->:= (@pairK (B_ Y) (B_ Y')).
     rewrite comp_id_r !fprd_comp.
     exact/fprd_tight.
   Qed.

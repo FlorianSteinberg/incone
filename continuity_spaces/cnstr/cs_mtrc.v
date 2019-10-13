@@ -49,7 +49,7 @@ Section metric_representation.
   Lemma mrep_spec phi: metric_representation phi === efficient_limit (r \o_f phi).
   Proof. done. Qed.
   
-  Definition metric_cs:= rep2cs metric_representation.
+  Definition metric_cs:= repf2cs metric_representation.
 
   Lemma cnst_dscr t:
     (cnst t) \describes (r t) \wrt metric_cs.
@@ -81,7 +81,7 @@ Section metric_representation.
       elim => [ | n L [N prp']]; first by exists 0%nat.
       exists (maxn N (mu n.+1)) => m ineq /=.
       split; last exact/prp'/leq_trans/ineq/leq_maxl.
-      rewrite/uncurry/=; case: ifP => ineq' //.
+      rewrite/curry/=; case: ifP => ineq' //.
       have: (mu n.+1 <= m)%nat by apply/leq_trans/ineq/leq_maxr.
       by rewrite ineq'.
     apply/lim_tpmn => n.

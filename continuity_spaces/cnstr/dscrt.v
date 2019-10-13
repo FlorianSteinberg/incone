@@ -15,10 +15,10 @@ Section discreteness.
     move => X Y [[g ass] [[h ass'] [/=/sec_cncl cncl /sec_cncl cncl']]].
     split => dscrt Z f.
     - rewrite /continuous -(comp_id_r (F2MF f)) /mf_id -cncl' -comp_assoc.
-      apply/comp_hcr; first by apply/cfun_spec.
+      apply/comp_hcs; first by apply/cfun_spec.
       by rewrite F2MF_comp_F2MF; apply/dscrt.
     rewrite /continuous -(comp_id_r (F2MF f)) /mf_id -cncl -comp_assoc.
-    apply/comp_hcr; first by apply/cfun_spec.
+    apply/comp_hcs; first by apply/cfun_spec.
     by rewrite F2MF_comp_F2MF; apply/dscrt.
   Qed.
 End discreteness.
@@ -26,20 +26,18 @@ Notation "X \is_discrete" := (discrete X) (at level 40).
 
 Section cs_dscrt.
   Context (S: Type).
-  Definition discrete_representation:= make_mf (fun phi (s: S) => phi tt = s).
-
-  Lemma dscrt_rep_sur: discrete_representation \is_cototal.
-  Proof. by move => s; exists (fun str => s). Qed.
+  Hypothesis (S_count: S \is_countable).
   
-  Lemma dscrt_rep_sing: discrete_representation \is_singlevalued.
-  Proof. by move => s t t' <- <-. Qed.
+  Definition discrete_names := Build_naming_space tt unit_count S_count.
 
-  Context (s: S) (S_count: S \is_countable).
+  Definition dscrt_rep:= make_mf (fun (phi: discrete_names) (s: S) => phi tt = s).
 
-  Definition discrete_space: cs.
-    exists S (Build_naming_space tt unit_count S_count) discrete_representation.
-    by split; [apply/dscrt_rep_sur | apply/dscrt_rep_sing].
-  Defined.  
+  Lemma dscrt_rep_rep: dscrt_rep \is_representation.
+  Proof. by split => [s | s t t' <- <-]; first exists (fun str => s). Qed.
+
+  Definition discrete_representation := Build_representation_of dscrt_rep_rep.
+
+  Definition discrete_space := repf2cs discrete_representation.
 
   Lemma dscrt_dscrt: discrete discrete_space.
   Proof.
@@ -50,9 +48,9 @@ Section cs_dscrt.
       exists (make_mf (fun n f => cnt n (f tt))).
       split => [n g h /= val val' | g]; first by apply/fun_ext; case; apply/sing/val'/val.
       by have [n val]:= sur (g tt); exists n.
-    exists (F2MF F); split; try by rewrite F2MF_rlzr => fn n <-/=; apply/icf.
+    apply/hcs_spec; exists (F2MF F); split; try by rewrite F2MF_rlzr => fn n <-/=; apply/icf.
     rewrite cont_F2MF => phi; exists (fun _ => [:: tt]) => q' psi [eq _].
-    by have ->: phi = psi by apply/fun_ext => str; elim str.    
+    by have ->: phi = psi by apply/fun_ext => str; elim str.        
   Qed.
 End cs_dscrt.
 
@@ -129,7 +127,7 @@ Section NATURALS.
 
   Lemma S_cont: (S: cs_nat -> cs_nat) \is_continuous.
   Proof.
-    exists (F2MF (fun phi q =>S (phi q))).
+    apply/hcs_spec; exists (F2MF (fun phi q =>S (phi q))).
     split; try by rewrite F2MF_rlzr => phi n /= ->.
     by rewrite cont_F2MF => phi; exists (fun _ => [:: tt]) => str psi []; elim: str => ->.
   Qed.
@@ -140,7 +138,7 @@ Section NATURALS.
   Lemma nat_nat_cont (f: nat -> nat -> nat):
     (fun (p: cs_nat * cs_nat) => f p.1 p.2: cs_nat) \is_continuous.
   Proof.
-    exists (F2MF (fun phi q => f (phi (inl tt)).1 (phi (inr tt)).2)).
+    apply/hcs_spec; exists (F2MF (fun phi q => f (phi (inl tt)).1 (phi (inr tt)).2)).
     split; try by rewrite F2MF_rlzr => phi [n m] /prod_name_spec [/= <- <-].
     by rewrite cont_F2MF => phi; exists (fun _ => [:: inl tt; inr tt]) => psi str [-> [->]].
   Qed.

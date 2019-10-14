@@ -57,3 +57,7 @@ examples/cantor_space.v
 examples/KleeneKreisel.v
 examples/Rstruct.v
 examples/Q_reals.v
+
+examples/unfinished/Ibounds.v
+examples/unfinished/IrealsZ.v
+examples/unfinished/Iextract.v

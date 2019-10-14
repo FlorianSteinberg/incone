@@ -1116,67 +1116,24 @@ Proof.
   rewrite Rabs_minus_sym.
   apply (IR_RQ_M_spec' epsgt phin np).
 Qed.
-  Definition Q2RQ (q:Q) := (fun (eps :Q) => q). 
-  Check QRtoIR.
-Compute (IR_RQ_M 5%nat (QRtoIR  (Q2RQ (5#3))) (1#1000)).
- Fixpoint logistic_map_RQ x0 r N : (name_space RQ)  := match N with
-                                       | 0%nat => (Q2RQ x0)
-                                       | M.+1 => let P := (logistic_map_RQ x0 r M) in (Rmult_rlzrf (name_pair (Q2RQ r) (Rmult_rlzrf (name_pair P (Rplus_rlzrf (name_pair (Q2RQ (1)%Q) (Rmult_rlzrf (name_pair (Q2RQ (-1%Q)) P))))))))
-                                       end.
 
- Fixpoint logistic_map_rlzrf x0 r N n : ID := match N with
+Fixpoint logistic_map_rlzrf x0 r N n : ID := match N with
                                        | 0%nat => x0
                                        | M.+1 => let P := (logistic_map_rlzrf x0 r M n) in (I.mul n r (I.mul n P (I.add n (I.fromZ 1) (I.neg P))))
                                        end.
- Fixpoint logistic_map_rlzrfZ x0 r N n : IDZ := match N with
-                                       | 0%nat => x0
-                                       | M.+1 => let P := (logistic_map_rlzrfZ x0 r M n) in (IZ.mul n r (IZ.mul n P (IZ.add n (IZ.fromZ 1) (IZ.neg P))))
-                                       end.
- Fixpoint logistic_map_Q x0 r (N:nat) : Q := match N with
-                                             | 0%nat => x0
-                                             | M.+1 => let P := (logistic_map_Q x0 r M) in
-                                                      (r*P*(1-P))%Q
-                                        end.
 
-                                              
-                                                        
-                                                
-  Definition logistic_map_mp x0m x0e rm re (N :nat) (n :nat):= (to_pair (I.midpoint (logistic_map (FloattoIR x0m x0e) rm re N n))).
-  Definition logistic_map_mp_rlzr (N :nat) (n :Z):= (to_pair (I.midpoint (logistic_map_rlzrf (I.bnd (Float 1%bigZ (-1)%bigZ) (Float (1%bigZ) (-1)%bigZ)) (I.bnd (Float 15%bigZ (-2)%bigZ) (Float 15%bigZ (-2)%bigZ)) N (BigZ.of_Z n)))).
-Definition to_pairZ (d : Dz) := match d with
-                         | Fnan => (0%Z, 1%Z)
-                         | (Float m e) => (m, e)
-                                end.
-Search _ (Dz -> Dz ->Dz).
-Definition midpoint_err I := (to_pairZ(IZ.midpoint I), to_pairZ(SF2.sub Interval_definitions.rnd_UP 1%Z (IZ.upper I) (IZ.lower I))).
+Definition logistic_map_mp x0m x0e rm re (N :nat) (n :nat):= (to_pair (I.midpoint (logistic_map (FloattoIR x0m x0e) rm re N n))).
 Definition midpoint_errI I := (to_pair(I.midpoint I), to_pair(SFBI2.sub Interval_definitions.rnd_UP 1%bigZ (I.upper I) (I.lower I))).
-  Definition logistic_map_mp_rlzrZ (N :nat) (n :Z):= (midpoint_err (logistic_map_rlzrfZ (IZ.bnd (Float 1%Z (-1)%Z) (Float 1%Z (-1)%Z)) (IZ.bnd (Float 15%Z (-2)%Z) (Float 15%Z (-2)%Z)) N n)).
-  Compute (logistic_map_mp 1 (-1) 120 (-5) 5 10%nat).
-  Print StdZRadix2.digits_aux.
-  Fixpoint mantissa_digits n:=
-    match n with
-      | (p~1)%positive | (p~0)%positive => (Pos.succ (mantissa_digits p))
-      | 1%positive => 1%positive
-    end.
-  Lemma mantissa_digits_eq' : forall n k, ((mantissa_digits n)+k)%positive = (StdZRadix2.digits_aux n (Pos.succ k)).
-  Proof.
-  elim => [p IH k | p IH k | k ].
-  rewrite /StdZRadix2.digits_aux //=;rewrite <-IH;by lia.
-  rewrite /StdZRadix2.digits_aux //=;rewrite <-IH;by lia.
-  simpl.
-  case k => [p | p |]; by lia.
-  Qed.
-  Lemma mantissa_digits_eq : forall n, (mantissa_digits n) = (StdZRadix2.digits_aux n 1).
-  Proof.
-    elim => [p IH | p IH | ] //=.
-    have -> :(2%positive = Pos.succ 1) by lia.
-    rewrite <- mantissa_digits_eq'; by lia.
-    have -> :(2%positive = Pos.succ 1) by lia.
-    rewrite <- mantissa_digits_eq'; by lia.
-  Qed.
-  Search _ (Z -> Z).
-  Print Z.pow_pos.
-  Require Import Program.
+Definition logistic_map_mp_rlzr (N :nat) (n :Z):= (midpoint_errI (logistic_map_rlzrf (I.bnd (Float 1%bigZ (-1)%bigZ) (Float (1%bigZ) (-1)%bigZ)) (I.bnd (Float 15%bigZ (-2)%bigZ) (Float 15%bigZ (-2)%bigZ)) N (BigZ.of_Z n))).
+
+Compute (logistic_map_mp_rlzr 10 20).
+
+Require ExtrHaskellBasic.
+Require ExtrHaskellZInteger.
+Require ExtrHaskellNatInteger.
+Extraction Language Haskell.
+
+Require Import Program.
   Program Fixpoint digitsUP (n m :nat) {measure ((n-(Nat.pow 2 m))%nat)} :=
     match m with
       0%nat => 0%nat |
@@ -1242,13 +1199,40 @@ Obligation 2.
 Qed.
 
 Definition num_digits n := (bs_digits n 0 ((digitsUP n 1))).
-  Require Extraction.
 
-  Require ExtrHaskellBasic.
-  Require ExtrHaskellZInteger.
-  Require ExtrHaskellNatInteger.
-  Extraction Language Haskell.
+Lemma digits_up_term n m : (n <= (2 ^ m))%nat -> (digitsUP n m) = m.
+Proof.
+  move => /leP H.
+  rewrite <- Nat.sub_0_le in H.
+  rewrite /digitsUP/digitsUP_func.
+  rewrite WfExtensionality.fix_sub_eq_ext //=.
+  - move : H.
+    case m => [| m' H]; first by [].
+    have H' : ((n - 2 ^ m'.+1) = 0)%nat by apply H.
+    by rewrite H'.
+Qed.
 
+Lemma digits_up_noterm n m : (0 < m)%coq_nat -> ((2 ^ m) < n)%nat -> ((digitsUP n m) = (digitsUP n (2*m)))%nat.
+Proof.
+  move => mgt H.
+  rewrite <- subn_gt0 in H.
+  move /ltP : H => H.
+  have H' := (S_pred_pos _ H).
+  rewrite /digitsUP/digitsUP_func.
+  rewrite WfExtensionality.fix_sub_eq_ext //=.
+  move : H' mgt.
+  case m => [| m' H' _]; first by lia.
+  by rewrite H'.
+Qed.
+
+Lemma digits_up_digits_up n : (n <= (2 ^ (digitsUP n 1)))%nat.
+Proof.
+  apply /leP.
+  apply Nat.Private_OrderTac.Tac.not_gt_le.
+  move =>/ltP H.
+  suff H' : (0%nat < (digitsUP n 1))%coq_nat.
+  have  := (digits_up_noterm H' H) => H''.
+Abort.
 Definition mantissa_shl m (d : Z) :=
   match d with
     (Z.pos p) => (m * (2 ^ p))%positive |
@@ -1262,7 +1246,7 @@ Proof.
   rewrite <-(Pos2Nat.id p) at 1.
   case (Pos2Nat.is_succ p) => n ->.
   elim n => [| n' ]; first by rewrite /Pos.pow //=;lia.
-  rewrite !Pos2Nat.id => IH.
+  move => IH.
   rewrite Zaux.iter_nat_S.
   rewrite Nat2Pos.inj_succ; last by lia.
   rewrite Pos.pow_succ_r.
@@ -1271,7 +1255,14 @@ Proof.
   rewrite <- Pos.mul_assoc, IH. 
   by lia.
 Qed.
-Print StdZRadix2.mantissa_shr_aux.
+
+  Require Extraction.
+
+  Require ExtrHaskellBasic.
+  Require ExtrHaskellZInteger.
+  Require ExtrHaskellNatInteger.
+  Extraction Language Haskell.
+
 
 Definition mantissa_shr  m d (pos : Interval_generic.position) :=
   match d with
@@ -1292,9 +1283,29 @@ Definition mantissa_shr  m d (pos : Interval_generic.position) :=
                end
   | _ => (1%Z, Interval_generic.pos_Eq)
   end.
-Compute (StdZRadix2.mantissa_shr 105 1 Interval_generic.pos_Eq).
-Compute (mantissa_shr 105 1 Interval_generic.pos_Eq).
+Print SF2.cmp.
+Definition normalize_mantissa m1 e1 m2 e2 :=
+  if (Z.leb e1 e2) then (m1, m2 * (2^ (e2 - e1)))%Z else (m1 * (2 ^ (e1 - e2)), m2)%Z.
+Definition cmp_float (f1 f2 : Dz) := 
+  match (f1,f2) with
+  | (Fnan, _) => Xund
+  | (_, Fnan) => Xund
+  | ((Float m1 e1), (Float m2 e2)) =>
+    let (d1,d2) := (normalize_mantissa m1 e2 m2 e2) in
+    if(Z.eqb d1 d2) then Xeq else
+      if(Z.ltb d1 d2) then Xlt else Xgt
+  end.
 
+Extract Inlined Constant BigZ.abs => "(Prelude.abs)".
+Extract Inlined Constant BigZ.leb => "(Prelude.<=)".
+Extract Inlined Constant BigZ.eqb => "(Prelude.==)".
+Extract Inlined Constant BigZ.ltb => "(Prelude.<)".
+Extract Inlined Constant BigZ.opp => "(Prelude.negate)".
+Extract Inlined Constant BigZ.succ => "(Prelude.succ)".
+Extract Inlined Constant BigZ.pow_pos => "(Prelude.^)".
+Extract Inlined Constant BigZ.pow => "(Prelude.^)".
+Extract Inlined Constant BigZ.mul => "(Prelude.*)".
+Extract Inlined Constant BigZ.div => "(Prelude.div)".
 Extract Inlined Constant Z.abs => "(Prelude.abs)".
 Extract Inlined Constant Z.geb => "(Prelude.>=)".
 Extract Inlined Constant Z.leb => "(Prelude.<=)".
@@ -1316,6 +1327,7 @@ Extract Inlined Constant Nat.mul => "(Prelude.*)".
 Extract Inlined Constant Nat.div => "(Prelude.div)".
 Extract Inlined Constant addn => "(Prelude.+)".
 Extract Inlined Constant muln => "(Prelude.*)".
+Extract Inlined Constant subn => "(\n m -> if (n Prelude.> m) then (n Prelude.- m) else 0)".
 Extract Inlined Constant Nat.pow => "(Prelude.^)".
 Extract Inlined Constant Nat.divmod => "(Prelude.quotRem)".
 Extract Inlined Constant Z.compare => "(Prelude.compare)".
@@ -1332,26 +1344,17 @@ Extract Inlined Constant StdZRadix2.exponent_sub => "(Prelude.-)".
 Extract Inlined Constant StdZRadix2.mantissa_mul => "(Prelude.*)".
 Extract Inlined Constant StdZRadix2.mantissa_cmp => "(Prelude.compare)".
 Extract Inlined Constant StdZRadix2.exponent_cmp => "(Prelude.compare)".
+Extract Inlined Constant SF2.cmp => cmp_float.
 Extract Inductive Coq.Init.Datatypes.comparison => "Prelude.Ordering" ["Prelude.EQ" "Prelude.LT" "Prelude.GT"].
 Extract Inlined Constant StdZRadix2.mantissa_digits => num_digits.
 Extract Inlined Constant StdZRadix2.mantissa_shl => mantissa_shl.
 Extract Inlined Constant StdZRadix2.mantissa_shr => mantissa_shr.
+Extraction "logisticI" cmp_float num_digits mantissa_shl mantissa_shr logistic_map_mp_rlzr.
 
-Extraction "logisticZ" num_digits mantissa_shl mantissa_shr logistic_map_mp_rlzrZ.
-  Compute (logistic_map_mp_rlzrZ 400 800).
-  Definition log_map_Q N :=(logistic_map_Q (1#2) (15#4) N).
-  Definition sine_rlzrf (phi: (questions IR)) (n: queries IR) := I.sin (nat2p n) (phi n).
-  Definition Pi (n : (queries IR)) : (answers IR)  := (I.pi (nat2p n)).
-  Compute (midpoint_errI (sine_rlzrf (Top.Rmult_rlzrf (name_pair (ZtoIR 5001) (Top.Rmult_rlzrf (name_pair Pi (FloattoIR 1%Z (-2)%Z))))) 300%nat)).
-Search _ (Z->Z->Z*Z).
-Print Zaux.div_fast
-Print positive.
-Search _ "log".
-Print Z.shiftl.
-Search _ (Z -> positive -> Z).
-Print Z.pow_pos.
-Print Pos.iter.
-Check Z.of_N.
-Print Z.
- Compute (plus_float 3%Z 2%Z (-3)%Z 10%Z 10%nat).
-Compute ((Rplus_rlzrf (name_pair (ZtoIR (Z.pow 4 4000000)) (ZtoIR 4))) 2%nat).
+Definition make_iter T (rlzrf : T -> (name_space IR)) phi  (n : nat) m := match (rlzrf phi n) with
+                                    | (I.bound u l) =>
+                                      
+                                      then (Some (Float m e))
+                                      else None
+                                    | _ => None
+                                    end.

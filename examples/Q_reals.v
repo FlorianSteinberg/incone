@@ -4,30 +4,16 @@ Require Import all_cs cs_mtrc.
 From metric Require Import reals metric standard Qmetric.
 Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
 Require Import sets.
-Require Import seq_cont.
-Search _ sequentially_continuous.
-Check scnt_scnt.
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Import QArith.
 Require Import Qabs.
 Local Open Scope R_scope.
-Locate pickle_inv.
+
 Section reals_via_rational_approximations.
   Coercion Q2R: Q >-> R.
-  (* A name for x encodes x by rational approximations *)
-  Definition is_name (phi : (Q -> Q)) (x : R) := forall eps, (0 < (Q2R eps)) -> Rabs (x - (phi eps)) <= eps.  
-  Lemma zero_name : (is_name (fun q => q) 0).
-    move => eps epsgt0.
-    rewrite Rminus_0_l.
-    rewrite Rabs_Ropp.
-    rewrite Rabs_right; by lra.
-  Qed.
-  Definition is_realizer (F: (Q -> Q) -> Q -> Q) (f : R -> R) := forall phi x, (is_name phi x) -> (is_name (F phi) (f x)). 
-  Definition double_realizer (phi : Q -> Q) eps := ((1+1)*(phi (eps/(1+1))))%Q.
-  Lemma double_realizer_correct : (is_realizer double_realizer (fun x => 2*x)).
-  Admitted.
   Definition rep_RQ : (Q -> Q) ->> R := make_mf (
     fun phi x => forall eps, 0 < Q2R eps-> Rabs(x - Q2R(phi eps)) <= Q2R eps).
 
@@ -55,21 +41,22 @@ Section reals_via_rational_approximations.
     by rewrite Q2R_div; try lra; rewrite {2 4}/Q2R/=; lra.
   Qed.
 
-  Definition RQ := (make_cs 0%Q 0%Q count.Q_count count.Q_count rep_RQ_sur rep_RQ_sing). 
+  Canonical RQ_class:= @continuity_space.Class _ _ _
+                         (interview.Mixin rep_RQ_sur) (dictionary.Mixin rep_RQ_sing)
+                         (continuity_space.Mixin 0%Q 0%Q count.Q_count count.Q_count).
+  Canonical RQ := continuity_space.Pack RQ_class.
   
   Section addition.
     Definition Ropp_rlzrf phi (eps: Q) := Qopp (phi eps).
     
     Definition Ropp_rlzr: questions RQ ->> questions RQ := F2MF Ropp_rlzrf.
+    
     Lemma Ropp_rlzr_spec: Ropp_rlzr \realizes (F2MF Ropp: RQ ->> RQ).
     Proof.
-    rewrite F2MF_rlzr_F2MF.
-    move => phi x phinx eps epsg0 /=.
-      rewrite Q2R_opp.
-      move: (phinx eps epsg0).
-      split_Rabs;lra.
+      rewrite F2MF_rlzr_F2MF => phi x phinx eps epsg0 /=.
+      by rewrite Q2R_opp; move: (phinx eps epsg0); split_Rabs; lra.
     Qed.
-    
+
     Lemma Ropp_rlzr_cntop: Ropp_rlzr \is_continuous_operator.
     Proof.
         by rewrite cont_F2MF /Ropp_rlzrf => phi; exists (fun eps => [:: eps]) => psi q' [<-].
@@ -342,19 +329,14 @@ depends on the size of the inputs *)
       by rewrite {2 4}/Q2R/=; split_Rabs; lra.
     Qed.
     Local Close Scope baire_scope.
-    Print efficient_limit.
-    Print lim_eff.
-    Print efficient_limit.
-    Definition lim_eff' (xn : nat -> R) (x : R) := forall n, (Rabs x - (xn n)) <= (/ 2 ^ n).
-    Definition lim_eff'' := (make_mf lim_eff') : (RQ\^w ->> RQ).
-
+    
     Definition lim_eff_rlzrf phin eps :=
       phin ((Pos_size (Qden eps)).+1, (eps * (1#2))%Q): Q.
     
     Definition lim_eff_rlzr : questions (RQ\^w) ->> questions RQ := F2MF lim_eff_rlzrf.
     
     Lemma lim_eff_rlzr_spec:
-      lim_eff_rlzr \realizes lim_eff''.
+      lim_eff_rlzr \realizes lim_eff.
     Proof.
       rewrite F2MF_rlzr => psi xn psinxn [x lim].
       exists x; split => // eps epsg0.
@@ -362,8 +344,6 @@ depends on the size of the inputs *)
       have ->: x - Q2R (lim_eff_rlzrf psi eps) = x - (xn N.+1) + (xn N.+1 - Q2R (lim_eff_rlzrf psi eps)) by lra.
       rewrite /lim_eff_rlzrf -/N.
       apply/Rle_trans/Rle_trans; first exact/Rabs_triang.
-      Print singlevalued.
-      Locate cototal.
       - apply/Rplus_le_compat; first exact/lim.
         by apply psinxn; rewrite Q2R_mult {2}/Q2R/=; lra. 
       have lt1:= pow_lt 2 (Pos_size (Qden eps)); have lt2:= size_Qden epsg0.

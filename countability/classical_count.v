@@ -118,7 +118,7 @@ Proof.
   have choice: FunctionalChoice_on (Q * Q) bool.
   - by apply countable_choice; apply prod_count; apply/enum_count/(inh_enum (cnt 0)); exists cnt.
   have [eqC _]:= classic_eqClass choice.
-  pose eqQ:= @Equality.Pack Q eqC.
+  pose eqQ:= @Equality.Pack Q eqC Q.
   by have := @exists_minsec_eqT eqQ cnt sur.
 Qed.
 

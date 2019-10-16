@@ -1,5 +1,4 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat eqtype bigop.
-From mathcomp.analysis Require Import reals.
 From rlzrs Require Import all_rlzrs.
 From metric Require Import all_metric reals standard Qmetric.
 Require Import axioms all_cs cs_mtrc metric_names hyper_spaces.

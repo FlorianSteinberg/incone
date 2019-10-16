@@ -1,5 +1,5 @@
 From mathcomp Require Import all_ssreflect.
-From incone Require Import all_cs Duop.
+From incone Require Import all_cs.
 
 (* Let's assume we are interested in operating on operators on baire space. For instance one may
    want to consider operators such as *)
@@ -27,18 +27,18 @@ Notation pose_queries := inl.
 Notation return_value := inr.
 
 (* I claim that the following defines an associate of the operator F above: *)
-Definition psi_F (Ln: seq nat * nat) :=
-  let L := Ln.1 in
-  let n := Ln.2 in
-  if L is nil then pose_queries [:: n; 0] else return_value (head 0 L).
+Definition psi_F (KLn: seq (nat * nat) * nat) :=
+  let KL := KLn.1 in
+  let n := KLn.2 in
+  if KL is nil then pose_queries [:: n; 0] else return_value (head (0,0) KL).2.
 (* For F' the associate looks somewhat more complicated, since it is necessary to do ask queries
    depending on the return-value of previous queries. I claim that the following works: *)
-Definition psi_F' (Ln: seq nat * nat) :=
-  let L := Ln.1 in
-  let n := Ln.2 in
-  if L is [:: ffn; fn] then return_value ffn
-  else if L is [:: fn] then pose_queries [::fn]
-       else pose_queries [::Ln.2].
+Definition psi_F' (KLn: seq (nat * nat) * nat) :=
+  let KL := KLn.1 in
+  let n := KLn.2 in
+  if KL is [:: nffn; fn] then return_value nffn.2
+  else if KL is [:: nfn] then pose_queries [::nfn.2]
+       else pose_queries [::KLn.2].
 
 (* As should be clear from the description given above, an associate must be iterated to reproduce
    The value of its operator. An unbounded and possibly divergent iteration can not be done in coq
@@ -46,15 +46,15 @@ Definition psi_F' (Ln: seq nat * nat) :=
    specified number of inputs is not sufficient U psi_F f n will return None, if it is it will
    return Some F f n, Let's say we want to execute F on the following input: *)
 Definition f n := n * n + 5 * n + 7.
-Compute U psi_F 0 f 8.
-Compute U psi_F 1 f 8.
-Compute U psi_F 2 f 8.
+Compute U psi_F f (0,8).
+Compute U psi_F f (1,8).
+Compute U psi_F f (2,8).
 
-Compute U psi_F' 0 f 8.
-Compute U psi_F' 1 f 8.
-Compute U psi_F' 2 f 8.
-Compute U psi_F' 3 f 8.
-
+Compute U psi_F' f (0,8).
+Compute U psi_F' f (1,8).
+Compute U psi_F' f (2,8).
+Compute U psi_F' f (3,8).
+  
 (* To prove correctness of the associate we can use relational semantics. An operator F is assigned
    the relation, or multivalued function F2MF F: (Q -> A) -> (Q' -> A') -> Prop specified by
    (F2MF F) f Ff <-> F f = Ff. For such a binary relation that is supposed to be interpreted
@@ -64,7 +64,7 @@ Compute U psi_F' 3 f 8.
    specified by \F_(U psi_F) f Ff <-> forall q', exists n, U psi_F n q' = Some (Ff q').
    Finally note that =~= is an abreviation for the appropriate equality of multivalued funciton
    and it should become clear, that the following lemma indeed states that psi_F is an associate
-   of F. *)   
+   of F. *)
 
 Lemma associate_psi_F':
   \F_(U psi_F') =~= F2MF F'.
@@ -72,41 +72,29 @@ Proof.
   split => [ass | <- n]; last by exists 3; rewrite /U/F'/=.
   apply/functional_extensionality => n.
   have [[// | [// | [// | k]]]]:= ass n.  
-  suff ->: U psi_F' k.+3 s n = Some (F' s n) by case.
-  have /mon_spec prp:= @U_mon nat nat nat nat psi_F'.
-  by apply/(prp _ _ _ 3); first by exists (fun m => s (s m)) => /= m; exists 3; rewrite /U /=.
+  suff ->: U psi_F' s (k.+3, n) = Some (F' s n) by case.
+  have /mon_spec prp:= @U_mon _ _ _ _ psi_F'.
+  exact/(prp _ _ _ 3).
 Qed.
-(* The detailed specification of U can be found in the lemma FU_spec and by unfolding the
+(* The detailed specification of U can be found in the lemma U_val_spec and by unfolding the
    definitions of the involved operations (operator is what \F_(_) is a notation for) *)
-Check FU_spec.
+Check U_val_spec.
 Print communication.
 Print consistent.
 Print operator.
 
-(* Further functions for tracking the evaluation of an associate are the funcitons gather_queries
-   and build_shapes. They will return the accumulated queries to the functional input afther n
-   loops through U and inputs that the associate was run on and be constant afterwards. *)
-Compute gather_queries psi_F 0 f 8.
-Compute gather_queries psi_F 1 f 8.
-Compute gather_queries psi_F 100 f 8.
+(* A function for tracking the evaluation of an associate is "gather_queries", which will
+   return the accumulated queries to the functional input afther n loops through U and
+   inputs that the associate was run on and be constant afterwards. *)
+Compute gather_queries psi_F f (0,8).
+Compute gather_queries psi_F f (1,8).
+Compute gather_queries psi_F f (100,8).
 
-Compute gather_queries psi_F' 0 f 8.
-Compute gather_queries psi_F' 1 f 8.
-Compute gather_queries psi_F' 2 f 8.
+Compute gather_queries psi_F' f (0,8).
+Compute gather_queries psi_F' f (1,8).
+Compute gather_queries psi_F' f (2,8).
 
-Compute build_shapes psi_F 0 f 8.
-Compute build_shapes psi_F 1 f 8.
-Compute build_shapes psi_F 100 f 8.
-
-Compute build_shapes psi_F' 0 f 8.
-Compute build_shapes psi_F' 1 f 8.
-Compute build_shapes psi_F' 2 f 8.
-(* The functions queriesM and shapesM compute the set of queries and shapes in the same sense in
-   which U computes F and there are specification results proving that \F_(queriesM psi_F) is a
-   modulus of continuity of \F_(U psi_F) and of itself and similar results for shapesM: *)
-Search _ queriesM.
-
-(* It is also pssible to do higher order stuff. *)
+(* It is also possible to do higher order stuff. *)
 Definition Phi F: nat -> nat:= F (@id nat).
 
 Definition psi_Phi := @D nat nat nat nat id.
@@ -117,3 +105,4 @@ Proof.
   rewrite /Phi /psi_Phi => psi F eq Fphi.
   by split => [/D_spec val | <-]; [apply/eq | apply/D_spec; rewrite eq].
 Qed.
+

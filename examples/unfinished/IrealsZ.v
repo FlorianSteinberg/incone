@@ -1,6 +1,6 @@
 From mathcomp Require Import all_ssreflect.
 From rlzrs Require Import all_rlzrs.
-From metric Require Import reals.
+From metric Require Import reals pointwise.
 Require Import all_cs_base classical_mach.
 Require Import Reals Psatz FunctionalExtensionality ClassicalChoice.
 Require Import Ibounds.
@@ -16,6 +16,47 @@ Local Open Scope Z_scope.
 Import QArith.
 Local Open Scope R_scope.
 
+Lemma countable_comp Q Q': Q \is_countable -> (exists cnt : (Q -> Q'), cnt \is_surjective) -> Q' \is_countable .
+Proof.
+  move => [cnt [H1 H2]].
+  case => cnt' p1.
+  exists ((F2MF cnt') \o cnt).
+  split; first by apply comp_sing; by [apply F2MF_sing | ].
+  apply comp_cotot; by [| |].
+Qed.
+
+Lemma D_count : D \is_countable.
+Proof.
+  have [p [p1 p2]]:= ((prod_count (option_count Z_count) Z_count)).
+  pose cnt (z : (option Z*Z)) :=  (match z.1 with
+             | None => Fnan
+             | (Some z') => (Float (z') ((z.2)))
+            end) : D.
+  exists ((F2MF cnt) \o p).
+  - split; first by apply comp_sing; [apply F2MF_sing |].
+    apply comp_cotot; try by [].
+    rewrite <- F2MF_cotot.
+    move => d.
+    case d eqn:eq; first by exists (None,0%Z).
+    by exists (Some s, e).
+Qed.
+  
+Lemma ID_count: ID \is_countable.
+Proof.
+  have [p [p1 p2]]:= (option_count (prod_count D_count D_count)).
+  
+  set cnt := (F2MF (fun (z :(option (D*D))) => match z with
+                                            | None => Interval_interval_float.Inan
+                                            | (Some z') => (I.bnd z'.1 z'.2)
+             end)).
+  exists (cnt \o p).
+  split; first by apply comp_sing; [apply F2MF_sing |] .
+  apply comp_cotot; try by [].
+  rewrite /cnt.
+  rewrite <- F2MF_cotot.
+  case => [| l u]; first by exists None.
+  by exists (Some (l,u)).
+Qed.
 Definition IR_type := nat -> Interval_interval_float.f_interval (s_float Z Z).
 Definition IR_pair :=  nat + nat -> Interval_interval_float.f_interval (s_float Z Z) * Interval_interval_float.f_interval (s_float Z Z).
 
@@ -24,7 +65,9 @@ Definition IR2 (phi : IR_type) (psi : IR_type) :  IR_pair :=  fun n => match n w
        | inr x0 => (Interval_interval_float.Ibnd Fnan Fnan, psi x0)
        end.
 Section representation.
-Definition rep_R : (nat -> ID) ->> R:= make_mf (
+
+Definition names_IR := Build_naming_space 0%nat nat_count ID_count.
+Definition rep_R : names_IR ->> R:= make_mf (
   fun I x => (forall n,  x \contained_in (I n))
   /\
   forall n, exists N, forall k, (N <= k)%nat -> bounded (I k)
@@ -72,61 +115,25 @@ case: u; first by case: l.
 by case: l => // um ue lm le; rewrite !D2R_SF2toX; split_Rabs; lra.
 Qed.
 
-Lemma countable_comp Q Q': Q \is_countable -> (exists cnt : (Q -> Q'), cnt \is_surjective) -> Q' \is_countable .
+Lemma rep_R_rep : rep_R \is_representation.
 Proof.
-  move => [cnt [H1 H2]].
-  case => cnt' p1.
-  exists ((F2MF cnt') \o cnt).
-  split; first by apply comp_sing; by [apply F2MF_sing | ].
-  apply comp_cotot; by [| |].
+  by split; try exact /rep_R_sur; exact /rep_R_sing.
 Qed.
 
-Lemma D_count : D \is_countable.
-Proof.
-  have [p [p1 p2]]:= ((prod_count (option_count Z_count) Z_count)).
-  pose cnt (z : (option Z*Z)) :=  (match z.1 with
-             | None => Fnan
-             | (Some z') => (Float (z') ((z.2)))
-            end) : D.
-  exists ((F2MF cnt) \o p).
-  - split; first by apply comp_sing; [apply F2MF_sing |].
-    apply comp_cotot; try by [].
-    rewrite <- F2MF_cotot.
-    move => d.
-    case d eqn:eq; first by exists (None,0%Z).
-    by exists (Some s, e).
-Qed.
-  
-Lemma ID_count: ID \is_countable.
-Proof.
-  have [p [p1 p2]]:= (option_count (prod_count D_count D_count)).
-  
-  set cnt := (F2MF (fun (z :(option (D*D))) => match z with
-                                            | None => Interval_interval_float.Inan
-                                            | (Some z') => (I.bnd z'.1 z'.2)
-             end)).
-  exists (cnt \o p).
-  split; first by apply comp_sing; [apply F2MF_sing |] .
-  apply comp_cotot; try by [].
-  rewrite /cnt.
-  rewrite <- F2MF_cotot.
-  case => [| l u]; first by exists None.
-  by exists (Some (l,u)).
-Qed.
+Definition interval_representation := Build_representation_of rep_R_rep.
 
-Definition Iall:= @Interval_interval_float.Ibnd D Fnan Fnan. 
+Canonical IR := repf2cs interval_representation.
 
-Definition IR:= make_cs 0%nat Iall nat_count ID_count rep_R_sur rep_R_sing.
 End representation.
 
 Section addition.
-Definition Rplus_rlzrf (phi: IR_pair) (n: nat):= I.add (nat2p n) (lprj phi n) (rprj phi n).
-Definition Rplus_rlzr: questions (IR \*_cs IR) ->> questions IR := F2MF Rplus_rlzrf.
+Definition Rplus_rlzrf (phi: names_IR \*_ns names_IR) (n: nat):= I.add (nat2p n) (lprj phi n) (rprj phi n).
+Definition Rplus_rlzr: B_ (IR \*_cs IR) ->>  B_ IR := F2MF Rplus_rlzrf.
 
-Lemma Rplus_rlzr_spec : Rplus_rlzr \realizes (F2MF (fun xy => Rplus xy.1 xy.2)).
+Lemma Rplus_rlzr_spec : Rplus_rlzr \realizes (uncurry Rplus).
 Proof.
-  rewrite F2MF_rlzr_F2MF => phi [x y] [/=[xephin convx] [yephin convy]].
-  split => n; first by apply/add_correct_R; [apply xephin | apply yephin].
+  rewrite F2MF_rlzr => phi [x y] /prod_name_spec [/=[xephin convx] [yephin convy]].
+  split => n;first by  apply/add_correct_R.
   case (powerRZ2_bound x y) => K [Kprp1 [Kprp2 Kprp3]].
   have [N Nprp]:= convx n.+2.
   have [M Mprp]:= convy n.+2.
@@ -171,9 +178,9 @@ Qed.
 End addition.
 
 Section multiplication.
-Definition Rmult_rlzrf (phi: IR_pair) (n: nat):= I.mul (nat2p n) (lprj phi n) (rprj phi n).
+Definition Rmult_rlzrf (phi: names_IR \*_ns names_IR) (n: nat):= I.mul (nat2p n) (lprj phi n) (rprj phi n).
 
-Definition Rmult_rlzr: questions (IR \*_cs IR) ->> questions IR := F2MF Rmult_rlzrf.
+Definition Rmult_rlzr: B_ (IR \*_cs IR) ->> B_ IR := F2MF Rmult_rlzrf.
 
 Lemma maxN3 x y z B: ((maxn x (maxn  y z)) <= B)%nat -> (x <= B /\ y <= B /\ z <= B)%nat.
 Proof.
@@ -190,10 +197,10 @@ Proof.
   apply (leq_maxr x (maxn y z)).
   by apply H.
 Qed.
-Lemma Rmult_rlzr_spec : Rmult_rlzr \realizes (F2MF (fun xy => Rmult xy.1 xy.2)).
+Lemma Rmult_rlzr_spec : Rmult_rlzr \realizes uncurry Rmult.
 Proof.
-  rewrite F2MF_rlzr_F2MF => phi [x y] [/=[xephin convx] [yephin convy]].
-  split => n; first by apply/mul_correct_R; [apply xephin | apply yephin].
+  rewrite F2MF_rlzr => phi [x y] /prod_name_spec [/=[xephin convx] [yephin convy]].
+  split => n; first by apply/mul_correct_R.
   case (powerRZ2_bound x y) => K [Kprp1 [Kprp2 Kprp3]].
   have [N Nprp]:= convx (K+n.+3)%nat.
   have [M Mprp]:= convy (K+n.+3)%nat.
@@ -244,8 +251,8 @@ Qed.
 End multiplication.
 
 Section conversions.
-Definition ZtoIR z : (questions IR):= (fun p:nat => (I.fromZ z)).
-Definition FloattoIR m e : (questions IR):= (fun p:nat => (I.bnd (Float m e) (Float m e))).
+Definition ZtoIR z : B_(IR):= (fun p:nat => (I.fromZ z)).
+Definition FloattoIR m e :  B_(IR):= (fun p:nat => (I.bnd (Float m e) (Float m e))).
 Definition QtoIR p q := match q with 
                         (a#b) => (I.div p  (I.fromZ a) (I.fromZ (Z.pos b)))
                         end.
@@ -282,7 +289,6 @@ Proof.
   by case : (I.sign_strict_ (SF2.fromZ a) (SF2.fromZ a)); try by rewrite !div_real.
 Qed.
 
-Notation "'\|' x '|' " := (Rabs x) (format "'\|' x '|' ").
 
 Lemma QtoIR_diam (q:Q) N p: (1 < p)%Z -> \|q| <= powerRZ 2 N ->  diam (QtoIR p q) <= powerRZ 2 (N+2-p)%Z.
 Proof. 
@@ -368,8 +374,7 @@ Proof.
   apply IZR_lt.
   apply Z.pow_pos_nonneg; by lia.
 Qed.
-
-Lemma QRtoIR_contains phi x : (phi \describes x \wrt RQ) -> (forall p, (x \contained_in (QRtoIR phi p))).
+Lemma QRtoIR_contains phi x : (phi \describes x \wrt delta_(RQ)) -> (forall p, (x \contained_in (QRtoIR phi p))).
   move => //=phin p.
   rewrite /QRtoIR.
   set eps := (/ (inject_Z (Z.pow 2 (Z.of_nat p))))%Q.
@@ -400,7 +405,7 @@ Proof.
   by rewrite !D2R_SF2toX.
 Qed.
 
-Definition RQ_IR_id_rlzr: questions RQ ->> questions IR := F2MF QRtoIR.
+Definition RQ_IR_id_rlzr: B_(RQ) ->> B_(IR) := F2MF QRtoIR.
 Lemma RQ_IR_id_rlzr_cont : RQ_IR_id_rlzr \is_continuous_operator.
 Proof.
   rewrite cont_F2MF => phi.
@@ -408,9 +413,9 @@ Proof.
   by exists (fun n => [:: (/ inject_Z (2 ^ Z.of_nat n))%Q]) => n psi [] ->.
 Qed.
 
-Definition RQ_IR_id_rlzr_spec : RQ_IR_id_rlzr \realizes (F2MF (fun x => x)).
+Definition RQ_IR_id_rlzr_spec : RQ_IR_id_rlzr \realizes (id:RQ -> IR).
 Proof.     
-  rewrite F2MF_rlzr_F2MF => phi x //= phinx.
+  rewrite F2MF_rlzr => phi x //= phinx.
   split; first by apply QRtoIR_contains.
   case (powerRZ_bound x) => K [Kprp1 Kprp2].
   move => n.
@@ -498,10 +503,10 @@ Proof.
   by lia.
 Qed.
 
-Lemma RQ_IR_id_cont : (id : (RQ -> IR)) \is_continuous.
+Lemma RQ_IR_id_cont : (id : RQ -> IR) \is_continuous.
 Proof.
   exists RQ_IR_id_rlzr.
-  by split; [apply RQ_IR_id_rlzr_spec | apply RQ_IR_id_rlzr_cont].
+  by split; try exact /RQ_IR_id_rlzr_spec ;apply RQ_IR_id_rlzr_cont.
 Qed.
  
 Definition Float2Q d := match d with
@@ -568,19 +573,20 @@ Proof.
    by rewrite  !Float2Q_spec Q2R_minus.
 Qed.
 
-Definition IR_RQ_M n (In : (questions IR)) (eps : Q) := 
+Definition IR_RQ_rlzrM n (In : names_IR) (eps : Q) := 
                               if Qle_bool eps 0%Q then (Some 0%Q) else
                               if (bounded (In n)) && (Qle_bool (diamQ (In n)) eps)
                               then Some (Float2Q (lower (In n)))
                               else None.
 
-Lemma IR_RQ_M_spec In x: (In \describes x \wrt IR) -> (forall (eps : Q), (0 < eps)-> exists n q, (IR_RQ_M n In eps) = (Some q) /\ (\| q - x| <= (Q2R eps))).                                                Proof.
+Lemma IR_RQ_rlzrM_dom In x: (In \describes x \wrt delta_(IR)) -> (forall (eps : Q), (0 < eps)-> exists n q, (IR_RQ_rlzrM n In eps) = (Some q) /\ (\| q - x| <= (Q2R eps))).
+Proof.
   move => [xcont shrink] eps epsgt.
   case  (dns0_tpmn epsgt) => n nprop.
   apply Rlt_le in nprop.
   case (shrink n) => N Nprop.
   exists N; exists (Float2Q (lower (In N))).
-  rewrite /IR_RQ_M //=.
+  rewrite /IR_RQ_rlzrM //=.
   rewrite ifF; last first.
   -  apply /negP.
      move => /Qle_bool_iff => H'.
@@ -606,10 +612,10 @@ Lemma IR_RQ_M_spec In x: (In \describes x \wrt IR) -> (forall (eps : Q), (0 < ep
   exists x; by apply xcont.
 Qed.
 
-Lemma IR_RQ_M_spec' In x n (eps:Q) q : (0 < eps) -> (In \describes x \wrt IR) -> (IR_RQ_M n In eps) = (Some q) -> (\| q -x | <= (Q2R eps)). 
+Lemma IR_RQ_rlzrM_val In x n (eps:Q) q : (0 < eps) -> (In \describes x \wrt delta_(IR)) -> (IR_RQ_rlzrM n In eps) = (Some q) -> (\| q -x | <= (Q2R eps)). 
 Proof.
   move => epsgt [N1 N2].
-  rewrite /IR_RQ_M.
+  rewrite /IR_RQ_rlzrM.
   rewrite ifF; last first.
   - apply /negP=> H.
     apply Qle_bool_iff in H.
@@ -626,12 +632,12 @@ Proof.
   exists x; by apply N1.
 Qed.
 
-Lemma F_M_realizer_IR_RQ : (\F_IR_RQ_M : ( (name_space IR) ->> (name_space RQ))) \realizes mf_id.
+Lemma F_M_realizer_IR_RQ : \F_(fun phi neps => IR_RQ_rlzrM neps.1 phi neps.2)  \realizes (id:IR -> RQ).
 Proof.
-  move => phi x phin dom.
+  move => phi x phin xfd.
   split.
-  - apply mach_choice => q'.
-    case gt: (Qle_bool q' 0); first by rewrite/IR_RQ_M ;rewrite gt; exists 0%Q; exists 0%nat.
+  - apply FM_dom => q'.
+    case gt: (Qle_bool q' 0); first by rewrite/IR_RQ_rlzrM /= gt; exists 0%Q; exists 0%nat.
     have qf : (0 < q').
     + move /negP : gt => gt.
       apply Rnot_le_lt.
@@ -639,14 +645,14 @@ Proof.
       apply gt.
       apply Qle_bool_iff.
       by apply Rle_Qle;lra.
-    case (IR_RQ_M_spec phin qf) => s.
+    case (IR_RQ_rlzrM_dom phin qf) => s.
     case => q [qs_prop1 qs_prop2].
     by exists q; exists s.
   move => psi H.
   exists x.
-  split => [eps epsgt | ]; last by [].
+  split  => // eps epsgt.
   case (H eps) => n np.
   rewrite Rabs_minus_sym.
-  apply (IR_RQ_M_spec' epsgt phin np).
+  apply (IR_RQ_rlzrM_val epsgt phin np).
 Qed.
 End conversions.

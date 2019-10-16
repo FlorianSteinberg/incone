@@ -5,59 +5,70 @@
 -arg -w -arg -compatibility-notation
 -arg -w -arg -non-reversible-notation
 
-baire_spaces/countability/iseg.v
-baire_spaces/countability/count.v
-baire_spaces/all_count.v
+countability/graphs.v
+countability/iseg.v
+countability/sets.v
+continuity/smod.v
+continuity/cont.v
+continuity/search.v
+countability/count.v
+axioms.v
 
-baire_spaces/baire.v
-baire_spaces/continuity/smod.v
-baire_spaces/continuity/cont.v
-baire_spaces/continuity/minm.v
-baire_spaces/continuity/classical_cont.v
-baire_spaces/all_cont.v
+countability/all_count.v
+continuity/all_cont.v
+continuity/seq_cont.v
 
-baire_spaces/constructions/baire_prod.v
-baire_spaces/countability/seq_cont.v
-baire_spaces/countability/classical_count.v
+computability/PhiN.v
+computability/FMop.v
+computability/Umach.v
+computability/all_cmpt.v
 
-baire_spaces/dualities/PhiN.v
-baire_spaces/dualities/FMop.v
-baire_spaces/dualities/nvrsl.v
-baire_spaces/dualities/Umach.v
-baire_spaces/dualities/Ucont.v
-baire_spaces/dualities/Uuniv.v
-baire_spaces/dualities/Duop.v
-baire_spaces/dualities/classical_mach.v
-baire_spaces/all_mach.v
+countability/classical_count.v
+continuity/classical_cont.v
 
-baire_spaces/baire_metric.v
-all_baire.v
-
+naming_spaces/naming_spaces.v
+continuity_spaces/representations.v
 continuity_spaces/cs.v
+naming_spaces/cs_names.v
+naming_spaces/Uuniv.v
+computability/classical_mach.v
+naming_spaces/metric_names.v
+naming_spaces/all_names.v
+
 continuity_spaces/prod.v
 continuity_spaces/sum.v
-continuity_spaces/facts.v
 continuity_spaces/sub.v
 continuity_spaces/func.v
 continuity_spaces/classical_func.v
 continuity_spaces/iso.v
-all_cs_base.v
+continuity_spaces/all_cs_base.v
 
 continuity_spaces/cnstr/dscrt.v
 continuity_spaces/cnstr/opt.v
 continuity_spaces/cnstr/seq.v
 continuity_spaces/cnstr/cprd.v
 continuity_spaces/cnstr/cs_mtrc.v
-continuity_spaces/cnstr/sets.v
-all_cs.v
+continuity_spaces/cnstr/hyper_spaces.v
+continuity_spaces/all_cs.v
 
-examples/continuous_search.v
+examples/basic_continuity.v
+examples/implementing_operators.v
 examples/closed_choice.v
 examples/cantor_space.v
 examples/KleeneKreisel.v
-examples/Rstruct.v
-examples/Q_reals.v
+examples/reals/Rstruct.v
+examples/reals/Q_reals.v
 
 examples/unfinished/Ibounds.v
 examples/unfinished/IrealsZ.v
 examples/unfinished/Iextract.v
+
+#extras that are not currently part of the library but can be compiled on demand:
+#computability/multivalued_application.v
+#computability/multivalued_composition.v
+#naming_spaces/naming_spaces_as_data_structure.v
+#examples/unfinished/Ireals.v
+#examples/unfinished/lp.v
+#examples/unfinished/sd_reals.v
+#examples/unfinished/sdvsc.v
+#examples/unfinished/division_for_Q_reals.v

@@ -1,7 +1,7 @@
 From mathcomp Require Import ssreflect seq ssrfun ssrbool ssrnat eqtype.
 From rlzrs Require Import all_rlzrs.
+From metric Require Import reals all_metric standard Qmetric.
 Require Import all_cs cs_mtrc.
-From metric Require Import reals metric standard Qmetric.
 Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
 Require Import sets.
 

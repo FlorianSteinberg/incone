@@ -402,7 +402,7 @@ Proof.
     apply Rmax_case;apply Rmin_case; by auto.
 Qed.
 End multiplication.
-
+Section division.
 (* Lemma div_error I J n m p x y N: *)
 (*   (y <> 0) -> *)
 (*   (1 < p)%Z -> *)
@@ -472,3 +472,4 @@ End multiplication.
 (*   move => phi [x y] [/=[xephin convx] [yephin convy]]. *)
 (*   case => t [yneq0 tp]. *)
 (*   split. *)
+End division.

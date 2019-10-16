@@ -62,11 +62,11 @@ Section representations_of.
   - exact/Build_representation_of.
   Defined.
 
-  Coercion rep2repf: is_representation >-> representation_of.
-  Notation hcr_wrt delta delta' f:= (has_continuous_solution_wrt delta delta' (F2MF f)).
+  Local Notation "delta '\translatable_to' delta'" :=
+    (continuous_wrt delta delta' id) (at level 35).
 
   Definition equivalent X (delta delta': representation_of X):=
-    hcr_wrt delta delta' id /\ hcr_wrt delta' delta id.
+    delta \translatable_to delta' /\  delta' \translatable_to delta.
 
   Canonical product_representation X Y (delta: representation_of X) (delta': representation_of Y):
     representation_of (X * Y).
@@ -82,6 +82,7 @@ Section representations_of.
     by have := @sum_is_representation _ _ _ (represented delta) _ _ _ (represented delta').
   Defined.
 End representations_of.
+Notation "delta '\translatable_to' delta'" := (continuous_wrt delta delta' id) (at level 35).
 Notation "delta '\equivalent_to' delta'" := (equivalent delta delta') (at level 30): cs_scope.
 Notation "phi '\names' x '\wrt' delta" :=
   (delta (phi: name_space delta) x) (at level 30): cs_scope.

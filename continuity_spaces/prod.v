@@ -86,7 +86,7 @@ Section products.
     exact/fprd_tight.
   Qed.
   
-  Lemma fprd_hcr (X Y X' Y': cs) (f: X ->> Y) (g: X' ->> Y'):
+  Lemma fprd_hcs (X Y X' Y': cs) (f: X ->> Y) (g: X' ->> Y'):
     f \has_continuous_realizer -> g \has_continuous_realizer -> (f ** g) \has_continuous_realizer.
   Proof.
     move => [F [Frf Fcont]] [G [Grg Gcont]]; exists (fprd_rlzr F G).
@@ -95,7 +95,7 @@ Section products.
   
   Lemma fprd_cont (X Y X' Y': cs) (f: X -> Y) (g: X' -> Y'):
     f \is_continuous -> g \is_continuous -> (f **_f g) \is_continuous.
-  Proof. by move => cont cont' ; rewrite /continuous F2MF_fprd; apply/fprd_hcr. Qed.
+  Proof. by move => cont cont' ; rewrite /continuous F2MF_fprd; apply/fprd_hcs. Qed.
     
   Lemma lcry_rlzr_spec (X Y Z: cs) F (f: X * Y ->> Z) phi x:
     F \solves f -> phi \is_name_of x -> (lcry_rlzr F phi) \solves (lcry f x).

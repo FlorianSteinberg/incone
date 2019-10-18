@@ -24,8 +24,8 @@ Section reals_via_rational_approximations.
     defines a representation we have to provide some additional proofs:
    **)
   Print representation_of.
+  Print represented_over.
   Print naming_space.
-  Print is_representation.
   (** 
       Let's start by bundleing the information that witnesses that Q is eligible as discrete
       data to construct "naming space" that we will call names_RQ, here "RQ" is what we want
@@ -73,7 +73,7 @@ Section reals_via_rational_approximations.
   (** now we can bundle this data to obtain a representation of the real numbers. **)
 
   Definition Q_representation: representation_of R.
-    by exists names_RQ rep_RQ; split; try apply/rep_RQ_sing; try apply/rep_RQ_sur.
+    by exists names_RQ; exists rep_RQ; try apply/rep_RQ_sing; try apply/rep_RQ_sur.
   Defined.        
   (**
      And afterwards define a represented space ("continuity_space" or for short "cs" in incone)
@@ -353,7 +353,7 @@ Section limit.
     - exists (S m) => n /leP ineq; rewrite /yn.
       by case: ifP => [/leP ineq' | ]; [lia | rewrite /distance/=; split_Rabs; lra].
     have [phi Frnphi]: rn \from dom F by apply /(ntrvw.rlzr_dom rlzr); first exact/rnyn; exists 3.
-    have coin: (cnst 0%Q) \and rn \coincide_on (Lf 1%Q).
+    have coin: (cnst 0%Q) \coincides_with rn \on (Lf 1%Q).
     - apply /coin_agre => [[n eps] listin].
       rewrite /cnst /rn; case: ifP => // /= /leP ineq.
       by exfalso; apply/ineq/leP/mprop/listin.

@@ -8,10 +8,10 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope cs_scope.
-Lemma ass_cont (X Y: cs) (f: X -> Y): f \from (codom (associate X Y)) -> f \is_continuous.
+Lemma ass_cont (X Y: cs) (f: X -> Y): f \from (codom (associate (delta_ X) (delta_ Y))) -> f \is_continuous.
 Proof. by move => [psi /= rlzr]; exists (\F_(U psi)); split; try apply/FU_cont. Qed.
 
-Lemma cfun_spec (X Y: cs) (f: X -> Y): f \from (codom (associate X Y)) <-> f \is_continuous.
+Lemma cfun_spec (X Y: cs) (f: X -> Y): f \from (codom (associate (delta_ X) (delta_ Y))) <-> f \is_continuous.
 Proof.
   split => [ | [F [cont rlzr]]]; first exact/ass_cont.
   have [psi val]:= exists_associate (Q_count X) (A_count X) (Q_count Y) cont.

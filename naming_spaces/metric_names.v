@@ -23,7 +23,7 @@ Section baire_metric.
   Implicit Types (phi psi: B).
   Notation metric_limit:= (pseudo_metric_spaces.limit).
    
-  Lemma coin_has phi psi n: phi \and psi \coincide_on (iseg cnt n) <->
+  Lemma coin_has phi psi n: phi \coincides_with psi \on (iseg cnt n) <->
                             ~~ has (fun i => phi (cnt i) != psi (cnt i)) (init_seg n).
   Proof.
     elim: n => // n ih /=.
@@ -80,7 +80,7 @@ Section baire_metric.
     by apply/prp/L2SS_iseg; exists m.
   Qed.
     
-  Lemma coin_bvls phi psi n: phi \and psi \coincide_on (iseg cnt (baire_val_seq (phi, psi) n)).
+  Lemma coin_bvls phi psi n: phi \coincides_with psi \on (iseg cnt (baire_val_seq (phi, psi) n)).
   Proof.
     elim: n => // n ih.
     rewrite /baire_val_seq searchS.
@@ -272,7 +272,7 @@ Section baire_metric.
   Qed.
     
   Lemma dst_coin phi psi n: baire_distance(phi,psi) <= /2^n <->
-                            phi \and psi \coincide_on (iseg cnt n).
+                            phi \coincides_with psi \on (iseg cnt n).
   Proof.
     case lt: (baire_val_seq (phi, psi) n < n)%nat.
     - have ->:= dst_dscrt lt.

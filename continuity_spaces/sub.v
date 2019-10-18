@@ -14,14 +14,10 @@ Section subspace.
   Local Notation rep_sub:= (make_mf (fun phi (t: A) =>
                                        phi \describes (sval t) \wrt delta)).
 
-  Lemma rep_sub_rep: rep_sub \is_representation.
-  Proof.
-    have [sur sing]:= (represented delta).
-    split => [[s Ps] | phi [x Px] [y Py]/= phinx phiny]; first by have [phi]:= sur s; exists phi.
-    exact/eq_sub/sing/phiny/phinx.
-  Qed.
-
-  Canonical sub_representation := Build_representation_of rep_sub_rep. 
+  Canonical sub_representation: representation_of A.
+  exists (name_space delta).
+  by exists (sub_dictionary delta A); try apply only_respond; apply answer_unique.
+  Defined.
 End subspace.
 
 Canonical sub_space (X: cs) (A: subset X) := repf2cs (sub_representation (delta_ X) A).

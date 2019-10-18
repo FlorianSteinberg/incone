@@ -22,12 +22,15 @@ Section SEQ.
 
   Definition rep_seq := make_mf rep_seq_rec.
 
-  Lemma rep_seq_rep: rep_seq \is_representation.
+  Lemma rep_seq_sur: rep_seq \is_cototal.
   Proof.
-    split => [ | phi L].
-    - elim => [ | a L' [phi']]; first by exists (fun q => [::]).
-      have [phi phip] := (get_description a).
-      by exists (fun q => (phi q)::(phi' q)).
+    elim => [ | a L' [phi']]; first by exists (fun q => [::]).
+    have [phi phip] := (get_description a).
+    by exists (fun q => (phi q)::(phi' q)).
+  Qed.
+
+  Lemma rep_seq_sing: rep_seq \is_singlevalued.
+    move => phi L.
     elim: L phi => [phi [ | x L' phinL [prp]]//| x L ih phi [[prp] | x' L' phinaL phina'L']//];
                      try by have := prp someq.
     f_equal; last by apply/ih; [apply phinaL | apply phina'L'].
@@ -35,7 +38,9 @@ Section SEQ.
     by apply/rep_sing; [apply/phinaL.2.1 | apply/phina'L'.2.1].
   Qed.
 
-  Canonical list_representation:= Build_representation_of rep_seq_rep.
+  Canonical list_representation : representation_of (seq X).
+    by exists list_names; exists rep_seq; try exact/rep_seq_sur; apply/rep_seq_sing.
+  Defined.
 
   Canonical cs_seq:= repf2cs list_representation.
   

@@ -1,5 +1,5 @@
 From mathcomp Require Import ssreflect ssrfun.
-From rlzrs Require Import all_rlzrs dict.
+From rlzrs Require Import all_rlzrs dict data_spaces.
 Require Import all_cont naming_spaces representations.
 Import Morphisms.
 
@@ -16,12 +16,17 @@ Structure continuity_space :=
     representation: representation_of space;
   }.
 
+Coercion cs2ds (X: continuity_space): data_space descriptions.
+exists (space X); exact/representation.
+Defined.
+
+Coercion representation: continuity_space >-> representation_of.
+Definition ds2cs (X: data_space descriptions): continuity_space.
+exists (data_spaces.space X); exact/enc2rep/encoding.
+Defined.
+
 Notation delta := (representation _).
 Notation "'delta_' X" := (representation X) (at level 30, format "'delta_' X").
-
-Global Instance rep_rep (X: continuity_space): representation X \is_representation. 
-exact/represented.
-Qed.
 
 Canonical repf2cs X (delta: representation_of X): continuity_space.
   by exists X.
@@ -53,10 +58,10 @@ Section continuity_spaces.
   Proof. exact/A_count. Qed.
 
   Lemma rep_sur (X: cs): (representation X) \is_cototal.
-  Proof. exact only_respond. Qed.
+  Proof. exact/rep_sur. Qed.
 
   Lemma rep_sing (X: cs): (representation X) \is_singlevalued.
-  Proof. exact answers_unique. Qed.
+  Proof. exact/rep_sing. Qed.
 
   Lemma split_slvs (X Y: cs) F (f: X ->> Y):
     (forall phi x, phi \is_name_of x -> x \from dom f -> phi \from dom F) ->
@@ -91,13 +96,13 @@ Section continuity_spaces.
   Proof. by move => phinx; apply/cnst_rlzr. Qed.
 
   Lemma slvs_delta (X Y: cs) F (f: X ->> Y): F \solves f <-> (delta \o F) \tightens (f \o delta).
-  Proof. exact/rlzr_spec. Qed.
+  Proof. exact/(rlzr_spec delta delta). Qed.
 
   Definition rlzr_delta:= slvs_delta.
   
   Lemma rlzr_F2MF_eq (X Y: cs) F (f g: X -> Y):
     F \realizes f -> F \realizes g -> f =1 g.
-  Proof. exact/rlzr_F2MF_eq. Qed.
+  Proof.  move => rlzr rlzr'; apply/(rlzr_F2MF_eq (D := Y) (I:= X) rlzr rlzr'). Qed.
   
   Lemma slvs_val_dep (X Y: cs) F (f: X ->> Y) phi Fphi x: F \solves f ->
     phi \is_name_of x -> x \from dom f -> Fphi \from F phi ->

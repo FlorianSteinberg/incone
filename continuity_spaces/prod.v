@@ -15,12 +15,10 @@ Section products.
     phi \is_name_of (x,y) <-> (lprj phi) \is_name_of x /\ (rprj phi) \is_name_of y.
   Proof. by split => [[[? ?] [<-]] | []] //; exists (lprj phi, rprj phi). Qed.
   
-  Definition fst_rlzr (X Y: cs): B_ _ ->> B_ X :=
-    F2MF (@lprj (B_ X) (B_ Y)).
+  Definition fst_rlzr (X Y: cs) := F2MF (@lprj (B_ X) (B_ Y)).
   Local Arguments fst_rlzr {X} {Y}.
 
-  Definition snd_rlzr (X Y: cs): B_ _ ->> B_ Y:=
-    F2MF (@rprj (B_ X) (B_ Y)).
+  Definition snd_rlzr (X Y: cs):= F2MF (@rprj (B_ X) (B_ Y)).
   Local Arguments snd_rlzr {X} {Y}.
 
   Lemma fst_rlzr_spec (X Y: cs): fst_rlzr \realizes (@fst X Y).
@@ -29,8 +27,7 @@ Section products.
   Lemma snd_rlzr_spec (X Y: cs): (@snd_rlzr X Y) \realizes snd.
   Proof. by rewrite F2MF_rlzr => phi x /prod_name_spec []. Qed.
 
-  Definition diag_rlzr (X: cs): B_ X ->> B_ _:=
-    F2MF (fun (phi: B_ X) => pair (phi, phi)).
+  Definition diag_rlzr (X: cs):=F2MF (fun (phi: B_ X) => pair (phi, phi)).
   Local Arguments diag_rlzr {X}.
 
   Lemma diag_rlzr_spec (X: cs):

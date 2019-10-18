@@ -32,11 +32,10 @@ Section cs_dscrt.
 
   Definition dscrt_rep:= make_mf (fun (phi: discrete_names) (s: S) => phi tt = s).
 
-  Lemma dscrt_rep_rep: dscrt_rep \is_representation.
-  Proof. by split => [s | s t t' <- <-]; first exists (fun str => s). Qed.
-
-  Definition discrete_representation := Build_representation_of dscrt_rep_rep.
-
+  Definition discrete_representation: representation_of S.
+    by exists discrete_names; exists dscrt_rep => [s | s t t' <- <-]; first exists (fun str => s).
+  Defined.
+  
   Definition discrete_space := repf2cs discrete_representation.
 
   Lemma dscrt_dscrt: discrete discrete_space.
@@ -101,14 +100,14 @@ Section TERMINAL.
     by move => phi _ <- q'; exists 2; rewrite /U/=.
   Qed.
 
-  Lemma unit_fun_ass_spec (X: cs): associate X cs_unit (@unit_fun_ass X) (@unit_fun X).
+  Lemma unit_fun_ass_spec (X: cs): associate (delta_ X) (delta_ cs_unit) (@unit_fun_ass X) (@unit_fun X).
   Proof. exact/ntrvw.tight_rlzr/eval_F2MF/unit_fun_ass_eval/unit_fun_rlzr_spec. Qed.
 
   Lemma trmnl_uprp_cont (X: cs): exists! f: X c-> cs_unit, True.
   Proof.
-    have cdom: (@unit_fun X) \from codom (associate X cs_unit).
+    have cdom: (@unit_fun X) \from codom (associate (delta_ X) (delta_ cs_unit)).
     - by exists (@unit_fun_ass X); apply/unit_fun_ass_spec.
-    exists (exist (fun p => p \from codom (associate X cs_unit)) _ cdom).
+    exists (exist (fun p => p \from codom (associate (delta_ X) (delta_ cs_unit))) _ cdom).
     split => // f' _.
     apply/eq_sub/functional_extensionality => x /=.
     by case: (sval f' x); case: (unit_fun x).

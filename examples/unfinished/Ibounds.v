@@ -317,6 +317,14 @@ Proof.
   apply round_error; by [].
 Qed.
 
+Lemma powerRZ_sub_helper u v N p : (u + (powerRZ 2 (2*(N+1)+1-p))%Z)-(v - (powerRZ 2 (2*(N+1)+1-p)%Z)) = (u - v)+(powerRZ 2 (2*N+4-p)%Z).
+Proof.
+   suff :  (powerRZ 2 1)*(powerRZ 2 (2 * (N + 1) + 1 - p)%Z)  =  (powerRZ 2 (2*N + 4 - p)%Z) by simpl;lra.
+ rewrite <- powerRZ_add; try by lra.
+  suff H0 :((1 + (2 * (N + 1) + 1 - p)%Z) =  (2 * N + 4 - p))%Z by rewrite H0.
+  by lia.
+Qed. 
+
 Lemma mul_error I J n m p x y N:
   (1 < p)%Z ->
   (0 <= N)%Z ->
@@ -364,15 +372,11 @@ Proof.
   - rewrite /bounded /I.mul.
     case : (I.sign_large_ (Float lIm lIe) (Float uIm uIe));case : (I.sign_large_ (Float lJm lJe) (Float uJm uJe)); try by []; try by rewrite /I.mul !SF2.real_correct !SF2.mul_correct !D2R_SF2toX /Xmul //=.
     rewrite !SF2.real_correct !SF2.max_correct !SF2.min_correct !SF2.mul_correct /Xmul.
-    rewrite /Xmin /Xmax !D2R_SF2toX /I.mul //=.
-    rewrite /I.mul.
-    have helper u v u' v' : (u*v + (powerRZ 2 (2*(N+1)+1-p))%Z)-(u'*v' - (powerRZ 2 (2*(N+1)+1-p)%Z)) = (u*v - u'*v')+(powerRZ 2 (2*N+4-p)%Z).
-    - suff :  (powerRZ 2 1)*(powerRZ 2 (2 * (N + 1) + 1 - p)%Z)  =  (powerRZ 2 (2*N + 4 - p)%Z) by simpl;lra.
-      rewrite <- powerRZ_add; try by lra.
-      suff H0 :((1 + (2 * (N + 1) + 1 - p)%Z) =  (2 * N + 4 - p))%Z by rewrite H0.
-      by lia.
-    rewrite diam_absI in ineq.
-    rewrite diam_absJ in ineq'.
+    by rewrite /Xmin /Xmax !D2R_SF2toX /I.mul //=.
+  rewrite /I.mul.
+  have helper u v u' v' := (powerRZ_sub_helper (u*v) (u'*v') N p).
+  rewrite diam_absI in ineq.
+  rewrite diam_absJ in ineq'.
     have ineq_rev := ineq.
     have ineq'_rev := ineq'.
     have ineq_triv z k: (Rabs (z - z) <= / 2 ^ k) by rewrite Rcomplements.Rminus_eq_0 Rabs_R0;apply tpmn_pos.
@@ -403,73 +407,115 @@ Proof.
 Qed.
 End multiplication.
 Section division.
-(* Lemma div_error I J n m p x y N: *)
-(*   (y <> 0) -> *)
-(*   (1 < p)%Z -> *)
-(*   (0 <= N)%Z -> *)
-(*   bounded I -> diam I <= /2^n -> bounded J -> diam J <= /2^m -> *)
-(*   (x \contained_in I) -> *)
-(*   (y \contained_in J) -> *)
-(*   (not 0 \contained_in J) -> *)
-(*   (Rabs x) <=  (powerRZ 2 N) -> (Rabs y) <= (powerRZ 2 N) -> *)
-(*   bounded (I.div p I J) *)
-(*   /\ *)
-(*   diam (I.div p I J) <= (powerRZ 2 (N+1-(Z.of_nat n)))+ (powerRZ 2 (N+1-(Z.of_nat m))) + (powerRZ 2 (2*N+4-p)%Z). *)
-(* Proof. *)
-(*   move => yneq0. *)
-(*   case: I => //; case => //lIm lIe; case => //uIm uIe  pgt Nle _ ineq; rewrite /= in ineq. *)
-(*   case: J => //; case => //lJm lJe; case => //uJm uJe BJ ineq'  xcont ycont notcont0 P1 P2; rewrite /= in ineq'. *)
-(*   have [lneq0 uneq0] : (is_zero (D2R (Float lJm lJe))) = false /\ (is_zero (D2R (Float uJm uJe))) = false. *)
-(*   - have C := (upper_lower_contained BJ). *)
-(*     split; apply Raux.Req_bool_false => H; apply notcont0; rewrite <- H; apply C; by exists y.  *)
-(*   split. *)
-(*   - rewrite /bounded /I.div/I.Fdivz. *)
-(*     have := (I.sign_strict_correct_ _ _ _ ycont). *)
-(*     case : (I.sign_strict_ (Float lJm lJe) (Float uJm uJe)); try by lra. *)
-(*     case : (I.sign_strict_ (Float lIm lIe) (Float uIm uIe)); try by []; move => [ylt _]; try rewrite !SF2.real_correct; try rewrite !SF2.div_correct; try rewrite  !D2R_SF2toX /Xdiv' //=; try rewrite lneq0; try rewrite uneq0; try by []. *)
-(*     + by case : (I.sign_strict_ (Float lIm lIe) (Float uIm uIe)); try rewrite !SF2.real_correct;try rewrite !SF2.div_correct;try rewrite  !D2R_SF2toX /Xdiv' //=;try rewrite lneq0; try rewrite uneq0; try by []. *)
-(*     case : (I.sign_strict_ (Float lIm lIe) (Float uIm uIe));try rewrite  !D2R_SF2toX; apply or_to_imply;apply or_introl => H;apply notcont0;apply le_contains; rewrite !D2R_SF2toX /le_lower/le_upper //=;by lra. *)
-(*     rewrite <- SFBI2.neg_correct. *)
-(*       have helper u v u' v' : (u*v + (powerRZ 2 (2*(N+1)+1-p))%Z)-(u'*v' - (powerRZ 2 (2*(N+1)+1-p)%Z)) = (u*v - u'*v')+(powerRZ 2 (2*N+4-p)%Z). *)
-(*     - suff :  (powerRZ 2 1)*(powerRZ 2 (2 * (N + 1) + 1 - p)%Z)  =  (powerRZ 2 (2*N + 4 - p)%Z) by simpl;lra. *)
-(*       rewrite <- powerRZ_add; try by lra. *)
-(*       suff H0 :((1 + (2 * (N + 1) + 1 - p)%Z) =  (2 * N + 4 - p))%Z by rewrite H0. *)
-(*       by lia. *)
-(*     rewrite diam_absI in ineq. *)
-(*     rewrite diam_absJ in ineq'. *)
-(*     have ineq_rev := ineq. *)
-(*     have ineq'_rev := ineq'. *)
-(*     have ineq_triv z k: (Rabs (z - z) <= / 2 ^ k) by rewrite Rcomplements.Rminus_eq_0 Rabs_R0;apply tpmn_pos. *)
-(*     rewrite Rabs_minus_sym in ineq_rev. *)
-(*     rewrite Rabs_minus_sym in ineq'_rev. *)
+Lemma powerRZ_lt_neq0 y M: (powerRZ 2 M) <= (Rabs y) -> (y <> 0). 
+Proof.
+  split_Rabs.
+  - suff : (0 < -y) by lra.
+    apply /Rlt_le_trans.
+    apply (powerRZ_lt 2 M); lra.
+    by apply H.
+  - suff : (0 < y) by lra.
+    apply /Rlt_le_trans.
+    apply (powerRZ_lt 2 M); by lra.
+    by apply H.
+Qed.
 
-(*     have case_helper rnd rnd' m1 e1 m2 e2 m1' e1' m2' e2' : (Rabs (D2R (Float m1 e1))) <= (powerRZ 2 (N+1)) -> (Rabs (D2R (Float m1' e1'))) <= (powerRZ 2 (N+1)) -> (Rabs (D2R (Float m2 e2))) <= (powerRZ 2 (N+1)) -> (Rabs (D2R (Float m2' e2'))) <= (powerRZ 2 (N+1)) ->  (Rabs ((D2R (Float m1 e1)) - (D2R (Float m1' e1')))) <= / 2 ^ n -> (Rabs ((D2R (Float m2 e2)) - (D2R (Float m2' e2')))) <= / 2 ^ m -> (SF2.mul rnd p (Float m1 e1) (Float m2 e2)) - (SF2.mul  rnd' p (Float m1' e1') (Float m2' e2')) <= (powerRZ 2 (N+1-(Z.of_nat n)))+(powerRZ 2 (N+1-(Z.of_nat m)))+(powerRZ 2 (2*N + 4 - p)%Z). *)
-(*     move => H1 H2 H3 H4 H5 H6. *)
-(*     apply /Rle_trans. *)
-(*     apply (round_sub_simplification (N+1)%Z); try by []. *)
-(*     rewrite helper. *)
-(*     apply Rplus_le_compat_r. *)
-(*     apply /Rle_trans. *)
-(*     apply Rle_abs. *)
-(*     by apply mul_sub_err'; by []. *)
-(*   have case_helper2 : (D2R (SF2.zero) - (D2R SF2.zero)) <= *)
-(*   powerRZ 2 (N + 1 - Z.of_nat n) + powerRZ 2 (N + 1 - Z.of_nat m) + *)
-(*   powerRZ 2 (2 * N + 4 - p)%Z. *)
-(*   - rewrite /D2R SF2.zero_correct Rminus_0_r //=. *)
-(*     apply Rplus_le_le_0_compat; [apply Rplus_le_le_0_compat |]; by apply powerRZ_le;lra. *)
-(*   case : (I.sign_large_ (Float lIm lIe) (Float uIm uIe));case : (I.sign_large_ (Float lJm lJe) (Float uJm uJe)); try by (try apply case_helper2; try by (apply case_helper; by [])). *)
-(*   have := (case_helper Interval_definitions.rnd_UP Interval_definitions.rnd_DN lIm lIe lJm lJe lIm lIe uJm uJe). *)
-(*   have := (case_helper Interval_definitions.rnd_UP Interval_definitions.rnd_DN lIm lIe lJm lJe uIm uIe lJm lJe). *)
-(*   have := (case_helper Interval_definitions.rnd_UP Interval_definitions.rnd_DN uIm uIe uJm uJe lIm lIe uJm uJe). *)
-(*   have := (case_helper Interval_definitions.rnd_UP Interval_definitions.rnd_DN uIm uIe uJm uJe uIm uIe lJm lJe). *)
-(*   rewrite /D2R !SF2.max_correct !SF2.min_correct /Xmin /Xmax !SF2.mul_correct /Xmul !D2R_SF2toX //=. *)
-(*     apply Rmax_case;apply Rmin_case; by auto. *)
-(*   Check ID_bound_simpl2. *)
-(*   have [B1 B2] := (ID_bound_simpl2 Nge BI DI xcont xle).  *)
-(*   have [B1' B2'] := (ID_bound_simpl2 Ngt BJ DJ yc By).  *)
-(* Lemma Rdiv_rlzr_spec :  Rdiv_rlzr \realizes (make_mf (fun xy z => (xy.2 <> 0 /\ z = (Rdiv xy.1 xy.2)))). *)
-(* Proof. *)
-(*   move => phi [x y] [/=[xephin convx] [yephin convy]]. *)
-(*   case => t [yneq0 tp]. *)
-(*   split. *)
+Lemma round_error_div p rnd x y M: (1 < p)%Z -> (Rabs x) <= (powerRZ 2 M) ->  (powerRZ 2 (-M)%Z) <= (Rabs y) -> x/y - (powerRZ 2 (2*M+1-p)%Z) <= (Interval_definitions.round SF2.radix rnd (SF2.prec p) (x/y)) <= x/y + (powerRZ 2 (2*M+1-p)%Z).
+Proof.
+  move => pgt H1 H2.
+  have lt : (Rabs (x/y)) <= (powerRZ 2 (2*M)).
+  - rewrite Rabs_mult.
+    rewrite <-Z.add_diag, powerRZ_add; last by lra.
+    suff H0 : (Rabs (/ y) <= (powerRZ 2 M)) by apply Rmult_le_compat; [apply Rabs_pos | apply Rabs_pos | |].
+    rewrite Rabs_Rinv; last by apply (powerRZ_lt_neq0 H2).
+    rewrite powerRZ_Rpower; try by lra.
+    have -> : (IZR M) = (- (IZR (- M))) by rewrite opp_IZR;lra.
+    rewrite Rpower_Ropp.
+    rewrite <- powerRZ_Rpower.
+    apply Raux.Rinv_le; by [(apply powerRZ_lt;lra) | apply H2 ].
+    by lra.
+  apply Rcomplements.Rabs_le_between'.
+  by apply round_error.
+Qed.
+
+Lemma div_error I J n m p x y N:
+  (1 < p)%Z ->
+  (0 <= N)%Z ->
+  bounded I -> diam I <= /2^n -> bounded J -> diam J <= /2^m ->
+  (x \contained_in I) ->
+  (y \contained_in J) ->
+  (not 0 \contained_in J) ->
+  (Rabs x) <=  (powerRZ 2 N) ->  (powerRZ 2 N) <= (Rabs y) ->
+  bounded (I.div p I J)
+  /\
+  diam (I.div p I J) <= (powerRZ 2 (N+1-(Z.of_nat n)))+ (powerRZ 2 (N+1-(Z.of_nat m))) + (powerRZ 2 (2*N+4-p)%Z).
+Proof.
+  move => H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11.
+  have yneq0 := (powerRZ_lt_neq0 H11).
+  move : H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11.
+  case: I => //; case => //lIm lIe; case => //uIm uIe  pgt Nle _ ineq; rewrite /= in ineq.
+  case: J => //; case => //lJm lJe; case => //uJm uJe BJ ineq'  xcont ycont notcont0 P1 P2; rewrite /= in ineq'.
+  have [lneq0 uneq0] : (is_zero (D2R (Float lJm lJe))) = false /\ (is_zero (D2R (Float uJm uJe))) = false.
+  - have C := (upper_lower_contained BJ).
+    split; apply Raux.Req_bool_false => H; apply notcont0; rewrite <- H; apply C; by exists y.
+  split.
+  - rewrite /bounded /I.div/I.Fdivz.
+    have := (I.sign_strict_correct_ _ _ _ ycont).
+    case : (I.sign_strict_ (Float lJm lJe) (Float uJm uJe)); try by lra.
+    case : (I.sign_strict_ (Float lIm lIe) (Float uIm uIe)); try by []; move => [ylt _]; try rewrite !SF2.real_correct; try rewrite !SF2.div_correct; try rewrite  !D2R_SF2toX /Xdiv' //=; try rewrite lneq0; try rewrite uneq0; try by [].
+    + by case : (I.sign_strict_ (Float lIm lIe) (Float uIm uIe)); try rewrite !SF2.real_correct;try rewrite !SF2.div_correct;try rewrite  !D2R_SF2toX /Xdiv' //=;try rewrite lneq0; try rewrite uneq0; try by [].
+    case : (I.sign_strict_ (Float lIm lIe) (Float uIm uIe));try rewrite  !D2R_SF2toX; apply or_to_imply;apply or_introl => H;apply notcont0;apply le_contains; rewrite !D2R_SF2toX /le_lower/le_upper //=;by lra.
+  have helper u v u' v' := (powerRZ_sub_helper (u/v) (u'/v') N p).
+  rewrite /I.div.
+  case : (I.sign_strict_ (Float lIm lIe) (Float uIm uIe));case : (I.sign_strict_ (Float lJm lJe) (Float uJm uJe)); try rewrite //= Rcomplements.Rminus_eq_0; try by (try apply case_helper2; try by (apply case_helper; by [])).
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  rewrite /upper/lower/I.Fdivz SF2.real_correct !D2R_SF2toX /D2R.
+  rewrite !SF2.div_correct/Interval_definitions.Xround /Xdiv/Xdiv' !D2R_SF2toX lneq0 uneq0 //=.
+  have sub_simplification a b a' b': (a <= a') -> (b' <= b) -> (a-b <= a' - b') by lra.
+  apply sub_simplification.
+  apply /Rle_trans.
+    apply (round_sub_simplification (N+1)%Z); try by [].
+  Search _ interval_definitions.Xround.
+  have divFl := (D2R (SF2.div ))
+    rewrite diam_absI in ineq.
+    rewrite diam_absJ in ineq'.
+    have ineq_rev := ineq.
+    have ineq'_rev := ineq'.
+    have ineq_triv z k: (Rabs (z - z) <= / 2 ^ k) by rewrite Rcomplements.Rminus_eq_0 Rabs_R0;apply tpmn_pos.
+    rewrite Rabs_minus_sym in ineq_rev.
+    rewrite Rabs_minus_sym in ineq'_rev.
+
+    have case_helper rnd rnd' m1 e1 m2 e2 m1' e1' m2' e2' : (Rabs (D2R (Float m1 e1))) <= (powerRZ 2 (N+1)) -> (Rabs (D2R (Float m1' e1'))) <= (powerRZ 2 (N+1)) -> (Rabs (D2R (Float m2 e2))) <= (powerRZ 2 (N+1)) -> (Rabs (D2R (Float m2' e2'))) <= (powerRZ 2 (N+1)) ->  (Rabs ((D2R (Float m1 e1)) - (D2R (Float m1' e1')))) <= / 2 ^ n -> (Rabs ((D2R (Float m2 e2)) - (D2R (Float m2' e2')))) <= / 2 ^ m -> (SF2.mul rnd p (Float m1 e1) (Float m2 e2)) - (SF2.mul  rnd' p (Float m1' e1') (Float m2' e2')) <= (powerRZ 2 (N+1-(Z.of_nat n)))+(powerRZ 2 (N+1-(Z.of_nat m)))+(powerRZ 2 (2*N + 4 - p)%Z).
+    move => H1 H2 H3 H4 H5 H6.
+    apply /Rle_trans.
+    apply (round_sub_simplification (N+1)%Z); try by [].
+    rewrite helper.
+    apply Rplus_le_compat_r.
+    apply /Rle_trans.
+    apply Rle_abs.
+    by apply mul_sub_err'; by [].
+  have case_helper2 : (D2R (SF2.zero) - (D2R SF2.zero)) <=
+  powerRZ 2 (N + 1 - Z.of_nat n) + powerRZ 2 (N + 1 - Z.of_nat m) +
+  powerRZ 2 (2 * N + 4 - p)%Z.
+  - rewrite /D2R SF2.zero_correct Rminus_0_r //=.
+    apply Rplus_le_le_0_compat; [apply Rplus_le_le_0_compat |]; by apply powerRZ_le;lra.
+  case : (I.sign_large_ (Float lIm lIe) (Float uIm uIe));case : (I.sign_large_ (Float lJm lJe) (Float uJm uJe)); try by (try apply case_helper2; try by (apply case_helper; by [])).
+  have := (case_helper Interval_definitions.rnd_UP Interval_definitions.rnd_DN lIm lIe lJm lJe lIm lIe uJm uJe).
+  have := (case_helper Interval_definitions.rnd_UP Interval_definitions.rnd_DN lIm lIe lJm lJe uIm uIe lJm lJe).
+  have := (case_helper Interval_definitions.rnd_UP Interval_definitions.rnd_DN uIm uIe uJm uJe lIm lIe uJm uJe).
+  have := (case_helper Interval_definitions.rnd_UP Interval_definitions.rnd_DN uIm uIe uJm uJe uIm uIe lJm lJe).
+  rewrite /D2R !SF2.max_correct !SF2.min_correct /Xmin /Xmax !SF2.mul_correct /Xmul !D2R_SF2toX //=.
+    apply Rmax_case;apply Rmin_case; by auto.
+  Check ID_bound_simpl2.
+  have [B1 B2] := (ID_bound_simpl2 Nge BI DI xcont xle).
+  have [B1' B2'] := (ID_bound_simpl2 Ngt BJ DJ yc By).
+Lemma Rdiv_rlzr_spec :  Rdiv_rlzr \realizes (make_mf (fun xy z => (xy.2 <> 0 /\ z = (Rdiv xy.1 xy.2)))).
+Proof.
+  move => phi [x y] [/=[xephin convx] [yephin convy]].
+  case => t [yneq0 tp].
+  split.
 End division.

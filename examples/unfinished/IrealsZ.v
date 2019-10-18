@@ -15,6 +15,9 @@ Unset Printing Implicit Defensive.
 Local Open Scope Z_scope.
 Import QArith.
 Local Open Scope R_scope.
+(* types (needed for extraction) *)
+Definition IR_type := nat -> Interval_interval_float.f_interval (s_float Z Z).
+Definition IR_pair :=  nat + nat -> Interval_interval_float.f_interval (s_float Z Z) * Interval_interval_float.f_interval (s_float Z Z).
 
 Lemma countable_comp Q Q': Q \is_countable -> (exists cnt : (Q -> Q'), cnt \is_surjective) -> Q' \is_countable .
 Proof.
@@ -57,16 +60,16 @@ Proof.
   case => [| l u]; first by exists None.
   by exists (Some (l,u)).
 Qed.
-Definition IR_type := nat -> Interval_interval_float.f_interval (s_float Z Z).
-Definition IR_pair :=  nat + nat -> Interval_interval_float.f_interval (s_float Z Z) * Interval_interval_float.f_interval (s_float Z Z).
 
-Definition IR2 (phi : IR_type) (psi : IR_type) :  IR_pair :=  fun n => match n with
-       | inl x0 => (phi x0, Interval_interval_float.Ibnd Fnan Fnan)
-       | inr x0 => (Interval_interval_float.Ibnd Fnan Fnan, psi x0)
-       end.
 Section representation.
 
 Definition names_IR := Build_naming_space 0%nat nat_count ID_count.
+
+
+Definition IR2 (phi : IR_type) (psi : IR_type) :  (names_IR \*_ns names_IR) :=  fun n => match n with
+       | inl x0 => (phi x0, Interval_interval_float.Ibnd Fnan Fnan)
+       | inr x0 => (Interval_interval_float.Ibnd Fnan Fnan, psi x0)
+       end.
 Definition rep_R : names_IR ->> R:= make_mf (
   fun I x => (forall n,  x \contained_in (I n))
   /\
@@ -129,6 +132,7 @@ End representation.
 Section addition.
 Definition Rplus_rlzrf (phi: names_IR \*_ns names_IR) (n: nat):= I.add (nat2p n) (lprj phi n) (rprj phi n).
 Definition Rplus_rlzr: B_ (IR \*_cs IR) ->>  B_ IR := F2MF Rplus_rlzrf.
+
 
 Lemma Rplus_rlzr_spec : Rplus_rlzr \realizes (uncurry Rplus).
 Proof.
@@ -253,6 +257,14 @@ End multiplication.
 Section conversions.
 Definition ZtoIR z : B_(IR):= (fun p:nat => (I.fromZ z)).
 Definition FloattoIR m e :  B_(IR):= (fun p:nat => (I.bnd (Float m e) (Float m e))).
+Lemma FloattoIR_correct m e : (FloattoIR m e) \is_name_of (D2R (Float m e)).
+Proof.
+  split => n; first by rewrite //= D2R_SF2toX;lra.
+  exists 0%nat => k kgt.
+  split; first by [].
+  simpl; ring_simplify.
+  by apply tpmn_pos.
+Qed.
 Definition QtoIR p q := match q with 
                         (a#b) => (I.div p  (I.fromZ a) (I.fromZ (Z.pos b)))
                         end.
@@ -579,13 +591,14 @@ Definition IR_RQ_rlzrM n (In : names_IR) (eps : Q) :=
                               then Some (Float2Q (lower (In n)))
                               else None.
 
-Lemma IR_RQ_rlzrM_dom In x: (In \describes x \wrt delta_(IR)) -> (forall (eps : Q), (0 < eps)-> exists n q, (IR_RQ_rlzrM n In eps) = (Some q) /\ (\| q - x| <= (Q2R eps))).
+Lemma IR_RQ_rlzrM_dom In x: (In \describes x \wrt delta_(IR)) -> (forall (eps : Q), (0 < eps)-> exists N, forall n, (N <= n)%nat -> exists q, (IR_RQ_rlzrM n In eps) = (Some q) /\ (\| q - x| <= (Q2R eps))).
 Proof.
   move => [xcont shrink] eps epsgt.
   case  (dns0_tpmn epsgt) => n nprop.
   apply Rlt_le in nprop.
   case (shrink n) => N Nprop.
-  exists N; exists (Float2Q (lower (In N))).
+  exists N => k kprop.
+  exists (Float2Q (lower (In k))).
   rewrite /IR_RQ_rlzrM //=.
   rewrite ifF; last first.
   -  apply /negP.
@@ -594,16 +607,15 @@ Proof.
      by lra.
   rewrite ifT; last first.
   - apply /andP.
-    split; first by apply (Nprop N);apply leqnn.
+    split; first by apply (Nprop _ kprop);apply leqnn.
     apply Qle_bool_iff.
     apply Rle_Qle.
     rewrite diamQ_spec.
     apply /(Rle_trans _ _  _ _ nprop).
-    by apply (Nprop);apply /leP;lia.
+    by apply (Nprop _ kprop);apply /leP;lia.
   split; first by [].
   apply /(Rle_trans _ _  _ _ nprop).
-  have t : (N <= N)%nat by apply/leP;lia.
-  have [Nprop1 Nprop2] := (Nprop N t).
+  have [Nprop1 Nprop2] := (Nprop k kprop).
   apply /(Rle_trans _ _  _ _ Nprop2).
   apply ID_bound_dist; try by [].
   rewrite <- Float2Q_spec.
@@ -632,9 +644,9 @@ Proof.
   exists x; by apply N1.
 Qed.
 
-Lemma F_M_realizer_IR_RQ : \F_(fun phi neps => IR_RQ_rlzrM neps.1 phi neps.2)  \realizes (id:IR -> RQ).
+Lemma F_M_realizer_IR_RQ : forall f, (forall n, (n <= (f n))%nat) -> \F_(fun phi neps => IR_RQ_rlzrM (f neps.1) phi neps.2)  \realizes (id:IR -> RQ).
 Proof.
-  move => phi x phin xfd.
+  move => f fprop phi x phin xfd.
   split.
   - apply FM_dom => q'.
     case gt: (Qle_bool q' 0); first by rewrite/IR_RQ_rlzrM /= gt; exists 0%Q; exists 0%nat.
@@ -645,7 +657,9 @@ Proof.
       apply gt.
       apply Qle_bool_iff.
       by apply Rle_Qle;lra.
-    case (IR_RQ_rlzrM_dom phin qf) => s.
+      Check IR_RQ_rlzrM_dom.
+    case (IR_RQ_rlzrM_dom phin qf) => s P.
+    have := (P _ (fprop s)).
     case => q [qs_prop1 qs_prop2].
     by exists q; exists s.
   move => psi H.

@@ -253,7 +253,85 @@ Proof.
   by apply Kp1.
 Qed.
 End multiplication.
+Section division.
+Definition Rdiv_rlzrf (phi: names_IR \*_ns names_IR) (n: nat):= I.div (nat2p n) (lprj phi n) (rprj phi n).
 
+Definition Rdiv_rlzr: B_ (IR \*_cs IR) ->> B_ IR := F2MF Rdiv_rlzrf.
+Lemma Rdiv_rlzr_spec :  Rdiv_rlzr \solves (make_mf (fun xy z => (xy.2 <> 0 /\ z = (Rdiv xy.1 xy.2)))).
+Proof.
+   move => phi [x y] /prod_name_spec [/=[xephin convx] [yephin convy]].
+  case => t [yneq0 tp].
+  split; first by exists (fun n : nat => I.div (nat2p n) (lprj phi n) (rprj phi n)).
+  move => Fq Fqprp.                   
+  exists t; split; first by auto.
+  rewrite <-Fqprp, tp.
+  split => n; first by apply /div_correct_R.
+  case (powerRZ2_bound x (/ y)) => K [Kprp1 [Kprp2 Kprp3]].
+  have [N Nprp]:= convx ((K+1)+n.+3)%nat.
+  have [M Mprp]:= convy ((3*K+4)+n.+3)%nat.
+  exists (maxn ((2*K+n.+2).+4.+4.+1)%nat (maxn M N)) => k ineq.
+  have [Kp1 [Kp2 Kp3]] := (maxN3 ineq).
+  have [ | bndl dml]:= Nprp k; first by [].
+  have [ | bndr dmr]:= Mprp k; first by [].
+  have lt' : (0 <= Z.of_nat K)%Z by lia. 
+    have lt: (1 < nat2p k)%Z.
+  - suff : (1 < k)%coq_nat.
+    rewrite /nat2p/SF2.PtoP //=.   
+    rewrite Nat2Z.inj_lt //=.
+    by case  k => [|p]; by [lia |rewrite /Z.of_nat Pos.of_nat_succ].
+    move /ltP : Kp1.
+    by lia.
+  move : Kprp3.
+  have -> : ((Z.of_nat K) = (- (- Z.of_nat K)))%Z by lia.
+  rewrite Rabs_Rinv; last by auto.
+  rewrite powerRZ_neg; last by lra.
+  rewrite powerRZ_inv; last by lra.
+  move => Kprp3.
+  apply Rinv_le_contravar in Kprp3; last by apply Rinv_0_lt_compat;apply Rabs_pos_lt.
+  rewrite !Rinv_involutive in Kprp3;(try by apply powerRZ_NOR;lra);try by apply Rabs_no_R0.
+  have Kineq : (Z.of_nat K + 2 <= Z.of_nat (3 * K + 4 + n.+3))%Z.
+  - have -> : (2%Z = (Z.of_nat 2))%Z by lia.
+    rewrite <-Nat2Z.inj_add.
+    apply Nat2Z.inj_le.
+    rewrite /addn/muln/addn_rec/muln_rec.
+    by lia.
+  have [r1 r2] := (div_error lt lt' Kineq bndl dml bndr dmr (xephin k) (yephin k) Kprp2 Kprp3).
+  split; first  by apply r1.
+  apply /Rle_trans.
+  apply r2.
+  rewrite <-powerRZ2_neg_pos.
+  have -> : (Z.of_nat K + 1 - (Z.of_nat (K + 1 + n.+3)) = (-Z.of_nat (n.+3)))%Z by rewrite !Nat2Z.inj_add; lia.
+  have -> : (3*Z.of_nat K + 4 - (Z.of_nat (3*K + 4 + n.+3)) = (-Z.of_nat (n.+3)))%Z by rewrite !Nat2Z.inj_add ; lia.
+  suff pwrrz2_ineq : (powerRZ 2 (2 * Z.of_nat K + 4 - nat2p k) <= (powerRZ 2 (- Z.of_nat n.+2))).
+  - apply /Rle_trans.
+    apply Rplus_le_compat_l.
+    apply pwrrz2_ineq. 
+    rewrite !powerRZ2_neg_pos.
+    rewrite <- !tpmn_half.
+    by apply /tpmnP.
+  suff exp_ineq : ((2 * Z.of_nat K + 4 - nat2p k) <= ((- Z.of_nat n.+2)))%Z.
+  - rewrite !powerRZ_Rpower;try by lra.
+    apply Rle_Rpower; try by lra.
+    by apply IZR_le.
+ suff : (2 * (Z.of_nat K + 4)+(Z.of_nat n.+2) <= nat2p k)%Z by lia.
+ have -> : (2 = (Z.of_nat 2))%Z by lia.
+ have -> : (4 = (Z.of_nat 4))%Z by lia.
+ rewrite <-!Nat2Z.inj_add.
+ rewrite <-!Nat2Z.inj_mul.
+ rewrite <-!Nat2Z.inj_add.
+ have -> : (nat2p k) = (Z.of_nat k).
+ - suff : (1 < k)%coq_nat.
+    rewrite /nat2p/SF2.PtoP //=.   
+    rewrite Nat2Z.inj_lt //=.
+    by case  k => [|p]; by [lia |rewrite /Z.of_nat Pos.of_nat_succ].
+    move /ltP : Kp1.
+    by lia.
+ apply inj_le.
+ apply Nat.lt_le_incl.
+ have /ltP :=  Kp1.
+ rewrite /addn /muln /addn_rec /muln_rec.
+ by lia.
+Qed.  
 Section conversions.
 Definition ZtoIR z : B_(IR):= (fun p:nat => (I.fromZ z)).
 Definition FloattoIR m e :  B_(IR):= (fun p:nat => (I.bnd (Float m e) (Float m e))).

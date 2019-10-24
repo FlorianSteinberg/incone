@@ -1,6 +1,8 @@
 From mathcomp Require Import all_ssreflect.
 From rlzrs Require Import all_rlzrs.
 From metric Require Import reals pointwise.
+From metric Require Import all_metric reals standard Qmetric.
+Require Import axioms all_cs cs_mtrc metric_names hyper_spaces.
 Require Import all_cs_base classical_mach.
 Require Import Reals Psatz FunctionalExtensionality ClassicalChoice.
 Require Import Ibounds.
@@ -332,6 +334,257 @@ Proof.
  rewrite /addn /muln /addn_rec /muln_rec.
  by lia.
 Qed.  
+End division.
+Section extension.
+Definition extend J p := (I.add (nat2p p) J (I.bnd (Float (-1)%Z (-((Z.of_nat p)))%Z) (Float (1)%Z (-((Z.of_nat p)))%Z))).
+
+Lemma extend_diam_lb J p x y: (x \contained_in J) -> (Rabs (y-x)) <= (/ 2 ^ p) -> (y \contained_in (extend J p)). 
+Proof.
+  move => xc dist.
+  set K := (I.bnd (Float (-1)%Z (-((Z.of_nat p)))%Z) (Float (1)%Z (-((Z.of_nat p)))%Z)).
+  have -> : y = (x + (y-x)) by lra. 
+  suff cnt : ((y-x) \contained_in K) by apply (add_correct_R (nat2p p) xc cnt).
+  rewrite //= !Interval_definitions.FtoR_split Float_prop.F2R_Zopp !Float_prop.F2R_bpow.
+  rewrite !Raux.bpow_powerRZ/StdZRadix2.EtoZ  //=.
+  apply Rcomplements.Rabs_le_between.
+  by rewrite powerRZ2_neg_pos.
+Qed.
+
+Lemma extend_diam_ub J p n x N: (1 < p)%nat -> (0 <= N)%Z ->
+ (bounded J) -> (diam J <= (/ 2 ^ n)) -> (x \contained_in J) -> ((Rabs x) <= (powerRZ 2 N)) -> (diam (extend J p)) <= (/ 2 ^ n)+(/ 2 ^ (p.-1)) + (powerRZ 2 (N + 4 - (nat2p p))%Z).
+Proof.
+  move => plt Nlt B dJ xc xb.
+  set K := (I.bnd (Float (-1)%Z (-((Z.of_nat p)))%Z) (Float (1)%Z (-((Z.of_nat p)))%Z)).
+  have plt' : (1 < (nat2p p))%Z.
+  - rewrite /nat2p.
+    rewrite /SF2.PtoP /StdZRadix2.ZtoE  //=.
+    have -> : (p = ((p.-2).+1).+1) by move /leP : plt;lia.
+    case (p.-2) => [| m]; rewrite //=;lia.
+  have [Bk dK] : (bounded K) /\ ((diam K) <= (/ 2 ^ (p.-1))).
+  - split; first by [].
+    rewrite !D2R_Float //=.
+    ring_simplify.
+    rewrite powerRZ2_neg_pos//=.
+    have {1}-> : (p = ((p.-1).+1))%nat.
+    + rewrite Nat.succ_pred_pos; first by [].
+      move /leP : plt.
+      by lia.
+    rewrite double.
+    rewrite <- tpmn_half.
+    by lra.
+  have c0 : (0 \contained_in K).
+  - rewrite //= !Interval_definitions.FtoR_split Float_prop.F2R_Zopp !Float_prop.F2R_bpow.
+    rewrite !Raux.bpow_powerRZ/StdZRadix2.EtoZ //=.
+    apply Rcomplements.Rabs_le_between.
+    rewrite Rabs_R0.
+    by apply powerRZ_le; lra.
+  apply (add_error plt' Nlt B dJ Bk dK xc c0 xb).
+  by rewrite Rabs_R0; apply powerRZ_le;lra.
+Qed.
+
+Lemma extend_bounded J p : (bounded J) -> (bounded (extend J p)).
+Proof.
+  rewrite /extend.
+  rewrite /I.add //=.
+  case J => [| u l]; first by [].
+  rewrite /bounded !SF2.real_correct //=.
+  case u => [|m e]; case l => [|m' e']; try by [].
+  - by rewrite andb_false_r.
+ move => _.
+  rewrite !SF2.add_correct.
+  by rewrite !D2R_SF2toX.
+Qed.
+End extension.
+Section limit.
+Definition limit_eff_rlzrM (phin : B_(IR\^w)) (mn : nat * nat) :=
+  let (m,n) := mn in
+  match (phin (n.+1,m)) with
+  | (Interval_interval_float.Ibnd l u) =>
+      if  (I.F'.le (SF2.sub_exact u l) (Float 1%Z (- (Z.of_nat n.+1))%Z))
+      then (Some (extend (Interval_interval_float.Ibnd l u) n.+1))
+      else None
+    | _ => None
+  end.
+Notation lim_eff:= (efficient_limit: (IR\^w) ->> IR).
+Lemma diam_approx_correct u l n:  (u <> Fnan) -> (l <> Fnan) -> (diam (Interval_interval_float.Ibnd l u)) <= (/ 2 ^ (n.+1)) <-> (I.F'.le (SF2.sub_exact u l) (Float 1%Z (-Z.of_nat n.+1)%Z)).
+Proof.
+  move => up lp.
+  rewrite /I.F'.le SF2.cmp_correct.
+  rewrite SF2.sub_exact_correct.
+  rewrite /Xsub.
+  rewrite /Xcmp.
+  case e:  u; case e':l; try by auto.
+  rewrite !D2R_SF2toX;rewrite <-e, <-e'.
+  rewrite D2R_Float.
+  rewrite powerRZ2_neg_pos Rmult_1_l.
+  split.
+  - move => /= H.
+    case H => H'; first by rewrite Raux.Rcompare_Lt.
+    by rewrite Raux.Rcompare_Eq.
+  case cmp : (Raux.Rcompare (D2R u-D2R l) (/2 ^ (n.+1))) ; last by auto.
+  - apply Raux.Rcompare_Eq_inv in cmp.
+    rewrite cmp //=; lra.
+  apply Raux.Rcompare_Lt_inv in cmp; simpl in cmp.
+  by rewrite //=;lra.
+Qed.
+
+Lemma F_lim_eff_rlzrM_dom phin xn: (phin \describes xn \wrt delta_(IR\^w)) -> (forall n, exists M, forall m, (M <= m)%nat -> exists I, (limit_eff_rlzrM phin (m,n)) = (Some I) /\ (bounded I) /\ ((xn n.+1) \contained_in I)). 
+Proof.
+  move => phinn n.
+  have [phi_prp1 phi_prp2] := (phinn n.+1).
+  case (phi_prp2 (n.+1)) => M Mprp.
+  exists M => m mprp.
+  have [bnd ineq] := (Mprp _ mprp).
+  have := bnd.
+  move : ineq.
+  case e: (phin (n.+1,m)) => [| d1 d2]; first by auto.
+  move => ineq p.
+  have [d1prp d2prp] : (d1 <> Fnan) /\ (d2 <> Fnan) by split; move : p;case d1prp' : d1 => [| mant1 exp1]; case d2prp : d2 => [| mant2 exp2].
+  exists (extend (Interval_interval_float.Ibnd d1 d2) n.+1).
+  split; first by rewrite /= e ifT; last apply diam_approx_correct.
+  split; first by apply extend_bounded.
+  rewrite <-e.
+  apply (extend_diam_lb (phi_prp1 m)).
+  rewrite Rcomplements.Rminus_eq_0 Rabs_R0.
+  by apply tpmn_pos.
+Qed.
+
+Lemma F_lim_eff_rlzrM_contains_lim phin xn x m n I: (phin \describes xn \wrt delta_(IR\^w)) -> (lim_eff xn x) ->(limit_eff_rlzrM phin (m, n)) = (Some I) ->  x \contained_in I.
+Proof.
+  move => phinn xlim.
+  rewrite /limit_eff_rlzrM.
+  case e : (phin (n.+1,m)) => [| d1 d2] ; first by auto.
+  case (I.F'.le (SF2.sub_exact d2 d1) (Float 1%Z (- Z.of_nat n.+1)%Z)); try by auto.
+  move => /Some_inj <-.
+  have [phi_prp1 phi_prp2] := (phinn n.+1).
+  rewrite <- e.
+  apply (extend_diam_lb (phi_prp1 m)).
+  by apply xlim.
+Qed.
+
+Lemma F_lim_eff_rlzrM_choice_correct phin xn m n I : (phin \describes xn \wrt delta_(IR\^w)) -> (limit_eff_rlzrM phin (m, n)) = (Some I) -> (I = (extend (phin (n.+1,m)) (n.+1))) /\ (bounded (phin (n.+1,m))) /\ (diam (phin (n.+1,m))) <= (/2 ^ (n.+1)).
+Proof.
+  move => phinn.
+  rewrite /limit_eff_rlzrM.
+  case e : (phin (n.+1,m)) => [| d1 d2] ; first by auto.
+  move => p.
+  have [d1prp d2prp] : (d1 <> Fnan) /\ (d2 <> Fnan) by split; move : p;case d1prp' : d1 => [| mant1 exp1]; case d2prp : d2 => [| mant2 exp2].
+  move : p.
+  case e': (I.F'.le (SF2.sub_exact d2 d1) (Float 1%Z (- Z.of_nat n.+1)%Z)); try by auto.
+  move => /Some_inj H.
+  split; first by auto.
+  split.
+  simpl.
+  rewrite !SF2.real_correct.
+  case d1prp' : d1 => [| mant1 exp1]; case d2prp' : d2 => [| mant2 exp2]; try rewrite !D2R_SF2toX;try by auto.
+  by apply diam_approx_correct.
+Qed.  
+
+Lemma F_lim_eff_rlzrM_diam phin xn m n I M :  (0 <= M)%Z -> (1 < n.+1)%nat -> (phin \describes xn \wrt delta_(IR\^w)) -> (Rabs (xn (n.+1))) <= (powerRZ 2 M) -> (limit_eff_rlzrM phin (m, n)) = (Some I) -> (bounded I) /\ (diam I) <= (powerRZ 2 (M + 4 - nat2p n)).
+Proof.
+  move => Mbnd nbnd phinn bnd P.
+  have [-> [B diam]] := (F_lim_eff_rlzrM_choice_correct phinn P).
+  have [phi_prp1 phi_prp2] := (phinn n.+1).
+  split; first by apply extend_bounded.
+  apply /Rle_trans.
+  apply (extend_diam_ub nbnd Mbnd B diam (phi_prp1 m) bnd).
+  have ineq : (/2 ^ n.+1) <= (/2 ^ n.+1.-1) by apply /tpmnP;apply /leP;lia.
+  apply /Rle_trans.
+  apply Rplus_le_compat_r.
+  apply Rplus_le_compat_r.
+  apply ineq.
+  have /leP := nbnd => nbnd'.
+  have -> : (n.+1.-1 = (n.-1.+1))%coq_nat by lia.
+  rewrite <- tpmn_half.
+  rewrite <- powerRZ2_neg_pos.
+  have -> : (M + 4 - (nat2p n.+1) = (M+3-(nat2p n)))%Z.
+  - rewrite /nat2p /SF2.PtoP/StdZRadix2.ZtoE.
+    rewrite Nat2Pos.inj_succ; by lia.
+  have ineq' : (-Z.of_nat n.-1 <= (M + 3 - (nat2p n)))%Z.
+  - rewrite Nat2Z.inj_pred; last by lia.
+    rewrite /nat2p /SF2.PtoP/StdZRadix2.ZtoE.
+    case n => [| n' ]; first by simpl;lia.
+    elim n' => [| n'' IH]; first by simpl; lia.
+    rewrite Nat2Z.inj_succ.
+    rewrite Z.pred_succ.
+    rewrite Nat2Pos.inj_succ; by lia.
+  have rpwlt : (powerRZ 2 (- Z.of_nat n.-1)%Z) <= (powerRZ 2 (M + 3 - nat2p n)%Z).
+  - rewrite !powerRZ_Rpower; try by lra.
+    apply Rle_Rpower; try by lra.
+    by apply IZR_le.
+  apply /Rle_trans.
+  apply Rplus_le_compat_r.
+  apply rpwlt.
+  ring_simplify.
+  have {1}-> : (2 = (powerRZ 2 1)) by simpl;lra.
+ rewrite <- powerRZ_add; last by lra.
+ have ->: (1 + (M+3- nat2p n) = (M+4 - nat2p n))%Z by lia.
+ by lra.
+Qed.
+
+
+Lemma F_lim_eff_rlzrM_spec : \F_limit_eff_rlzrM  \solves lim_eff.
+Proof.
+  move => phin xn phinn [x lim].
+  split.
+  - apply FM_dom => q.
+    case (F_lim_eff_rlzrM_dom phinn q) => s P.
+    case (P _ (leqnn s)) => I [Ip1 [Ip2 Ip3]].
+    by exists I; exists s.
+  move => In Inprp.
+  exists x.
+  split; first by apply lim.
+  split => n.
+  - case (Inprp n) => m mprp.
+    by apply (F_lim_eff_rlzrM_contains_lim phinn lim mprp ).
+ case (powerRZ_bound x) => M [Mprp1 Mprp2].
+ exists ((Z.to_nat M)+5+n)%nat => k kprp.
+ case (Inprp k) => m mprp.
+ have klt :  (1 < k.+1)%nat by apply /leP; have /leP := kprp; rewrite /addn/addn_rec; lia.
+ have xnlt : (Rabs (xn k.+1)) <= (powerRZ 2 (M+1)).
+  - have l' := (lim k.+1).
+    rewrite /= Rabs_minus_sym in l'.
+    apply /Rle_trans.
+    apply (Rabs_bnd l').
+    rewrite powerRZ_add /=; last by lra.
+    ring_simplify.
+    rewrite [2*(powerRZ _ _)]double.
+    apply Rplus_le_compat; try by auto.
+    apply /Rle_trans.
+    rewrite tech_pow_Rmult.
+    apply tpmn_bound.
+    have -> : (1 = (powerRZ 2 0)) by auto.
+    rewrite !powerRZ_Rpower; try by lra.
+    apply Rle_Rpower; try by lra.
+    by apply IZR_le.
+  have C := (F_lim_eff_rlzrM_diam _ klt phinn xnlt mprp).
+  split; first by apply C;lia.
+  apply /Rle_trans. 
+  apply C; first by lia.
+  rewrite <-powerRZ2_neg_pos.
+  rewrite !powerRZ_Rpower; try by lra.
+  apply Rle_Rpower; try by lra.
+  apply IZR_le.
+  have /leP := kprp => kprp'.
+  suff : (M + 5 + (Z.of_nat n) <= (nat2p k))%Z by lia.
+  have -> : (M = (Z.of_nat (Z.to_nat M))) by rewrite Z2Nat.id.
+  rewrite /nat2p /SF2.PtoP/StdZRadix2.ZtoE.
+  have -> : (5 = (Z.of_nat 5))%Z by lia.
+  Search _ ((Z.of_nat _) + (Z.of_nat _))%Z.
+  rewrite <-!Nat2Z.inj_add.
+  have -> : (Z.pos (Pos.of_nat k)) = (Z.of_nat k).
+  - move : klt.
+    case k => [|k' klt']; first by auto.
+    rewrite Nat2Z.inj_succ.
+    elim k' => [|k'' IH]; first by auto.
+    rewrite Nat2Pos.inj_succ; last by lia.
+    rewrite Pos2Z.inj_succ.
+    by lia.
+ apply inj_le.
+ rewrite /addn/addn_rec in kprp'.
+ by lia.
+Qed.
+End limit.
 Section conversions.
 Definition ZtoIR z : B_(IR):= (fun p:nat => (I.fromZ z)).
 Definition FloattoIR m e :  B_(IR):= (fun p:nat => (I.bnd (Float m e) (Float m e))).
@@ -398,51 +651,6 @@ Proof.
   by apply Rplus_le_compat; last rewrite <- Rabs_minus_sym; apply round_error.
 Qed.
 
-Definition extend J p := (I.add (nat2p p) J (I.bnd (Float (-1)%Z (-((Z.of_nat p)))%Z) (Float (1)%Z (-((Z.of_nat p)))%Z))).
-
-Lemma extend_diam_lb J p x y: (x \contained_in J) -> (Rabs (y-x)) <= (/ 2 ^ p) -> (y \contained_in (extend J p)). 
-Proof.
-  move => xc dist.
-  set K := (I.bnd (Float (-1)%Z (-((Z.of_nat p)))%Z) (Float (1)%Z (-((Z.of_nat p)))%Z)).
-  have -> : y = (x + (y-x)) by lra. 
-  suff cnt : ((y-x) \contained_in K) by apply (add_correct_R (nat2p p) xc cnt).
-  rewrite //= !Interval_definitions.FtoR_split Float_prop.F2R_Zopp !Float_prop.F2R_bpow.
-  rewrite !Raux.bpow_powerRZ/StdZRadix2.EtoZ  //=.
-  apply Rcomplements.Rabs_le_between.
-  by rewrite powerRZ2_neg_pos.
-Qed.
-
-Lemma extend_diam_ub J p n x N: (1 < p)%nat -> (0 <= N)%Z ->
- (bounded J) -> (diam J <= (/ 2 ^ n)) -> (x \contained_in J) -> ((Rabs x) <= (powerRZ 2 N)) -> (diam (extend J p)) <= (/ 2 ^ n)+(/ 2 ^ (p.-1)) + (powerRZ 2 (N + 4 - (nat2p p))%Z).
-Proof.
-  move => plt Nlt B dJ xc xb.
-  set K := (I.bnd (Float (-1)%Z (-((Z.of_nat p)))%Z) (Float (1)%Z (-((Z.of_nat p)))%Z)).
-  have plt' : (1 < (nat2p p))%Z.
-  - rewrite /nat2p.
-    rewrite /SF2.PtoP /StdZRadix2.ZtoE  //=.
-    have -> : (p = ((p.-2).+1).+1) by move /leP : plt;lia.
-    case (p.-2) => [| m]; rewrite //=;lia.
-  have [Bk dK] : (bounded K) /\ ((diam K) <= (/ 2 ^ (p.-1))).
-  - split; first by [].
-    rewrite !D2R_Float //=.
-    ring_simplify.
-    rewrite powerRZ2_neg_pos//=.
-    have {1}-> : (p = ((p.-1).+1))%nat.
-    + rewrite Nat.succ_pred_pos; first by [].
-      move /leP : plt.
-      by lia.
-    rewrite double.
-    rewrite <- tpmn_half.
-    by lra.
-  have c0 : (0 \contained_in K).
-  - rewrite //= !Interval_definitions.FtoR_split Float_prop.F2R_Zopp !Float_prop.F2R_bpow.
-    rewrite !Raux.bpow_powerRZ/StdZRadix2.EtoZ //=.
-    apply Rcomplements.Rabs_le_between.
-    rewrite Rabs_R0.
-    by apply powerRZ_le; lra.
-  apply (add_error plt' Nlt B dJ Bk dK xc c0 xb).
-  by rewrite Rabs_R0; apply powerRZ_le;lra.
-Qed.
 
 Definition QRtoIR (phi : (Q -> Q)) := (fun p:nat => (extend (QtoIR (nat2p p) (phi (/ (inject_Z (Z.pow 2 (Z.of_nat p))))%Q)) p)).
 
@@ -482,18 +690,6 @@ Lemma QRtoIR_contains phi x : (phi \describes x \wrt delta_(RQ)) -> (forall p, (
  apply eps_simplify.
 Qed.
 
-Lemma extend_bounded J p : (bounded J) -> (bounded (extend J p)).
-Proof.
-  rewrite /extend.
-  rewrite /I.add //=.
-  case J => [| u l]; first by [].
-  rewrite /bounded !SF2.real_correct //=.
-  case u => [|m e]; case l => [|m' e']; try by [].
-  - by rewrite andb_false_r.
- move => _.
-  rewrite !SF2.add_correct.
-  by rewrite !D2R_SF2toX.
-Qed.
 
 Definition RQ_IR_id_rlzr: B_(RQ) ->> B_(IR) := F2MF QRtoIR.
 Lemma RQ_IR_id_rlzr_cont : RQ_IR_id_rlzr \is_continuous_operator.
@@ -735,7 +931,6 @@ Proof.
       apply gt.
       apply Qle_bool_iff.
       by apply Rle_Qle;lra.
-      Check IR_RQ_rlzrM_dom.
     case (IR_RQ_rlzrM_dom phin qf) => s P.
     have := (P _ (fprop s)).
     case => q [qs_prop1 qs_prop2].

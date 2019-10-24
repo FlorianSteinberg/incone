@@ -44,9 +44,12 @@ Proof.
 Admitted.
 Definition Rmult_rlzrf' phi  := (make_iter2 Rmult_rlzrf phi).
 Definition Rplus_rlzrf' phi  := (make_iter2 Rplus_rlzrf phi).
+Definition Rdiv_rlzrf' phi  := (make_iter2 Rdiv_rlzrf phi).
+
 Definition mp (phi psi : names_IR) := (pair (phi,psi)).
 Notation "phi '\*' psi" := ((Rmult_rlzrf' (mp phi psi)) : (names_IR)) (at level 3).
 Notation "phi '\+' psi" := ((Rplus_rlzrf' (mp phi psi)) : (names_IR)) (at level 4).
+Notation "phi '\:' psi" := ((Rdiv_rlzrf' (mp phi psi)) : (names_IR)) (at level 4).
 Definition opp_rlzr phi := (Rmult_rlzrf' (mp (FloattoIR (-1)%Z 0%Z) phi)) : (names_IR).
 Notation "phi '\-' psi" := ((Rplus_rlzrf' (mp phi (opp_rlzr psi))) : (names_IR)) (at level 4).
 
@@ -102,9 +105,7 @@ Fixpoint logistic_map_cmp (phi r : names_IR)  N : IR_type  := match N with
                                        | M.+1 => let P := (memoize_real (logistic_map_cmp phi r M)) in r \* P \* ((FloattoIR 1%Z 0%Z) \- P)
                                                                                                         end.
 
-Definition speed_up_monotonic (phi : names_IR) : names_IR := fun n => (phi (2 ^ n)%nat). 
 Definition log_map1 N : names_IR := fun m => logistic_map_cmp (FloattoIR 1%Z (-1)%Z) (FloattoIR 15%Z (-2)%Z) N m.
-Definition log_map1_fast N := (speed_up_monotonic (log_map1 N)).
 Lemma logistic_map_cmp_is_name phi psi N (x0 r : R) : (phi \is_name_of x0) -> (psi \is_name_of r) -> exists x : R, (representation IR (logistic_map_cmp phi psi N) x).
 Proof.
   move => phin psin.
@@ -150,6 +151,6 @@ Proof.
   by apply (logistic_map_in_dom _ (FloattoIR_correct 1%Z (-1)%Z) (FloattoIR_correct 15%Z (-2)%Z)). 
 Qed.
 Definition log_map_Q N := (evaluate (log_map1_in_dom N)).
-
+Compute ((FloattoIR 1%Z (-1)%Z) \: (FloattoIR 5%Z (-10)%Z) 10%nat).
 Definition logistic_map_mp_rlzr' (N :nat) (p : positive):= log_map_Q N (1#(10 ^ p)).
 Extraction "logisticC" cmp_float mantissa_shr logistic_map_mp_rlzr'.

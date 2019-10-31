@@ -584,7 +584,13 @@ Proof.
  rewrite /addn/addn_rec in kprp'.
  by lia.
 Qed.
+Definition lim_eff_rlzr_mu (phin : B_(IR\^w))  (nm : nat * nat) := [:: (nm.2.+1,nm.1)].
+Lemma lim_eff_rlzr_mu_spec : lim_eff_rlzr_mu \modulus_function_for limit_eff_rlzrM.
+Proof.
+  by rewrite /limit_eff_rlzrM /= => phi [n m] psi /= [] ->.
+Qed.  
 End limit.
+
 Section conversions.
 Definition ZtoIR z : B_(IR):= (fun p:nat => (I.fromZ z)).
 Definition FloattoIR m e :  B_(IR):= (fun p:nat => (I.bnd (Float m e) (Float m e))).
@@ -942,4 +948,9 @@ Proof.
   rewrite Rabs_minus_sym.
   apply (IR_RQ_rlzrM_val epsgt phin np).
 Qed.
+Definition IR_RQ_mu (f : nat -> nat) (phin : names_IR) (neps : (nat * Q)) := [:: (f neps.1)].
+Lemma IR_RQ_mu_spec f : (IR_RQ_mu f) \modulus_function_for (fun phi neps => (IR_RQ_rlzrM (f neps.1) phi neps.2)).
+Proof.
+  by rewrite /IR_RQ_rlzrM => phi [n eps] psi /= [] ->.
+Qed.  
 End conversions.

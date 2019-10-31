@@ -79,7 +79,6 @@ Definition cmp_float (f1 f2 : D) :=
     if(Z.eqb d1 d2) then Xeq else
       if(Z.ltb d1 d2) then Xlt else Xgt
   end.
-
 Extract Inlined Constant BigZ.abs => "(Prelude.abs)".
 Extract Inlined Constant BigZ.leb => "(Prelude.<=)".
 Extract Inlined Constant BigZ.eqb => "(Prelude.==)".
@@ -101,6 +100,9 @@ Extract Inlined Constant Z.succ => "(Prelude.succ)".
 Extract Inlined Constant Z.pow_pos => "(Prelude.^)".
 Extract Inlined Constant Z.pow => "(Prelude.^)".
 Extract Inlined Constant Z.quotrem => "(Prelude.quotRem)".
+Extract Inlined Constant Z.pos_div_eucl => "(Prelude.quotRem)".
+Extract Inlined Constant Z.pos_div_eucl => "(Prelude.quotRem)".
+Extract Inlined Constant Zaux.Zfast_div_eucl => "(Prelude.quotRem)".
 Extract Inlined Constant Z.mul => "(Prelude.*)".
 Extract Inlined Constant Z.div => "(Prelude.div)".
 Extract Inlined Constant Nat.leb => "(Prelude.<=)".
@@ -110,6 +112,9 @@ Extract Inlined Constant Nat.add => "(Prelude.+)".
 Extract Inlined Constant Nat.mul => "(Prelude.*)".
 Extract Inlined Constant Nat.div => "(Prelude.div)".
 Extract Inlined Constant nat2p => "".
+Extract Inlined Constant Pos.of_nat => "".
+Extract Inlined Constant N.of_nat => "".
+Extract Inlined Constant Z.of_nat => "".
 Extract Inlined Constant addn => "(Prelude.+)".
 Extract Inlined Constant muln => "(Prelude.*)".
 Extract Inlined Constant subn => "(\n m -> if (n Prelude.> m) then (n Prelude.- m) else 0)".
@@ -129,13 +134,13 @@ Extract Inlined Constant StdZRadix2.exponent_sub => "(Prelude.-)".
 Extract Inlined Constant StdZRadix2.mantissa_mul => "(Prelude.*)".
 Extract Inlined Constant StdZRadix2.mantissa_cmp => "(Prelude.compare)".
 Extract Inlined Constant StdZRadix2.exponent_cmp => "(Prelude.compare)".
-Extract Inlined Constant SF2.cmp => cmp_float.
 Extract Inductive Coq.Init.Datatypes.comparison => "Prelude.Ordering" ["Prelude.EQ" "Prelude.LT" "Prelude.GT"].
 Extract Inlined Constant StdZRadix2.mantissa_digits => num_digits.
 Extract Inlined Constant shiftR => "(\n m -> Data.Bits.shiftR n (Prelude.fromIntegral m))".
 Extract Inlined Constant shiftL => "(\n m -> Data.Bits.shiftL n (Prelude.fromIntegral m))".
-Extract Inlined Constant StdZRadix2.mantissa_shr => mantissa_shr.
 
 Extract Inlined Constant StdZRadix2.mantissa_shl => "(\n m -> Data.Bits.shiftL n (Prelude.fromIntegral m))".
 Extract Inlined Constant StdZRadix2.mantissa_digits => "(\n -> Prelude.toInteger (GHC.Exts.I# (GHC.Integer.Logarithms.integerLog2# n)))".
+Extract Inlined Constant Nat.log2 => "(\n -> Prelude.toInteger (GHC.Exts.I# (GHC.Integer.Logarithms.integerLog2# n)))".
 Extract Inlined Constant memoize_real => "Data.Function.Memoize.memoize".
+Extract Inlined Constant StdZRadix2.mantissa_shr => mantissa_shr.

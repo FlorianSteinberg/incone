@@ -30,20 +30,58 @@ Definition to_pair (d : D) := match d with
 Definition midpoint_errI I := (to_pair(I.midpoint I), to_pair(SF2.sub Interval_definitions.rnd_UP 1%Z (I.upper I) (I.lower I))).
 
 
-Definition make_iter T (rlzrf : T -> names_IR) phi  n (m : Z) := match (rlzrf phi n) with
-               | (Interval_interval_float.Ibnd u l) =>
-                   if  (I.F'.le (SF2.sub_exact u l) (Float 1%Z (- (Z.of_nat n.+1))%Z))
-                   then ((Interval_interval_float.Ibnd u l))
+Definition make_iter T (rlzrf : T -> names_IR) phi  m  := (fun n => match (rlzrf phi n) with
+               | (Interval_interval_float.Ibnd l u) =>
+                   if  (I.F'.le (SF2.sub_exact u l) (Float 1%Z (- (Z.of_nat m))%Z))
+                   then ((Interval_interval_float.Ibnd l u))
                    else Interval_interval_float.Inan
                 | _ => Interval_interval_float.Inan
-               end.
+               end) : names_IR.
 
-Definition make_iter2 T (rlzrf : T -> names_IR) phi : names_IR := fun n => (make_iter rlzrf phi n (1)%Z). 
-Lemma make_iter_correct T (rlzrf : T -> names_IR) phi  (x : R): (rlzrf phi) \is_name_of x -> (make_iter2 rlzrf phi) \is_name_of x. 
+Definition make_iter2 T (rlzrf : T -> names_IR) phi : names_IR := fun n => (make_iter rlzrf phi 1 n). 
+Lemma bounded_non_nan I : (bounded I) -> exists u l, (u <> Fnan) /\ (l <> Fnan) /\ I = (Interval_interval_float.Ibnd u l).
+  rewrite /bounded.
+  move => bnd.
+  case e: I => [| l u]; first by rewrite e in bnd. 
+  exists l; exists u.
+  case uprp: u => [| mnt exp]; first by rewrite e uprp andb_false_r in bnd.
+  case lprp: l => [| mnt' exp']; first by rewrite e lprp andb_false_l in bnd.
+  split; [| split]; by auto.
+Qed.
+
+Lemma make_iter_correct T (rlzrf : T -> names_IR) m phi  (x : R): (rlzrf phi) \is_name_of x -> (make_iter rlzrf phi m) \is_name_of x. 
 Proof.
-  move => phin.
-  split.
-Admitted.
+  move => [phin1 phin2].
+  split => n.
+  - rewrite /make_iter2 /make_iter.
+    case R: (rlzrf phi n) => [| l u];first by auto.
+    case (I.F'.le (SF2.sub_exact u l) (Float 1%Z (- (Z.of_nat m))%Z)); last by auto.
+    by rewrite <-R; apply phin1.
+  case (phin2 (max n m)) => N Nprp.
+  exists N => k kprp.
+  rewrite /make_iter. 
+  have [bnd diam] := (Nprp k kprp).
+  have [l [u [P1 [P2 P3]]]] := (bounded_non_nan bnd).
+  rewrite P3 /=.
+  have H1 :  (/ 2 ^ (max n m)) <= (/ 2 ^ m) by apply /tpmnP; apply /leP; apply Nat.le_max_r.
+  have H2 :  (/ 2 ^ (max n m)) <= (/ 2 ^ n) by apply /tpmnP; apply /leP; apply Nat.le_max_l.
+  have -> : (I.F'.le (SF2.sub_exact u l) (Float 1%Z (- (Z.of_nat m))%Z))=true.
+  - rewrite /I.F'.le SF2.cmp_correct.
+    rewrite SF2.sub_exact_correct.
+    rewrite /Xsub.
+    rewrite /Xcmp.
+    case e:  u; case e':l; try by auto.
+    rewrite !D2R_SF2toX;rewrite <-e, <-e'.
+    rewrite P3 /= in diam.
+    rewrite D2R_Float.
+    rewrite powerRZ2_neg_pos Rmult_1_l.
+     case cmp : (Raux.Rcompare (D2R u-D2R l) (/2 ^ m)); try by auto.
+     + by apply Raux.Rcompare_Gt_inv in cmp;lra.
+  rewrite P3 /= in diam.
+  split; first by case e : l;case e' : u; auto.
+  by simpl;lra.
+Qed.
+
 Definition Rmult_rlzrf' phi  := (make_iter2 Rmult_rlzrf phi).
 Definition Rplus_rlzrf' phi  := (make_iter2 Rplus_rlzrf phi).
 Definition Rdiv_rlzrf' phi  := (make_iter2 Rdiv_rlzrf phi).
@@ -363,7 +401,11 @@ Qed.
 Definition sqrt2_approx := (sqrt_approx_n' two).
 
 Lemma sqrt_in_dom : \Phi_(limit_eff_rlzrM sqrt2_approx) \is_total.
+  apply FM_dom.
+  rewrite /sqrt2_approx.
+  simpl.
 Admitted.
+Print SF2.sqrt.
 Definition sqrt2 := (evaluate sqrt_in_dom).
 Eval vm_compute in (sqrt2 2).
 Definition IR2Qmf := \F_(IR_RQ_rlzrM').

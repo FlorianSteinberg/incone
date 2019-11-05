@@ -954,3 +954,128 @@ Proof.
   by rewrite /IR_RQ_rlzrM => phi [n eps] psi /= [] ->.
 Qed.  
 End conversions.
+
+Section comparison.
+Definition lt0_rlzr (phi : names_IR) := (fun n =>
+  match (I.sign_strict (phi n)) with
+  | Xlt => (Some true)
+  | Xgt => (Some false)
+  | _ => None
+  end) : B_(cs_Kleeneans).
+Definition lt0_K := (make_mf (fun x b => (x < 0 /\ b = true_K \/ 0 < x /\ b = false_K))).
+
+Lemma lt0_dec1 x phi : (x < 0) -> (phi \is_name_of x) -> exists N, forall n, (N <= n)%nat -> (I.sign_strict (phi n)) = Xlt.
+Proof.
+  move => xlt [phin1 phin2].
+  have xlt' : (0 < -x) by lra.
+  case (dns0_tpmn xlt') => n nprp.
+  have nprp' : (x < - (/2 ^ n)) by lra.
+  case (phin2 n) => N Nprp.
+  exists N => k kprp.
+  have [Nprp1' Nprp2'] := (Nprp _ kprp).
+  rewrite /I.sign_strict.
+  case e :(phi k) => [| l u]; first by rewrite e /= in Nprp1'.
+  case e' : l => [| lm le]; first by rewrite e e' /= in Nprp1'.
+  case e'' : u => [| um ue]; first by rewrite e e'' /= andb_false_r  in Nprp1'.
+  rewrite /I.sign_strict_ !SF2.cmp_correct /Xcmp !D2R_SF2toX.
+  rewrite <- e', <- e''.
+  rewrite e /upper/lower in Nprp2'.
+  have := (upper_lower_contained Nprp1' ).
+  case => [| uc lc]; first by exists x; apply (phin1 k).
+  rewrite !Raux.Rcompare_Lt; try rewrite D2R_Float /= /StdZRadix2.mantissa_zero Rmult_0_l; try by auto.
+  - have := (ID_bound_dist Nprp1' uc (phin1 k)).
+    rewrite e /= => H.
+    have H' : (\| u - x |  <= (/ 2 ^ n)) by lra.
+    apply Rcomplements.Rabs_le_between' in H'.
+    apply /Rle_lt_trans.
+    apply H'.
+    by lra.
+  have := (ID_bound_dist Nprp1' lc (phin1 k)).
+  rewrite e /= => H.
+  have H' : (\| l - x |  <= (/ 2 ^ n)) by lra.
+  apply Rcomplements.Rabs_le_between' in H'.
+  apply /Rle_lt_trans.
+  apply H'.
+  by lra.
+Qed.
+
+Lemma lt0_dec2 x phi : (0 < x) -> (phi \is_name_of x) -> exists N, forall n, (N <= n)%nat -> (I.sign_strict (phi n)) = Xgt.
+Proof.
+  move => xlt [phin1 phin2].
+  case (dns0_tpmn xlt) => n nprp.
+  case (phin2 n) => N Nprp.
+  exists N => k kprp.
+  have [Nprp1' Nprp2'] := (Nprp _ kprp).
+  rewrite /I.sign_strict.
+  case e :(phi k) => [| l u]; first by rewrite e /= in Nprp1'.
+  case e' : l => [| lm le]; first by rewrite e e' /= in Nprp1'.
+  case e'' : u => [| um ue]; first by rewrite e e'' /= andb_false_r  in Nprp1'.
+  rewrite /I.sign_strict_ !SF2.cmp_correct /Xcmp !D2R_SF2toX.
+  rewrite <- e', <- e''.
+  rewrite e /upper/lower in Nprp2'.
+  have := (upper_lower_contained Nprp1' ).
+  case => [| uc lc]; first by exists x; apply (phin1 k).
+  rewrite !Raux.Rcompare_Gt; try rewrite D2R_Float /= /StdZRadix2.mantissa_zero Rmult_0_l; try by auto.
+  - have := (ID_bound_dist Nprp1' uc (phin1 k)).
+    rewrite e /= => H.
+    have H' : (\| u - x |  <= (/ 2 ^ n)) by lra.
+    apply Rcomplements.Rabs_le_between' in H'.
+    by suff : (0 < x - (/ 2 ^ n)); lra.
+  have := (ID_bound_dist Nprp1' lc (phin1 k)).
+  rewrite e /= => H.
+  have H' : (\| l - x |  <= (/ 2 ^ n)) by lra.
+  apply Rcomplements.Rabs_le_between' in H'.
+  by suff : (0 < x - (/ 2 ^ n)); lra.
+Qed.
+
+Lemma lt0_prop1 x (phi : names_IR) n : (phi \is_name_of x) -> (I.sign_strict (phi n)) = Xgt -> (0 < x). 
+Proof.
+  move => [phin1 phin2] H.
+  have := (I.sign_strict_correct (phi n)).
+  rewrite H => H'.
+  by apply (H' _ (phin1 n)).
+Qed.
+Lemma lt0_prop2 x (phi : names_IR) n : (phi \is_name_of x) -> (I.sign_strict (phi n)) = Xlt -> (x < 0). 
+Proof.
+  move => [phin1 phin2] H.
+  have := (I.sign_strict_correct (phi n)).
+  rewrite H => H'.
+  by apply (H' _ (phin1 n)).
+Qed.
+
+Lemma lt0_rlzr_spec : (F2MF lt0_rlzr) \solves lt0_K.
+Proof.
+   move => phi x phin /= H.
+   case H => t tp.
+   split; first by exists (lt0_rlzr phi).
+   exists t.
+   split; first by apply tp.
+   rewrite <- H0.
+   rewrite /lt0_rlzr.
+   case tp => [[P1 P2] | [P1 P2]]; rewrite P2.
+   - have P : exists N, (I.sign_strict (phi N) = Xlt).
+     case (lt0_dec1 P1 phin) => n nprp.
+     exists n;first by apply (nprp n);apply /leP;lia.
+     case (classical_count.well_order_nat P) => N [Nprp1 Nprp2].
+     exists N; split=>[| m mprp]; first by rewrite Nprp1.
+     case e :(I.sign_strict (phi m)); try by auto.
+     have := (Nprp2 _ e).
+     move /leP => mprp'.
+     move /leP : mprp.
+     by lia.
+     have := (lt0_prop1 phin e).
+     by lra.
+   have P : exists N, (I.sign_strict (phi N) = Xgt).
+   case (lt0_dec2 P1 phin) => n nprp.
+   exists n;first by apply (nprp n);apply /leP;lia.
+   case (classical_count.well_order_nat P) => N [Nprp1 Nprp2].
+   exists N; split=>[| m mprp]; first by rewrite Nprp1.
+   case e :(I.sign_strict (phi m)); try by auto.
+   have := (lt0_prop2 phin e).
+   by lra.
+   have := (Nprp2 _ e).
+   move /leP => mprp'.
+   move /leP : mprp.
+   by lia.
+Qed.
+End comparison.

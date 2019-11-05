@@ -2,6 +2,7 @@ From mathcomp Require Import all_ssreflect.
 From rlzrs Require Import all_rlzrs.
 Require Import axioms all_cs_base classical_func classical_cont dscrt cprd.
 Require Import Classical Morphisms ChoiceFacts.
+Require Import Psatz.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -309,6 +310,82 @@ Section Kleeneans.
   Canonical Kleeneans_representation := Build_representation_of rep_K_rep.
 
   Canonical cs_Kleeneans:= repf2cs Kleeneans_representation.
+  
+
+  Definition choose := make_mf (fun s1s2 k => (s1s2.1 = top /\ k = true_K) \/ (s1s2.2 = top /\ k = false_K) \/ (s1s2.1 = bot /\ s1s2.2 = bot /\ k = bot_K)).
+  Definition choose_rlzrf (phi : (names_Sirp \*_ns names_Sirp)) n := match (lprj phi n) with
+                                   | true => (Some true)
+                                   | false =>
+                                     match (rprj phi n) with
+                                    | true => (Some false)
+                                    | _ => None
+                                     end
+                                   end.
+Lemma choose_rlzrf_spec : (F2MF choose_rlzrf) \solves choose.
+Proof.
+  rewrite F2MF_slvs => phi /= [k1 k2] /prod_name_spec [/=k1ephin k2ephin].
+  have cases : (k1 = top /\ k2 = top \/ k1 = top /\ k2 = bot \/ k1 = bot /\ k2 = top \/ k1 = bot /\ k2 = bot).
+  - case k1; case k2; try by auto; (try by case;auto).
+      case; case; by auto.
+  have P' prp: (exists (n: nat), prp n = true) -> (exists (n: nat), prp n = true /\ forall m, (m < n) -> prp m = false).
+    move => H.
+    suff :  (exists (n: nat), prp n = true /\ forall m,  prp m = true -> (n <= m)).
+    case  => n [nprp1 nprp2]; exists n.
+    split => [| m mprp]; first by auto.
+    apply Bool.not_true_is_false => B.
+    have /leP := (nprp2 m B) => mprp'.
+    move /ltP : mprp => mprp.
+    by lia.
+    by apply classical_count.well_order_nat.
+  have P1 : (k1 = top -> (exists (n: nat), lprj phi n = true /\ forall m,  (m < n) -> (lprj phi m = false))).
+  - move => H.
+    by apply P';apply k1ephin. 
+  have P1' : (k1 = bot -> (forall (n: nat), lprj phi n = false)).
+  - move => H n.
+    have kp1' : (k1 <> top) by rewrite H.
+    by rewrite (Bool.not_true_is_false _ (not_ex_all_not _ _ (iffRLn k1ephin kp1') n)).
+  have P2 : (k2 = top -> (exists (n: nat), rprj phi n = true /\ forall m, (m < n) -> (rprj phi m = false))).
+  - move => H.
+    by apply P';apply k2ephin. 
+  have P2' : (k2 = bot -> (forall (n: nat), rprj phi n = false)).
+  - move => H n.
+    have kp2' : (k2 <> top) by rewrite H.
+    by rewrite (Bool.not_true_is_false _ (not_ex_all_not _ _ (iffRLn k2ephin kp2') n)).
+  case cases; [| case; [| case]]; move => [kp1 kp2].
+  - case  (P1 kp1) => m [mprp1 mprp2]; case (P2 kp2) => n [nprp1 nprp2]; move => _.
+    case e: (m <= n).
+    + exists true_K; split; first by auto.
+      exists m.
+      rewrite /choose_rlzrf mprp1; split => [ | m' m'prp]; first by auto.
+      rewrite (mprp2 _ m'prp).
+      have m'prp2 : (m' < n).
+      apply /leP;move /leP : e; move /leP : m'prp.
+      by lia.
+      by rewrite (nprp2 _ m'prp2).
+   exists false_K; split; first by auto.   
+   exists n.
+   rewrite /choose_rlzrf nprp1 mprp2 ; last by (apply /leP; move /leP : e;lia).
+   split => [ | n' n'prp]; first by auto.
+   rewrite nprp2; last by (apply /leP; move /leP : n'prp;lia).
+   rewrite mprp2 //.
+   by apply /leP; move /ltP : n'prp; move /leP : e;lia.
+  - move => _.
+    exists true_K.
+    split; first by auto.
+    case (P1 kp1) => n [nprp1 nprp2].
+    exists n; split => [| m mprp]; rewrite /choose_rlzrf;first by rewrite nprp1.
+    rewrite (nprp2 _ mprp).
+    by rewrite (P2' kp2).
+  - move => _.
+    exists false_K.
+    split; first by auto.
+    case (P2 kp2) => n [nprp1 nprp2].
+    exists n; split => [| m mprp]; rewrite /choose_rlzrf; first by rewrite nprp1 (P1' kp1).
+    by rewrite (P1' kp1) (nprp2 _ mprp).
+  move => _.
+  exists bot_K; split => [ | n ]; first by auto.
+  by rewrite /choose_rlzrf (P1' kp1) (P2' kp2).
+Qed.
 End Kleeneans.
 
 Section Open_subsets_of_nat.

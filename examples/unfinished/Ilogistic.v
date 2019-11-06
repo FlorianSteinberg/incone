@@ -85,13 +85,14 @@ Qed.
 Definition Rmult_rlzrf' phi  := (make_iter2 Rmult_rlzrf phi).
 Definition Rplus_rlzrf' phi  := (make_iter2 Rplus_rlzrf phi).
 Definition Rdiv_rlzrf' phi  := (make_iter2 Rdiv_rlzrf phi).
+Definition Rminus_rlzrf' phi  := (make_iter2 Rminus_rlzrf phi).
 
 Definition mp (phi psi : names_IR) := (pair (phi,psi)).
 Notation "phi '\*' psi" := ((Rmult_rlzrf' (mp phi psi)) : (names_IR)) (at level 3).
 Notation "phi '\+' psi" := ((Rplus_rlzrf' (mp phi psi)) : (names_IR)) (at level 4).
 Notation "phi '\:' psi" := ((Rdiv_rlzrf' (mp phi psi)) : (names_IR)) (at level 4).
 Definition opp_rlzr phi := (Rmult_rlzrf' (mp (FloattoIR (-1)%Z 0%Z) phi)) : (names_IR).
-Notation "phi '\-' psi" := ((Rplus_rlzrf' (mp phi (opp_rlzr psi))) : (names_IR)) (at level 4).
+Notation "phi '\-' psi" := ((Rminus_rlzrf' (mp phi psi)) : (names_IR)) (at level 4).
 
 Lemma mul_comp phi psi (x y : R) : (phi \is_name_of x) -> (psi \is_name_of y) -> (phi \* psi \is_name_of (x*y)).
 Proof.
@@ -130,9 +131,9 @@ Lemma minus_comp phi psi (x y : R) : (phi \is_name_of x) -> (psi \is_name_of y) 
 Proof.
   move => phin psin.
   have oc := (opp_comp psin).
-  suff xyname : (pair (phi,(opp_rlzr psi))) \is_name_of (x,-y).
+  suff xyname : (pair (phi,psi)) \is_name_of (x,y).
   - apply make_iter_correct.
-    have  :=  (Rplus_rlzr_spec ).
+    have  :=  (Rminus_rlzr_spec ).
     rewrite F2MF_rlzr => sp.
     by apply (sp _ _ xyname).
     rewrite prod_name_spec.
@@ -437,6 +438,23 @@ Proof.
   apply FM_dom.
   by apply (logistic_map_in_dom _ (FloattoIR_correct 1%Z (-1)%Z) (FloattoIR_correct 15%Z (-2)%Z)). 
 Qed.
+
+Definition gtS eps :=  toSirp \o (Build_multifunction (fun xy => ltK (xy.2, xy.1+eps))).
+Definition lt_eps eps := choose \o (prd_mf (toSirp \o ltK) (gtS eps)).
+Check diag.
+Definition gtS_rlzr phieps phi := (ltK_rlzr (pair (rprj phi, (Rplus_rlzrf' (pair (lprj phi, phieps)))))).
+Definition lt_eps_rlzr_pair phieps phi := (pair ((prd (toSirp_rlzrf \o_f ltK_rlzr) (toSirp_rlzrf \o_f (gtS_rlzr phieps))) phi)).
+Definition lt_eps_rlzrf phieps :=  choose_rlzrf \o_f (lt_eps_rlzr_pair phieps).
+
+Lemma lt_eps_spec x y eps :  ((lt_eps eps (x,y) true_K) -> (x < y)) /\ ((lt_eps eps (x,y) false_K) -> (y < x + eps)) /\ not (lt_eps eps (x,y) bot_K).
+Proof.
+  rewrite /lt_eps.
+  split; [|split].
+  case.
+  case.
+  case => a b H.
+  Search _ "_ \from _" composition.
+  move => H.
 Lemma sqrt2_in_dom : \Phi_(IR_RQ_rlzrM' sqrt2) \is_total.
 Admitted.
 Definition sqrt2_approx' n m := (sqrt2_approx (n,m)).

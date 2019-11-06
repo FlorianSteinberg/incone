@@ -182,7 +182,63 @@ Proof.
   by apply IZR_le;lia.
 Qed.
 End addition.
+Section opp.
 
+Definition Ropp_rlzrf (phi : names_IR)  := (fun n => (I.neg (phi n))): names_IR.
+
+Definition Ropp_rlzr: B_ (IR) ->>  B_ IR := F2MF Ropp_rlzrf.
+Lemma Ropp_rlzr_spec : Ropp_rlzr \realizes Ropp.
+Proof.
+  rewrite F2MF_rlzr => phi x [phin1 phin2].
+  rewrite /Ropp_rlzrf.
+  split => n; first by apply (I.neg_correct (phi n) (Xreal x) (phin1 n)).
+  case (phin2 n) => N Nprp.
+  exists N => k kprp.
+  have := (Nprp k kprp).
+  case (phi k) => [| /= l u ]; first by auto.
+  case u => [ | u1 u2];case l => [ | l1 l2]; try by rewrite andb_false_r; move => [H1 _].
+  move => [_ H]. 
+  rewrite !SF2.real_correct !SF2.neg_correct !D2R_SF2toX.
+  split; first by auto.
+  have negp a b: (D2R (SF2.neg (Float a b))) = - (D2R (Float a b)).
+  - rewrite /SF2.neg.
+    have := (StdZRadix2.mantissa_sign_correct a).
+    case e : StdZRadix2.mantissa_sign => [| s p] ;rewrite !D2R_Float/StdZRadix2.MtoZ.
+    + by move ->;lra.
+    move => [-> P].
+    case e' : s.
+    + rewrite /StdZRadix2.mantissa_pos /StdZRadix2.MtoP.
+      rewrite Ropp_mult_distr_l.
+      rewrite <-opp_IZR.
+      by rewrite Pos2Z.opp_neg;lra.
+    rewrite /StdZRadix2.mantissa_neg /StdZRadix2.MtoP.
+    rewrite Ropp_mult_distr_l.
+    rewrite <-opp_IZR.
+    by rewrite Pos2Z.opp_pos;lra.
+  by rewrite !negp;lra.
+Qed.
+End opp.
+Section subtraction.
+Definition Rminus_rlzrf phi := 
+                               (Rplus_rlzrf (pair ((lprj phi),(Ropp_rlzrf (rprj phi))))) : names_IR.
+Definition Rminus_rlzr := (F2MF Rminus_rlzrf).
+Lemma Rminus_rlzr_spec : Rminus_rlzr \realizes (uncurry Rminus).
+Proof.
+  have -> : (uncurry Rminus) =  (uncurry Rplus) \o_f (fun x => (x.1, -(x.2))).
+  - apply functional_extensionality => x.
+    by rewrite /uncurry /=; lra.
+    Search _ pair.
+  rewrite /Rminus_rlzr.
+  have ->: Rminus_rlzrf = Rplus_rlzrf \o_f (@fprd_frlzr IR IR IR IR (fun phi => phi) Ropp_rlzrf).
+  - apply functional_extensionality => x;by auto.
+  rewrite <- !F2MF_comp_F2MF.
+  apply slvs_comp; first by apply Rplus_rlzr_spec.
+  rewrite fprd_frlzr_rlzr.
+  have -> : (fun (x : R*R) => (x.1, -x.2)) = (id **_f Ropp) by auto.
+  rewrite F2MF_fprd.
+  apply prod.fprd_rlzr_spec; by [apply id_rlzr | apply Ropp_rlzr_spec].
+Qed.
+End subtraction.
 Section multiplication.
 Definition Rmult_rlzrf (phi: names_IR \*_ns names_IR) (n: nat):= I.mul (nat2p n) (lprj phi n) (rprj phi n).
 
@@ -962,7 +1018,16 @@ Definition lt0_rlzr (phi : names_IR) := (fun n =>
   | Xgt => (Some false)
   | _ => None
   end) : B_(cs_Kleeneans).
-Definition lt0_K := (make_mf (fun x b => (x < 0 /\ b = true_K \/ 0 < x /\ b = false_K))).
+Definition lt0_K := (make_mf (fun x b => (x < 0 /\ b = true_K \/ 0 < x /\ b = false_K \/ x = 0 /\ b = bot_K))).
+
+Lemma sign_strict_und I : (0 \contained_in I) -> (I.sign_strict I) = Xeq \/ (I.sign_strict I) = Xund.
+Proof.
+  move => H.
+  have  := (I.sign_strict_correct I ).
+  case e : (I.sign_strict I) => P ; try by auto.
+  have := (P _ H); by simpl; lra.
+  have := (P _ H); by simpl; lra.
+Qed.
 
 Lemma lt0_dec1 x phi : (x < 0) -> (phi \is_name_of x) -> exists N, forall n, (N <= n)%nat -> (I.sign_strict (phi n)) = Xlt.
 Proof.
@@ -1043,6 +1108,7 @@ Proof.
   by apply (H' _ (phin1 n)).
 Qed.
 
+
 Lemma lt0_rlzr_spec : (F2MF lt0_rlzr) \solves lt0_K.
 Proof.
    move => phi x phin /= H.
@@ -1052,7 +1118,7 @@ Proof.
    split; first by apply tp.
    rewrite <- H0.
    rewrite /lt0_rlzr.
-   case tp => [[P1 P2] | [P1 P2]]; rewrite P2.
+   case tp => [[P1 P2] | P2]; [rewrite P2 | ].
    - have P : exists N, (I.sign_strict (phi N) = Xlt).
      case (lt0_dec1 P1 phin) => n nprp.
      exists n;first by apply (nprp n);apply /leP;lia.
@@ -1065,17 +1131,64 @@ Proof.
      by lia.
      have := (lt0_prop1 phin e).
      by lra.
-   have P : exists N, (I.sign_strict (phi N) = Xgt).
-   case (lt0_dec2 P1 phin) => n nprp.
-   exists n;first by apply (nprp n);apply /leP;lia.
-   case (classical_count.well_order_nat P) => N [Nprp1 Nprp2].
-   exists N; split=>[| m mprp]; first by rewrite Nprp1.
-   case e :(I.sign_strict (phi m)); try by auto.
-   have := (lt0_prop2 phin e).
-   by lra.
+   case P2 => [[P1' P2']|[P1' P2']].
+   - have P : exists N, (I.sign_strict (phi N) = Xgt).
+     case (lt0_dec2 P1' phin) => n nprp.
+     exists n;first by apply (nprp n);apply /leP;lia.
+     rewrite P2'.
+     case (classical_count.well_order_nat P) => N [Nprp1 Nprp2].
+     exists N; split=>[| m mprp]; first by rewrite Nprp1.
+     case e :(I.sign_strict (phi m)); try by auto.
+     have := (lt0_prop2 phin e).
+     by lra.
    have := (Nprp2 _ e).
    move /leP => mprp'.
    move /leP : mprp.
    by lia.
+   rewrite P2'.
+   have [phin1 _] := phin.
+   rewrite P1' in phin1.
+   move => n.
+   by case (sign_strict_und (phin1 n)) => ->.
+Qed.
+
+Definition ltK := (make_mf (fun xy b => (xy.1 < xy.2 /\ b = true_K \/  xy.2 < xy.1 /\ b = false_K \/ xy.1 = xy.2 /\ b = bot_K))).
+
+Lemma lt0_K_total : lt0_K \is_total.
+Proof.
+  move => x.
+  case (Rtotal_order x 0).
+  by exists true_K; simpl;auto.
+  case.
+  by exists bot_K; simpl; auto.
+  by exists false_K; simpl; auto.
+Qed.
+Lemma ltK_total : ltK \is_total.
+Proof.
+  move => [x1 x2].
+  case (Rtotal_order x1 x2).
+  by exists true_K; simpl;auto.
+  case.
+  by exists bot_K; simpl; auto.
+  by exists false_K; simpl; auto.
+Qed.
+Definition ltK_rlzr := lt0_rlzr \o_f Rminus_rlzrf.
+
+Lemma ltK_rlzr_spec : (F2MF ltK_rlzr) \solves ltK.
+Proof.
+  rewrite /ltK_rlzr.
+  suff -> : ltK =~= lt0_K \o (F2MF (uncurry Rminus)).
+  - rewrite <- F2MF_comp_F2MF.
+    by apply slvs_comp; [apply lt0_rlzr_spec | apply Rminus_rlzr_spec].
+ rewrite /ltK comp_rcmp; last by apply lt0_K_total.
+ rewrite rcmp_F2MF/uncurry /=.
+ apply make_mf_prpr => x t.
+ split.
+ - case => [[H1 ->] | ]; first by apply or_introl;split; by [lra|].
+   case => [[H1 ->] | [H1 ->]]; first by apply or_intror;apply or_introl;split; by [lra|].
+   do 2! apply or_intror; split; by [lra|].
+ case => [[H1 ->] | ]; first by apply or_introl;split; by [lra|].
+ case => [[H1 ->] | [H1 ->]]; first by apply or_intror;apply or_introl;split; by [lra|].
+ do 2! apply or_intror; split; by [lra|].
 Qed.
 End comparison.

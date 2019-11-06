@@ -1,8 +1,9 @@
 From mathcomp Require Import all_ssreflect.
 From rlzrs Require Import all_rlzrs.
-Require Import axioms all_cs_base classical_func classical_cont dscrt cprd.
+Require Import axioms all_cs_base dscrt cprd classical_func classical_cont.
 Require Import Classical Morphisms ChoiceFacts.
-Require Import Psatz.
+Require Import Psatz. 
+Require Import search.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -311,8 +312,7 @@ Section Kleeneans.
 
   Canonical cs_Kleeneans:= repf2cs Kleeneans_representation.
   
-
-  Definition choose := make_mf (fun s1s2 k => (s1s2.1 = top /\ k = true_K) \/ (s1s2.2 = top /\ k = false_K) \/ (s1s2.1 = bot /\ s1s2.2 = bot /\ k = bot_K)).
+  Definition choose := make_mf (fun (s1s2 : (Sirp * Sirp)) k => (s1s2.1 = top /\ k = true_K) \/ (s1s2.2 = top /\ k = false_K) \/ (s1s2.1 = bot /\ s1s2.2 = bot /\ k = bot_K)).
   Definition choose_rlzrf (phi : (names_Sirp \*_ns names_Sirp)) n := match (lprj phi n) with
                                    | true => (Some true)
                                    | false =>
@@ -386,6 +386,68 @@ Proof.
   exists bot_K; split => [ | n ]; first by auto.
   by rewrite /choose_rlzrf (P1' kp1) (P2' kp2).
 Qed.
+
+Definition toSirpf (K : Kleeneans) := match K with
+                         | bot_K | false_K => bot
+                         | top_K => top
+                        end : Sirp.
+Definition toSirp := (F2MF toSirpf).
+Definition toSirp_rlzrf (phi : names_Kleeneans) :=  (fun n => (let m := search (fun m => (isSome (phi m))) n in
+                                                         if m == n 
+                                                           then false
+                                                            else
+                                                                (match (phi m) with
+                                                                   | (Some true) => true
+                                                                   | _ => false
+                                                                 end))) : names_Sirp.
+
+Lemma toSirp_search_correct phi n : (toSirp_rlzrf phi n) = true <-> (search (fun m => (isSome (phi m))) n) < n /\ (phi (search (fun m => (isSome (phi m))) n)) = (Some true).
+Proof.
+  split.
+  - move => H.
+    case (PeanoNat.Nat.lt_trichotomy (search (fun m => (isSome (phi m))) n) n); [| case] => H'; try by have /leP := (search_le (fun m => phi m) n);lia. 
+    + split; first by apply /leP; lia.
+      have P : ((search (fun m => phi m) n) == n) = false by apply /eqP => p;move : H; rewrite /toSirp_rlzrf p eq_refl.
+      move : H.
+      rewrite /toSirp_rlzrf P.
+      by case e  : (phi (search (fun m => phi m) n)) => [b |]; try case e' : b.
+    by rewrite /toSirp_rlzrf H' eq_refl in H.
+  move => [H1 H2].
+  rewrite /toSirp_rlzrf ifF; last by apply /eqP => p; move /leP: H1; rewrite p;lia.
+  by rewrite H2.
+Qed.
+
+
+Lemma toSirp_rlzr_spec : (F2MF toSirp_rlzrf) \realizes toSirpf.
+Proof.
+  rewrite F2MF_rlzr => phi k phin /=.
+  split.
+  - case => n H.
+    have [P _] := (toSirp_search_correct phi n).   
+    have [P1 P2] := (P H).
+    suff e : phi \is_description_of true_K by rewrite (rep_sing phin e).
+    exists (search (fun m => phi m) n); split => [| m /leP mprp]; first by auto.
+    suff : not (isSome (phi m)) by case (phi m).
+    move  => mprp'.
+    have /leP := (@search_min (fun m => phi m) n m mprp').
+    by lia.   
+    move => H.
+    move : phin.
+    have -> : (k = true_K) by move : H;case k; auto.
+    case => n [nprp1 nprp2].
+    have nprp1' : (isSome (phi n)) by rewrite nprp1.
+    exists n.+1.
+    apply toSirp_search_correct.
+    have /leP sm := (@search_min (fun m => phi m) (n.+1) n nprp1').
+    split; first by apply /leP;lia.
+    suff -> : (search (fun m => phi m) n.+1) = n by auto.
+    suff /leP: n <= (search (fun m => phi m) n.+1) by lia.
+    apply /leP;apply  PeanoNat.Nat.nlt_ge => /leP P.
+    have := (nprp2 (search (fun m => phi m) n.+1) P).
+    rewrite <- (@search_eq (fun m => phi m) n n.+1 nprp1'); last by apply /leP;lia.
+    have := (@search_correct (fun m => phi m) n nprp1' ).
+    case (phi (search (fun m => phi m) n)); by auto.
+Qed. 
 End Kleeneans.
 
 Section Open_subsets_of_nat.

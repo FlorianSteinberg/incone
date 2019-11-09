@@ -199,7 +199,7 @@ Section function_application.
       (L2SS (mu (LF2F default (N2LF N KL)) q')) \is_subset_of dom (N2MF N (KL_step KL L q'))
       /\
       ((LF2F default (N2LF N KL)) \agrees_with phi \on (dom (N2MF N KL)) ->
-      (LF2F default (N2LF N (KL_step KL L q'))) \and phi \coincide_on (mu (LF2F default (N2LF N KL)) q')).
+      (LF2F default (N2LF N (KL_step KL L q'))) \coincides_with phi \on (mu (LF2F default (N2LF N KL)) q')).
   Proof.
     rewrite /KL_step => icf subs.
     elim: (mu (LF2F default (N2LF N KL)) q') subs => [dm | q K ih /cons_subs [fd subs]].
@@ -228,7 +228,7 @@ Section function_application.
 
   Lemma phi_rec_spec phi q':
     phi \is_choice_for (\Phi_N) ->
-    exists s, phi \and (phi_rec s q') \coincide_on (mu phi q')
+    exists s, phi \coincides_with (phi_rec s q') \on (mu phi q')
               /\
               L2SS (mu (phi_rec s q') q') \is_subset_of dom (N2MF N (KL_rec s q')).
   Proof.
@@ -247,9 +247,9 @@ Section function_application.
       elim: (m - n.+1) => [ | k ih]; first by rewrite add0n; have [sze []]:= sfprp (KL n).
       by rewrite addSn /= /KL_step; apply/subs_trans/exte_dom/N2MF_cat/ih.
 
-    have phin_coin: forall n, (phin n) \and phi \coincide_on (list_dom N (KL n)).
+    have phin_coin: forall n, (phin n) \coincides_with phi \on (list_dom N (KL n)).
     - elim => // n /coin_agre ih /=.
-      have prp': (phin n.+1) \and phi \coincide_on (mu (phin n) q').
+      have prp': (phin n.+1) \coincides_with phi \on (mu (phin n) q').
         by apply sfprp => q /lstd_spec; apply/ih.
       have [sze _]:= (sfprp (KL n)).
       rewrite /KL_step lstd_cat.
@@ -275,7 +275,7 @@ Section function_application.
       rewrite addSn /= lstd_cat => q lstn.
       by apply/lstn_app; right; apply/ih.
       
-    have phinm_coin: forall n m, n <= m -> (phin m) \and phi \coincide_on (list_dom N (KL n)).
+    have phinm_coin: forall n m, n <= m -> (phin m) \coincides_with phi \on (list_dom N (KL n)).
     - move => n m /subnK <-.
       elim: (m - n) => [ | k ih]; first by rewrite add0n; apply/phin_coin.
       by rewrite addSn; apply/coin_subl/phin_coin/KL_subs; rewrite -addSn; apply/leq_addl.
@@ -306,7 +306,7 @@ Section function_application.
     have/lim_coin lim': mu psi \is_limit_of (fun n => mu (phin n)) by apply/scnt; [apply/lim | | ].
 
     have eq: mu phi q' = mu psi q'.
-    - suff coin : psi \and phi \coincide_on (mu psi q').
+    - suff coin : psi \coincides_with phi \on (mu psi q').
       + by have /modf_spec modmod' := modmod; apply/crt_icf; [ | apply/modmod' | apply/coin | ].
       have [k kprp]:= lim' [:: q'].
       have [ | -> _] //:= kprp k.

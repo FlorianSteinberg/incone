@@ -174,9 +174,9 @@ Section mathcomp.
     pose p q n:= cnt n == q.
     have p_dec: forall q n, {p q n} + {~ p q n} by move => q n; case: (p q n); [left | right].
     suff f: forall (q: Q), {n | p q n}.
-    - exists (fun q => search (p q) (sval (f q))).
-      split => [q | q m /eqP eq]; last exact/search_min.
-      by apply/eqP/(@search_correct (p q)); have := (projT2 (f q)).
+    - exists (fun q => nat_search (p q) (sval (f q))).
+      split => [q | q m /eqP eq]; last exact/nsrch_min.
+      by apply/eqP/(@nsrch_correct (p q)); have := (projT2 (f q)).
     move => q.
     exists (constructive_ground_epsilon_nat (p q) (p_dec q) (sur_p q)).
     exact/(constructive_ground_epsilon_spec_nat (p q)).
@@ -292,3 +292,40 @@ End enumerable_types.
 Ltac countability :=
   repeat apply/list_count || apply/prod_count || apply/sum_count || apply/option_count
   || apply/unit_count || apply/bool_count || apply/nat_count || apply/Z_count || apply/Q_count.      
+
+Section ListedTypes.
+  Structure ListedType :=
+    {
+      type:> Type;
+      enumeration: nat -> option type;
+      enumerated: enumeration \is_psurjective;
+    }.
+
+  Context (T: ListedType).
+
+  Definition find (p: pred T) (n: nat):=
+    match direct_search (enumeration T) (fun ot => if ot is Some t then p t else false) n with
+    | Some (Some t) => Some t
+    | _ => None
+    end.
+  
+  Lemma find_correct (p: pred T) n x: find p n = Some x -> p x.
+  Proof.
+    rewrite /find.
+    case E: direct_search => [ot |] //.
+    have := (@dsrch_correct (option T) (enumeration T) _ _ _ E).
+    by case: ot E => // t E pt [<-].
+  Qed.
+
+  Lemma LType_choice (p: pred T): (exists t, p t) -> {t | p t}.
+  Proof.
+    move => ex.
+    pose p' n := if enumeration T n is Some t then p t else false.
+    have ex': exists n, p' n by case: ex => t pt; have [n eq]:= enumerated t; exists n; rewrite /p' eq.
+    have [ | n]:= constructive_indefinite_description_nat p' _ ex'.
+    - move => n; rewrite /p'.
+      case: (enumeration T n) => [t | ]; last by right.
+      by case: (p t); [left | right].
+    by rewrite /p'; case eq: enumeration => [t | ]// pt; exists t.
+  Qed.
+End ListedTypes.

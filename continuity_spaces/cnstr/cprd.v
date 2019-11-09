@@ -110,8 +110,8 @@ Section isomorphisms.
 
   Definition sig2fun_rlzrf (phi: (I * queries X -> replies X)) KLq' :=
     match KLq'.1 with
-    | nil => inl [:: tt]
-    | (ttn :: L) => inr (phi (@snd unit I ttn, KLq'.2))
+    | nil => inr [:: tt]
+    | (ttn :: L) => inl (phi (@snd unit I ttn, KLq'.2))
     end.
 
   Definition sig2fun_rlzr: B_ (X\^I) ->> B_ (cs_I c-> X) := F2MF sig2fun_rlzrf.

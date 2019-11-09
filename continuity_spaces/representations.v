@@ -76,6 +76,8 @@ Section representations.
   exact/rcmp_sing/F2MF_sing/fsum_sing/rep_sing/rep_sing.
   Defined.
 End representations.
+Notation "delta '\translatable_to' delta'" :=
+  (has_continuous_solution_wrt delta delta' mf_id) (at level 35).
 Notation "delta '\equivalent_to' delta'" := (equivalent delta delta') (at level 30): cs_scope.
 Notation "phi '\names' x '\wrt' delta" :=
   (delta (phi: name_space delta) x) (at level 30): cs_scope.

@@ -23,8 +23,8 @@ Definition F' (f: nat -> nat) (n: nat) := f (f n).
    (map phi K ++ L, q').
    The best way to understand this is probably an example. To help with parsing let us first
    introduce some notations: *)
-Notation pose_queries := inl.
-Notation return_value := inr.
+Notation pose_queries := inr.
+Notation return_value := inl.
 
 (* I claim that the following defines an associate of the operator F above: *)
 Definition psi_F (KLn: seq (nat * nat) * nat) :=
@@ -105,4 +105,3 @@ Proof.
   rewrite /Phi /psi_Phi => psi F eq Fphi.
   by split => [/D_spec val | <-]; [apply/eq | apply/D_spec; rewrite eq].
 Qed.
-

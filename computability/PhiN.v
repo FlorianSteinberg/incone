@@ -151,19 +151,20 @@ Qed.
 Section use_first.
   Context Q A (N: nat * Q -> option A).
   Local Notation "N \is_monotone" := (monotone N) (at level 2).
-          
-  Definition use_first nq:= N (search (fun k => N(k,nq.2)) nq.1,nq.2).
 
+  Definition use_first (nq: nat * Q):=
+    let (n,q) := nq in
+    search (fun k => N (k,q)) (cnst true) n.
+
+  Lemma sfrst_osrch n q:
+    use_first (n, q) = N (ord_search (fun k => N (k, q)) n, q).
+  Proof. by rewrite /use_first/search dsrch_osrch /=; case: N. Qed.
+        
   Lemma sfrst_mon: use_first \is_monotone.
   Proof.
-    move => q n neq.
-    rewrite /use_first /=.
-    f_equal; symmetry; f_equal.
-    rewrite -search_search.
-    apply/search_eq .
-    move: neq; rewrite /use_first.
-    - by case: (N (search (fun k => N(k,q)) n, q)).
-    by apply/leq_trans; first exact/search_le.
+    move => q n.
+    case eq: use_first => [a' | ]// _.
+    exact/srch_eq/eq.
   Qed.
 
   Lemma sfrst_sing: \Phi_use_first \is_singlevalued.
@@ -173,46 +174,48 @@ Section use_first.
   Proof.
     have mon:= @sfrst_mon.
     rewrite tight_spec.
-    split => [q [a [n eq]] | q a [_ [n eq]]]; last by exists (search (fun k => N(k,q)) n).
-    have: is_true (isSome (N (search (fun k => N(k,q)) n, q))).
-    * by apply/(@search_correct (fun k => N(k,q))); rewrite eq.
-    by case E: (N (search (fun k => N(k,q)) n, q))=> [b | ] //_; exists b; exists n.
+    split => [q [a [n eq]] | q a [_ [n]]]; last first.
+    - by rewrite sfrst_osrch; exists (ord_search (fun k => N(k,q)) n).
+    have: is_true (isSome (N (ord_search (fun k => N(k,q)) n, q))).
+    * by apply/(@osrch_correct (fun k => N(k,q))); rewrite eq.
+    by case E: (N (ord_search (fun k => N(k,q)) n, q)) => [b | ] //_; exists b; exists n; rewrite sfrst_osrch.
   Qed.
 
   Lemma sfrst_tot: \Phi_N \is_total <-> \Phi_use_first \is_total.
   Proof.
-    split=>tot q'; have [a'[n eq]]:= tot q'; last by exists a'; exists (search(fun k=>N (k, q'))n).
-    have : N (search (fun k => N (k, q')) n, q').
-    - by apply/(@search_correct (fun k => N (k, q'))); rewrite eq.
-    case E: (N (search (fun k => N (k, q')) n, q')) => [b' | ] // _.
-    by exists b'; exists n.
+    split=> tot q'; have [a'[n]]:= tot q'; last first.
+    - by rewrite sfrst_osrch; exists a'; exists (ord_search(fun k=>N (k, q'))n).
+    move => eq; have: N (ord_search (fun k => N (k, q')) n, q').
+    - by apply/(@osrch_correct (fun k => N (k, q'))); rewrite eq.
+    case E: (N (ord_search (fun k => N (k, q')) n, q')) => [b' | ] // _.
+    by exists b'; exists n; rewrite sfrst_osrch.
   Qed.
     
   Lemma mon_sfrst: N \is_monotone <-> forall n q, N(n,q) = use_first(n,q).
   Proof.
     split => [/mon_spec mon n q | eq n m neq]; last by rewrite eq sfrst_mon -eq.
-    rewrite /use_first.
-    case E: (N (search (fun k => N(k,q)) n, q)) => [a | ].
+    rewrite sfrst_osrch.
+    case E: (N (ord_search (fun k => N(k,q)) n, q)) => [a | ].
     - apply/mon; last exact/E.
-      exact/search_le.
-    have := @search_le (fun k => N(k,q)) n.
-    rewrite leq_eqVlt => /orP [/eqP <- | /searchP [m [Nmq mln]]] //.
-    have:= @search_correct (fun k => N(k,q)) _ Nmq.
-    have ->:= @search_eq (fun k => N(k,q)) m n Nmq; first by rewrite E.
+      exact/osrch_le.
+    have := @osrch_le (fun k => N(k,q)) n.
+    rewrite leq_eqVlt => /orP [/eqP <- | /osrch_ltP [[/=m mln] Nmq]] //.
+    have:= @osrch_correct (fun k => N(k,q)) _ Nmq.
+    have -> := @osrch_eq (fun k => N(k,q)) m n _; first by rewrite E.
+    - exact/(@osrch_correct (fun k => N (k,q))).
     by case: (m) mln => // m' m'ln; apply/leq_trans/m'ln.
   Qed.
     
   Lemma sing_sfrst: \Phi_N \is_singlevalued <-> \Phi_N =~= \Phi_use_first.
   Proof.
     split => [sing q a| ->]; last exact/sfrst_sing.
-    split => [[n val] | [n]]; last by exists (search (fun k => N(k,q)) n).
-    exists n.
-    rewrite /use_first.
+    split => [[n val] | [n]]; last by rewrite sfrst_osrch; exists (ord_search (fun k => N(k,q)) n).
+    exists n; rewrite sfrst_osrch.
     have Nnq: N(n,q) by rewrite val.
-    have := (@search_correct (fun k => N(k,q)) n Nnq).
+    have := (@osrch_correct (fun k => N(k,q)) n Nnq).
     case E: (N(_, q)) => [b | ] // _.
     have ->:= sing q a b => //; first by exists n.
-    by exists (search (fun k => N(k,q)) n).
+    by exists (ord_search (fun k => N(k,q)) n).
   Qed.
 End use_first.      
 
@@ -266,3 +269,31 @@ Section composition.
     by exists (maxn n n'); rewrite (mon' _ _ _ _ _ eq'); [apply/mon/eq/leq_maxl | exact/leq_maxr].
   Qed.
 End composition.
+
+Section EnumeratedTypes.
+  Structure EnumeratedType :=
+    {
+      type:> Type;
+      enumeration: nat * nat -> option type;
+      surjective: \Phi_enumeration \is_cototal;
+      deterministic: \Phi_enumeration \is_singlevalued;
+    }.
+     
+  Context (T: EnumeratedType).
+
+  Definition find (p: pred T) (n: nat):=
+    match direct_search
+            (enumeration T \o_p unpickle)
+            (fun ot => if ot is Some t then p t else false) n with
+    | Some (Some t) => Some t
+    | _ => None
+    end.
+
+  Lemma find_correct (p: pred T) n x: find p n = Some x -> p x.
+  Proof.
+    rewrite /find.
+    case E: direct_search => [ot |] //.
+    have := (@dsrch_correct (option T) (enumeration T \o_p unpickle) _ _ _ E).
+    by case: ot E => // t E pt [<-].
+  Qed.
+End EnumeratedTypes.

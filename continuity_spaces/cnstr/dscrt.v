@@ -92,7 +92,7 @@ Section TERMINAL.
   Proof. exact/unit_fun_cont. Qed.
 
   Definition unit_fun_ass (X: cs) (KLq: seq (queries X * replies X) * queries cs_unit) :=
-    inr tt : seq (queries X) + replies cs_unit.
+    inl tt : replies cs_unit + seq (queries X).
 
   Lemma unit_fun_ass_eval (X: cs): \F_(U (@unit_fun_ass X)) =~= unit_fun_rlzr X. 
   Proof.

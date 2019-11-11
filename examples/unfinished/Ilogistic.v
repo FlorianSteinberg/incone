@@ -439,30 +439,214 @@ Proof.
   by apply (logistic_map_in_dom _ (FloattoIR_correct 1%Z (-1)%Z) (FloattoIR_correct 15%Z (-2)%Z)). 
 Qed.
 
-Definition gtS eps :=  toSirp \o (Build_multifunction (fun xy => ltK (xy.2, xy.1+eps))).
-Definition lt_eps eps := choose \o (prd_mf (toSirp \o ltK) (gtS eps)).
-Check diag.
-Definition gtS_rlzr phieps phi := (ltK_rlzr (pair (rprj phi, (Rplus_rlzrf' (pair (lprj phi, phieps)))))).
-Definition lt_eps_rlzr_pair phieps phi := (pair ((prd (toSirp_rlzrf \o_f ltK_rlzr) (toSirp_rlzrf \o_f (gtS_rlzr phieps))) phi)).
-Definition lt_eps_rlzrf phieps :=  choose_rlzrf \o_f (lt_eps_rlzr_pair phieps).
+Definition swap (X Y : cs) (xy : (X * Y)) := (xy.2, xy.1).
+Definition mf_swap X Y := (F2MF (@swap X Y)).
+Definition swap_rlzr (X Y: cs): B_ (X \*_cs Y) ->> B_ _:= (F2MF (fun (phi : B_ (X \*_cs Y)) => (pair ((rprj phi),(lprj phi))))).
+Definition brd (X Y Z : cs) (xyz : (X * (Y * Z))) := ((xyz.1, xyz.2.1),xyz.2.2).
+Definition brd_rlzrf (X Y Z : cs) := (fun (phi : B_ (X \*_cs (Y \*_cs Z))) => (pair (pair (lprj phi, lprj (rprj phi)),rprj (rprj phi)))): (B_ (X \*_cs (Y \*_cs Z)) -> B_ ((X \*_cs Y) \*_cs Z)).
+Definition diag_rlzrf X (phi : B_ X) := (pair (phi,phi)).
 
-Lemma lt_eps_spec x y eps :  ((lt_eps eps (x,y) true_K) -> (x < y)) /\ ((lt_eps eps (x,y) false_K) -> (y < x + eps)) /\ not (lt_eps eps (x,y) bot_K).
+Lemma diag_rlzrf_spec X : (F2MF (@diag_rlzrf X)) \solves mf_diag.
+  rewrite F2MF_slvs => phi x phin.
+  case => t /=tprp.
+  exists (x,x); split; first by auto.
+  exists (phi,phi).
+  split; by [apply pairK | split].
+Qed.  
+
+Lemma brd_rlzrf_spec X Y Z : (F2MF (@brd_rlzrf X Y Z)) \realizes (@brd X Y Z).
 Proof.
-  rewrite /lt_eps.
-  split; [|split].
-  case.
-  case.
-  case => a b H.
-  Search _ "_ \from _" composition.
-  move => H.
-Lemma sqrt2_in_dom : \Phi_(IR_RQ_rlzrM' sqrt2) \is_total.
+  rewrite F2MF_rlzr => phi [x [y z]] /prod_name_spec [phin1 /prod_name_spec [phin2 phin3]].
+  rewrite /brd /brd_rlzrf /=.
+  exists (pair (lprj phi, lprj (rprj phi)), (rprj (rprj phi))).
+  split => //.
+  split => //.
+  by exists ((lprj phi),(lprj (rprj phi))).
+Qed.
+
+Definition tpnIR n := (FloattoIR 1%Z n).
+
+Lemma tpnIR_spec n : (tpnIR n) \is_name_of (powerRZ 2 n).
+Proof.
+  rewrite /tpnIR.
+  suff -> : (powerRZ 2 n) = (D2R (Float 1%Z n)) by apply FloattoIR_correct.
+  by rewrite D2R_Float;lra.
+Qed.
+Definition lt_eps_rlzrf :=  which_rlzrf \o_f
+                                        (fprd_frlzr K_truth_rlzrf  K_truth_rlzrf)
+                                        \o_f (fprd_frlzr ltK_rlzr ltK_rlzr)
+                                        \o_f (@fprd_frlzr (IR \*_cs (IR \*_cs IR)) (IR \*_cs IR) (IR \*_cs (IR \*_cs IR)) (IR \*_cs IR)
+                                                          (@rprj names_IR (names_IR \*_ns names_IR))
+                                                          ((@fprd_frlzr ((IR \*_cs IR) \*_cs IR) IR ((IR \*_cs IR) \*_cs IR) IR (@rprj (names_IR \*_ns names_IR) names_IR) (Rplus_rlzrf' \o_f (@lprj (names_IR \*_ns names_IR) names_IR ))) \o_f (@diag_rlzrf ((IR \*_cs IR) \*_cs IR)) \o_f (@brd_rlzrf IR IR IR))) \o_f (@diag_rlzrf (IR \*_cs (IR \*_cs IR))).
+Definition lt_epsK := (make_mf (fun (epsxy : R * (R*R)) k => (let (eps,xy) := epsxy in
+                                            let (x,y) := xy in
+                                             (eps > 0) /\ (x < y -> k = true_K) /\ (y+eps < x -> k = false_K)) /\ k <> bot_K)).
+Definition lt_eps := (make_mf (fun (epsxy : R * (R*R)) b => (let (eps,xy) := epsxy in
+                                            let (x,y) := xy in
+                                             (x < y -> b = true) /\ (y+eps < x -> b = false)))).
+Lemma comp (S T U : cs) (F : S ->> T) (G : U ->> S)  H : {f | (F2MF f) \solves F} -> {g | (F2MF g) \solves G} -> H =~= F \o G -> {h | (F2MF h) \solves H}.
+Proof.
+  case => f fprp.
+  case => g gprp prp.
+  exists (f \o_f g).
+  rewrite <- F2MF_comp_F2MF. 
+  rewrite slvbl_prpr => //.
+  apply slvs_comp => //.
+  apply fprp.
+  apply gprp. 
+  by auto.
+Qed.
+
+Lemma prd (S T U V: cs) (F : S ->> T) (G : U ->> V) H  : {f | (F2MF f) \solves F} -> {g | (F2MF g) \solves G} -> H =~= F ** G -> {h | (F2MF h) \solves H}.
+Proof.
+  case => f fprp; case => g gprp hprp.
+  exists (fprd_frlzr f g).
+  rewrite fprd_frlzr_rlzr.
+  rewrite slvbl_prpr => //.
+  by apply prod.fprd_rlzr_spec; [apply fprp | apply gprp]. 
+  by auto.   
+Qed.
+Lemma which_spec x y : ((x = top) <-> (true_K \from (which (x,y)))) /\ ((y = top) <-> (false_K \from (which (x,y)))). 
+Proof.
 Admitted.
-Definition sqrt2_approx' n m := (sqrt2_approx (n,m)).
-Lemma sqrt2_approx_in_dom m : \Phi_(IR_RQ_rlzrM' (sqrt2_approx' m)) \is_total.
+Lemma comp_F2MF S T T' (f : S ->> T) (g : T' -> S) t' : (f \o (F2MF g)) t' === (f (g t')).
+Proof.
+  exact /comp_F2MF.
+Qed.
+
+Lemma lt_epsK_rlzr_spec : {f | (F2MF f) \solves lt_epsK}.
+Proof.
+  have fp : forall f, (f =~= f) by auto.
+  apply /comp => //.
+  exists which_rlzrf.
+  apply which_rlzrf_spec.
+  apply /comp => //.
+  apply /prd => //.
+  exists K_truth_rlzrf.
+  apply Ktruth_rlzr_spec.
+  exists K_truth_rlzrf.
+  apply Ktruth_rlzr_spec.
+  apply /comp => //.
+  apply /prd => //.
+  exists (ltK_rlzr : B_(IR \*_cs IR) -> B_(cs_Kleeneans)).
+  apply ltK_rlzr_spec.
+  exists (ltK_rlzr : B_(IR \*_cs IR) -> B_(cs_Kleeneans)).
+  apply ltK_rlzr_spec.
+  apply /comp => //.
+  apply /prd => //.
+  exists ((@rprj _ _): (B_(IR \*_cs (IR \*_cs IR)) -> _)).
+  apply snd_rlzr_spec.
+  apply /comp => //.
+  apply /prd => //.
+  apply /comp => //.
+  exists (Rplus_rlzrf : (B_(IR \*_cs IR) -> _)).
+  apply Rplus_rlzr_spec.
+  apply /prd => //.
+  exists (ssrfun.id : B_(IR) -> B_(IR)).
+  apply id_rlzr.
+  exists (@rprj _ _).
+  apply snd_rlzr_spec.
+  apply /comp => //.
+  exists (@lprj _ _).
+  apply fst_rlzr_spec.
+  exists (@rprj _ _).
+  apply snd_rlzr_spec.
+  exists (@diag_rlzrf _).
+  apply diag_rlzrf_spec.
+  exists (@diag_rlzrf _).
+  apply diag_rlzrf_spec.
+  rewrite /lt_epsK.
+  move => [eps [x y]].
+  rewrite <-!F2MF_fprd.
+  rewrite !F2MF_comp_F2MF.
+  rewrite <-!F2MF_fprd.
+  rewrite !F2MF_comp_F2MF.
+  rewrite <-!F2MF_fprd.
+  rewrite !F2MF_comp_F2MF.
+  rewrite comp_F2MF => k.
+  split =>  [ [[epsgt0 [xltyt yltxf]] snb] | ].
+  rewrite /K_truthf /uncurry /=.
+  case : (total_order_T x y) => [[xlty | xeqy ] | xgty]; case : (total_order_T (eps+y) x) => [[yltx | yeqx ] | ygtx]; try by auto; try by lra.
+  Search _ from composition.
 Admitted.
-Definition sqrt2Q := (evaluate (sqrt2_in_dom)).
-Definition sqrt2Q' n := (evaluate (sqrt2_approx_in_dom n)).
-Definition sqrt2' (p : BinPos.positive):= sqrt2Q (1#(10 ^ p)).
+(* assumes x > 0 *)
+Fixpoint scale_up phi cnt m := match m with
+                                 | 0%nat => (None, cnt)
+                                 | m'.+1 => 
+                                   match (lt_eps_rlzrf (@pair names_IR _ ((tpnIR (-2)%Z),(mp phi (tpnIR (-2)%Z)))) m) with
+                                   | (Some true) => (scale_up ((FloattoIR 1%Z 2%Z) \* phi) (cnt+1)%Z m')
+                                   | (Some false) => ((Some phi),cnt)
+                                   | None => (None, cnt)
+                                   end
+                                 end.
+
+Lemma scale_up_spec phi x psi m :(0 < x) -> (phi \is_name_of x) -> forall cnt cnt', ((scale_up phi cnt m) = (Some psi, cnt') -> (exists y, psi \is_name_of y /\ (/ 4) <= y)).
+Proof.
+  move => gt0 phin.
+  elim m => [| m']; first by auto.
+Admitted.  
+Fixpoint scale_down phi cnt m := match m with
+                                 | 0%nat => (None, cnt)
+                                 | m'.+1 => 
+                                   match (lt_eps_rlzrf (@pair names_IR _ ((tpnIR (-2)%Z),(mp (tpnIR 0%Z) phi))) m) with
+                                   | (Some true) => (scale_down ((FloattoIR 1%Z (-2)%Z) \* phi) (cnt+1)%Z m')
+                                   | (Some false) => ((Some phi),cnt)
+                                   | None => (None, cnt)
+                                   end
+                                 end.
+
+Fixpoint scale phi m := match (scale_up phi 0 m) with
+                          | (None, n) => (None, n)
+                          | ((Some psi), n) =>
+                            match (scale_down psi 0 m) with
+                            | (None, m) => (None, m)
+                            | ((Some phi0), m) => ((Some phi0), (m-n)%Z)
+                            end
+                         end.
+Definition sqrt_approx_total (n : nat) phi mq := match (lt_eps_rlzrf (@pair names_IR _ ((tpnIR (-4*(Z.of_nat n))%Z),(mp phi (tpnIR (-2*(Z.of_nat n))%Z)))) mq.1) with
+                                          | (Some true)  => (Some (I.fromZ 0))
+                                          | (Some false) =>
+                                              let (p, s) := (scale phi mq.1) in
+                                              match p with
+                                                | None => None
+                                                | (Some psi) => (Some ((tpnIR s) \* (sqrt_approx_n psi n) mq.2))
+                                              end
+                                          | _ => None
+                                        end.
+Definition sqrt_approx_total' n phi mq := (sqrt_approx_total n phi ((speedup mq.1),(speedup mq.2))).
+
+Lemma sqrt_approx_totalt n phi : \Phi_(sqrt_approx_total' n phi) \is_total.
+Admitted.
+Definition sqrt_approx_f phi nm := (evaluate (sqrt_approx_totalt nm.1 phi) nm.2).
+Lemma sqrt_app_in_dom phi : \Phi_(limit_eff_rlzrM (sqrt_approx_f phi)) \is_total.
+Admitted.
+Definition sqrtfunction phi := (evaluate (sqrt_app_in_dom phi)).
+Lemma sqrtfun_in_dom phi : \Phi_(IR_RQ_rlzrM' (sqrtfunction phi)) \is_total.
+Admitted.
+Definition sqrtq phi := (evaluate (sqrtfun_in_dom phi)).
+(* Definition sqrt' phi m := match (sqrt_approx_total phi n 100%nat) with *)
+(*                            | (Some phi) => phi *)
+(*                            | None => (ZtoIR 111%Z) *)
+(*                           end. *)
+
+(* Lemma lt_eps_spec x y eps :  ((lt_eps eps (x,y) true_K) -> (x < y)) /\ ((lt_eps eps (x,y) false_K) -> (y < x + eps)) /\ not (lt_eps eps (x,y) bot_K). *)
+(* Proof. *)
+(*   rewrite /lt_eps. *)
+(*   split; [|split]. *)
+(*   case. *)
+(*   case. *)
+(*   case => a b H. *)
+(*   Search _ "_ \from _" composition. *)
+(*   move => H. *)
+(* Lemma sqrt2_in_dom : \Phi_(IR_RQ_rlzrM' sqrt2) \is_total. *)
+(* Admitted. *)
+(* Definition sqrt2_approx' n m := (sqrt2_approx (n,m)). *)
+(* Lemma sqrt2_approx_in_dom m : \Phi_(IR_RQ_rlzrM' (sqrt2_approx' m)) \is_total. *)
+(* Admitted. *)
+(* Definition sqrt2Q := (evaluate (sqrt2_in_dom)). *)
+(* Definition sqrt2Q' n := (evaluate (sqrt2_approx_in_dom n)). *)
+Definition QtoIR' q := (QRtoIR (fun _ => q)). 
+Definition sqrt2' a b (p : BinPos.positive):= sqrtq (QtoIR' (a # b)) (1#(10 ^ p)). 
 Definition qtoPair q := match q with
                           (q1 # q2) => (q1, q2)
                           end.
@@ -473,9 +657,8 @@ Definition print_interval' I := match I with
                                   end.
 (* Definition sqrt2' (p : nat):= (print_interval (sqrt2 p)). *)
 Definition sqrt2'' m p := (print_interval' (use_first limit_eff_rlzrM sqrt2_approx (m,p)%nat)).
-Definition sq2_approx m (p : BinPos.positive):= sqrt2Q' m (1#(p)).
 Definition log_map_Q N := (evaluate (log_map1_in_dom N)).
 Compute ((FloattoIR 1%Z (-1)%Z) \: (FloattoIR 5%Z (-10)%Z) 10%nat).
 Definition logistic_map_mp_rlzr' (N :nat) (p : BinPos.positive):= log_map_Q N (1#(10 ^ p)).
 Extraction "logisticC" cmp_float mantissa_shr logistic_map_mp_rlzr'.
-Extraction "sqrt2" cmp_float mantissa_shr sqrt2' sqrt2'' sq2_approx.
+Extraction "sqrt2" cmp_float mantissa_shr sqrt2' sqrt2''.

@@ -312,8 +312,8 @@ Section Kleeneans.
 
   Canonical cs_Kleeneans:= repf2cs Kleeneans_representation.
   
-  Definition choose := make_mf (fun (s1s2 : (Sirp * Sirp)) k => (s1s2.1 = top /\ k = true_K) \/ (s1s2.2 = top /\ k = false_K) \/ (s1s2.1 = bot /\ s1s2.2 = bot /\ k = bot_K)).
-  Definition choose_rlzrf (phi : (names_Sirp \*_ns names_Sirp)) n := match (lprj phi n) with
+  Definition which := make_mf (fun (s1s2 : (Sirp * Sirp)) k => (s1s2.1 = top /\ k = true_K) \/ (s1s2.2 = top /\ k = false_K) \/ (s1s2.1 = bot /\ s1s2.2 = bot /\ k = bot_K)).
+  Definition which_rlzrf (phi : (names_Sirp \*_ns names_Sirp)) n := match (lprj phi n) with
                                    | true => (Some true)
                                    | false =>
                                      match (rprj phi n) with
@@ -321,7 +321,7 @@ Section Kleeneans.
                                     | _ => None
                                      end
                                    end.
-Lemma choose_rlzrf_spec : (F2MF choose_rlzrf) \solves choose.
+Lemma which_rlzrf_spec : (F2MF which_rlzrf) \solves which.
 Proof.
   rewrite F2MF_slvs => phi /= [k1 k2] /prod_name_spec [/=k1ephin k2ephin].
   have cases : (k1 = top /\ k2 = top \/ k1 = top /\ k2 = bot \/ k1 = bot /\ k2 = top \/ k1 = bot /\ k2 = bot).
@@ -356,7 +356,7 @@ Proof.
     case e: (m <= n).
     + exists true_K; split; first by auto.
       exists m.
-      rewrite /choose_rlzrf mprp1; split => [ | m' m'prp]; first by auto.
+      rewrite /which_rlzrf mprp1; split => [ | m' m'prp]; first by auto.
       rewrite (mprp2 _ m'prp).
       have m'prp2 : (m' < n).
       apply /leP;move /leP : e; move /leP : m'prp.
@@ -364,7 +364,7 @@ Proof.
       by rewrite (nprp2 _ m'prp2).
    exists false_K; split; first by auto.   
    exists n.
-   rewrite /choose_rlzrf nprp1 mprp2 ; last by (apply /leP; move /leP : e;lia).
+   rewrite /which_rlzrf nprp1 mprp2 ; last by (apply /leP; move /leP : e;lia).
    split => [ | n' n'prp]; first by auto.
    rewrite nprp2; last by (apply /leP; move /leP : n'prp;lia).
    rewrite mprp2 //.
@@ -373,26 +373,26 @@ Proof.
     exists true_K.
     split; first by auto.
     case (P1 kp1) => n [nprp1 nprp2].
-    exists n; split => [| m mprp]; rewrite /choose_rlzrf;first by rewrite nprp1.
+    exists n; split => [| m mprp]; rewrite /which_rlzrf;first by rewrite nprp1.
     rewrite (nprp2 _ mprp).
     by rewrite (P2' kp2).
   - move => _.
     exists false_K.
     split; first by auto.
     case (P2 kp2) => n [nprp1 nprp2].
-    exists n; split => [| m mprp]; rewrite /choose_rlzrf; first by rewrite nprp1 (P1' kp1).
+    exists n; split => [| m mprp]; rewrite /which_rlzrf; first by rewrite nprp1 (P1' kp1).
     by rewrite (P1' kp1) (nprp2 _ mprp).
   move => _.
   exists bot_K; split => [ | n ]; first by auto.
-  by rewrite /choose_rlzrf (P1' kp1) (P2' kp2).
+  by rewrite /which_rlzrf (P1' kp1) (P2' kp2).
 Qed.
 
-Definition toSirpf (K : Kleeneans) := match K with
+Definition K_truthf (K : Kleeneans) := match K with
                          | bot_K | false_K => bot
                          | top_K => top
                         end : Sirp.
-Definition toSirp := (F2MF toSirpf).
-Definition toSirp_rlzrf (phi : names_Kleeneans) :=  (fun n => (let m := search (fun m => (isSome (phi m))) n in
+Definition K_truth := (F2MF K_truthf).
+Definition K_truth_rlzrf (phi : names_Kleeneans) :=  (fun n => (let m := search (fun m => (isSome (phi m))) n in
                                                          if m == n 
                                                            then false
                                                             else
@@ -401,29 +401,29 @@ Definition toSirp_rlzrf (phi : names_Kleeneans) :=  (fun n => (let m := search (
                                                                    | _ => false
                                                                  end))) : names_Sirp.
 
-Lemma toSirp_search_correct phi n : (toSirp_rlzrf phi n) = true <-> (search (fun m => (isSome (phi m))) n) < n /\ (phi (search (fun m => (isSome (phi m))) n)) = (Some true).
+Lemma K_truth_search_correct phi n : (K_truth_rlzrf phi n) = true <-> (search (fun m => (isSome (phi m))) n) < n /\ (phi (search (fun m => (isSome (phi m))) n)) = (Some true).
 Proof.
   split.
   - move => H.
     case (PeanoNat.Nat.lt_trichotomy (search (fun m => (isSome (phi m))) n) n); [| case] => H'; try by have /leP := (search_le (fun m => phi m) n);lia. 
     + split; first by apply /leP; lia.
-      have P : ((search (fun m => phi m) n) == n) = false by apply /eqP => p;move : H; rewrite /toSirp_rlzrf p eq_refl.
+      have P : ((search (fun m => phi m) n) == n) = false by apply /eqP => p;move : H; rewrite /K_truth_rlzrf p eq_refl.
       move : H.
-      rewrite /toSirp_rlzrf P.
+      rewrite /K_truth_rlzrf P.
       by case e  : (phi (search (fun m => phi m) n)) => [b |]; try case e' : b.
-    by rewrite /toSirp_rlzrf H' eq_refl in H.
+    by rewrite /K_truth_rlzrf H' eq_refl in H.
   move => [H1 H2].
-  rewrite /toSirp_rlzrf ifF; last by apply /eqP => p; move /leP: H1; rewrite p;lia.
+  rewrite /K_truth_rlzrf ifF; last by apply /eqP => p; move /leP: H1; rewrite p;lia.
   by rewrite H2.
 Qed.
 
 
-Lemma toSirp_rlzr_spec : (F2MF toSirp_rlzrf) \realizes toSirpf.
+Lemma Ktruth_rlzr_spec : (F2MF K_truth_rlzrf) \realizes K_truthf.
 Proof.
   rewrite F2MF_rlzr => phi k phin /=.
   split.
   - case => n H.
-    have [P _] := (toSirp_search_correct phi n).   
+    have [P _] := (K_truth_search_correct phi n).   
     have [P1 P2] := (P H).
     suff e : phi \is_description_of true_K by rewrite (rep_sing phin e).
     exists (search (fun m => phi m) n); split => [| m /leP mprp]; first by auto.
@@ -437,7 +437,7 @@ Proof.
     case => n [nprp1 nprp2].
     have nprp1' : (isSome (phi n)) by rewrite nprp1.
     exists n.+1.
-    apply toSirp_search_correct.
+    apply K_truth_search_correct.
     have /leP sm := (@search_min (fun m => phi m) (n.+1) n nprp1').
     split; first by apply /leP;lia.
     suff -> : (search (fun m => phi m) n.+1) = n by auto.

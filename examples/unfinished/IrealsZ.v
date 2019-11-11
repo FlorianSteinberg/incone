@@ -1018,8 +1018,6 @@ Definition lt0_rlzr (phi : names_IR) := (fun n =>
   | Xgt => (Some false)
   | _ => None
   end) : B_(cs_Kleeneans).
-Definition lt0_K := (make_mf (fun x b => (x < 0 /\ b = true_K \/ 0 < x /\ b = false_K \/ x = 0 /\ b = bot_K))).
-
 Lemma sign_strict_und I : (0 \contained_in I) -> (I.sign_strict I) = Xeq \/ (I.sign_strict I) = Xund.
 Proof.
   move => H.
@@ -1108,20 +1106,31 @@ Proof.
   by apply (H' _ (phin1 n)).
 Qed.
 
+Definition ltK (xy : R*R) := let (x,y) := xy in
+                     match (total_order_T x y) with
+                     | (inleft (left _)) => true_K
+                     | (inright _) => false_K
+                     | _ => bot_K
+                     end.
 
-Lemma lt0_rlzr_spec : (F2MF lt0_rlzr) \solves lt0_K.
+Lemma ltK_spec x y: ((ltK (x,y)) = true_K <-> (x < y)) /\ ((ltK (x,y)) = false_K <-> (y < x)) /\ ((ltK (x,y)) = bot_K <-> (x = y)). 
 Proof.
-   move => phi x phin /= H.
-   case H => t tp.
-   split; first by exists (lt0_rlzr phi).
-   exists t.
-   split; first by apply tp.
-   rewrite <- H0.
-   rewrite /lt0_rlzr.
-   case tp => [[P1 P2] | P2]; [rewrite P2 | ].
+  rewrite /ltK.
+  case: (total_order_T x y) => [[xlty | <-] | xgty].
+  split; split;[| | split | split]; try lra;try by auto.
+  split; split;[| | split | split]; try lra;try by auto.
+  split; split;[| | split | split]; try lra;try by auto.
+Qed.
+
+Lemma lt0_rlzr_spec : (F2MF lt0_rlzr) \realizes (fun x => (ltK (x,0))).
+Proof.
+   rewrite F2MF_rlzr => phi x phin.
+   rewrite /ltK /lt0_rlzr.
+   have [phin1 phin2] := phin.
+   case: (total_order_T x 0) => [[xlt0 | xeq0 ] | xgt0].
    - have P : exists N, (I.sign_strict (phi N) = Xlt).
-     case (lt0_dec1 P1 phin) => n nprp.
-     exists n;first by apply (nprp n);apply /leP;lia.
+     + case (lt0_dec1 xlt0 phin) => n nprp.
+       by exists n;first by apply (nprp n);apply /leP;lia.
      case (classical_count.well_order_nat P) => N [Nprp1 Nprp2].
      exists N; split=>[| m mprp]; first by rewrite Nprp1.
      case e :(I.sign_strict (phi m)); try by auto.
@@ -1131,64 +1140,34 @@ Proof.
      by lia.
      have := (lt0_prop1 phin e).
      by lra.
-   case P2 => [[P1' P2']|[P1' P2']].
-   - have P : exists N, (I.sign_strict (phi N) = Xgt).
-     case (lt0_dec2 P1' phin) => n nprp.
-     exists n;first by apply (nprp n);apply /leP;lia.
-     rewrite P2'.
-     case (classical_count.well_order_nat P) => N [Nprp1 Nprp2].
-     exists N; split=>[| m mprp]; first by rewrite Nprp1.
-     case e :(I.sign_strict (phi m)); try by auto.
-     have := (lt0_prop2 phin e).
-     by lra.
+   - rewrite xeq0 in phin1.
+     move => n.
+     by case (sign_strict_und (phin1 n)) => ->.
+   have P : exists N, (I.sign_strict (phi N) = Xgt).
+    - case (lt0_dec2 xgt0 phin) => n nprp.
+      by exists n;first by apply (nprp n);apply /leP;lia.
+   case (classical_count.well_order_nat P) => N [Nprp1 Nprp2].
+   exists N; split=>[| m mprp]; first by rewrite Nprp1.
+   case e :(I.sign_strict (phi m)); try by auto.
+   have := (lt0_prop2 phin e).
+   by lra.
    have := (Nprp2 _ e).
    move /leP => mprp'.
    move /leP : mprp.
    by lia.
-   rewrite P2'.
-   have [phin1 _] := phin.
-   rewrite P1' in phin1.
-   move => n.
-   by case (sign_strict_und (phin1 n)) => ->.
 Qed.
 
-Definition ltK := (make_mf (fun xy b => (xy.1 < xy.2 /\ b = true_K \/  xy.2 < xy.1 /\ b = false_K \/ xy.1 = xy.2 /\ b = bot_K))).
-
-Lemma lt0_K_total : lt0_K \is_total.
-Proof.
-  move => x.
-  case (Rtotal_order x 0).
-  by exists true_K; simpl;auto.
-  case.
-  by exists bot_K; simpl; auto.
-  by exists false_K; simpl; auto.
-Qed.
-Lemma ltK_total : ltK \is_total.
-Proof.
-  move => [x1 x2].
-  case (Rtotal_order x1 x2).
-  by exists true_K; simpl;auto.
-  case.
-  by exists bot_K; simpl; auto.
-  by exists false_K; simpl; auto.
-Qed.
 Definition ltK_rlzr := lt0_rlzr \o_f Rminus_rlzrf.
 
-Lemma ltK_rlzr_spec : (F2MF ltK_rlzr) \solves ltK.
+Lemma ltK_rlzr_spec : (F2MF ltK_rlzr) \realizes ltK.
 Proof.
   rewrite /ltK_rlzr.
-  suff -> : ltK =~= lt0_K \o (F2MF (uncurry Rminus)).
-  - rewrite <- F2MF_comp_F2MF.
-    by apply slvs_comp; [apply lt0_rlzr_spec | apply Rminus_rlzr_spec].
- rewrite /ltK comp_rcmp; last by apply lt0_K_total.
- rewrite rcmp_F2MF/uncurry /=.
- apply make_mf_prpr => x t.
- split.
- - case => [[H1 ->] | ]; first by apply or_introl;split; by [lra|].
-   case => [[H1 ->] | [H1 ->]]; first by apply or_intror;apply or_introl;split; by [lra|].
-   do 2! apply or_intror; split; by [lra|].
- case => [[H1 ->] | ]; first by apply or_introl;split; by [lra|].
- case => [[H1 ->] | [H1 ->]]; first by apply or_intror;apply or_introl;split; by [lra|].
- do 2! apply or_intror; split; by [lra|].
+  suff -> : ltK = (fun x => (ltK (x, 0))) \o_f (uncurry Rminus).
+  - 
+    rewrite <- (F2MF_comp_F2MF lt0_rlzr Rminus_rlzrf).
+    apply rlzr_comp;[apply lt0_rlzr_spec | apply Rminus_rlzr_spec].
+  apply functional_extensionality => [[x y]].
+  rewrite /uncurry /=.
+  case: (total_order_T x y) => [[xlty | xeqy] | xgty]; case: (total_order_T (x-y) 0) => [[xlty' | ] | xgty']; try by auto; try by lra.
 Qed.
 End comparison.

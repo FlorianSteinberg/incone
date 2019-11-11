@@ -24,15 +24,22 @@ Section Sirpinskispace.
     by case: (classic (exists n, phi n = true)) => [ | nex]; [exists top | exists bot].
   Qed.
                                                                           
-  Lemma rep_Sirp_rep: rep_Sirp \is_representation.
+  Lemma rep_Sirp_sur: rep_Sirp \is_cototal.
   Proof.
-    split => [[[] | ] | ? s s' [imp imp'] [pmi pmi']]; first by exists (cnst true); split => // _; exists 0.
-    - by exists (cnst false); split => //; case.
+    case; first by case; exists (cnst true); split => // _; exists 0.
+    by exists (cnst false); split => //; case.
+  Qed.
+
+  Lemma rep_Sirp_sing: rep_Sirp \is_singlevalued.
+  Proof.
+    move => ? s s' [imp imp'] [pmi pmi'].
     case E: s => [[]|]; first by symmetry; apply/pmi/imp'.
     by case E': s' => [[]|]; first by rewrite -E; apply/imp/pmi'.
   Qed. 
 
-  Canonical Sirpinski_representation:= Build_representation_of rep_Sirp_rep.
+  Canonical Sirpinski_representation: representation_of Sirp.
+    by exists names_Sirp; exists rep_Sirp; try exact/rep_Sirp_sur; apply/rep_Sirp_sing.
+  Defined.
 
   Canonical cs_Sirp:= repf2cs Sirpinski_representation.
 
@@ -175,17 +182,23 @@ Section Opens_and_closeds.
   Definition rep_clsd := make_mf (fun (phi: names_closeds) (A: closeds) =>
                                     associate X cs_Sirp phi (P2CF (complement (projT1 A)))).
 
-  Lemma rep_clsd_rep: rep_clsd \is_representation.
+  Lemma rep_clsd_sur: rep_clsd \is_cototal.
   Proof.
-    split; first by move => [A [psi ass]/=]; exists psi.
+    by move => [A [psi ass]/=]; exists psi.
+  Qed.
+  
+  Lemma rep_clsd_sing: rep_clsd \is_singlevalued.
     move => phi A A' /= phinA phinA'; apply/eq_sub => /=.
     rewrite -(CF2PK (sval A)) -(CF2PK (sval A')).
     rewrite -(complement_involutive (CF2P (sval A))) -(complement_involutive (CF2P (sval A'))).
     f_equal; f_equal; rewrite -[LHS]P2CFK -[RHS]P2CFK.
-    by have /= ->:= choice_dict.mf_rlzr_f_sing phinA phinA'.    
+    by have /fun_ext -> := dict.rlzr_F2MF_eq (D:= cs_Sirp) (I:= X) phinA' phinA.    
   Qed.  
 
-  Definition closeds_representation:= Build_representation_of rep_clsd_rep.
+  Definition closeds_representation: representation_of closeds.
+    by exists names_closeds; exists rep_clsd; try exact/rep_clsd_sur; apply/rep_clsd_sing.
+  Defined.
+
   Definition cs_closeds:= repf2cs closeds_representation.
   
   Local Notation "\A(X)" := cs_closeds.
@@ -294,9 +307,11 @@ Section Kleeneans.
 	       | bot_K => forall n, phi n = None
 	       end).
   
-  Lemma rep_K_rep: rep_K \is_representation.
+  Lemma rep_K_sur: rep_K \is_cototal.
+  Proof. by case; [exists (cnst (Some false)) | exists (cnst (Some true))|exists (cnst None)]; try exists 0. Qed.
+
+  Lemma rep_K_sing: rep_K \is_singlevalued.
   Proof.
-    split; first by case; [exists (cnst (Some false)) | exists (cnst (Some true))|exists (cnst None)]; try exists 0.
     move => phi t t'.
     case: t; case t' => //; try (move => [n [eq prp]] prp'; by rewrite prp' in eq);
       try (move => prp; case => n []; by rewrite prp); move => [n [eq prp]] [m []].
@@ -308,7 +323,9 @@ Section Kleeneans.
     by case/orP: ineq => [/eqP <- | ineq eq' prp']; [rewrite eq | rewrite prp' in eq].
   Qed.
 
-  Canonical Kleeneans_representation := Build_representation_of rep_K_rep.
+  Canonical Kleeneans_representation: representation_of Kleeneans.
+    by exists names_Kleeneans; exists rep_K; try exact/rep_K_sur; apply/rep_K_sing.
+  Defined.
 
   Canonical cs_Kleeneans:= repf2cs Kleeneans_representation.
   
@@ -459,18 +476,25 @@ Section Open_subsets_of_nat.
   Definition rep_ON := make_mf(fun (phi: names_ON) (p: pred nat) =>
                                forall n, p n <-> exists m, phi m = n.+1).
 
-  Lemma rep_ON_rep: rep_ON \is_representation.
+  Lemma rep_ON_sur: rep_ON \is_cototal.
   Proof.
-    split => [p /= | phi A B phinA phinB].
-    - exists (fun n => if p n then n.+1 else 0) => n.
-      split => [eq | [m]]; first by exists n; rewrite eq.
-      by case E: (p m) => [|] => [[<-] | ].                                     
+    move => p/=.
+    exists (fun n => if p n then n.+1 else 0) => n.
+    split => [eq | [m]]; first by exists n; rewrite eq.
+    by case E: (p m) => [|] => [[<-] | ].
+  Qed.
+
+  Lemma rep_ON_sing: rep_ON \is_singlevalued.
+  Proof.
+    move => phi A B phinA phinB.
     apply/fun_ext => n; have := phinA n; have <-:= phinB n.
     case: (A n); case: (B n) => // eq; last exact/eq.
     by symmetry; apply/eq.
   Qed.
 
-  Canonical ON_representation := Build_representation_of rep_ON_rep.
+  Canonical ON_representation: representation_of (pred nat).
+    by exists names_ON; exists rep_ON; try exact/rep_ON_sur; apply/rep_ON_sing.
+  Defined.
 
   Canonical cs_ON:= repf2cs ON_representation.
   
@@ -578,14 +602,19 @@ Section Closed_subsets_of_nat.
   Lemma involutive_sur T (f: T -> T): involutive f -> f \is_surjective.
   Proof. by move => invo t; exists (f t); apply/invo. Qed.
 
-  Lemma rep_AN_rep: rep_AN \is_representation.
+  Lemma rep_AN_sur: rep_AN \is_cototal.
   Proof.
-    split; last by rewrite rep_AN_spec; apply/comp_sing/(@rep_sing cs_ON)/F2MF_sing.
     rewrite rep_AN_spec; apply/comp_cotot/rep_sur; first exact/(@rep_sing cs_ON).
     by rewrite -F2MF_cotot; apply/involutive_sur/complement_involutive.
   Qed.
 
-  Canonical AN_representation:= Build_representation_of rep_AN_rep.
+  Lemma rep_AN_sing: rep_AN \is_singlevalued.
+  Proof. by rewrite rep_AN_spec; apply/comp_sing/(@rep_sing cs_ON)/F2MF_sing. Qed.
+    
+  Definition AN_representation: representation_of (pred nat).
+    by exists names_AN; exists rep_AN; try exact/rep_AN_sur; apply/rep_AN_sing.
+  Defined.
+
   Definition cs_AN:= repf2cs AN_representation.
 
   Lemma id_cntop Q A: (@mf_id (Q -> A)) \is_continuous_operator.

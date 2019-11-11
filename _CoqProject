@@ -21,6 +21,8 @@ continuity/seq_cont.v
 computability/PhiN.v
 computability/FMop.v
 computability/Umach.v
+computability/multivalued_application.v
+computability/construct_associate.v
 computability/all_cmpt.v
 
 countability/classical_count.v
@@ -58,10 +60,11 @@ examples/cantor_space.v
 examples/KleeneKreisel.v
 examples/reals/Rstruct.v
 examples/reals/Q_reals.v
+examples/reals/division_for_Q_reals.v
 
-examples/unfinished/Ibounds.v
-examples/unfinished/IrealsZ.v
-examples/unfinished/Iextract.v
+#examples/unfinished/Ibounds.v
+#examples/unfinished/IrealsZ.v
+#examples/unfinished/Iextract.v
 
 #extras that are not currently part of the library but can be compiled on demand:
 computability/multivalued_application.v
@@ -69,6 +72,7 @@ computability/multivalued_composition.v
 #naming_spaces/naming_spaces_as_data_structure.v
 #examples/unfinished/Ireals.v
 #examples/unfinished/lp.v
+#examples/unfinished/under.v
 #examples/unfinished/sd_reals.v
 #examples/unfinished/sdvsc.v
-#examples/unfinished/division_for_Q_reals.v
+

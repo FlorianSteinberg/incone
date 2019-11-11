@@ -35,9 +35,9 @@ Section equivalence.
   Proof.
     move => deltaT delta'T [hcr rch] deltaT' delta'T' [hcr' rch'].
     split.
-    - have:= fprd_hcr hcr hcr'.
+    - have:= fprd_hcs hcr hcr'.
       by rewrite fprd_id.
-    have:= fprd_hcr rch rch'.
+    have:= fprd_hcs rch rch'.
     by rewrite fprd_id.
   Qed.
 

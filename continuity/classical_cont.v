@@ -20,7 +20,7 @@ Section classical_lemmas.
   
   Lemma F2MF_cont_choice (f: B -> B'): FunctionalChoice_on Q' (seq Q) ->
     f \is_continuous_function <->
-    forall phi q', exists L, forall psi, phi \and psi \coincide_on L -> f phi q' = f psi q'.
+    forall phi q', exists L, forall psi, phi \coincides_with psi \on L -> f phi q' = f psi q'.
   Proof.
     move => choice.
     split=> [cont phi q' | cont phi].
@@ -32,7 +32,7 @@ Section classical_lemmas.
     ~ phi \from closure (dom F) -> exists L, certificate F L phi q' a'.
   Proof.
     move => neg.
-    have [L Lprop]: exists L, forall psi, ~ (phi \and psi \coincide_on L /\ psi \from dom F).
+    have [L Lprop]: exists L, forall psi, ~ (phi \coincides_with psi \on L /\ psi \from dom F).
     - apply NNPP => ex; apply neg => L; apply NNPP => negi.
       exfalso; apply ex; exists L => psi [] coin val.
       by apply negi; exists psi.
@@ -122,7 +122,7 @@ Proof.
   move => q'.
   apply/not_all_not_ex => prp.
   have /nat_choice [phin phinprp]: forall n, exists psi,
-        phi \and psi \coincide_on (iseg cnt n)
+        phi \coincides_with psi \on (iseg cnt n)
         /\
         psi \from dom F
         /\
@@ -160,7 +160,7 @@ Section mathcomp.
 
   Lemma F2MF_cont_eqT_choice (f: B -> B'): Q' \is_countable ->
     f \is_continuous_function <->
-    forall phi q', exists L, forall psi, phi \and psi \coincide_on L -> f phi q' = f psi q'.
+    forall phi q', exists L, forall psi, phi \coincides_with psi \on L -> f phi q' = f psi q'.
   Proof.
     by move => count; apply/F2MF_cont_choice/count_eqT_choice; last by left; apply/inhabits/nil.
   Qed.

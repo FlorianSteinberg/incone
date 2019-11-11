@@ -1,5 +1,6 @@
-From mathcomp Require Import ssreflect ssrfun seq ssrnat ssrbool eqtype.
+From mathcomp Require Import ssreflect ssrfun seq ssrnat ssrbool eqtype fintype.
 From mf Require Import all_mf classical_mf.
+From metric Require Import pointwise.
 Require Import all_cont search PhiN FMop Umach classical_count classical_cont.
 Require Import axioms Classical ChoiceFacts Psatz.
 
@@ -365,8 +366,8 @@ Section initial_segment_associate.
   Definition psi_iseg KLq':=
     let KL := KLq'.1 in let q' := KLq'.2 in
     if Lf KL q' <= size KL
-    then inr (vf KL q')
-    else inl (segment cnt (size KL) (Lf KL q').-1).
+    then inl (vf KL q')
+    else inr (segment cnt (size KL) (Lf KL q').-1).
 
   Lemma map_iseg T T' (f: nat -> T) (g: T -> T') n: map g (iseg f n) = iseg (g \o_f f) n.
   Proof. by elim: n => // n /=<-. Qed.
@@ -407,20 +408,20 @@ Section initial_segment_associate.
     have [ | phi' /=]:= (dp_dom (F2GL phi (iseg cnt (n_rec phi q' k)))).2.
     - by exists phi; split => //; apply/coin_GL2MF/coin_ref.
     case eq: (dp _) => [psi | ]// _.
-    case E: (psi_iseg _) => [K | a']; move: E.
-    rewrite {1}/psi_iseg /= size_F2GL ih; case: ifP => // ineq [<-].
-    - rewrite size_iseg iseg_cat_seg; last first.
-      + rewrite leqNgt; apply/negP => ineq'; suff: false by trivial.
-        by rewrite -ineq size_iseg.
-      f_equal.
-      have [ | _ /coin_GL2MF/coin_F2GL ->] //:=
-           @dp_spec (F2GL phi (iseg cnt (n_rec phi q' k))) psi; first by rewrite /= eq.
-      symmetry; apply/maxn_idPl; rewrite leqNgt; apply/negP => ineq'; suff: false by trivial.
-      by rewrite -ineq size_iseg; apply/leq_trans/ineq'.
-    rewrite ih /psi_iseg; case: ifP => //=; rewrite size_F2GL size_iseg => ineq [eq'].
-    f_equal; symmetry; apply/maxn_idPr.
-    by have [ | _ /coin_GL2MF/coin_F2GL ->] //:=
+    case E: (psi_iseg _) => [a' | K]; move: E.
+    - rewrite ih /psi_iseg; case: ifP => //=; rewrite size_F2GL size_iseg => ineq [eq'].
+      f_equal; symmetry; apply/maxn_idPr.
+      by have [ | _ /coin_GL2MF/coin_F2GL ->] //:=
          @dp_spec (F2GL phi (iseg cnt (n_rec phi q' k))) psi; first by rewrite /= eq.
+    rewrite {1}/psi_iseg /= size_F2GL ih; case: ifP => // ineq [<-].
+    rewrite size_iseg iseg_cat_seg; last first.
+    - rewrite leqNgt; apply/negP => ineq'; suff: false by trivial.
+      by rewrite -ineq size_iseg.
+    f_equal.
+    have [ | _ /coin_GL2MF/coin_F2GL ->] //:=
+         @dp_spec (F2GL phi (iseg cnt (n_rec phi q' k))) psi; first by rewrite /= eq.
+    symmetry; apply/maxn_idPl; rewrite leqNgt; apply/negP => ineq'; suff: false by trivial.
+    by rewrite -ineq size_iseg; apply/leq_trans/ineq'.
   Qed.
     
   Lemma psi_iseg_spec: FunctionalChoice_on Q' nat -> FunctionalCountableChoice_on bool ->
@@ -446,10 +447,10 @@ Section initial_segment_associate.
       exact/coin_subl/coin/iseg_subl.      
     apply/FM_dom => q'.
     have [ | k ineq']:= @n_rec_spec phi q' _ choice choice'; first by exists Fphi.
-    set k' := search (fun k => n_rec phi q' k.+1 <= n_rec phi q' k) k.
+    set k' := nat_search (fun k => n_rec phi q' k.+1 <= n_rec phi q' k) k.
     exists (Fphi q').
     exists k'.+1.
-    have := @search_correct (fun k => n_rec phi q' k.+1 <= n_rec phi q' k) _ ineq'.
+    have := @nsrch_correct (fun k => n_rec phi q' k.+1 <= n_rec phi q' k) _ ineq'.
     rewrite -/k' => ineq.
     rewrite US.
     suff ->: U psi_iseg phi (k', q') = None.
@@ -478,14 +479,14 @@ Section initial_segment_associate.
   move: {1 5}k' (leqnn k') ineq.
   elim => // m ih lt.
   rewrite US ih // => [ineq | | ]; last first; try by apply/leP; lia.
-  - exact/(@search_correct (fun k => n_rec phi q' k.+1 <= n_rec phi q' k)).
+  - exact/(@nsrch_correct (fun k => n_rec phi q' k.+1 <= n_rec phi q' k)).
   - by apply/leq_trans/lt.  
   rewrite {1}/psi_iseg /=.
   case: ifP => //.
   rewrite gs_psig; try by exists Fphi.
   rewrite size_F2GL size_iseg => le'.
   suff eq: n_rec phi q' m.+1 <= n_rec phi q' m.
-  - have /leP:= (@search_min (fun k => n_rec phi q' k.+1 <= n_rec phi q' k)) k _ eq.
+  - have /leP:= (@nsrch_min (fun k => n_rec phi q' k.+1 <= n_rec phi q' k)) k _ eq.
     by move/leP: lt; lia.
   rewrite /= /n_step.
   case E: dp => [psi | ]//.
@@ -509,16 +510,16 @@ Section exists_associate.
   Proof.
     move => cont.    
     case: (classic (inhabited Q')) => [[someq'] | nex]; last first.
-    - exists (fun _ => inl nil) => phi [Fphi val]; split => [ | Fphi' val'].
+    - exists (fun _ => inr nil) => phi [Fphi val]; split => [ | Fphi' val'].
       + by apply/FM_dom => q'; exfalso; apply/nex/inhabits/q'.
       suff ->: Fphi' = Fphi by trivial.
       by apply/functional_extensionality => q'; exfalso;apply/nex/inhabits/q'.
     case: (classic (inhabited A')) => [[somea'] | nex]; last first.
-    - by exists (fun _ => inl nil) => phi [Fphi]; exfalso; apply/nex/inhabits/Fphi/someq'.
+    - by exists (fun _ => inr nil) => phi [Fphi]; exfalso; apply/nex/inhabits/Fphi/someq'.
     case: (classic (inhabited Q)) => [[someq] | nex]; last first.
     - case: (classic (exists phi, phi \from dom F)) => [[phi [Fphi val]] | nex']; last first.
-      + by exists (fun _ => inl nil) => phi phifd; exfalso; apply/nex'; exists phi.
-      exists (fun Lq' => inr (Fphi Lq'.2)) => phi' [Fphi' val'].
+      + by exists (fun _ => inr nil) => phi phifd; exfalso; apply/nex'; exists phi.
+      exists (fun Lq' => inl (Fphi Lq'.2)) => phi' [Fphi' val'].
       split; first by apply/FM_dom => q'; exists (Fphi q'); exists 1.
       move => Fphi'' val''.
       suff ->: Fphi'' = Fphi' by trivial.
@@ -557,122 +558,7 @@ Section exists_associate.
     by have ->: phi' = phi by apply/functional_extensionality => q; have [_ []]:= eq q.
   Qed.
 End exists_associate.
-
-(*
-Section construct_associate.
-  Local Open Scope name_scope.
-  Context (Q: eqType) (Q' A A': Type) (somea: A) (someq: Q). 
-  Notation B := (Q -> A).
-  Notation B' := (Q' -> A').
-  Context (M: B -> nat * Q' -> option A').
-  Hypothesis M_mon: M \is_monotone.
-  Context (mu: B -> nat * Q' -> seq Q).
-  Hypothesis mu_mon: monotone_modulus mu.
-  Hypothesis mod: mu \modulus_function_for M.
-  Hypothesis modmod: mu \modulus_function_for mu.
-
-  Fixpoint GL2LF (KL: seq (Q * A)) q :=
-    match KL with
-    | nil => nil
-    | qa :: KL' => if qa.1 == q then qa.2::(GL2LF KL' q) else (GL2LF KL' q)
-    end.
-
-  Lemma filter_ntn (K K': seq Q):
-    L2SS (filter (fun q => ~~ (q \in K')) K ++ K') === (L2SS K) \u (L2SS K').
-  Proof.
-    elim: K => [ | q K /= ih]; first by case: K' => [q /= | q' K' /= q /=]; firstorder.
-    by case: ifP => /inP lstn q'; move: (ih q') => /=; firstorder; apply/H1; rewrite -H2.
-  Qed.
-
-  Definition Ks_step L nq' Ks :=
-    if size (flatten Ks) <= size L
-    then Ks
-    else
-      let KL := zip (flatten Ks) (drop (size L - size (flatten Ks)) L) in
-      let K := mu (extend somea (GL2LF KL)) nq' in
-      if K == nil then Ks else (K :: Ks).
-    
-  Fixpoint Ks_rec L nq' m:=
-    match m with
-    | 0 => nil
-    | S m' => Ks_step L nq' (Ks_rec L nq' m')
-    end.
   
-  Definition get_K L nq' := flatten (Ks_rec L nq' (size L)).
-    
-  Definition pf_psi KLnq':=
-    let KL:= KLnq'.1 in let nq' := KLnq'.2 in
-    let K' := mu (extend somea (GL2LF KL)) nq' in
-    if check_sublist K' (unzip1 KL)
-    then inr (zip K' L)
-    else inl K'.
-
-  Fixpoint rm_qqs L :=
-    match L with
-    | q :: q' :: L' => if (q == someq) && (q' == someq)
-                       then ((rm_qqs L').1, (rm_qqs L').2.+1)
-                       else (q :: q' :: (rm_qqs L').1, (rm_qqs L').2)
-    | L' => (L', 0)
-    end.
-
-  Lemma pf_psi_inl L q' K: pf_psi (L,q') = inl K -> K <> nil.
-  Proof.
-    rewrite /pf_psi; case: ifP =>//= /clP cl [<-].
-    by elim: (mu _ _) cl => [subl | q K' ih /= subl]; first by exfalso; apply/subl => q.
-  Qed.
-
-  Lemma size_mpsi phi q' n:
-    U pf_psi phi (n,q') = None -> n <= size (gather_queries pf_psi phi (n, q')).
-  Proof. 
-    elim: n => // n ih.
-    rewrite US /gather_queries /=.
-    case eq: (pf_psi _) => [K | K]; last by case: (U _ _ _).
-    case E: (U _ _ _ ) => // _.
-    move: eq => /pf_psi_inl.
-    case: K => // q K _ /=.
-    rewrite size_cat.
-    suff: n <= size K + size (flatten (gather_shapes pf_psi phi q' n)) by trivial.
-    exact/leq_trans/leq_addl/ih.
-  Qed.    
-
-  Lemma mu_nil phi' phi q' n m: n <= m ->
-     mu phi' (m, q') = nil -> mu phi (n, q') = nil.
-  Proof.
-    move => ineq eq.
-    have eq': mu phi (m, q') = nil by rewrite -eq; symmetry; apply/modmod; rewrite eq.
-    have /monm_spec mon:= mu_mon.
-    have := mon phi q' _ _ ineq.
-    rewrite eq'.
-    case: (mu phi (n, q')) => // q K subl.
-    by case: (subl q); left.
-  Qed.
-
-  Lemma Ks_step_cat L' L q' Ks:
-    size L = size (flatten Ks) ->
-    Ks_step (L' ++ L) q' Ks = Ks_step L q' Ks.
-  Proof.
-    move => sze; rewrite /Ks_step.
-    by rewrite size_cat sze leq_addl leqnn.
-  Qed.
-
-  Lemma Ks_rec_sze L q' n: Ks_rec L q' n = Ks_rec L q' (size (Ks_rec L q' n)).
-  Proof.
-    elim: n => // n ih /=.
-    rewrite /Ks_step /=.    
-    case: ifP => // ineq.
-    case: ifP => // nl /=.
-    by rewrite -ih /Ks_step ineq nl /=.
-  Qed.
-
-  Lemma Ks_rec_cat L q' n m: size L = size (flatten (Ks_rec L q' n)) -> n <= m ->
-                             Ks_rec L q' n = Ks_rec L q' m.
-  Proof.
-    move => sze /subnK <-.
-    elim: (m - n) => // k ih.
-    by rewrite addSn /= -ih /Ks_step sze leqnn.
-  Qed.    
-End construct_associate.
-*)
 Section mathcomp.
   Context (Q Q' A: eqType) (A': Type).
   Notation B := (Q -> A).
@@ -708,5 +594,5 @@ Section mathcomp.
     move => count count'.
     apply/exists_po_choice/count_eqT_choice; first by countability.
     by right; apply/inhabits/nil.
-  Qed.
+  Qed.  
 End mathcomp.

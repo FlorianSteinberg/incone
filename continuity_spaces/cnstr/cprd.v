@@ -13,22 +13,23 @@ Section sequence_representation.
   Context X (delta: representation_of X) (I: Type) (somei: I).
   Hypothesis (I_count: I \is_countable).
   
-  Definition Iprod_names : naming_space.
+  Definition sequence_names : naming_space.
     exists (I * (questions (name_space delta)))%type (answers (name_space delta)).
     - exact/(somei,someq).
     - exact/prod_count/Q_count/I_count.
     exact/A_count.
   Defined.
 
-  Local Notation rep_Iprod := (make_mf (fun (phi: Iprod_names) (xn: I -> X) =>
+  Local Notation rep_Iprod := (make_mf (fun (phi: sequence_names) (xn: I -> X) =>
     forall i, (fun p => (phi (i,p))) \describes (xn i) \wrt delta)).
   
   Lemma rep_Iprod_sur: rep_Iprod \is_cototal.
   Proof.
-    have [sur sing]:= represented delta => xn.
-    pose R n phi:= phi \describes (xn n) \wrt delta.
-    have [ | phi phiprp]:= countable_choice I I_count _ R; last by exists (fun p => phi p.1 p.2).
-    by move => n; have [phi phinx]:= sur (xn n); exists phi.
+    move => xn /=.
+    suff /(countable_choice _ I_count) [phin phiprp]//:
+         forall n, exists phi, phi \describes (xn n) \wrt delta.
+    - by exists (uncurry phin) => i; apply/phiprp.
+    by move => n; apply/rep_sur.
   Qed.
 
   Lemma rep_Iprod_sing: rep_Iprod \is_singlevalued.
@@ -38,10 +39,9 @@ Section sequence_representation.
     by apply/ (rep_sing); [apply phinxn | apply phinyn ].
   Qed.
   
-  Lemma rep_Iprod_rep: rep_Iprod \is_representation.
-  Proof. by split; try apply/rep_Iprod_sing; try apply/rep_Iprod_sur. Qed.
-
-  Canonical sequence_representation:= Build_representation_of rep_Iprod_rep.
+  Canonical sequence_representation: representation_of (I -> X).
+  exists sequence_names; exists rep_Iprod; try exact/rep_Iprod_sur; apply/rep_Iprod_sing.
+  Defined.
   
   Lemma srep_base (an: I -> X) phi:
     phi \describes an \wrt sequence_representation
@@ -110,8 +110,8 @@ Section isomorphisms.
 
   Definition sig2fun_rlzrf (phi: (I * queries X -> replies X)) KLq' :=
     match KLq'.1 with
-    | nil => inl [:: tt]
-    | (ttn :: L) => inr (phi (@snd unit I ttn, KLq'.2))
+    | nil => inr [:: tt]
+    | (ttn :: L) => inl (phi (@snd unit I ttn, KLq'.2))
     end.
 
   Definition sig2fun_rlzr: B_ (X\^I) ->> B_ (cs_I c-> X) := F2MF sig2fun_rlzrf.
@@ -182,8 +182,7 @@ Section isomorphisms.
 
   Lemma sig_iso_fun: X\^I ~=~ (cs_I c-> X).
   Proof.
-    exists (exist_c sig2fun_cont).
-    exists (exist_c fun2sig_cont).
+    exists (exist_c sig2fun_cont); exists (exist_c fun2sig_cont).
     by split => [f | f]; last apply/eq_sub; apply fun_ext => n /=.
   Qed.
 
@@ -256,11 +255,9 @@ Section isomorphisms.
 
   Lemma cprd_prd: (X\^I) \*_cs (Y\^I) ~=~ (X \*_cs Y)\^I.
   Proof.
-    exists (exist_c zip_cont).
-    exists (exist_c nzip_cont).
+    exists (exist_c zip_cont); exists (exist_c nzip_cont).
     split => [[xn yn] | xyn] //.
-    apply/fun_ext => i.
-    by rewrite /cs_unzip/cs_zip/=; case: (xyn i).
+    by apply/fun_ext => i; rewrite /cs_unzip/cs_zip/=; case: (xyn i).
   Qed.
 End isomorphisms.
 
@@ -317,20 +314,12 @@ Section pointwise.
   Lemma ptw_comp R T (f: R -> T) rs: (ptw f rs) =1 f \o_f rs.
   Proof. done. Qed.
 
-  Lemma F2MF_ptw R T (f: R -> T):
-    mf_ptw I (F2MF f) =~= F2MF (ptw f).
-  Proof.
-    move => rs ts /=; split => [prp | <-]//.
-    exact/fun_ext.
-  Qed.
+  Lemma F2MF_ptw R T (f: R -> T): mf_ptw I (F2MF f) =~= F2MF (ptw f).
+  Proof. by move => rs ts /=; split => [prp | <-]//; apply/fun_ext. Qed.
 
   Lemma ptw_cont (X Y: cs) (f: X -> Y):
     f \is_continuous -> (ptw f: X\^I -> Y\^I) \is_continuous.
-  Proof.
-    move => cont.
-    rewrite /continuous -F2MF_ptw.
-    exact/ptw_hcr.
-  Qed.
+  Proof. by move => cont; rewrite /continuous -F2MF_ptw; apply/ptw_hcr. Qed.
 
   Definition cptw_op (X Y Z: cs) (op: X * Y -> Z): X\^I * Y\^I -> Z\^I :=
     uncurry (ptw_op (curry op)).

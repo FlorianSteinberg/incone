@@ -23,7 +23,7 @@ Section baire_metric.
   Implicit Types (phi psi: B).
   Notation metric_limit:= (pseudo_metric_spaces.limit).
    
-  Lemma coin_has phi psi n: phi \and psi \coincide_on (iseg cnt n) <->
+  Lemma coin_has phi psi n: phi \coincides_with psi \on (iseg cnt n) <->
                             ~~ has (fun i => phi (cnt i) != psi (cnt i)) (init_seg n).
   Proof.
     elim: n => // n ih /=.
@@ -46,7 +46,7 @@ Section baire_metric.
   Qed.  
 
   Definition baire_val_seq phipsi n :=
-    search (fun i => (phipsi.1 (cnt i): A) != phipsi.2 (cnt i)) n.
+    ord_search (fun i => (phipsi.1 (cnt i): A) != phipsi.2 (cnt i)) n.
 
   Lemma bvls_spec phi psi n:
     (forall m, (m < n)%nat -> phi (cnt m) = psi (cnt m)) <->
@@ -54,13 +54,13 @@ Section baire_metric.
   Proof.
     split => [prp | eq m ineq].
     - rewrite/baire_val_seq /=.
-      apply/eqP; rewrite eqn_leq; apply/andP; split; first exact/search_le.
-      rewrite leqNgt search_find -{2}(size_iota 0 n) -has_find.
+      apply/eqP; rewrite eqn_leq; apply/andP; split; first exact/osrch_le.
+      rewrite leqNgt osrch_find -{2}(size_iota 0 n) -has_find.
       apply/negP => /hasP [m]; rewrite mem_iota add0n => /andP [_ ineq] /negP prp'.
       exact/prp'/eqP/prp.
     apply/eqP/negP => /negP neq.
     suff: (baire_val_seq (phi, psi) n < n)%nat by rewrite eq => /leP; lia.
-    rewrite /baire_val_seq search_find -{2}(size_iota 0 n) -has_find; apply/hasP.
+    rewrite /baire_val_seq osrch_find -{2}(size_iota 0 n) -has_find; apply/hasP.
     by exists m => //; rewrite mem_iota add0n; apply/andP.  
   Qed.
 
@@ -70,7 +70,7 @@ Section baire_metric.
   Proof. by move => /bvls_spec. Qed.
 
   Lemma bvls_geq phi psi n: (baire_val_seq (phi, psi) n <= n)%nat.
-  Proof. exact/search_le. Qed.
+  Proof. exact/osrch_le. Qed.
 
   Lemma bvls_eq_coin phi psi n:
     baire_val_seq (phi, psi) n = n <-> phi \coincides_with psi \on (iseg cnt n).
@@ -80,10 +80,10 @@ Section baire_metric.
     by apply/prp/L2SS_iseg; exists m.
   Qed.
     
-  Lemma coin_bvls phi psi n: phi \and psi \coincide_on (iseg cnt (baire_val_seq (phi, psi) n)).
+  Lemma coin_bvls phi psi n: phi \coincides_with psi \on (iseg cnt (baire_val_seq (phi, psi) n)).
   Proof.
     elim: n => // n ih.
-    rewrite /baire_val_seq searchS.
+    rewrite /baire_val_seq osrch_neqS.
     case: ifP => // /eqP eq.
     case: ifP => /= [neq | /eqP eq']; first by rewrite -eq; apply/ih.
     by split; last by rewrite -eq; apply/ih.
@@ -101,23 +101,21 @@ Section baire_metric.
     by rewrite Rmax_right //; apply/tpmnP.
   Qed.
 
-  Lemma search_correct_le (p: pred nat) n m: p m -> (m <= n)%nat -> p (search p n).
+  Lemma search_correct_le (p: pred nat) n m: p m -> (m <= n)%nat -> p (ord_search p n).
   Proof.
-    move => pm ineq.
-    rewrite -(search_eq pm ineq).
-    exact/search_correct.
+    by move => pm ineq; rewrite -(osrch_eq _ ineq); apply/osrch_correct.
   Qed.
 
   Lemma bvls_inc phi psi n m:
     (n <= m)%nat -> (baire_val_seq (phi, psi) n <= baire_val_seq (phi, psi) m)%nat.
-  Proof. exact/search_inc. Qed.
+  Proof. exact/osrch_inc. Qed.
 
   Lemma bvls_lt phi psi i n:
     (i <= n)%nat -> (i < baire_val_seq (phi, psi) n)%nat -> phi (cnt i) = psi (cnt i).
   Proof.
     rewrite ltnNge => iln /negP ineq.
     apply/eqP/negP => /negP neq.
-    exact/ineq/search_min.
+    exact/ineq/osrch_min.
   Qed.
 
   Lemma bvls_trngl phi psi psi' n:
@@ -136,8 +134,8 @@ Section baire_metric.
     - apply/(@search_correct_le (fun i => phi (cnt i) != psi (cnt i))).
       apply/neq'.
       exact/leq_trans/mln.
-    have eq: phi (cnt k) = psi' (cnt k) by apply/bvls_lt/ineq/search_le.
-    have eq': psi' (cnt k) = psi (cnt k) by apply/bvls_lt/ineq'/search_le.
+    have eq: phi (cnt k) = psi' (cnt k) by apply/bvls_lt/ineq/osrch_le.
+    have eq': psi' (cnt k) = psi (cnt k) by apply/bvls_lt/ineq'/osrch_le.
     by apply/bvneq/eqP; rewrite eq eq'.
   Qed.
       
@@ -150,8 +148,7 @@ Section baire_metric.
     case E:(has p (seq.iota 0%nat n.+1)). 
     - move: E => /hasP => [[k]]; rewrite mem_iota add0n => /andP [_ ineq'] neq.      
       rewrite /p/d/= Rminus_diag_eq /baire_val_seq; first by split_Rabs; lra.
-      do 2 f_equal; rewrite -(search_eq neq); last by apply/leq_trans/ineq'.
-      by rewrite -[RHS](search_eq neq) //; apply/leq_trans/ineq/leq_trans/ineq'.
+      by do 2 f_equal; apply/osrch_eq/ineq/(@osrch_correct_le p); first exact/neq.
     rewrite /d /= bvls_ext => [ | k ineq']; last first.
     - apply/eqP/negP => neg.
       move: E => /hasP prp; apply/prp; exists k; last exact/negP.
@@ -165,15 +162,15 @@ Section baire_metric.
     suff: (/2 ^ baire_val_seq (phi, psi) m <= /2 ^ n).  
     - by have := tpmn_pos n; have := tpmn_pos (baire_val_seq (phi, psi) m); split_Rabs; lra.
     apply/tpmnP; rewrite /baire_val_seq /=.
-    rewrite -(@search_fail p n); first exact/search_inc.
-    move => k pk; rewrite ltnNge; apply/negP => kln.
-    move: E => /hasP [].
-    by exists k; first by rewrite mem_iota; apply/andP.
+    apply/leq_trans/osrch_inc/ineq.
+    rewrite leqNgt; apply/negP => /osrch_ltP [[/=k kln] pk]; move: E => /hasP [].
+    exists k => //; rewrite mem_iota; apply/andP; split => //; apply/leq_trans; first exact/kln.
+    by rewrite add0n.
   Qed.
   
   Lemma bdsq_sym phi psi n: baire_val_seq (phi, psi) n = baire_val_seq (psi, phi) n.
   Proof.
-    apply/search_ext => k ineq /=.
+    apply/osrch_ext; case =>/= k ineq.
     by apply/eqP; case: ifP => /eqP // neg eq; apply/neg.    
   Qed.
     
@@ -232,7 +229,7 @@ Section baire_metric.
     apply/functional_extensionality => q.
     have [n <-]:= sur q.
     suff /eqP/bvls_spec prp: baire_val_seq (phi, psi) n.+1 == n.+1 by apply/ prp.
-    rewrite eqn_leq; apply/andP; split; first exact/search_le.
+    rewrite eqn_leq; apply/andP; split; first exact/osrch_le.
     by apply/tpmnP; have := bdst_spec phi psi n.+1; rewrite /d /=; split_Rabs; lra.
   Qed.
 
@@ -247,9 +244,9 @@ Section baire_metric.
     exact/Rmax_le_Rplus/tpmn_pos/tpmn_pos.
   Qed.
 
-  Lemma search_lt p n: (search p n < n)%nat -> p (search p n).
+  Lemma search_lt p n: (ord_search p n < n)%nat -> p (ord_search p n).
   Proof.
-    rewrite {1}search_find -{2}(size_iota 0 n) -has_find => /hasP [m].
+    rewrite {1}osrch_find -{2}(size_iota 0 n) -has_find => /hasP [m].
     rewrite mem_iota add0n => /andP [_ mln] pm.
     apply/search_correct_le; first exact/pm.
     by apply/leq_trans/mln.
@@ -264,15 +261,13 @@ Section baire_metric.
     have:= bdst_spec phi psi (maxn n m).
     have ->: baire_val_seq (phi, psi) (maxn n m) = baire_val_seq (phi, psi) n.
     - have /=prp:= search_lt ineq.
-      rewrite /baire_val_seq/= -(search_eq _ (bvls_geq phi psi n)) //.
-      have ineq': (baire_val_seq (phi, psi) n <= maxn n m)%nat by apply/leq_trans/leq_maxl/leq_trans/ineq.
-      rewrite -(search_eq _ ineq') //.
+      by rewrite /baire_val_seq/=; symmetry; apply/osrch_eq/leq_maxl.
     have /tpmnP:= leq_maxr n m.
-    rewrite /d /baire_val_seq /=; lra.
+    by rewrite /d /baire_val_seq /=; lra.
   Qed.
     
   Lemma dst_coin phi psi n: baire_distance(phi,psi) <= /2^n <->
-                            phi \and psi \coincide_on (iseg cnt n).
+                            phi \coincides_with psi \on (iseg cnt n).
   Proof.
     case lt: (baire_val_seq (phi, psi) n < n)%nat.
     - have ->:= dst_dscrt lt.
@@ -288,7 +283,7 @@ Section baire_metric.
     have leq: baire_distance(phi,psi) <= /2^baire_val_seq (phi, psi) (maxn n m.+1) + /2^maxn n m.+1.
     - by split_Rabs; lra.
     apply/Rle_trans; first exact/leq.
-    apply/Rplus_le_compat; first by apply/tpmnP; rewrite -{1}eq; apply/search_inc/leq_maxl.
+    apply/Rplus_le_compat; first by apply/tpmnP; rewrite -{1}eq; apply/osrch_inc/leq_maxl.
     apply/Rle_trans/Rlt_le/mle.
     exact/tpmnP/leq_trans/leq_maxr.
   Qed.

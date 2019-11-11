@@ -75,7 +75,7 @@ Section closed_choice_on_the_naturals.
     have [ | [Fphi val] prp] := rlzr _ _ phin0; first by exists 0.
     have [L /= mod]:= cont phi Fphi val.
     pose phi' n := if n \in (L tt) then phi n else 1.
-    have coin: (phi \and phi' \coincide_on (L tt))%name.
+    have coin: (phi \coincides_with phi' \on (L tt))%name.
     - apply/coin_agre => n lstn.
       rewrite /phi'.
       suff ->: n \in L tt = true by trivial.

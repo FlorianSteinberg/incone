@@ -24,6 +24,11 @@ Section inversion.
     by move => x [y /=]; case: (total_order_T x 0) => [[?|{1 2}->]|?]; try rewrite Rinv_r; lra.
   Qed.
 
+  Lemma inv_sing: inversion \is_singlevalued.
+  Proof.
+    by move => x x' y /= eq eq'; rewrite -(Rmult_1_r x') -eq' -Rmult_assoc (Rmult_comm x') eq; lra.
+  Qed.
+
   Lemma Rabs_le_up x: \|x| <= \|up(x)| + 1.
   Proof. by have := archimed x; split_Rabs; lra. Qed.
   
@@ -85,7 +90,13 @@ Section inversion.
 
   Lemma QleP r q: reflect (Qle r q) (Qle_bool r q).
   Proof. by apply/(iffP idP) => /Qle_bool_iff //. Qed.
-    
+
+  Lemma Rmin_leql x y: Rmin x y <= x.
+  Proof.  by rewrite /Rmin; case: Rle_dec; lra. Qed.
+
+  Lemma Rmin_leqr x y: Rmin x y <= y.
+  Proof. by rewrite /Rmin; case: Rle_dec; lra. Qed.
+  
   Lemma inv_M_spec: \F_(RQinv_M) \solves inversion.
   Proof.
     move => phi x phinx /dom_inv neq; rewrite /= in neq; split => [ | Fphi val].
@@ -115,30 +126,48 @@ Section inversion.
       + apply/Rmult_lt_0_compat; rewrite /Q2R /=; try lra.
         by rewrite Rmult_1_l -Rinv_pow; try lra; exact/tpmn_lt.
       by rewrite /Q2R /= Rmult_1_l -Rinv_pow; try lra.
-    case: (Rabs0_dec x) => [/dns0_tpmn [n ineq] | ]; last by split_Rabs; lra.
-    exists (Rinv x); split => [eps eg0 | ]; last by rewrite /= Rinv_r; split_Rabs; lra.
+    exists (Rinv x); split; try move  => eps eg0; try by rewrite /= Rinv_r.
     have [m /=]:= val eps; rewrite /RQinv_M; case: ifP => [/QleP /Qle_Rle /= | _]; try lra.
     set tpmm := ((/(1+1))^Z.of_nat m)%Q.
     set del := (Qabs (phi tpmm) - tpmm)%Q.
     case: ifP => //= /QleP tmp.
     have ineq': tpmm < \|phi tpmm|.
     - by rewrite -Qabs_Rabs; apply/Rnot_le_lt => tmp'; apply/tmp/Rle_Qle.
-    move: tmp => _ [<-].    
-    set r := (phi(Qmin (del /(1 + 1)) (eps * (del * del) / (1 + 1))))%Q.
-    have tpmm_spec: / 2 ^ m = tpmm.
-    - rewrite /tpmm Qpower_spec; last by rewrite /Qinv /=; lra.
-      rewrite Q2R_inv /Q2R/=; try lra.
-      by rewrite Rinv_1 Rmult_1_r -Rinv_pow; lra.
-    have : 0 < tpmm by rewrite -tpmm_spec; apply/tpmn_lt.
-    have neq' : 0 <> r.
-    - rewrite /r.
-      suff: \|x - phi (Qmin (del /(1 + 1)) (eps * (del * del)/(1 + 1)))| < \|x| by split_Rabs; nra.
-      apply/Rle_lt_trans/ineq/Rle_trans; first apply/phinx.
-      rewrite -Rmin_Qmin.
-      rewrite /Rmin.
-      case: Rle_dec.
-
-  Admitted.
+    move: tmp => _ [<-].
+    set t := (Qmin (del/(1 + 1)) (eps * (del * del)/(1 + 1)))%Q.
+    have del_pos: 0 < del by rewrite /del Q2R_minus Qabs_Rabs; lra.
+    have tineq: 0 < t.
+    - rewrite /t -Rmin_Qmin /Rmin.
+      case: Rle_dec => _; first by rewrite Q2R_div; try rewrite {2}/Q2R /=; nra.
+      rewrite !Q2R_mult Q2R_inv; try rewrite {4}/Q2R /= Rinv_1 Rmult_1_r; try nra.
+      by apply/Rmult_lt_0_compat; try apply/Rmult_lt_0_compat; try nra.
+    suff [xb pb]: del <= \|x| /\ del * /2 <= \|phi t|.
+    - rewrite Q2R_inv; last move => /Qeq_eqR; try by split_Rabs; nra.
+      have -> : /x - /phi t = (phi t - x)/ (phi t * x) by field; split_Rabs; nra.
+      rewrite Rabs_mult Rabs_Rinv; try by split_Rabs; nra.
+      rewrite Rabs_mult; apply/Rle_trans.
+      + apply/Rmult_le_compat_r; first by apply/Rlt_le/Rinv_0_lt_compat; split_Rabs; nra.
+      by rewrite Rabs_minus_sym; apply/phinx.
+      suff tineq': t <= \| phi t| * \| x| * eps.
+      + apply/Rle_trans.
+        * by apply/Rmult_le_compat_r/tineq'/Rlt_le/Rinv_0_lt_compat; split_Rabs; nra.
+        by rewrite (Rmult_comm _ eps) Rmult_assoc Rinv_r; split_Rabs; nra.
+      apply/Rle_trans; first by rewrite/t -Rmin_Qmin; apply/Rmin_leqr.
+      rewrite !Q2R_mult {4}/Q2R /=.
+      by apply/Rle_trans/Rmult_le_compat_r/Rmult_le_compat/xb/pb; try lra.
+    suff xgd: del <= \|x|.
+    - split => //.
+      have -> : Q2R (phi t) = x - (x - phi t) by lra.
+      apply/Rle_trans/Rabs_triang_inv.
+      suff: \|x - phi t| <= del * /2 by lra.
+      apply/Rle_trans; first exact/phinx.
+      rewrite /t -Rmin_Qmin; apply/Rle_trans; first exact/Rmin_leql.
+      by rewrite Q2R_div; try rewrite {2}/Q2R /=; try lra.  
+    have ->: x = phi tpmm - (phi tpmm - x) by lra.
+    apply/Rle_trans/Rabs_triang_inv.
+    rewrite /del Q2R_minus Qabs_Rabs Rabs_minus_sym.
+    by apply/Rplus_le_compat_l/Ropp_le_contravar/phinx; rewrite -tpmn_Q; apply/tpmn_lt.
+  Qed.
   
   Lemma M_cont: RQinv_M \is_continuous_functional.
   Proof.
@@ -156,3 +185,30 @@ Section inversion.
     exact/tight_slvs/FMop.sfrst_spec/inv_M_spec.
   Qed.
 End inversion.
+
+Section division.  
+  Definition find_fraction := make_mf (fun xy z => xy.2 <> 0 /\ xy.2 * z = xy.1).
+
+  Lemma ffr_dom x y: (x, y) \from dom find_fraction <-> y <> 0.
+  Proof. by split => [[_ []] | neq]//; exists (x/y); split => //=; field. Qed.
+    
+  Lemma Rdiv_icf_ffr: (uncurry Rdiv) \is_choice_for find_fraction.
+  Proof. by rewrite /uncurry; case => [x y] [z /=[neq eq]]; split => //; field. Qed.
+
+  Lemma ffr_spec: find_fraction =~= (F2MF (uncurry Rmult)) \o (mf_id ** inversion).
+  Proof.
+    rewrite sing_rcmp; last exact/fprd_sing/inv_sing/F2MF_sing.
+    move => [x y] z; split => [/= [neq eq] | [[_ yi] /= [[<- inv] <-]]]; last first.
+    - split => [eq | ]; first by rewrite eq in inv; lra.
+      by rewrite /uncurry/= (Rmult_comm x) -Rmult_assoc inv; lra.
+    rewrite /uncurry /=.
+    by exists (x, /y); split; first split => //=; last rewrite /= -eq; field.
+  Qed.
+
+  Lemma ffr_cont: find_fraction \has_continuous_solution.
+  Proof.
+    rewrite ffr_spec.
+    apply/comp_hcs/Rmult_cont/fprd_hcs/inv_cont.
+    by exists mf_id; split; try exact/id_cntop; apply/id_rlzr.
+  Qed.
+End division.

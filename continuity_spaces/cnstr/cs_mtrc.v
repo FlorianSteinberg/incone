@@ -41,11 +41,10 @@ Section metric_representation.
     by rewrite Rabs_pos_eq; [apply/dst_trngl | apply/dst_pos].
   Qed.
 
-  Lemma mrep_rep: rep_met \is_representation.
-  Proof. by split; try apply/mrep_sing; try apply/mrep_sur. Qed.
-
-  Definition metric_representation: representation_of M:= Build_representation_of mrep_rep.
-
+  Definition metric_representation: representation_of M.
+    by exists metric_names; exists rep_met; try exact/mrep_sur; apply/mrep_sing.
+  Defined.
+    
   Lemma mrep_spec phi: metric_representation phi === efficient_limit (r \o_f phi).
   Proof. done. Qed.
   

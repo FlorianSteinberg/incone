@@ -128,7 +128,11 @@ Section use_first.
   Context (M: B -> nat * Q' -> option A').
   
   Definition use_first phi nq:= use_first (M phi) nq.
-  
+
+  Lemma sfrst_osrch phi n q:
+    use_first phi (n, q) = M phi (ord_search (fun k => M phi (k, q)) n, q).
+  Proof. by rewrite /use_first sfrst_osrch. Qed.
+
   Lemma sfrst_mon: use_first \is_monotone.
   Proof. by move => phi; apply/sfrst_mon. Qed.
 
@@ -139,13 +143,11 @@ Section use_first.
   Proof.
     rewrite tight_spec.
     split => [phi [Fphi val] | phi Fphi [phifd val q']]; last first.
-    - by have [n eq]:= val q'; exists (search (fun k => M phi (k,q')) n).
-    rewrite /=.
-    suff /full_choice: forall q', exists a', exists n, use_first phi (n,q') = Some a' by trivial.
-    move => q'; have [n eq]:= val q'.
-    have: M phi (search (fun k => M phi (k,q')) n, q').
-    - by apply/(@search_correct (fun k => M phi (k,q'))); rewrite eq.
-    by case E: (M phi (search (fun k => M phi (k,q')) n, q')) => [b | ] //_; exists b; exists n.
+    - by have [n]:= val q'; rewrite sfrst_osrch; exists (ord_search (fun k => M phi (k,q')) n).
+    apply/FM_dom => q'; have [n eq]:= val q'.
+    have: M phi (ord_search (fun k => M phi (k,q')) n, q').
+    - by apply/(@osrch_correct (fun k => M phi (k,q'))); rewrite eq.
+    by case E: (M phi (ord_search (fun k => M phi (k,q')) n, q')) => [a' | ] //_; exists a'; exists n; rewrite sfrst_osrch.
   Qed.
 
   Lemma sfrst_dom: dom (\F_M) === dom (\F_use_first).
@@ -202,17 +204,17 @@ Section use_first_continuous.
     exists (fun nq' => (fix L n q' := match n with
                                      | 0 => mf (0, q')
                                      | S n' => L n' q' ++ mf (n, q')
-                                     end) nq'.1 nq'.2); case => [n q'] psi /= coin.
-    rewrite /use_first /PhiN.use_first/=.
+                                     end) nq'.1 nq'.2); case => [n q'] psi coin.
+    rewrite !sfrst_osrch.
     have coin': forall k, k <= n -> phi \coincides_with psi \on (mf (k,q')).
     - move => k ineq; apply/coin_subl/coin; move: ineq => /subnK <-.
       elim: (n - k) => [ | m ih q lstn]; last by apply/L2SS_cat; left; apply/ih.
       by rewrite add0n; case: (k) => // k' q lstn; first apply/L2SS_cat; right.
-    suff ->: search (fun k => M phi (k,q')) n = search (fun k => M psi (k, q')) n.
-    - exact/mod/coin'/search_le.
-    apply/search_cont => k ineq.
+    suff ->: ord_search (fun k => M phi (k,q')) n = ord_search (fun k => M psi (k, q')) n.
+    - exact/mod/coin'/osrch_le.
+    apply/osrch_cont => k ineq.
     rewrite (@mod (k,q') psi) //.
-    by apply/coin'/leq_trans; first exact/ineq; exact/search_le.
+    by apply/coin'/leq_trans; first exact/ineq; exact/osrch_le.
   Qed.
   
   Definition get_partial_function: partial_function B B'.
@@ -229,6 +231,22 @@ Section use_first_continuous.
     apply/exte_equiv; split => [phi Fphi val | phi Fphi [phifd <-]]; last exact/FM_Phi/eval_spec.
     have P : \Phi_(use_first M phi) \is_total by apply/FM_dom; exists Fphi.
     by exists P; apply/sfrst_sing/val => q'; apply/ (@eval_spec _ _ _ P q').
+  Qed.
+
+  Definition M2F: \F_M \is_total -> {F | F \is_choice_for \F_M}.
+    move => tot.
+    have phifd phi: phi \from domain get_pf by rewrite PF2MF_dom gtpf_dom -FM_dom.
+    exists (fun phi => @values _ _ get_pf (exist _ _ (phifd phi))).
+    move => phi /sfrst_dom phifds.
+    apply/sfrst_val.
+    rewrite -(gtpf_spec phi).
+    by exists (phifd phi).
+  Defined.
+
+  Definition FM2M: \F_M \is_singlevalued -> \F_M \is_total -> {F | F2MF F =~= \F_M}.
+  Proof.
+    move => sing tot; have [F icf] := M2F tot.
+    by exists F => phi Fphi; split => [<- | val]; last apply/sing/val; apply/icf/tot.
   Qed.
 
   Lemma gtpf_cont: \F_M \is_continuous -> get_pf \is_continuous.
@@ -258,13 +276,13 @@ Section use_first_continuous.
     apply/modf_spec => phi.
     rewrite cmod_F2MF;case => n q' phi' coin.
     specialize (mod phi); move: mod; rewrite cmod_F2MF => mod.
-    rewrite /use_first /PhiN.use_first /=.
-    suff <-: search (fun k => M phi (k, q')) n = search (fun k => M phi' (k, q')) n.
-    - exact/mod/coin_subl/coin/mon/search_le.
-    apply/search_cont => k ineq.
+    rewrite !sfrst_osrch.
+    suff <-: ord_search (fun k => M phi (k, q')) n = ord_search (fun k => M phi' (k, q')) n.
+    - exact/mod/coin_subl/coin/mon/osrch_le.
+    apply/osrch_cont => k ineq.
     have -> := (mod (k, q') phi' _) => //.
     apply/coin_subl/coin/mon/leq_trans; first exact/ineq.
-    exact/search_le.      
+    exact/osrch_le.      
   Qed.
 
   Fixpoint make_monotone (Lf: nat * Q' -> seq Q) q' n :=
@@ -337,35 +355,62 @@ Section cost_bounds.
                           forall q', M phi (cf q', q') /\ (forall n, M phi (n, q') -> cf q' <= n).
   Proof.
     split => [cst q' | prp q'].
-    - split; have [n]:= cst q'; rewrite/cost_machine/use_first/PhiN.use_first/cstb/=; case: ifP => // Pn [<-] //.
-      by move => k Pk; apply/search_min; rewrite Pk.
+    - split; have [n]:= cst q'; rewrite/cost_machine sfrst_osrch /cstb/=; case: ifP => // Pn [<-] //.
+      by move => k Pk; apply/osrch_min; rewrite Pk.
     exists (cf q').
     have [Pc min]:= prp q'.
-    rewrite /cost_machine/use_first/PhiN.use_first/cstb /=.
+    rewrite /cost_machine sfrst_osrch /cstb /=.
     case: ifP => [Ps | fls].
     f_equal.
     have /leP:= min _ Ps.
-    suff /leP: search (fun k => if M phi (k, q') then some k else None) (cf q') <= cf q' by lia.
-    exact/search_le.
+    suff /leP: ord_search (fun k => if M phi (k, q') then some k else None) (cf q') <= cf q' by lia.
+    exact/osrch_le.
     exfalso; suff: false by trivial.
     rewrite -fls.
-    have := @search_correct (fun k => if M phi (k, q') then some k else None) (cf q').
+    have := @osrch_correct (fun k => if M phi (k, q') then some k else None) (cf q').
     rewrite Pc; case: ifP => //<- fls'.
     exfalso; suff: @None A' by trivial.
     exact/fls'.
   Qed.
 
-  Definition cost M:= get_pf (cstb M).
-  
-  Lemma cost_spec M phi:
-    forall q', M (sval phi) (cost M phi q', q')
+  Definition cost M := \F_(cost_machine M).    
+    
+  Definition pf_cost M:= get_pf (cstb M).
+
+  Lemma pf_cost_spec M phi:
+    forall q', M (sval phi) (pf_cost M phi q', q')
                /\
-               forall n, M (sval phi) (n, q') -> cost M phi q' <= n.
+               forall n, M (sval phi) (n, q') -> pf_cost M phi q' <= n.
   Proof. by move: phi => [phi phifd]; apply/cstm_spec; apply/gtpf_spec; exists phifd. Qed.
 
-  Lemma cost_dom M: dom (cost M) === dom \F_M.
+  Lemma pf_cost_cost M: pf_cost M =~= cost M.
+  Proof. exact/gtpf_spec. Qed.
+
+  Lemma pf_cost_dom M: dom (pf_cost M) === dom \F_M.
   Proof. by move => phi; rewrite -cstb_dom gtpf_dom -FM_dom. Qed.
-    
+
+  Lemma cost_dom M: dom (cost M) === dom \F_M.
+  Proof. by rewrite -sfrst_dom cstb_dom. Qed.
+
+  Lemma cost_spec M phi time: time \from cost M phi <->
+                                 forall q', M phi (time q', q') /\ forall n, M phi (n, q') -> time q' <= n.
+  Proof.
+    split => [val q' | prp].
+    - split => [ | n Mphinq']; first by have /cstb_spec := sfrst_val val.
+      have [m]:= val q'; rewrite /cost_machine sfrst_osrch/cstb /=.
+      by case: ifP => // _ [<-]; apply/osrch_min; rewrite Mphinq'.
+    apply/FM_Phi => q' _ <- .
+    exists (time q'); rewrite /cost_machine sfrst_osrch/cstb/=.
+    have [Mphiq' min]:= prp q'.
+    have := @osrch_correct (fun k => if isSome (M phi (k, q')) then Some k else None) (time q').
+    rewrite Mphiq'; case: ifP => [stf _ | /=_ fls]; last by have: false by apply/fls.
+    by f_equal; apply/eqP; rewrite eqn_leq; apply/andP; split; [apply/osrch_le | apply/min].
+  Qed.
+
+  Lemma get_cost (M: B o~> B') phi:
+    phi \from dom \F_M -> exists time, forall q', M phi (time q', q') /\ forall n, M phi (n, q') -> time q' <= n.
+  Proof. by move => /cost_dom [time /cost_spec]; exists time. Qed.
+
   Lemma cstb_modf M mu: mu \modulus_function_for M -> mu \modulus_function_for (cstb M).
   Proof.
     move => /modf_spec mod.
@@ -383,44 +428,49 @@ Section cost_bounds.
     by rewrite /cstb (mod _ _ coin).
   Qed.
 
-  Lemma cost_val_spec (M: B -> nat * Q' -> option A') phi q' n:
-    M (sval phi) (n, q') -> cost M phi q' = search (fun k => M (sval phi) (k, q')) n.
+  Lemma pf_cost_val (M: B -> nat * Q' -> option A') phi q' n:
+    M (sval phi) (n, q') -> pf_cost M phi q' = ord_search (fun k => M (sval phi) (k, q')) n.
   Proof.
     move => val.
-    have [val' min]:= cost_spec phi q'.
-    have /leP : cost M phi q' <= search (fun k => M (sval phi) (k, q')) n.
-    - exact/min/(@search_correct (fun k => M (sval phi) (k, q'))).
-    suff /leP: search (fun k => M (sval phi) (k, q')) n <= cost M phi q' by lia.
-    exact/search_min.
+    have [val' min]:= pf_cost_spec phi q'.
+    have /leP : pf_cost M phi q' <= ord_search (fun k => M (sval phi) (k, q')) n.
+    - exact/min/(@osrch_correct (fun k => M (sval phi) (k, q'))).
+    suff /leP: ord_search (fun k => M (sval phi) (k, q')) n <= pf_cost M phi q' by lia.
+    exact/osrch_min.
   Qed.
 
+  Lemma cost_val (M: B -> nat * Q' -> option A') phi q' n time:
+    M phi (n, q') -> time \from cost M phi -> time q' = ord_search (fun k => M phi (k, q')) n.
+  Proof. by move => val /pf_cost_cost [P <-]; rewrite (@pf_cost_val _ _ _ n) //. Qed.
+    
   Lemma sfrst_cntf_cont (M: B -> nat * Q' -> option A'):
     M \is_continuous_function -> \F_(use_first M) \is_continuous.
   Proof.
     move => cntf phi Fphi val; have [Lf mod] := cntf phi.
-    have phifd: phi \from domain (cost M).
-    - by rewrite PF2MF_dom; apply/cost_dom/sfrst_dom; exists Fphi.
-    exists (fun q' => make_monotone Lf q' (cost M (exist _ phi phifd) q')).
+    have phifd: phi \from domain (pf_cost M).
+    - by rewrite PF2MF_dom; apply/pf_cost_dom/sfrst_dom; exists Fphi.
+    exists (fun q' => make_monotone Lf q' (pf_cost M (exist _ phi phifd) q')).
     move => q' phi' coin Fphi' val'.
     apply/Some_inj.
     have [n eq]:= val q'; have [m eq']:= val' q'; rewrite -eq -eq'.
-    rewrite /use_first /PhiN.use_first /=.
-    set cst := cost M (exist _ phi phifd) q'.
-    have [/=vl min]:= cost_spec (exist _ phi phifd) q'.
-    have ->: search (fun k => M phi (k, q')) n = cst.
-    - have /leP : cst <= search (fun k => M phi (k, q')) n.
-      + by apply/min; have := eq; rewrite /use_first /PhiN.use_first => ->.
-      suff /leP: search (fun k => M phi (k, q')) n <= cst by lia.
-      exact/search_min.
-    suff ->: search (fun k => M phi' (k, q')) m = cst.
+    rewrite !sfrst_osrch /=.
+    set cst := pf_cost M (exist _ phi phifd) q'.
+    have [/=vl min]:= pf_cost_spec (exist _ phi phifd) q'.
+    have ->: ord_search (fun k => M phi (k, q')) n = cst.
+    - have /leP : cst <= ord_search (fun k => M phi (k, q')) n.
+      + by apply/min; have := eq; rewrite sfrst_osrch => ->.
+      suff /leP: ord_search (fun k => M phi (k, q')) n <= cst by lia.
+      exact/osrch_min.
+    suff ->: ord_search (fun k => M phi' (k, q')) m = cst.
     - by have -> //:= (mod _ phi'); apply/coin_subl/coin/mkm_subl.
-    have /leP: search (fun k => M phi' (k, q')) m <= cst.
-    - by apply/search_min; rewrite -(mod _ phi') //; apply/coin_subl/coin/mkm_subl.
-    suff /leP : cst <= search (fun k => M phi' (k, q')) m by lia.
+    have /leP: ord_search (fun k => M phi' (k, q')) m <= cst.
+    - by apply/osrch_min; rewrite -(mod _ phi') //; apply/coin_subl/coin/mkm_subl.
+    
+  suff /leP : cst <= ord_search (fun k => M phi' (k, q')) m by lia.
     apply/min; have := eq'.
-    rewrite /use_first /PhiN.use_first /= -(mod _ phi') => [-> |] //.
+    rewrite sfrst_osrch /= -(mod _ phi') => [-> |] //.
     apply/coin_subl/coin/subs_trans; first exact/mkm_subl.
-    have /mnlf_spec mon := @mkm_mon _ _ Lf; apply/mon/search_min => /=.
+    have /mnlf_spec mon := @mkm_mon _ _ Lf; apply/mon/osrch_min => /=.
     by rewrite -(mod _ phi') //; apply/coin_subl/coin/mkm_subl.
   Qed.
 
@@ -444,11 +494,11 @@ Section cost_bounds.
     exists cf; split => // q'.
     have [n]:= val q'; rewrite /use_first_mod.
     case E: (cost_machine M phi (n, q')) => [n' | ] // [<-].
-    move: E (costf q'); rewrite /cost_machine /use_first /PhiN.use_first/cstb/=.
-    case: ifP => // vl [<-] [m]; case: ifP => // vl' [<-].
-    do 2 f_equal; rewrite -search_search -[RHS]search_search.
-    apply/search_eq; first by rewrite vl.
-    by apply/search_min; rewrite vl'.
+    move: E (costf q'); rewrite /cost_machine sfrst_osrch /cstb.
+    case eq: M => [a' | ] // [<-] [m]; rewrite sfrst_osrch; case eq': M => [b' | ] //= [<-].
+    do 2 f_equal.
+    by case/orP: (leq_total n m) => ineq; last symmetry;
+                                     try apply/osrch_eq; try rewrite eq; try rewrite eq'.
   Qed.
       
   Lemma sfrst_modf_mod (M: B -> nat * Q' -> option A') mu:
@@ -460,42 +510,44 @@ Section cost_bounds.
     - rewrite -sfrst_dom -cstb_dom => /sfrst_dom [cf costf].
       by exists (fun q' => mu phi (cf q', q')); apply/sfrst_mod_prp; exists cf.
     specialize (mod phi); move: mod; rewrite cmod_F2MF => mod.
-    have [n]:= cstf q'; rewrite /cost_machine /use_first /PhiN.use_first /cstb /=.
+    have [n]:= cstf q'; rewrite /cost_machine sfrst_osrch /cstb.
     case: ifP => //; case E: (M phi _) => [a' | ] // _ [src].
     exists a' => psi coin Fpsi val'.
     have [m eq']:= val' q'; apply/Some_inj; rewrite -E -eq'.
-    suff -> : search (fun k => M psi (k, q')) m = search (fun k => M phi (k, q')) n.
-    - symmetry; have -> //:= (mod _ psi); first by do 2 f_equal; apply/search_ext => k; case: ifP.
+    rewrite sfrst_osrch in eq'; rewrite sfrst_osrch.
+    suff -> : ord_search (fun k => M psi (k, q')) m = ord_search (fun k => M phi (k, q')) n.
+    - symmetry; have -> //:= (mod _ psi); first by do 2 f_equal; apply/osrch_ext => k; case: ifP.
       move: coin; rewrite eq.
-      suff ->: cf q' = search (fun k => if isSome (M phi (k, q')) then Some k else None) n.
+      suff ->: cf q' = ord_search (fun k => if isSome (M phi (k, q')) then Some k else None) n.
       + by trivial.
       have /cstm_spec prp := cstf.
       have [vl min]:= prp q'.
-      have /leP : search (fun k => if isSome (M phi (k, q')) then Some k else None) n <= cf q'.
-      + by apply/search_min; rewrite vl.
-      suff /leP: cf q' <= search (fun k => if isSome (M phi (k, q')) then Some k else None) n.
+      have /leP : ord_search (fun k => if isSome (M phi (k, q')) then Some k else None) n <= cf q'.
+      + by apply/osrch_min; rewrite vl.
+      suff /leP: cf q' <= ord_search (fun k => if isSome (M phi (k, q')) then Some k else None) n.
       + by lia.
       by apply/min; rewrite E.
-    have ->: search (fun k => M phi (k, q')) n = search (fun k => M phi (k, q')) m.
-    - rewrite -search_search -[RHS]search_search; apply/search_eq.
-      + suff ->: M phi (search (fun k => M phi (k, q')) n, q') = some a' by trivial.
-        by rewrite -E; do 2 f_equal; apply/search_ext => k ineq; case: ifP.
-      apply/search_min; rewrite (mod _ psi).
-      + have ->:= (@search_cont (fun k => M phi (k, q')) m (fun k => M psi (k, q'))).
+    have ->: ord_search (fun k => M phi (k, q')) n = ord_search (fun k => M phi (k, q')) m.
+    - rewrite -osrch_osrch -[RHS]osrch_osrch; apply/osrch_eq.
+      apply/(@osrch_correct (fun k => M phi (k, q'))).
+      + suff ->: M phi (ord_search (fun k => M phi (k, q')) n, q') = some a' by trivial.
+        by rewrite -E; do 2 f_equal; apply/osrch_ext; case => k ineq; case: ifP.
+      apply/osrch_min; rewrite (mod _ psi).
+      + have ->:= (@osrch_cont (fun k => M phi (k, q')) (fun k => M psi (k, q')) m).
         * by rewrite eq'.
         move => k ineq; have -> //:= (mod _ psi).
         apply/coin_subl/coin; rewrite eq.
         apply/mon/leq_trans; first exact/ineq.
-        by apply/search_min; rewrite -src E.
+        by apply/osrch_min; rewrite -src E.
       apply/coin_subl/coin.
       rewrite eq; apply/mon.
-      by apply/search_min; rewrite -src E.
-    apply/search_cont => k ineq.
+      by apply/osrch_min; rewrite -src E.
+    apply/osrch_cont => k ineq.
     symmetry; have ->// := (mod _ psi).
     apply/coin_subl/coin.
     rewrite eq; apply/mon.
     apply/leq_trans; first exact/ineq.
-    apply/search_min.
+    apply/osrch_min.
     have <-//:= (mod _ psi); first by rewrite -src E.
     by rewrite -eq.
   Qed.
@@ -544,7 +596,7 @@ End cost_bounds.
 Local Open Scope name_scope.
 Lemma cost_cont Q A Q' A' (M: (Q -> A) -> nat * Q' -> option A'):
   M \is_continuous_function -> (cost M) \is_continuous.
-Proof. by move => cntf; rewrite /cost gtpf_spec; apply/sfrst_cntf_cont/cstb_cntf. Qed.
+Proof. by move => cntf; apply/sfrst_cntf_cont/cstb_cntf. Qed.
 
 Section lemmas.
   Local Open Scope name_scope.

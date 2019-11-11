@@ -7,21 +7,21 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope cs_scope.
-Section cs_functions.
-  Context (X Y: cs).
+Section function_representation.
+  Context X X' (delta: representation_of X) (delta': representation_of X').
 
   Definition function_names (B B': naming_space): naming_space.
-    exists (seq (questions B * answers B) * (questions B'))%type (seq (questions B) + answers B')%type.
+    exists (seq (questions B * answers B) * (questions B'))%type (answers B' + seq (questions B))%type.
     apply/(nil, someq).
     apply/prod_count/naming_spaces.Q_count/list_count/prod_count/naming_spaces.A_count/naming_spaces.Q_count.
-    exact/sum_count/naming_spaces.A_count/list_count/naming_spaces.Q_count.
+    exact/sum_count/list_count/naming_spaces.Q_count/naming_spaces.A_count.
   Defined.
 
-  Definition associate := make_mf (fun psi (f: X -> Y) => \F_(U psi) \realizes f).
+  Definition associate := make_mf (fun psi (f: X -> X') => (F2MF f) \realized_by \F_(U psi) \wrt delta \and delta').
 
-  Local Notation "X c-> Y" := (codom associate) (at level 2).
+  Local Notation "X c-> X'" := (codom associate) (at level 2).
 
-  Local Notation rep_fun := (make_mf (fun (psi:function_names _ _) (f: X c-> Y) => associate psi (projT1 f))).
+  Local Notation rep_fun := (make_mf (fun (psi:function_names _ _) (f: X c-> X') => associate psi (projT1 f))).
 
   Lemma fun_rep_sur: rep_fun \is_cototal.
   Proof. by move => [f [psi ass]]/=; exists psi. Qed.
@@ -29,16 +29,20 @@ Section cs_functions.
   Lemma fun_rep_sing: rep_fun \is_singlevalued.
   Proof.
     move => phi [f [psi ass]] [f' [psi' ass']] rlzr rlzr'.
-    exact/eq_sub/(mf_rlzr_f_sing rlzr rlzr').
+    exact/eq_sub/(mf_rlzr_f_sing (D := delta') (I:= delta) rlzr).
   Qed.
 
-  Definition function_representation : representation_of (X c-> Y).
-    exists (function_names _ _) rep_fun; split; try apply/fun_rep_sing; try apply/fun_rep_sur.
+  Definition function_representation : representation_of (X c-> X').
+    exists (function_names (name_space delta) (name_space delta')).
+    exists rep_fun; try apply/fun_rep_sing; try apply/fun_rep_sur.
   Defined.
+End function_representation.
 
-  Canonical cs_functions:= repf2cs function_representation.
+Section function_space.
+  Context (X Y: cs).
+  Canonical function_space:= repf2cs (function_representation (delta_ X) (delta_ Y)).
 
-  Definition evaluation (fx: cs_functions \*_cs X) := (projT1 fx.1) fx.2.  
+  Definition evaluation (fx: function_space \*_cs X) := (projT1 fx.1) fx.2.  
 
   Local Open Scope name_scope.
   Definition eval_rlzrM (psiphi: function_names B_(X) B_(Y) \*_ns B_(X)) :=
@@ -105,53 +109,105 @@ Section cs_functions.
     have [ | Fphi FphiFphi]:= ntrvw.rlzr_dom phinf phinx; first by apply F2MF_tot.
     by exists Fphi; apply/eval_rlzr_val.
   Qed.
-End cs_functions.
-Notation "X c-> Y" := (cs_functions X Y) (at level 2): cs_scope.
+End function_space.
+Notation "X c-> Y" := (function_space X Y) (at level 2): cs_scope.
 
-Section associates.
+From mathcomp Require Import eqtype ssrbool ssrnat.
+Require Import FMop construct_associate.
+Section construct_function_names.
+  Context (X Y: cs).
+  Context (somea: replies X).
+
+  Local Open Scope name_scope.
+  Definition implements_solution (F: X ->> Y) M mu:=
+    \F_M \solves F
+    /\
+    mu \modulus_function_for M
+    /\
+    mu \modulus_function_for mu.
+
+  Definition implements (f: X -> Y) M mu:=
+    \F_M \realizes f
+    /\
+    mu \modulus_function_for M
+    /\
+    mu \modulus_function_for mu.
+
+  Lemma F2MF_mplmnt M mu f: implements_solution (F2MF f) M mu <-> implements f M mu.
+  Proof. done. Qed.
+  
+  Hypothesis (eq_dec: forall (q q': queries X), decidable (q = q')).
+  
+  Definition EQ: eqType.
+    exists (queries X).
+    exists (fun q q' => match eq_dec q q' with
+                | left _ => true
+                | right _ => false
+                end).
+    by move => q q'; apply/(iffP idP); case: eq_dec.
+  Defined.
+
+  Definition construct_associate M mu
+             (KLq': seq (queries X * replies X) * queries Y): replies Y + seq (queries X):=
+    psi_FM somea (someq: EQ) mu M KLq'.
+
+  Lemma cass_spec (f: X -> Y) M mu:
+    implements f M mu -> associate X Y (construct_associate M mu) f.
+  Proof.
+    move => [rlzr [mod modmod]].
+    exact/tight_slvs/(psi_FM_spec somea (someq: EQ)).
+  Qed.
+    
   Definition id_ass X KLq := match KLq.1: seq (queries X * replies X) with
-		            | nil => inl ([::KLq.2:queries X])
-		            | qa:: L => inr (qa.2: replies X)
+		            | nil => inr ([::KLq.2:queries X])
+		            | qa:: L => inl (qa.2: replies X)
 	                    end.
 
-  Lemma id_ass_eval (X: cs): \F_(U (@id_ass X)) =~= mf_id.
+  Lemma id_ass_eval: \F_(U (@id_ass X)) =~= mf_id.
   Proof.
     apply/eval_F2MF/mon_eval; first exact/U_mon; first exact/F2MF_sing.
     by move => phi _ <- q'; exists 2; rewrite /U/=.
   Qed.
   
-  Lemma id_ass_spec X: associate X X (@id_ass X) id.
+  Lemma id_ass_spec: associate (delta_ X) (delta_ X) (@id_ass X) id.
   Proof. exact/ntrvw.tight_rlzr/eval_F2MF/id_ass_eval/id_rlzr. Qed.
   
-  Definition fst_ass X Y
-             (KLq: seq (queries (cs_prod X Y ) * replies (cs_prod X Y)) * (queries X)) :=
+  Definition fst_ass (KLq: seq (queries (cs_prod X Y ) * replies (cs_prod X Y)) * (queries X)) :=
     match KLq.1 with
-    | nil => inl [::inl KLq.2 : _ + (queries Y)]
-    | cons qa K => inr qa.2.1: (_ + replies X) 
+    | nil => inr [::inl KLq.2 : _ + (queries Y)]
+    | cons qa K => inl qa.2.1: (replies X + _) 
     end.
 
-  Lemma fst_ass_eval (X Y: cs): \F_(U (@fst_ass X Y)) =~= (fst_rlzr X Y).
+  Lemma fst_ass_eval: \F_(U fst_ass) =~= (fst_rlzr X Y).
   Proof.
     apply/eval_F2MF/mon_eval; first exact/U_mon; first exact/F2MF_sing.
     by move => phi _ <- q'; exists 2; rewrite /U /=.
   Qed.
   
-  Lemma fst_ass_spec X Y: associate _ X (@fst_ass X Y) fst.
+  Lemma fst_ass_spec: associate _ X fst_ass fst.
   Proof. exact/ntrvw.tight_rlzr/eval_F2MF/fst_ass_eval/fst_rlzr_spec. Qed.
+
+  Definition cs_fst: (X \*_cs Y) c-> X.
+    exists fst; exists fst_ass; exact/fst_ass_spec.
+  Defined.
   
-  Definition snd_ass X Y
+  Definition snd_ass
              (KLq: seq (queries (cs_prod X Y) * replies (cs_prod X Y)) * (queries Y)) :=
     match KLq.1 with
-    | nil => inl [::inr KLq.2 : (queries X) + _]
-    | cons qa K => inr qa.2.2: (_ + replies Y) 
+    | nil => inr [::inr KLq.2 : (queries X) + _]
+    | cons qa K => inl qa.2.2: (replies Y + _) 
     end.
   
-  Lemma snd_ass_eval (X Y: cs): \F_(U (@snd_ass X Y)) =~= (snd_rlzr X Y).
+  Lemma snd_ass_eval: \F_(U snd_ass) =~= (snd_rlzr X Y).
   Proof.
     apply/eval_F2MF/mon_eval; first exact/U_mon; first exact/F2MF_sing.
     by move => phi _ <- q'; exists 2; rewrite /U /=.
   Qed.
   
-  Lemma snd_ass_spec X Y: associate _ Y (@snd_ass X Y) snd.
+  Lemma snd_ass_spec: associate _ Y snd_ass snd.
   Proof. exact/ntrvw.tight_rlzr/eval_F2MF/snd_ass_eval/snd_rlzr_spec. Qed.
-End associates.
+
+  Definition cs_snd: (X \*_cs Y) c-> Y.
+    exists snd; exists snd_ass; exact/snd_ass_spec.
+  Defined.
+End construct_function_names.

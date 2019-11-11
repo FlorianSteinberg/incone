@@ -96,7 +96,7 @@ Section minimal_sections.
      n that is sufficiently large for M to actually return something.
    **)
   Definition minsecM phi (mn: nat * nat) :=
-    let m := search (fun k => phi k == mn.2) mn.1 in
+    let m := ord_search (fun k => phi k == mn.2) mn.1 in
     if m < mn.1 then Some m else None. 
 
   Lemma minsecM_spec: minsec =~= \F_minsecM.
@@ -104,13 +104,13 @@ Section minimal_sections.
     rewrite /minsecM => phi sec.
     split => [[cncl min] n | val].
     - exists (sec n).+1; rewrite /minsecM /=.
-      case: ifP => /searchP; last first.
-      + by move => fls; exfalso; apply/fls; exists (sec n); split; first apply/eqP.
-      move => [m [eq ineq]]; f_equal.
-      apply/eqP; rewrite eqn_leq; apply/andP; split; first exact/search_min/eqP/cncl.
+      case: ifP => /osrch_ltP; last first.
+      + by move => fls; exfalso; apply/fls; exists (Ordinal (ltnSn (sec n))); apply/eqP => /=.
+      move => [[/=m ineq] eq]; f_equal.
+      apply/eqP; rewrite eqn_leq; apply/andP; split; first exact/osrch_min/eqP/cncl.
       exact/min/eqP/(@search_correct_le (fun k => phi k == n))/leq_trans/ineq/leqnSn.
-    split => [n | _ m <-]; last by have[k]:= val (phi m); case:ifP=>//= _ [<-]; apply/search_min.
-    have [k]:= val n; case: ifP => //= /searchP [m [eq ineq]] [<-].
+    split => [n | _ m <-]; last by have[k]:= val (phi m); case:ifP=>//= _ [<-]; apply/osrch_min.
+    have [k]:= val n; case: ifP => //= /osrch_ltP [[/=m ineq] eq] [<-].
     exact/eqP/(@search_correct_le (fun k => phi k == n))/leq_trans/ineq/leqnSn.
   Qed.
 
@@ -136,19 +136,19 @@ Section minimal_sections.
    **)
   Lemma sfrst_secM_spec: \F_(use_first secM) =~= minsec.
   Proof.
-    rewrite /secM /use_first/PhiN.use_first /= => phi sec.
-    split => [val | [cncl min] n /=].
+    rewrite /secM /= => phi sec.
+    split => [val | [cncl min] n].
     - split => [n | _ n <-].
-      + by have [m] := val n; case: ifP => //= /eqP eq [<-].
-      have [m]:= val (phi n); case: ifP => //= /eqP _ [<-].
-      by apply/search_min; rewrite eq_refl.
+      + by have [m] := val n; rewrite sfrst_osrch; case: ifP => //= /eqP eq [<-].
+      have [m]:= val (phi n); rewrite sfrst_osrch; case: ifP => //= /eqP _ [<-].
+      by apply/osrch_min; rewrite eq_refl.
     exists (sec n).
-    have <-: (fun k => phi k == n) = (fun k => if phi k == n then Some k else None).
-    - by apply/functional_extensionality => k; case: ifP.
+    rewrite sfrst_osrch /=.
+    rewrite (@osrch_ext _ (fun k => phi k == n)) => [ | [/=m _]]; last by case: ifP.
     case: ifP => [eq | /negP fls]; last first.
     - by exfalso; apply/fls; apply/(@search_correct_le (fun k => phi k == n))/min/cncl/eqP/cncl.
     f_equal; apply/eqP.
-    rewrite eqn_leq; apply/andP; split; first exact/search_le.
+    rewrite eqn_leq; apply/andP; split; first exact/osrch_le.
     exact/min/eqP.
   Qed.
 
@@ -216,16 +216,16 @@ Section continuous_search.
 
   Lemma sfrst_zeroM_spec: \F_(use_first zeroM) =~= min_zero. 
   Proof.
-    rewrite /zeroM /use_first /PhiN.use_first => phi z.
+    rewrite /zeroM => phi z.
     split => [val | [cncl min] []].
-    - have [n /=]:= val tt; case: ifP => // eq [<-]; split; first exact/eqP.
-      by move => m /eqP eq'; apply/search_min; rewrite eq'.
+    - have [n]:= val tt; rewrite sfrst_osrch /=; case: ifP => // eq [<-]; split; first exact/eqP.
+      by move => m /eqP eq'; apply/osrch_min; rewrite eq'.
     exists (z tt).
-    have <- /=: (fun k => phi k == 0) = fun k => if phi k == 0 then Some k else None.
-    - by apply/functional_extensionality => k; case: ifP.
-    rewrite (@search_correct (fun k => phi k == 0)); last exact/eqP.
-    f_equal; apply/eqP; rewrite eqn_leq; apply/andP; split; first exact/search_le.
-    exact/min/eqP/(@search_correct (fun k => phi k == 0))/eqP.
+    rewrite sfrst_osrch /=.
+    rewrite (@osrch_ext _ (fun k => phi k == 0)) => [ | [/= m _]]; last by case: ifP.
+    rewrite (@osrch_correct (fun k => phi k == 0)); last exact/eqP.
+    f_equal; apply/eqP; rewrite eqn_leq; apply/andP; split; first exact/osrch_le.
+    exact/min/eqP/(@osrch_correct (fun k => phi k == 0))/eqP.
   Qed.
 
   (** From this implementation, the continuity can easily be deduced. **)

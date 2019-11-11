@@ -50,7 +50,7 @@ Section basic_continuity.
       option type does not work too well in this setting (it kind of implies that the domain is
       decidable and in this case it is usually far from being decidable).
    **)
-  Print pdom_dec.
+  Check pdom_dec.
   (**
      Standard examples of continuous operators whose maximal domain is not decidable include
      the search operator and the operator that returns minimal sections. These are discussed in
@@ -78,7 +78,7 @@ Section basic_continuity.
   
   Canonical metric_baire: MetricSpace.
     exists (nat -> nat) (@baire_distance _ (@id nat) nat_eqType).
-    by apply/baire_metric => n; exists n.
+    by apply baire_metric => n; exists n.
   Defined.
 
   (**

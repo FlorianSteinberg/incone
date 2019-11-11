@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect ssrfun seq .
 From mf Require Import all_mf.
-From rlzrs Require Import all_rlzrs.
+From rlzrs Require Import all_rlzrs data_spaces.
 Require Import all_cont naming_spaces representations cs.
 Require Import Morphisms.
 
@@ -9,13 +9,9 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Local Open Scope cs_scope.
-Global Instance id_name_is_rep (B: naming_space): (@mf_id B) \is_representation.
-by split => [q | ]; last exact/F2MF_sing; exists q.
-Qed.
+Canonical name_representation (B: naming_space) := enc2rep (data_encoding descriptions B).
 
-Canonical name_rep (B: naming_space) := Build_representation_of (id_name_is_rep B).
-
-Canonical cs_names B := repf2cs (name_rep B).
+Canonical cs_names B := repf2cs (name_representation B).
 
 Coercion cs_names: naming_space >-> cs.
 
@@ -35,12 +31,12 @@ Proof.
   by apply/slvs_delta; rewrite comp_id_r; apply/icf_spec/id_icf_inv.
 Qed.
 
-Lemma prod_rep_spec D D': delta =~= F2MF (@unpair D D').
+Lemma prod_rep_spec (D D': naming_space): delta_(D \*_cs D') =~= F2MF (@unpair D D').
 Proof.
   by rewrite /= rcmp_F2MF => phipsi [phi psi] /=; split; case => // <- <-.
 Qed.
 
-Lemma sum_rep_spec D D': delta =~= F2MF (@slct D D').
+Lemma sum_rep_spec (D D': naming_space): delta_(D \+_cs D') =~= F2MF (@slct D D').
 Proof.
   move => phipsi [phi | psi]/=.
   split => [[[phi' [-> ->] | psi' []]]// | ->]; last by exists (inl phi).

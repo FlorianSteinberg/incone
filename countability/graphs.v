@@ -344,12 +344,11 @@ Section coincide.
     phi \coincides_with psi \on K <-> GL2MF (F2GL phi K) =~= GL2MF (F2GL psi K).
   Proof. by rewrite coin_agre agre_spec !GL2MF_spec. Qed.
 End coincide.
-Notation "phi '\and' psi '\coincide_on' L" := (coincide L phi psi) (at level 2): name_scope.
-Notation "phi '\coincides_with' psi '\on' L" := (coincide L phi psi) (at level 2): name_scope.
+Notation "phi '\coincides_with' psi '\on' L" := (coincide L phi psi) (at level 30): name_scope.
 
 Local Open Scope name_scope.
 Lemma coin_funeq (T: eqType) S (L: seq T) (phi psi: T -> S):
-	phi \and psi \coincide_on L <-> {in L, phi =1 psi}.
+	phi \coincides_with psi \on L <-> {in L, phi =1 psi}.
 Proof.
   rewrite /prop_in1 /in_mem /=; elim: L => // t L /=->.
   split => [[eq coin] s /orP [/eqP -> | Ls] | prp]//; first exact/coin.

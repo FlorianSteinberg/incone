@@ -72,7 +72,7 @@ Section sequences.
   Local Notation "phi '\is_limit_of' phin" := (phi \from limit phin) (at level 50).
 
   Lemma lim_coin phin phi:
-    phi \from limit phin <-> forall L, exists n, forall m, n <= m -> phi \and (phin m) \coincide_on L.
+    phi \from limit phin <-> forall L, exists n, forall m, n <= m -> phi \coincides_with (phin m) \on L.
   Proof.
     split => [lim | lim q]; last by have [n prp]:= lim [:: q]; exists n; apply prp.
     elim => [ | q L [n prp]]; first by exists 0.
@@ -106,7 +106,7 @@ Section closures.
   Notation B := (Q -> A).
 
   Definition closure (P: subset B):=
-    make_subset (fun phi => forall L, exists psi, phi \and psi \coincide_on L /\ P psi).
+    make_subset (fun phi => forall L, exists psi, phi \coincides_with psi \on L /\ P psi).
 
   Lemma clos_prpr:
     Proper (@set_equiv B ==> @set_equiv B) closure.
@@ -190,7 +190,7 @@ Section overtness.
   Proof. by move => phifd pr; apply/po_val/pr. Qed.
   
   Lemma po_coin D phi psi K: projection_on D (zip K (map phi K)) psi ->
-                       phi \and psi \coincide_on K.
+                       phi \coincides_with psi \on K.
   Proof. by move => [_ coin]; apply/coin_sym/coin_GL2MF. Qed.
 End overtness.
 

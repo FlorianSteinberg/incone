@@ -47,7 +47,7 @@ Section operator_to_functional.
   Qed.
   
   Lemma dp_coin phi psi L: phi \from dom F -> \Phi_dp_N (zip L (map phi L)) psi ->
-                       phi \and psi \coincide_on L.
+                       phi \coincides_with psi \on L.
   Proof.
     move => /dom_po prp.
     have /dp_spec [_ prp']:= prp L.
@@ -216,7 +216,7 @@ Section machine_evaluation.
   Definition phi_rec n s q' := LF2F default (N2LF N (KL_rec n s q')).
 
   Lemma phi_rec_spec n q':
-    exists s, phi \and (phi_rec n s q') \coincide_on (LM phi (n,q'))
+    exists s, phi \coincides_with (phi_rec n s q') \on (LM phi (n,q'))
               /\
               L2SS (LM phi (n,q')) \is_subset_of dom (N2MF N (KL_rec n s q')).
   Proof.
@@ -286,7 +286,7 @@ Section machine_evaluation.
     have /lim_coin lim': LM psi \is_limit_of (fun m => LM (phin m)) by apply/scnt; first exact/lim.
       
     have eq: LM phi (n,q') = LM psi (n,q').
-    - suff coin : psi \and phi \coincide_on (LM psi (n,q')).
+    - suff coin : psi \coincides_with phi \on (LM psi (n,q')).
       + by apply/crt_icf; [ | apply/modmod | apply/coin | ].
       have [k kprp]:= lim' [:: (n,q')].
       have [ | -> _] //:= kprp k.
@@ -379,7 +379,7 @@ Section machine_evaluation.
       rewrite /Fphia' => q'1.
       case: ifP => [/eqP -> | _]; last exact/val.
       exists n'.
-      suff coin : (phi_rec n' s' q') \and phi \coincide_on (LM (phi_rec n' s' q') (n',q')).
+      suff coin : (phi_rec n' s' q') \coincides_with phi \on (LM (phi_rec n' s' q') (n',q')).
       + by rewrite -eq'; apply/crt_icf; [ | apply/mod | apply/coin | ].
       apply/coin_subl; first exact/subl'.
       apply/coin_agre => q /lstd_spec fd.
@@ -388,7 +388,7 @@ Section machine_evaluation.
     rewrite /Fphia => q'1.
     case: ifP => [/eqP -> | _]; last exact/val.
     exists n.
-    suff coin : (phi_rec n s q') \and phi \coincide_on (LM (phi_rec n s q') (n,q')).
+    suff coin : (phi_rec n s q') \coincides_with phi \on (LM (phi_rec n s q') (n,q')).
     + by rewrite -eq; apply/crt_icf; [ | apply/mod | apply/coin | ].
     apply/coin_subl; first exact/subl.
     apply/coin_agre => q /lstd_spec fd.

@@ -28,7 +28,7 @@ Section continuity.
   (* B is for Baire space. *)
 
   Definition certificate (F: B ->> B') K phi := make_mf (fun q' a' =>
-    forall psi, phi \and psi \coincide_on K -> determines F psi q' a').
+    forall psi, phi \coincides_with psi \on K -> determines F psi q' a').
 
   (**
      This means that the return-value F(phi)(q') is determined from the values of phi on the list
@@ -134,7 +134,7 @@ Section continuity_lemmas.
   Notation B' := (Q' -> A').
   
   Lemma cmod_F2MF phi Lf (f: B -> B'): Lf \is_modulus_of (F2MF f) \on_input phi <->
-    forall q' psi, phi \and psi \coincide_on (Lf q') -> f phi q' = f psi q'.
+    forall q' psi, phi \coincides_with psi \on (Lf q') -> f phi q' = f psi q'.
   Proof.
     rewrite mod_cmod mod_F2MF.
     by split => mod psi q'; [rewrite coin_agre| rewrite -coin_agre]; apply/mod.
@@ -163,7 +163,7 @@ Section continuity_lemmas.
   Qed.
 
   Definition continuous_function (f: B -> B'):= forall phi, exists Lf,
-        forall q' psi, phi \and psi \coincide_on (Lf q') -> f phi q' = f psi q'.
+        forall q' psi, phi \coincides_with psi \on (Lf q') -> f phi q' = f psi q'.
   Local Notation "f \is_continuous_function" := (continuous_function f) (at level 30): name_scope.
 
   Lemma cont_F2MF f: (F2MF f) \is_continuous <-> f \is_continuous_function.
@@ -230,7 +230,7 @@ Section continuity_lemmas.
   Proof. by move => tot tot'; split; first exact/tot_tight_exte; exact/tot_exte_tight. Qed.
 
   Definition modulus_function mu (f: B -> B'):=
-     forall phi q' psi, phi \and psi \coincide_on (mu phi q') -> f phi q' = f psi q'. 
+     forall phi q' psi, phi \coincides_with psi \on (mu phi q') -> f phi q' = f psi q'. 
 
   Local Notation "mu \modulus_function_for f" := (modulus_function mu f) (at level 30).
 
@@ -316,7 +316,7 @@ Section partial_functions.
 
   Lemma cont_PF2MF: f \is_continuous <->
                     forall (phi: domain f), exists Lf, forall q' (psi: domain f),
-                          (sval phi) \and (sval psi) \coincide_on (Lf q') -> f psi q' = f phi q'.
+                          (sval phi) \coincides_with (sval psi) \on (Lf q') -> f psi q' = f phi q'.
   Proof.
     split => [cont phi | prp phi Fphi [phifd <-]].
     - have [ | Lf mod]:= cont (sval phi) (fun q' => f phi q').
@@ -330,7 +330,7 @@ Section partial_functions.
   Qed.
     
   Lemma cmod_PF2MF phi Lf: Lf \is_modulus_of f \on_input (sval phi) <->
-    forall q' psi, (sval phi) \and (sval psi) \coincide_on (Lf q') -> f phi q' = f psi q'.
+    forall q' psi, (sval phi) \coincides_with (sval psi) \on (Lf q') -> f phi q' = f psi q'.
   Proof.
     rewrite mod_cmod mod_PF2MF.
     by split => mod psi q'; [rewrite coin_agre| rewrite -coin_agre]; apply/mod.

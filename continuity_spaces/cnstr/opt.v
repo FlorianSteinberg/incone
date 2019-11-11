@@ -27,7 +27,7 @@ Section OPTIONSPACES.
   Lemma rep_opt_sing: rep_opt \is_singlevalued.
   Proof.
     move => phi [x [y [psi [eq psinx]] [psi' [eq']] |]| [y | ]]//.
-    - + suff <-: psi = psi' by move => psiny; f_equal; apply/answers_unique/psiny/psinx.
+    - + suff <-: psi = psi' by move => psiny; f_equal; apply/rep_sing/psiny/psinx.
         apply/functional_extensionality => q.
         by have := eq q; rewrite (eq' q) /=; case.
     - move => [psi [eq psinx]] eq'.
@@ -36,10 +36,9 @@ Section OPTIONSPACES.
     by have:= (eq' someq); rewrite eq.
   Qed.
 
-  Lemma rep_opt_rep: rep_opt \is_representation.
-  Proof. split; try exact/rep_opt_sur; exact/rep_opt_sing. Qed.
-
-  Canonical option_representation:= Build_representation_of rep_opt_rep.
+  Canonical option_representation: representation_of (option X).
+    by exists option_names; exists rep_opt; try exact/rep_opt_sur; exact/rep_opt_sing.
+  Defined.
 
   Canonical cs_opt: cs:= repf2cs option_representation.
   

@@ -6,6 +6,7 @@ Require Import axioms all_cs cs_mtrc metric_names hyper_spaces.
 Require Import all_cs_base classical_mach.
 Require Import Reals Psatz FunctionalExtensionality ClassicalChoice.
 Require Import Ibounds.
+Require Import naming_spaces.
 From Interval Require Import Interval_specific_ops Interval_bigint_carrier Interval_stdz_carrier.
 From Interval Require Import Interval_interval_float_full Interval_interval.
 From Interval Require Import Interval_xreal.
@@ -120,13 +121,7 @@ case: u; first by case: l.
 by case: l => // um ue lm le; rewrite !D2R_SF2toX; split_Rabs; lra.
 Qed.
 
-Lemma rep_R_rep : rep_R \is_representation.
-Proof.
-  by split; try exact /rep_R_sur; exact /rep_R_sing.
-Qed.
-
-Definition interval_representation := Build_representation_of rep_R_rep.
-
+Definition interval_representation := Build_representation_of (Build_represented_over rep_R_sur rep_R_sing).
 Canonical IR := repf2cs interval_representation.
 
 End representation.
@@ -233,7 +228,7 @@ Proof.
   - apply functional_extensionality => x;by auto.
   rewrite <- !F2MF_comp_F2MF.
   apply slvs_comp; first by apply Rplus_rlzr_spec.
-  rewrite fprd_frlzr_rlzr.
+  rewrite (fprd_frlzr_rlzr (ssrfun.id : (B_(IR) -> B_(IR))) (Ropp_rlzrf : B_(IR) -> B_(IR)) ).
   have -> : (fun (x : R*R) => (x.1, -x.2)) = (id **_f Ropp) by auto.
   rewrite F2MF_fprd.
   apply prod.fprd_rlzr_spec; by [apply id_rlzr | apply Ropp_rlzr_spec].
@@ -1091,14 +1086,14 @@ Proof.
   by suff : (0 < x - (/ 2 ^ n)); lra.
 Qed.
 
-Lemma lt0_prop1 x (phi : names_IR) n : (phi \is_name_of x) -> (I.sign_strict (phi n)) = Xgt -> (0 < x). 
+Lemma lt0_prop1 x (phi : B_(IR)) n : (phi \is_name_of x) -> (I.sign_strict (phi n)) = Xgt -> (0 < x). 
 Proof.
   move => [phin1 phin2] H.
   have := (I.sign_strict_correct (phi n)).
   rewrite H => H'.
   by apply (H' _ (phin1 n)).
 Qed.
-Lemma lt0_prop2 x (phi : names_IR) n : (phi \is_name_of x) -> (I.sign_strict (phi n)) = Xlt -> (x < 0). 
+Lemma lt0_prop2 x (phi : B_(IR)) n : (phi \is_name_of x) -> (I.sign_strict (phi n)) = Xlt -> (x < 0). 
 Proof.
   move => [phin1 phin2] H.
   have := (I.sign_strict_correct (phi n)).

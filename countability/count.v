@@ -198,7 +198,7 @@ Section mathcomp.
   Qed.
 
   Lemma eqT_eqdec (Q: eqType) (q q': Q): {q = q'} + {q <> q'}.
-  Proof. by case E: (q == q'); [left; apply/eqP | right => /eqP]; rewrite E. Qed.
+  Proof. by case E: (q == q'); [left; apply/eqP | right => /eqP]; rewrite E. Defined.
 
   Lemma count_choice_eqdec Q: Q \is_countable -> FunctionalChoice_on Q nat
                             ->

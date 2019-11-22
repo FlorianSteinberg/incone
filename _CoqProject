@@ -62,13 +62,11 @@ examples/reals/Rstruct.v
 examples/reals/Q_reals.v
 examples/reals/division_for_Q_reals.v
 
-#examples/unfinished/Ibounds.v
-#examples/unfinished/IrealsZ.v
-#examples/unfinished/Iextract.v
+examples/unfinished/Ibounds.v
+examples/unfinished/IrealsZ.v
+examples/unfinished/Iextract.v
 
 #extras that are not currently part of the library but can be compiled on demand:
-computability/multivalued_application.v
-computability/multivalued_composition.v
 #naming_spaces/naming_spaces_as_data_structure.v
 #examples/unfinished/Ireals.v
 #examples/unfinished/lp.v

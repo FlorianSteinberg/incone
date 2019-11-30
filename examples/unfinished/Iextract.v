@@ -11,17 +11,23 @@ Import BigN BigZ.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
-
+Require Import Eqdep_dec.
+Require Import Streams.
 Local Open Scope Z_scope.
 Import QArith.
 Local Open Scope R_scope.
 Require ExtrHaskellBasic.
 Require ExtrHaskellZInteger.
 Require ExtrHaskellNatInteger.
+Require Import Coq.Lists.StreamMemo.
 Extraction Language Haskell.
-
-Definition memoize_real (phi : IR_type) :IR_type  := phi.
-
+Definition memoize_real (phi : IR_type) :IR_type  := let p := (memo_list ID phi) in
+                                                     fun n => memo_get ID n p.
+Lemma memoize_real_correct phi : (memoize_real phi) = phi.
+Proof.
+apply functional_extensionality => n.
+by apply memo_get_correct.
+Qed.
 Definition shiftL (m : Z) (d : Z) :=
   match d with
     (Z.pos p) => (m * (2 ^ (Z.pos p)))%Z |

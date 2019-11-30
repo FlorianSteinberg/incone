@@ -74,3 +74,5 @@ examples/unfinished/Iextract.v
 #examples/unfinished/sd_reals.v
 #examples/unfinished/sdvsc.v
 
+examples/unfinished/softcomparison.v
+examples/unfinished/sqrt.v

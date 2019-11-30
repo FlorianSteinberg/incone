@@ -188,7 +188,7 @@ Lemma logistic_map_cmp_is_name phi psi N (x0 r : R) : (phi \is_name_of x0) -> (p
 Proof.
   move => phin psin.
   elim N => [| N' IH]; first by exists x0.
-  rewrite /logistic_map_cmp/memoize_real.
+  rewrite /logistic_map_cmp memoize_real_correct.
   rewrite -/logistic_map_cmp.
   case IH => P Pprop.
   exists (r * P * (1 - P)).
@@ -219,7 +219,7 @@ Proof.
   apply Nat.pow_le_mono_r; by lia.
 Qed.
 
-Definition IR_RQ_rlzrM' := (fun phi neps => IR_RQ_rlzrM (speedup neps.1 8) phi neps.2).
+Definition IR_RQ_rlzrM' := (fun phi neps => IR_RQ_rlzrM (speedup neps.1 5) phi neps.2).
 Canonical eqQ : eqType.
   apply (@Equality.Pack Q).
   apply eqdec_eqClass => q q'.
@@ -256,6 +256,7 @@ Proof.
   - suff <- : (D2R (Float 1%Z (-1)%Z)) = (/ 2) by apply FloattoIR_correct.
     rewrite D2R_Float //=.
     by lra.
+  rewrite memoize_real_correct.
   apply plus_comp; try by auto.
   apply div_comp; try by auto.
 Qed.
@@ -464,7 +465,6 @@ Lemma sqrt_in_dom : \Phi_(limit_eff_rlzrM sqrt2_approx) \is_total.
 Admitted.
 Print SF2.sqrt.
 Definition sqrt2 := (evaluate sqrt_in_dom).
-Eval vm_compute in (sqrt2 2).
 Definition IR2Qmf := \F_(IR_RQ_rlzrM').
 Lemma pwr2gt : forall n, (n <= (2 ^ (n+0)))%nat.
 Proof.
@@ -542,7 +542,7 @@ Proof.
   apply fprp.
   apply gprp. 
   by auto.
-Qed.
+Defined.
 
 Lemma comp_tight (S T U : cs) (F : S ->> T) (G : U ->> S)  H : {f | (F2MF f) \solves F} -> {g | (F2MF g) \solves G} -> (F \o G) \tightens H -> {h | (F2MF h) \solves H}.
 Proof.
@@ -551,7 +551,7 @@ Proof.
   exists (f \o_f g).
   rewrite <- F2MF_comp_F2MF. 
   by apply (slvs_tight (slvs_comp fprp gprp)).
-Qed.
+Defined.
 
 
 Lemma prd (S T U V: cs) (F : S ->> T) (G : U ->> V) H  : {f | (F2MF f) \solves F} -> {g | (F2MF g) \solves G} -> H =~= (F ** G) -> {h | (F2MF h) \solves H}.
@@ -562,7 +562,7 @@ Proof.
   rewrite slvbl_prpr => //.
   by apply prod.fprd_rlzr_spec; [apply fprp | apply gprp]. 
   by trivial.   
-Qed.
+Defined.
 Lemma comp_F2MF S T T' (f : S ->> T) (g : T' -> S) t' : (f \o (F2MF g)) t' === (f (g t')).
 Proof.
   exact /comp_F2MF.
@@ -684,7 +684,7 @@ Proof.
   move : H.
   by case => [[_ H] |]; [ | case => [[H1 H2] | [H1 [H2 H3]]]].
   by case => [[_ H] |]; [ | case => [[H1 H2] | [H1 [H2 H3]]]].
-Qed.
+Defined.
 
 Definition lt_nK := (make_mf (fun (nxy : nat * (R*R)) k => (let (n,xy) := nxy in
                                             let (x,y) := xy in
@@ -731,9 +731,14 @@ Proof.
   move => [H1 H2].
   case H1 => [[eps' [x' y']] [[-> [-> ->] [[P1 [P2 P3]] P4]]]].
   by split; [split | ].
-Qed.
+Defined.
+
 
 Definition lt_nk_rlzrf := projT1 lt_nK_rlzr_spec.
+Print Assumptions lt_nk_rlzrf.
+Check lt_nk_rlzrf.
+Definition nat2csN (n : nat) := (fun (_ : unit) => n). 
+Eval vm_compute in ((lt_nk_rlzrf (@pair B_(cs_nat) _ ((nat2csN 2), (mp one two) )) 10%nat)).
 Definition lt_n_rlzr := (\F_K2B_rlzrM : B_(cs_Kleeneans) ->> B_(cs_bool)) \o (F2MF lt_nk_rlzrf).
 
 Lemma lt_n_rlzr_spec : lt_n_rlzr \solves lt_n.
@@ -853,7 +858,6 @@ Definition lt_n_M := fun phi => (K2B_rlzrM (lt_nk_rlzrf phi)).
 
 Definition lt_n_partial := (get_partial_function lt_n_M).
 Check partial_function.
-Definition nat2csN (n : nat) := (fun (_ : unit) => n). 
 Definition magnitude_checkM phi n m := match (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n.+2), (mp phi (FloattoIR 3%Z 0%Z) \* (FloattoIR 1%Z (- (Z.of_nat n))%Z) \+ (FloattoIR 1%Z (- (Z.of_nat (n.+2)))%Z)))) (m,tt)) with
                                        | (Some true) =>
                                          match (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n.+2), (mp (FloattoIR 1%Z (- (Z.of_nat n))%Z)) phi)) (m,tt)) with
@@ -1688,7 +1692,7 @@ Proof.
   move => H2.
   rewrite /sqrt_approx_totalM_slow/sqrt_approx_total_rlzrM.
 Admitted.
-Definition sqrt_approx_totalM phi mnq := (sqrt_approx_totalM_slow phi ((speedup mnq.1 13),(mnq.2.1,(speedup mnq.2.2 13)))).
+Definition sqrt_approx_totalM phi mnq := (sqrt_approx_totalM_slow phi ((speedup mnq.1 3),(mnq.2.1,(speedup mnq.2.2 3)))).
 
 
 Definition uniform_selection B Q' A' (slct : (B -> nat * Q' -> option A') -> B -> nat*Q' -> option A') M phi := exists m', forall m q a, ((slct M) phi (m,q)) = (Some a) -> (slct M phi (m,q)) = (M phi (m',q)).
@@ -1795,7 +1799,7 @@ Proof.
   have -> : (use_first sqrt_approx_totalM_slow phi) = (PhiN.use_first (sqrt_approx_totalM_slow phi)) by apply functional_extensionality.
   rewrite <-sfrst_tot.
   by apply (sqrt_approx_tot phin).
-Qed.
+Defined.
 Lemma speedup_admitted phi : \Phi_(use_first sqrt_approx_totalM phi) \is_total. 
 Admitted.
 Lemma speedup_admitted2 phi x : exists (y : IR\^w), y \from sqrt_approx_total_seq x /\ ((evaluate (speedup_admitted phi)) : B_(IR\^w)) \is_name_of y.
@@ -1813,7 +1817,7 @@ Proof.
   (* case (sqrt_approx_total_rlzrM_spec2 phin (sqrt_approx_total_seq_is_total x)  ) => _ prp. *)
   (* case (prp (evaluate H)) => [| y yprp]; first by apply FM_Phi;apply eval_spec. *)
   (* by exists y. *)
-Qed.
+Defined.
 
 Definition sqrt_total_rlzr := (\F_limit_eff_rlzrM \o \F_(use_first sqrt_approx_totalM_slow)).
 
@@ -1848,7 +1852,7 @@ Proof.
   have := (@eval_spec _ _ _ H1).
   rewrite <-FM_Phi => e.
   by apply (H2 _ e).
-Qed.
+Defined.
 
 
 Definition QtoIR' q := (fun n => (QtoIR (nat2p n) q)) : B_(IR).
@@ -1900,9 +1904,23 @@ Proof.
   - rewrite /Qreals.Q2R /=.
     by apply Rmult_le_pos;[apply IZR_le;lia | apply Rlt_le;apply Rinv_0_lt_compat;apply IZR_lt;lia].
   apply (sqrt_f_exists p ((QtoIR'_correct ((Z.of_nat n) # m)))).
-Qed.
+Defined.
 
+Definition unsafe_eval (Q : Type) (A: Type) (someA : A) (M : (nat * Q -> (option A))) (q : Q) := let n := ord_search ((fun (m : nat) => (isSome (M (m,q))))) 100000%nat in
+                                                             match (M (n,q)) with
+                                                             | (Some q) => q
+                                                             | _ => someA
+                                                             end.
+Definition sqrt_approx_unsafef phi nq := (unsafe_eval (I.fromZ 0%Z) (fun ( nm : nat * nat) => (use_first sqrt_approx_totalM phi (nm.1, (nq.1, nm.2)))) nq.2).
+Definition sqrt_unsafe phi := (unsafe_eval (I.fromZ 0%Z) (limit_eff_rlzrM (sqrt_approx_unsafef phi))).
+Compute (sqrt_unsafe two 50%nat).
+Definition sqrtq_unsafe phi := (unsafe_eval 0%Q (IR_RQ_rlzrM' (sqrt_unsafe phi))).
+Eval vm_compute in (sqrtq_unsafe two (1#100000000000)).
+Check sqrt_approx_totalM.
+Eval vm_compute in (sqrt_approx_unsafef two 2%nat 10%nat).
+Compute (unsafe_eval (IR_RQ_rlzrM' (log_map1 10%nat)) (1#1000000)).
 Definition sqrtq n m := (projT1 (sqrtq_exists n m)).
+Compute (sqrtq 2%nat 1%positive 0%nat).
 
 Lemma IR_RQ_RlzrM'_dom phi (x : IR) : (phi \is_name_of x) -> \Phi_(IR_RQ_rlzrM' phi) \is_total.
 Proof.
@@ -1935,4 +1953,5 @@ Definition print_interval' I := match I with
 (* Compute ((FloattoIR 1%Z (-1)%Z) \: (FloattoIR 5%Z (-10)%Z) 10%nat). *)
 (* Definition logistic_map_mp_rlzr' (N :nat) (p : BinPos.positive):= log_map_Q N (1#(10 ^ p)). *)
 (* Extraction "logisticC" cmp_float mantissa_shr logistic_map_mp_rlzr'. *)
+Eval vm_compute in (IR_RQ_rlzrM' (sqrtq 2%nat 1%positive) (1%nat, (1#2))).
 Extraction "sqrt2" cmp_float mantissa_shr sqrt2'.

@@ -100,7 +100,7 @@ Section Phi_assignment.
     case E: (N(n,q)) => [a |]; first by exists a; exists n.
     suff: N (n, q) by rewrite E.
     exact/(constructive_ground_epsilon_spec_nat (p q)).    
-  Qed.
+  Defined.
 
   Definition evaluate N: \Phi_N \is_total -> Q -> A.
     by move => tot; apply/(sval (tot_choice tot)).

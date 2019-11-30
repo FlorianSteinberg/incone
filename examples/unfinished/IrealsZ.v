@@ -7,6 +7,8 @@ Require Import all_cs_base classical_mach.
 Require Import Reals Psatz FunctionalExtensionality ClassicalChoice.
 Require Import Ibounds.
 Require Import naming_spaces.
+Import Qreals.
+Require Q_reals.
 From Interval Require Import Interval_specific_ops Interval_bigint_carrier Interval_stdz_carrier.
 From Interval Require Import Interval_interval_float_full Interval_interval.
 From Interval Require Import Interval_xreal.
@@ -656,8 +658,6 @@ Qed.
 Definition QtoIR p q := match q with 
                         (a#b) => (I.div p  (I.fromZ a) (I.fromZ (Z.pos b)))
                         end.
-Require Import Qreals.
-Require Import Q_reals.
 
 Lemma QtoIR_correct p q :  (Q2R q) \contained_in (QtoIR p q).
 Proof.
@@ -690,6 +690,8 @@ Proof.
 Qed.
 
 
+Notation "'\|' x '|'" := (Rabs x) (at level 30).
+Coercion Q2R: Q >-> R.
 Lemma QtoIR_diam (q:Q) N p: (1 < p)%Z -> \|q| <= powerRZ 2 N ->  diam (QtoIR p q) <= powerRZ 2 (N+2-p)%Z.
 Proof. 
   case q => a b pgt qlt.
@@ -729,7 +731,7 @@ Proof.
   apply IZR_lt.
   apply Z.pow_pos_nonneg; by lia.
 Qed.
-Lemma QRtoIR_contains phi x : (phi \describes x \wrt delta_(RQ)) -> (forall p, (x \contained_in (QRtoIR phi p))).
+Lemma QRtoIR_contains phi x : (phi \describes x \wrt delta_(Q_reals.RQ)) -> (forall p, (x \contained_in (QRtoIR phi p))).
   move => //=phin p.
   rewrite /QRtoIR.
   set eps := (/ (inject_Z (Z.pow 2 (Z.of_nat p))))%Q.
@@ -748,7 +750,7 @@ Lemma QRtoIR_contains phi x : (phi \describes x \wrt delta_(RQ)) -> (forall p, (
 Qed.
 
 
-Definition RQ_IR_id_rlzr: B_(RQ) ->> B_(IR) := F2MF QRtoIR.
+Definition RQ_IR_id_rlzr: B_(Q_reals.RQ) ->> B_(IR) := F2MF QRtoIR.
 Lemma RQ_IR_id_rlzr_cont : RQ_IR_id_rlzr \is_continuous_operator.
 Proof.
   rewrite cont_F2MF => phi.
@@ -756,7 +758,7 @@ Proof.
   by exists (fun n => [:: (/ inject_Z (2 ^ Z.of_nat n))%Q]) => n psi [] ->.
 Qed.
 
-Definition RQ_IR_id_rlzr_spec : RQ_IR_id_rlzr \realizes (id:RQ -> IR).
+Definition RQ_IR_id_rlzr_spec : RQ_IR_id_rlzr \realizes (id:Q_reals.RQ -> IR).
 Proof.     
   rewrite F2MF_rlzr => phi x //= phinx.
   split; first by apply QRtoIR_contains.
@@ -846,7 +848,7 @@ Proof.
   by lia.
 Qed.
 
-Lemma RQ_IR_id_cont : (id : RQ -> IR) \is_continuous.
+Lemma RQ_IR_id_cont : (id : Q_reals.RQ -> IR) \is_continuous.
 Proof.
   exists RQ_IR_id_rlzr.
   by split; try exact /RQ_IR_id_rlzr_spec ;apply RQ_IR_id_rlzr_cont.
@@ -975,7 +977,7 @@ Proof.
   exists x; by apply N1.
 Qed.
 
-Lemma F_M_realizer_IR_RQ : forall f, (forall n, (n <= (f n))%nat) -> \F_(fun phi neps => IR_RQ_rlzrM (f neps.1) phi neps.2)  \realizes (id:IR -> RQ).
+Lemma F_M_realizer_IR_RQ : forall f, (forall n, (n <= (f n))%nat) -> \F_(fun phi neps => IR_RQ_rlzrM (f neps.1) phi neps.2)  \realizes (id:IR -> Q_reals.RQ).
 Proof.
   move => f fprop phi x phin xfd.
   split.
@@ -1043,14 +1045,14 @@ Proof.
   rewrite !Raux.Rcompare_Lt; try rewrite D2R_Float /= /StdZRadix2.mantissa_zero Rmult_0_l; try by auto.
   - have := (ID_bound_dist Nprp1' uc (phin1 k)).
     rewrite e /= => H.
-    have H' : (\| u - x |  <= (/ 2 ^ n)) by lra.
+    have H' : ((Rabs  (u - x))   <= (/ 2 ^ n)) by lra.
     apply Rcomplements.Rabs_le_between' in H'.
     apply /Rle_lt_trans.
     apply H'.
     by lra.
   have := (ID_bound_dist Nprp1' lc (phin1 k)).
   rewrite e /= => H.
-  have H' : (\| l - x |  <= (/ 2 ^ n)) by lra.
+  have H' : ((Rabs (l - x))  <= (/ 2 ^ n)) by lra.
   apply Rcomplements.Rabs_le_between' in H'.
   apply /Rle_lt_trans.
   apply H'.
@@ -1076,12 +1078,12 @@ Proof.
   rewrite !Raux.Rcompare_Gt; try rewrite D2R_Float /= /StdZRadix2.mantissa_zero Rmult_0_l; try by auto.
   - have := (ID_bound_dist Nprp1' uc (phin1 k)).
     rewrite e /= => H.
-    have H' : (\| u - x |  <= (/ 2 ^ n)) by lra.
+    have H' : (Rabs( u - x)  <= (/ 2 ^ n)) by lra.
     apply Rcomplements.Rabs_le_between' in H'.
     by suff : (0 < x - (/ 2 ^ n)); lra.
   have := (ID_bound_dist Nprp1' lc (phin1 k)).
   rewrite e /= => H.
-  have H' : (\| l - x |  <= (/ 2 ^ n)) by lra.
+  have H' : (Rabs (l - x)   <= (/ 2 ^ n)) by lra.
   apply Rcomplements.Rabs_le_between' in H'.
   by suff : (0 < x - (/ 2 ^ n)); lra.
 Qed.
@@ -1166,3 +1168,128 @@ Proof.
   case: (total_order_T x y) => [[xlty | xeqy] | xgty]; case: (total_order_T (x-y) 0) => [[xlty' | ] | xgty']; try by auto; try by lra.
 Qed.
 End comparison.
+
+Section cleanup.
+
+(* The clean up function on the interval reals replaces intervals larger than a given bound by the NAN interval *)
+Definition cleanup_generic m phi  := (fun n => match (phi n) with
+               | (Interval_interval_float.Ibnd l u) =>
+                   if  (I.F'.le (SF2.sub_exact u l) (Float 1%Z (- (Z.of_nat m))%Z))
+                   then ((Interval_interval_float.Ibnd l u))
+                   else Interval_interval_float.Inan
+                | _ => Interval_interval_float.Inan
+               end) : names_IR.
+
+Lemma bounded_non_nan I : (bounded I) -> exists u l, (u <> Fnan) /\ (l <> Fnan) /\ I = (Interval_interval_float.Ibnd u l).
+  rewrite /bounded.
+  move => bnd.
+  case e: I => [| l u]; first by rewrite e in bnd. 
+  exists l; exists u.
+  case uprp: u => [| mnt exp]; first by rewrite e uprp andb_false_r in bnd.
+  case lprp: l => [| mnt' exp']; first by rewrite e lprp andb_false_l in bnd.
+  split; [| split]; by auto.
+Qed.
+
+Lemma cleanup_generic_spec m: (F2MF (cleanup_generic m)) \realizes (id : IR -> IR).  
+Proof.
+  rewrite F2MF_rlzr /cleanup_generic => phi x [phin1 phin2].
+  split => n.
+  - case R: (phi n) => [| l u];first by auto.
+    case (I.F'.le (SF2.sub_exact u l) (Float 1%Z (- (Z.of_nat m))%Z)); last by auto.
+    by rewrite <-R; apply phin1.
+  case (phin2 (max n m)) => N Nprp.
+  exists N => k kprp.
+  have [bnd diam] := (Nprp k kprp).
+  have [l [u [P1 [P2 P3]]]] := (bounded_non_nan bnd).
+  rewrite P3 /=.
+  have H1 :  (/ 2 ^ (max n m)) <= (/ 2 ^ m) by apply /tpmnP; apply /leP; apply Nat.le_max_r.
+  have H2 :  (/ 2 ^ (max n m)) <= (/ 2 ^ n) by apply /tpmnP; apply /leP; apply Nat.le_max_l.
+  have -> : (I.F'.le (SF2.sub_exact u l) (Float 1%Z (- (Z.of_nat m))%Z))=true.
+  - rewrite /I.F'.le SF2.cmp_correct.
+    rewrite SF2.sub_exact_correct.
+    rewrite /Xsub.
+    rewrite /Xcmp.
+    case e:  u; case e':l; try by auto.
+    rewrite !D2R_SF2toX;rewrite <-e, <-e'.
+    rewrite P3 /= in diam.
+    rewrite D2R_Float.
+    rewrite powerRZ2_neg_pos Rmult_1_l.
+     case cmp : (Raux.Rcompare (D2R u-D2R l) (/2 ^ m)); try by auto.
+     + by apply Raux.Rcompare_Gt_inv in cmp;lra.
+  rewrite P3 /= in diam.
+  split; first by case e : l;case e' : u; auto.
+  by simpl;lra.
+Qed.
+
+(* We choose size 1/2 as the maximal size of intervals *)
+Definition cleanup :=  (cleanup_generic 1%nat).
+
+Lemma cleanup_spec : (F2MF cleanup) \realizes (id : IR -> IR).
+Proof.
+  by apply cleanup_generic_spec.
+Qed.
+End cleanup.
+
+Section speedup.
+Definition speedup n s := (2 ^ (n+s))%nat.
+
+Lemma speedup_gt s n : (n <= (speedup n s))%nat.
+Proof.
+  rewrite /speedup.
+  elim n  => [ | n' IH]; first by apply /leP;lia.
+  rewrite /addn /addn_rec.
+  have -> : ((n'.+1 + s) = ((n'+s).+1))%coq_nat by rewrite /addn /addn_rec;lia.
+  rewrite Nat.pow_succ_r'.
+  have /leP := IH => IH'.
+  apply /leP.
+  have lt1 : (n'.+1 <= (2 ^ (n'+s)).+1)%coq_nat by lia.
+  apply /Nat.le_trans.
+  apply lt1.
+  have -> : (2 * 2^ (n'+s))%coq_nat = (2^(n'+s) + 2 ^ (n'+s))%coq_nat by lia.
+  suff : (1 <= 2^(n'+s))%coq_nat by lia.
+  have {1}-> : (1%nat = (2 ^ 0)%nat)%coq_nat by auto.
+  apply Nat.pow_le_mono_r; by lia.
+Qed.
+
+Definition IR_RQ_rlzrM' := (fun phi neps => IR_RQ_rlzrM (speedup neps.1 5) phi neps.2).
+Canonical eqQ : eqType.
+  apply (@Equality.Pack Q).
+  apply eqdec_eqClass => q q'.
+  case q => m n; case q' => m' n'.
+  case (Z.eq_dec m m') => e1; case (Pos.eq_dec n n') => e2; try by right;case.
+  by rewrite e1 e2;auto.
+Defined.
+
+Lemma speedup_correct : forall (x : IR) (phi : B_(IR)) s, (phi \is_name_of x) -> (fun (p : Q_(IR)) => (phi (speedup p s)))  \is_name_of x.
+Proof.
+  move => x phi s [phin1 phin2].
+  split => n; first by apply phin1.
+  case (phin2 n) => N Nprp.
+  exists N => k kprp.
+  apply (Nprp (speedup k s)).
+  rewrite /speedup.
+  rewrite /addn /addn_rec.
+  apply /leP.
+  move /leP :  kprp => kprp.
+  apply /Nat.le_trans.
+  apply kprp.
+  elim k => [| k' IH]; first by lia.
+  simpl.
+  rewrite Nat.add_0_r.
+  suff : (0 < 2 ^ (k'+s)%coq_nat)%coq_nat by lia.
+  apply Nat.Private_NZPow.pow_pos_nonneg; by lia.
+Qed.
+
+Definition IR2Qmf := \F_(IR_RQ_rlzrM').
+End speedup.
+
+(* notations *)
+
+Definition mp (phi psi : names_IR) := (pair (phi,psi)).
+Notation "phi '\*' psi" := ((cleanup \o_f Rmult_rlzrf) (mp phi psi)) (at level 3).
+Notation "phi '\+' psi" := ((cleanup \o_f Rplus_rlzrf) (mp phi psi)) (at level 4).
+Notation "phi '\:' psi" := ((cleanup \o_f Rdiv_rlzrf) (mp phi psi)) (at level 3).
+Notation "phi '\-' psi" := ((cleanup \o_f Rminus_rlzrf) (mp phi psi)) (at level 4).
+
+
+

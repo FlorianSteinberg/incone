@@ -330,6 +330,7 @@ Section Kleeneans.
   Canonical cs_Kleeneans:= Build_continuity_space Kleeneans_representation.
   
   Definition which := make_mf (fun (s1s2 : (Sirp * Sirp)) k => (s1s2.1 = top /\ k = true_K) \/ (s1s2.2 = top /\ k = false_K) \/ (s1s2.1 = bot /\ s1s2.2 = bot /\ k = bot_K)).
+
   Definition which_rlzrf (phi : (names_Sirp \*_ns names_Sirp)) n := match (lprj phi n) with
                                    | true => (Some true)
                                    | false =>
@@ -338,6 +339,7 @@ Section Kleeneans.
                                     | _ => None
                                      end
                                    end.
+
   Lemma which_spec xy : ((xy.1 = top) <-> (true_K \from (which (xy)))) /\ ((xy.2 = top) <-> (false_K \from (which (xy)))). 
   Proof.
   split;split; try by simpl;auto.
@@ -349,6 +351,17 @@ Section Kleeneans.
   by case => [[H1 H2] | ]; [ | case => [[H1 H2] | [H1 [H2 H3]]]].
   by case => [[H1 H2] | ]; [ | case => [[H1 H2] | [H1 [H2 H3]]]].
   Qed.
+
+Lemma dom_which : dom which === All.
+Proof.
+  move => [s1 s2].
+  split => [ | _] //.
+  case e : s1 => [a |].
+  - by case a; exists true_K;rewrite /=;auto.
+  case e' : s2 => [a |].
+  - by case a; exists false_K;rewrite /=;auto.
+  by exists bot_K; rewrite /=;auto.
+Qed.
 Lemma which_rlzrf_spec : ((F2MF which_rlzrf) : (B_(cs_Sirp \*_cs cs_Sirp) ->> B_(cs_Kleeneans))) \solves which.
 Proof.
   rewrite F2MF_slvs => phi /= [k1 k2] /prod_name_spec [/=k1ephin k2ephin].
@@ -551,6 +564,55 @@ Proof.
     by case (Fq tt).
     by move => m0; apply (mprp2' m0).
 Qed.
+
+Lemma K2B_rlzrM_terms phi b : (phi \is_name_of (B2K b)) -> exists m, (K2B_rlzrM phi (m,tt)) = (Some b).
+  move => phin.
+  have := (F_K2B_rlzrM_spec phin).
+  case; first by exists b.
+  move => H.
+  move => H'.
+  case H => b' b'prp.
+  case  (b'prp tt) => m mprp.
+  exists m.
+  suff <- : (b' tt) = b by auto.
+  case (H' _ b'prp) => b'' /=.
+  rewrite /B2K.
+  by case b'';case b';case b; move => // [H1 H2].
+Qed.
+
+Lemma K2B_rlzrM_monotonic phi b m : (K2B_rlzrM phi (m, tt)) = (Some b) -> forall m', (m <= m')%coq_nat -> (K2B_rlzrM phi (m',tt)) = (Some b).
+Proof.
+  rewrite /K2B_rlzrM.
+  move => /= H m' m'prp.
+  suff <- : ((ord_search (fun m0 : nat => phi m0) m)) = ((ord_search (fun m0 : nat => phi m0) m')) by rewrite H.
+  apply osrch_eq; last by apply /leP.
+  by move : H;case e: (phi (ord_search (fun m0 : nat => phi m0) m)) => [b' | ] //; case b'.
+Qed.
+
+Lemma K2B_rlzrM_name (phi : B_(cs_Kleeneans)) m b : (K2B_rlzrM phi m) = (Some b) -> (phi \is_name_of (B2K b)).
+Proof.
+  - rewrite /K2B_rlzrM /B2K /=.
+    case e :(phi (ord_search (fun m0 : nat => phi m0) m.1)) => [a | ]; try by auto.
+    move : e.
+    case a;case b => e; try by auto.
+    exists (ord_search (fun m0 : nat => phi m0) m.1).
+    rewrite e; split; try by auto.
+    move => n nprp.
+    case e' : (phi n) => [b'|]; try by auto.
+    have t : (is_true (phi n)) by rewrite e'.
+    have /leP := (@osrch_min (fun m0 => phi m0) m.1 n t).
+    move /leP : nprp.
+    by lia.
+    exists (ord_search (fun m0 : nat => phi m0) m.1).
+    rewrite e; split; try by auto.
+    move => n nprp.
+    case e' : (phi n) => [b'|]; try by auto.
+    have t : (is_true (phi n)) by rewrite e'.
+    have /leP := (@osrch_min (fun m0 => phi m0) m.1 n t).
+    move /leP : nprp.
+    by lia.
+Qed.
+
 End Kleeneans.
 
 Section Open_subsets_of_nat.

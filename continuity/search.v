@@ -436,7 +436,7 @@ Section increasing_search.
     apply/(iffP idP) => [pm | [m [pm ineq]]]; last exact/isrch_correct_le/ineq.
     by exists (ord_search (fun k => p (cnt start k)) n); split; [rewrite -isrch_osrch|apply/osrch_le].
   Qed.
-End increasing_search.
+End increasing_search.    
 
 Lemma osrch_isrch p k: ord_search p k = increasing_search S p 0 k.
 Proof.
@@ -445,10 +445,22 @@ Proof.
   suff eq: forall n, cnt S 0 n = n by rewrite eq; apply/osrch_ext; case => [k' ineq]; rewrite eq.
   by elim => // n /= ->.
 Qed.
-
+  
 Lemma nsrch_isrch p k: nat_search p k = increasing_search S p 0 k.+1.
 Proof. by rewrite -osrch_isrch. Qed.
-  
+
+Section computation.
+  Context (states values: Type) (program: states -> values + states).
+  Definition step (vs: values + states):=
+    match vs with
+    | inl value => inl value
+    | inr state => program state
+    end.
+
+  Definition run initial_state steps :=
+    iter steps step (inr initial_state).
+End computation.
+      
 Section direct_search.
   Context T (cnt: nat -> T).
   Context (p: T -> bool).

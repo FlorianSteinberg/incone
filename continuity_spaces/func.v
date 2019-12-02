@@ -1,6 +1,7 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs choice_dict.
 Require Import axioms all_names representations cs prod sub.
+Require Import continuous_machines monotone_machine_composition.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -117,23 +118,15 @@ Require Import FMop construct_associate.
 Section construct_function_names.
   Context (X Y: cs).
   Context (somea: replies X).
-
+  
   Local Open Scope name_scope.
-  Definition implements_solution (F: X ->> Y) M mu:=
-    \F_M \solves F
-    /\
-    mu \modulus_function_for M
-    /\
-    mu \modulus_function_for mu.
+  Arguments continuous_machine (fuel) {Q} {A} {Q'} {A'}.
+  Definition continuous_solution fuel (F: X ->> Y) (M: continuous_machine fuel):= \F_M \solves F.
 
-  Definition implements (f: X -> Y) M mu:=
-    \F_M \realizes f
-    /\
-    mu \modulus_function_for M
-    /\
-    mu \modulus_function_for mu.
+  Definition implements fuel (f: X -> Y) (M: continuous_machine fuel):= \F_M \realizes f.
 
-  Lemma F2MF_mplmnt M mu f: implements_solution (F2MF f) M mu <-> implements f M mu.
+  Lemma F2MF_mplmnt fuel f (M: continuous_machine fuel):
+    continuous_solution (F2MF f) M <-> implements f M.
   Proof. done. Qed.
   
   Hypothesis (eq_dec: forall (q q': queries X), decidable (q = q')).
@@ -147,15 +140,17 @@ Section construct_function_names.
     by move => q q'; apply/(iffP idP); case: eq_dec.
   Defined.
 
-  Definition construct_associate M mu
+  Definition construct_associate M
              (KLq': seq (queries X * replies X) * queries Y): replies Y + seq (queries X):=
-    psi_FM somea (someq: EQ) mu M KLq'.
+    psi_FM somea (someq: EQ) (modulus M) M KLq'.
 
-  Lemma cass_spec (f: X -> Y) M mu:
-    implements f M mu -> associate X Y (construct_associate M mu) f.
+  Lemma cass_spec (f: X -> Y) M:
+    implements f M -> associate X Y (construct_associate M) f.
   Proof.
-    move => [rlzr [mod modmod]].
-    exact/tight_slvs/(psi_FM_spec somea (someq: EQ)).
+    move => rlzr.
+    apply/tight_slvs/(psi_FM_spec somea (someq: EQ))/countable_choice/Q_count => //.
+    exact/modmod.
+    exact/mod.
   Qed.
     
   Definition id_ass X KLq := match KLq.1: seq (queries X * replies X) with

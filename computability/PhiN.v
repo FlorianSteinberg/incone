@@ -9,9 +9,9 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section Phi_assignment.
-  Context (A Q: Type).
+  Context (fuel A Q: Type).
   Notation B := (Q -> A).
-  Local Notation "Q ~> A" := (nat * Q -> option A) (at level 2).
+  Local Notation "Q ~> A" := (fuel * Q -> option A) (at level 2).
     
   Definition Phi (N: Q ~> A):= make_mf (fun q a => exists n, N(n,q) = Some a).
   
@@ -30,7 +30,57 @@ Section Phi_assignment.
   
   Lemma eval_Phi N: N \evaluates_to \Phi_N.
   Proof. by move => q qfd; split. Qed.
-  
+End Phi_assignment.
+Notation "\Phi_ N" := (Phi N) (format "'\Phi_' N", at level 2).
+
+Section choice.
+  Context (A Q: Type) (fuel: choiceType).
+  Notation B := (Q -> A).
+  Local Notation "Q ~> A" := (fuel * Q -> option A) (at level 2).
+
+  Definition cost_dep (N: Q ~> A): \Phi_N \is_total -> forall q, {f | N (f, q)}.
+    move => tot q.
+    suff ex: exists f: fuel, N (f, q).
+    exists (xchoose ex); apply/(xchooseP ex).
+    by have [a [f val]]:= (tot q); exists f; rewrite val.
+  Defined.
+
+  Definition cost N (tot: \Phi_N \is_total) q:= sval (cost_dep tot q).
+  Lemma cost_spec N (tot: \Phi_N \is_total) q: N (cost tot q, q).
+  Proof. exact/(svalP (cost_dep tot q)). Qed.
+      
+  Lemma tot_choice (N: Q ~> A): \Phi_N \is_total -> {phi | \Phi_N \extends (F2MF phi)}.
+  Proof.
+    move => tot.
+    suff f q: {a | N (cost tot q, q) = Some a}. 
+    - by exists (fun q => sval (f q)) => q _ <-; exists (cost tot q); apply/(svalP (f q)).
+    by have:= (cost_spec tot q); case eq: N => [a | ] //; exists a.
+  Qed.
+
+  Definition evaluate (N: Q ~> A): \Phi_N \is_total -> Q -> A.
+    by move => tot; apply/(sval (tot_choice tot)).
+  Defined.
+
+  Lemma eval_spec N (tot: \Phi_N \is_total): \Phi_N \extends (F2MF (evaluate tot)).
+  Proof. exact/(svalP (tot_choice tot)). Qed.
+
+  Lemma eval_sing_spec N (tot: \Phi_N \is_total):
+    \Phi_N \is_singlevalued -> F2MF (evaluate tot) =~= \Phi_N.
+  Proof.
+    move => sing q a; split => val; first exact/eval_spec.
+    exact/sing/val/eval_spec.
+  Qed.
+
+  Definition F2N (phi: Q -> A) (nq: nat * Q) := Some (phi nq.2).
+
+  Lemma F2N_spec phi: \Phi_(F2N phi) =~= F2MF phi.
+  Proof. by move => q a; split => [[n [<-]] | <-]//; exists 0. Qed.
+End choice.
+
+Section monotonicity.
+  Context (A Q: Type).
+  Notation B := (Q -> A).
+  Local Notation "Q ~> A" := (nat * Q -> option A) (at level 2).
   Definition monotone_in (N: Q ~> A) q := forall n, N(n,q) <> None -> N(n.+1,q) = N(n,q).
   
   Lemma mon_in_spec (N: Q ~> A) q: monotone_in N q <->
@@ -67,65 +117,18 @@ Section Phi_assignment.
   Proof. by move => mon q a a' [n eq] [m eq']; apply/mon_in_eq/eq'/eq/mon. Qed.
   
   Lemma mon_eval_sing N phi: N \is_monotone -> phi \is_singlevalued ->
-	N \evaluates_to phi <-> \Phi_N \extends phi.
+	\Phi_N \tightens phi <-> \Phi_N \extends phi.
   Proof. by move => mon sing; apply/sing_eval/sing/mon_sing. Qed.
 
   Lemma mon_eval_F2MF N phi: N \is_monotone ->
-                             N \evaluates_to F2MF phi <-> \Phi_N \extends F2MF phi.
+                             \Phi_N \tightens (F2MF phi) <-> \Phi_N \extends F2MF phi.
   Proof. by move => mon; apply/mon_eval_sing/F2MF_sing. Qed.
-
-  Definition cost N : \Phi_N \is_total -> Q -> nat.
-    move => tot q.
-    pose p n := N (n, q).
-    apply/(constructive_ground_epsilon_nat p) => [n | ].    
-    - by rewrite /p; case E: (N (n,q)) => [a |]; [left | right].
-    by have [a [n eq]]:= tot q; exists n; rewrite /p eq.
-  Defined.
-  
-  Lemma cost_spec N (tot: \Phi_N \is_total): forall q, N (cost tot q, q).
-  Proof. by move => q; apply/(constructive_ground_epsilon_spec_nat (fun n => N (n, q))). Qed.
-      
-  Lemma tot_choice N: \Phi_N \is_total -> {phi | \Phi_N \extends (F2MF phi)}.
-  Proof.
-    move => tot.
-    pose p q n := N (n,q).
-    have p_tot: forall q, exists n, p q n.
-    - by move => q; have [a [n eq]]:= tot q; exists n; rewrite /p eq.
-    have p_dec: forall q n, {p q n} + {~p q n}.
-    - by move => q n; rewrite /p; case E: (N (n,q)) => [a |]; [left | right].
-    suff f: forall q, {a | exists n, N (n, q) = some a}.
-    - by exists (fun q => sval (f q)) => q _ <-; have [n] := projT2 (f q); exists n.
-    move => q.
-    pose n := constructive_ground_epsilon_nat (p q) (p_dec q) (p_tot q).
-    case E: (N(n,q)) => [a |]; first by exists a; exists n.
-    suff: N (n, q) by rewrite E.
-    exact/(constructive_ground_epsilon_spec_nat (p q)).    
-  Qed.
-
-  Definition evaluate N: \Phi_N \is_total -> Q -> A.
-    by move => tot; apply/(sval (tot_choice tot)).
-  Defined.
-
-  Lemma eval_spec N (tot: \Phi_N \is_total): \Phi_N \extends (F2MF (evaluate tot)).
-  Proof. exact/(svalP (tot_choice tot)). Qed.
-
-  Lemma eval_sing_spec N (tot: \Phi_N \is_total):
-    \Phi_N \is_singlevalued -> F2MF (evaluate tot) =~= \Phi_N.
-  Proof.
-    move => sing q a; split => val; first exact/eval_spec.
-    exact/sing/val/eval_spec.
-  Qed.
-
-  Definition F2N (phi: Q -> A) (nq: nat * Q) := Some (phi nq.2).
-
-  Lemma F2N_spec phi: \Phi_(F2N phi) =~= F2MF phi.
-  Proof. by move => q a; split => [[n [<-]] | <-]//; exists 0. Qed.
-End Phi_assignment.
-Notation "\Phi_ N" := (Phi N) (format "'\Phi_' N", at level 2).
+End monotonicity.
 
 Lemma ovrt_po (Q A: eqType) (D: mf_set.subset (Q -> A)):
   overt D ->
-  exists N, dom \Phi_N === dom (projection_on D) /\ (projection_on D) \extends \Phi_N.
+  exists (N: nat * seq (Q * A) -> option (Q -> A)),
+    dom \Phi_N === dom (projection_on D) /\ (projection_on D) \extends \Phi_N.
 Proof.
   move => [ou [fd dns]].
   pose N nKL := if ou nKL.1 is some phi
@@ -269,6 +272,88 @@ Section composition.
     by exists (maxn n n'); rewrite (mon' _ _ _ _ _ eq'); [apply/mon/eq/leq_maxl | exact/leq_maxr].
   Qed.
 End composition.
+
+Section finite_approximations.
+  Context Q A (N: nat * Q -> option A) (default: A).
+
+  Definition phi_ n q := if N (n, q) is Some a then a else default.
+  
+  Fixpoint check_dom K n :=
+    match K with
+    | nil => true
+    | q :: K' => N (n, q) && check_dom K' n
+    end.
+
+  Lemma cdP (K: seq Q) n:
+    reflect (K \is_subset_of dom (pf2MF (curry N n))) (check_dom K n).
+  Proof.
+    apply/(iffP idP).
+    - elim: K => [_ q | q K ih /andP [val /ih subs]] //=.
+      apply/cons_subs; split => //; move: val; case eq: N => [a | ]// _.
+      by exists a; rewrite /= /curry eq.
+    elim: K => // q K ih /cons_subs [[a /=eq] /ih subs].
+    by apply/andP; split; try by move: eq; rewrite /curry; case: N.
+  Qed.
+
+  Hypothesis mon: monotone N.
+  
+  Local Open Scope name_scope.
+  Lemma icf_lim phi:
+    \Phi_N \is_total -> phi \is_choice_for (\Phi_N) <-> phi \is_limit_of phi_.
+  Proof.
+    have /mon_spec mon' := mon.
+    move => tot; split => [icf q | lim q qfd].
+    - have [n eq]:= icf q (tot q).
+      exists n => m ineq.
+      by rewrite /phi_ (mon' q _ _ _ ineq eq) //.
+    have [n nprp] := lim q.
+    have [a [m mprp]] := tot q.
+    exists (maxn n m).
+    have := nprp (maxn n m) (leq_maxl n m).
+    by rewrite /phi_ (mon' q _ _ _ (leq_maxr n m) mprp) => <-.
+  Qed.
+  
+  Lemma phinS n: (phi_ n) \agrees_with phi_ n.+1 \on (dom (pf2MF (curry N n))).
+  Proof.
+    move => q [a val]; rewrite /phi_ mon //.
+    by move: val; rewrite /= /curry; case: N.
+  Qed.
+
+  Lemma phin_agre n m: n <= m -> (phi_ n) \agrees_with (phi_ m) \on (dom (pf2MF (curry N n))).
+  Proof.
+    move => /subnK <-; elim: (m - n) => // k ih.
+    rewrite addSn; apply/agre_trans/agre_subs/phinS => //.
+    rewrite /curry => q [a] /=; case eq: N => [a' | ]// eq'.
+    exists a; have /mon_spec mon' := mon.
+    by rewrite (mon' _ _ _ _ _ eq); try apply/leq_addl.
+  Qed.
+
+  Lemma mon_eq q n m a b:
+    N (n, q) = Some a -> N (m, q) = Some b -> a = b.
+  Proof.
+    move => eq eq'; have/mon_spec mon' := mon.
+    case/orP: (leq_total n m) => ineq; first by have := mon' q _ _ _ ineq eq; rewrite eq'; case.
+    by have := mon' q _ _ _ ineq eq'; rewrite eq; case.
+  Qed.
+  
+  Lemma icf_phin phi:
+    phi \is_choice_for (\Phi_N) -> forall n, phi \is_choice_for (pf2MF (curry N n)).
+  Proof.
+    rewrite /curry => icf n q [a /=].
+    case eq: N => [a' | ]// eq'.
+    have [ | m val]:= icf q; first by exists a'; exists n.
+    exact/mon_eq/val/eq.
+  Qed.
+
+  Lemma cdS n K: check_dom K n -> check_dom K n.+1.
+  Proof.
+    move => /cdP subs.
+    apply/cdP => q lstn.
+    have [a val]:= subs q lstn.
+    rewrite /= /curry mon; first by exists a.
+    by move: val; rewrite /= /curry; case: N.
+  Qed.
+End finite_approximations.
 
 Section EnumeratedTypes.
   Structure EnumeratedType :=

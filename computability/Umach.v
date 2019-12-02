@@ -1,4 +1,4 @@
-From mathcomp Require Import ssreflect seq ssrnat ssrbool eqtype ssrfun.
+From mathcomp Require Import ssreflect seq ssrnat ssrbool eqtype ssrfun choice.
 From mf Require Import all_mf.
 Require Import search all_cont FMop PhiN Psatz.
 
@@ -423,8 +423,8 @@ Section traces.
     have /trcs_modf_gq ->//: psi \coincides_with psi' \on (traces phi psi (n, q)).
     exact/coin_subl/coin/trcs_mon.
   Qed.
-End traces.    
-    
+End traces.      
+
 Section duality_operator.
   (* Q: Questions, A: Answers *)
   Context (Q Q' A A' : Type).
@@ -505,3 +505,4 @@ Section duality_operator.
     by case eq: (U_rec _ _ _) => //.
   Qed.
 End duality_operator.
+ 

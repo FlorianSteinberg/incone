@@ -22,6 +22,9 @@ computability/PhiN.v
 computability/FMop.v
 computability/Umach.v
 computability/multivalued_application.v
+computability/continuous_machines.v
+computability/monotone_application.v
+computability/monotone_machine_composition.v
 computability/construct_associate.v
 computability/all_cmpt.v
 

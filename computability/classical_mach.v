@@ -1,4 +1,4 @@
-From mathcomp Require Import ssreflect ssrfun seq ssrnat ssrbool eqtype fintype.
+From mathcomp Require Import ssreflect ssrfun seq ssrnat ssrbool eqtype fintype choice.
 From mf Require Import all_mf classical_mf.
 From metric Require Import pointwise.
 Require Import all_cont search PhiN FMop Umach classical_count classical_cont.
@@ -9,12 +9,12 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section classical_machines.
-  Context (Q Q' A A': Type).
+  Context (fuel Q Q' A A': Type).
   Notation B := (Q -> A).
   Notation B' := (Q' -> A').
   Local Open Scope name_scope.
   
-  Lemma sing_cmpt_elt M F n (phi: B) (Fphi: B') q' a':
+  Lemma FM_sing_val_count M F (n: fuel) (phi: B) (Fphi: B') q' a':
     Q' \is_countable -> M \evaluates F -> F \is_singlevalued ->
     Fphi \from F phi -> M phi (n,q') = Some a' -> a' = Fphi q'.
   Proof.
@@ -147,10 +147,6 @@ Section initial_segment_associate.
     exact/leq_trans/n_rec_mon.
   Qed.
   
-  Lemma subl_cat T (K L L': seq T):
-    K \is_sublist_of L \/ K \is_sublist_of L' -> K \is_sublist_of (L ++ L').
-  Proof. by case => subl q lstn; rewrite L2SS_cat; [left | right]; apply/subl. Qed.
-
   Lemma n_rec_spec phi q': phi \from dom F -> FunctionalChoice_on Q' nat -> FunctionalCountableChoice_on bool ->
     exists n, n_rec phi q' n.+1 <= n_rec phi q' n.
   Proof.
@@ -545,9 +541,8 @@ Section exists_associate.
     - exact/countable_choice.
     exact/countable_choice/nat_count.
   Qed. 
-
   Lemma exists_dpN: FunctionalChoice_on (seq (Q * A)) (option B) ->
-                  exists N, \F_N \tightens (projection_on (dom F)).
+                  exists N: (_ -> nat * Q -> option A), \F_N \tightens (projection_on (dom F)).
   Proof.
     move => choice.
     have [dp [dp_dom dp_spec]]:= exists_po_choice (dom F) choice.

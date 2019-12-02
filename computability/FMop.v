@@ -9,9 +9,9 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section FM_operator.
-  Context (B Q' A': Type).
+  Context (fuel B Q' A': Type).
   Notation B' := (Q' -> A').
-  Local Notation "B o~> B'" := (B -> nat * Q' -> option A') (at level 2).
+  Local Notation "B o~> B'" := (B -> fuel * Q' -> option A') (at level 2).
 
   Notation "M '\^' phi" := ((M:B o~> B') phi) (at level 30).
   
@@ -27,15 +27,11 @@ Section FM_operator.
     by have [ | n]//:= exte q' (Fphi q'); exists n.
   Qed.
 
-  Lemma FN_Phi (N: nat * Q' -> option A') phi Fphi:
+  Definition FM_val := FM_Phi.
+
+  Lemma FN_Phi (N: fuel * Q' -> option A') phi Fphi:
     Fphi \from \F_(cnst N) phi <-> \Phi_N \extends F2MF Fphi.
   Proof. exact/FM_Phi. Qed.
-
-  Lemma FM_dom M phi: phi \from dom \F_M <-> \Phi_(M phi) \is_total.
-  Proof.
-    split => [[Fphi val] q' | tot]; first by have [n eq]:= val q'; exists (Fphi q'); exists n.
-    by exists (evaluate tot) => q'; apply/eval_spec.
-  Qed.    
     
   Notation "M '\evaluates' F" := ((\F_M) \tightens F) (at level 40).
 
@@ -53,62 +49,30 @@ Section FM_operator.
     rewrite exte_equiv; split; first exact/sing_tight_exte/eval/F2MF_sing.
     by move => s t fst; apply /(tight_val eval)/fst/F2MF_tot.
   Qed.
-  
-  Lemma F2MF_mach (F: B -> B'):
+
+  Lemma F2MF_mach (no_fuel: fuel) (F: B -> B'):
     (fun phi nq => Some(F phi nq.2)) \evaluates (F2MF F).
   Proof.
-    move => phi _; split => [ | Fphi ev]; first by exists (F phi) => q'; exists 0.
+    move => phi _; split => [ | Fphi ev]; first by exists (F phi) => q'; exists no_fuel.
     by apply/fun_ext => q'; have [c []] := ev q'.
   Qed.
+End FM_operator.
+Notation "\F_ M" := (operator M) (format "'\F_' M", at level 2).
+Notation "M '\evaluates' F" := (\F_M \tightens F) (at level 2).
 
-  Definition monotone_in (M: B o~> B') phi q' := monotone_in (M phi) q'.
-  
-  Lemma monn_spec (M: B o~> B) phi q': monotone_in M phi q' <->
-	  forall a' n m, n <= m -> M phi (n,q') = Some a' -> M phi (m,q') = Some a'.
-  Proof. exact/mon_in_spec. Qed.
+Section choice.
+  Context (B Q' A': Type) (fuel: choiceType).
+  Notation B' := (Q' -> A').
+  Local Notation "B o~> B'" := (B -> fuel * Q' -> option A') (at level 2).
+  Context (M: B o~> B').
 
-  Lemma mon_in_eq M phi q' n m a' b':
-    monotone_in M phi q' -> M phi (n,q') = Some a' -> M phi (m,q') = Some b' -> a' = b'.
+  Lemma FM_dom phi: phi \from dom \F_M <-> \Phi_(M phi) \is_total.
   Proof.
-    case/orP: (leq_total n m) => ineq /mon_in_spec mon eq eq'; apply /Some_inj.
-      by rewrite -eq'; symmetry; apply/mon/eq.
-    by rewrite -eq; apply/mon/eq'.
-  Qed.
+    split => [[Fphi val] q' | tot]; first by have [n eq]:= val q'; exists (Fphi q'); exists n.
+    by exists (evaluate tot) => q'; apply/eval_spec.
+  Qed.    
 
-  Definition monotone M := forall phi q', monotone_in M phi q'.
-  Notation "M '\is_monotone'" := (monotone M) (at level 2).
-
-  Lemma mon_spec (M: B o~> B'): M \is_monotone <-> forall phi q' a' n m,
-	n <= m -> M phi (n,q') = Some a' -> M phi (m,q') = Some a'.
-  Proof. by split => mon phi; apply/mon_spec/mon. Qed.
-    
-  Definition monotone_dom M := make_subset (fun phi => forall q', monotone_in M phi q').
-  Lemma mon_sing_restr M: \F_M|_(monotone_dom M) \is_singlevalued.
-  Proof.
-    move => phi Fphi Fphi' [mon FphiFphi] [_ FphiFphi'].
-    apply functional_extensionality => q'.
-    have [c eq]:= FphiFphi q'.
-    have [d eq']:= FphiFphi' q'.
-    exact/mon_in_eq/eq'/eq/mon.
-  Qed.
-
-  Lemma mon_sing (M: B o~> B):
-    M \is_monotone -> \F_M \is_singlevalued.
-  Proof. by move => mon; rewrite -(restr_dom \F_M); apply/restr_sing/mon_sing_restr => phi _. Qed.
-    
-  Lemma mon_eval M F: M \is_monotone -> F \is_singlevalued ->
-	M \evaluates F <-> \F_M \extends F.
-  Proof.
-    move => mon sing; split => [eval | eval]; first exact/sing_tight_exte.
-    exact/exte_tight/eval/mon_sing.
-  Qed.
-
-  Definition right_away (M: B o~> B') phi := make_mf (fun q' a' => M phi (0,q') = some a').
-
-  Lemma ra_sing M phi: (right_away M phi) \is_singlevalued.
-  Proof. by move => q' a' b' /=eq1 eq2; apply/Some_inj; rewrite -eq1 -eq2. Qed.
-
-  Definition static (M: B o~> B') phi:= make_mf (fun q a => forall n, M phi (n,q) = some a).
+  Definition static phi:= make_mf (fun q a => forall n, M phi (n,q) = some a).
 
   Definition F2M (F: B -> (Q' -> A')) phi nq' := F2N (F phi) nq'.
 
@@ -117,9 +81,61 @@ Section FM_operator.
     move => phi Fphi; split => [val | <-]; last by exists 0.
     by apply/functional_extensionality => q'; have [_ []]:= val q'.
   Qed.
-End FM_operator.
-Notation "\F_ M" := (operator M) (format "'\F_' M", at level 2).
-Notation "M '\evaluates' F" := (\F_M \tightens F) (at level 2).
+End choice.
+
+Section monotonicity.
+  Context (B Q' A': Type).
+  Notation B' := (Q' -> A').
+  Local Notation "B o~> B'" := (B -> nat * Q' -> option A') (at level 2).
+  Context (M: B o~> B').
+
+  Definition monotone_in phi q' := monotone_in (M phi) q'.
+  
+  Lemma monn_spec phi q': monotone_in phi q' <->
+	  forall a' n m, n <= m -> M phi (n,q') = Some a' -> M phi (m,q') = Some a'.
+  Proof. exact/mon_in_spec. Qed.
+
+  Lemma mon_in_eq phi q' n m a' b':
+    monotone_in phi q' -> M phi (n,q') = Some a' -> M phi (m,q') = Some b' -> a' = b'.
+  Proof.
+    case/orP: (leq_total n m) => ineq /mon_in_spec mon eq eq'; apply /Some_inj.
+      by rewrite -eq'; symmetry; apply/mon/eq.
+    by rewrite -eq; apply/mon/eq'.
+  Qed.
+
+  Definition monotone := forall phi q', monotone_in phi q'.
+  Notation "M '\is_monotone'" := (monotone) (at level 2).
+
+  Lemma mon_spec: M \is_monotone <-> forall phi q' a' n m,
+	n <= m -> M phi (n,q') = Some a' -> M phi (m,q') = Some a'.
+  Proof. by split => mon phi; apply/mon_spec/mon. Qed.
+    
+  Definition monotone_dom := make_subset (fun phi => forall q', monotone_in phi q').
+  Lemma mon_sing_restr: \F_M|_monotone_dom \is_singlevalued.
+  Proof.
+    move => phi Fphi Fphi' [mon FphiFphi] [_ FphiFphi'].
+    apply functional_extensionality => q'.
+    have [c eq]:= FphiFphi q'.
+    have [d eq']:= FphiFphi' q'.
+    exact/mon_in_eq/eq'/eq/mon.
+  Qed.
+
+  Lemma mon_sing:
+    M \is_monotone -> \F_M \is_singlevalued.
+  Proof. by move => mon; rewrite -(restr_dom \F_M); apply/restr_sing/mon_sing_restr => phi _. Qed.
+    
+  Lemma mon_eval F: M \is_monotone -> F \is_singlevalued ->
+	M \evaluates F <-> \F_M \extends F.
+  Proof.
+    move => mon sing; split => [eval | eval]; first exact/sing_tight_exte.
+    exact/exte_tight/eval/mon_sing.
+  Qed.
+
+  Definition right_away phi := make_mf (fun q' a' => M phi (0,q') = some a').
+
+  Lemma ra_sing phi: (right_away phi) \is_singlevalued.
+  Proof. by move => q' a' b' /=eq1 eq2; apply/Some_inj; rewrite -eq1 -eq2. Qed.
+End monotonicity.
 Notation "M '\is_monotone'" := (monotone M) (at level 2).
 
 Section use_first.
@@ -147,7 +163,8 @@ Section use_first.
     apply/FM_dom => q'; have [n eq]:= val q'.
     have: M phi (ord_search (fun k => M phi (k,q')) n, q').
     - by apply/(@osrch_correct (fun k => M phi (k,q'))); rewrite eq.
-    by case E: (M phi (ord_search (fun k => M phi (k,q')) n, q')) => [a' | ] //_; exists a'; exists n; rewrite sfrst_osrch.
+    case E: (M phi (ord_search (fun k => M phi (k,q')) n, q')) => [a' | ] //_.
+    by exists a'; exists n; rewrite sfrst_osrch.
   Qed.
 
   Lemma sfrst_dom: dom (\F_M) === dom (\F_use_first).
@@ -173,7 +190,7 @@ Section use_first.
     split => exte.
     - have tot: \Phi_(use_first phi) \is_total.
       + by rewrite -sfrst_tot => q'; exists (Fphi q'); apply/exte.
-      rewrite -(@eval_sing_spec _ _ _ tot); last exact/PhiN.sfrst_sing.
+      rewrite -(@eval_sing_spec _ _ _ _ tot); last exact/PhiN.sfrst_sing.
       suff ->: (evaluate tot) = Fphi by apply/exte_refl.
       apply/sing/FM_Phi/exte/FM_Phi/exte_trans/tot_tight_exte/PhiN.sfrst_spec.
       + exact/eval_spec.
@@ -230,7 +247,7 @@ Section use_first_continuous.
   Proof.
     apply/exte_equiv; split => [phi Fphi val | phi Fphi [phifd <-]]; last exact/FM_Phi/eval_spec.
     have P : \Phi_(use_first M phi) \is_total by apply/FM_dom; exists Fphi.
-    by exists P; apply/sfrst_sing/val => q'; apply/ (@eval_spec _ _ _ P q').
+    by exists P; apply/sfrst_sing/val => q'; apply/ (@eval_spec _ _ _ _ P q').
   Qed.
 
   Definition M2F: \F_M \is_total -> {F | F \is_choice_for \F_M}.
@@ -285,25 +302,41 @@ Section use_first_continuous.
     exact/osrch_le.      
   Qed.
 
-  Fixpoint make_monotone (Lf: nat * Q' -> seq Q) q' n :=
+  Fixpoint make_Lf_mon (Lf: nat * Q' -> seq Q) q' n :=
     match n with
     | 0 => Lf (0,q')
-    | n'.+1 => make_monotone Lf q' n' ++ Lf (n,q')
+    | n'.+1 => make_Lf_mon Lf q' n' ++ Lf (n,q')
     end.
 
-  Lemma mkm_mon Lf: monotone_listfunction (make_monotone Lf).
+  Lemma mkm_mon Lf: monotone_listfunction (make_Lf_mon Lf).
   Proof. by move => q' n /= q'' lstn; apply/L2SS_cat; left. Qed.
 
-  Lemma mkm_subl Lf  q' n: (Lf (n, q')) \is_sublist_of (make_monotone Lf q' n).
+  Lemma mkm_subl Lf  q' n: (Lf (n, q')) \is_sublist_of (make_Lf_mon Lf q' n).
   Proof. by case: n => // n /= q'' lstn; apply/L2SS_cat; right. Qed.
     
-  Definition make_mod_mon (mu: B -> nat * Q' -> seq Q) phi nq' := make_monotone (mu phi) nq'.2 nq'.1.
+  Definition make_monotone (mu: B -> nat * Q' -> seq Q) phi nq' :=
+    make_Lf_mon (mu phi) nq'.2 nq'.1.
 
-  Lemma mkmm_mon mu: monotone_modulus (make_mod_mon mu).
+  Lemma mkmm_mon mu: monotone_modulus (make_monotone mu).
   Proof. by move => phi q' n /= q'' lstn; apply/L2SS_cat; left. Qed.
 
+  Lemma mkmm_mod mu: mu \modulus_function_for M -> make_monotone mu \modulus_function_for M.
+  Proof.
+    move => mod phi [n q'] psi coin; apply/mod/coin_subl/coin.
+    by elim: (n) => // k ih q lstn /=; rewrite /make_monotone /=; apply/L2SS_cat; right.
+  Qed.
+
+  Lemma mkmm_modmod mu: mu \modulus_function_for mu ->
+                        make_monotone mu \modulus_function_for make_monotone mu.
+  Proof.
+    move => mod phi [n q'] psi.
+    elim: n => [coin | n]; first exact/mod.
+    rewrite /make_monotone /= => ih /coin_cat [coin eq].
+    by rewrite ih //; f_equal; apply/mod.
+  Qed.
+    
   Lemma sfrst_modf mu:
-    mu \modulus_function_for M -> (make_mod_mon mu) \modulus_function_for (use_first M).      
+    mu \modulus_function_for M -> (make_monotone mu) \modulus_function_for (use_first M).      
   Proof.
     move => /modf_spec mod.
     apply/sfrst_modf_mon/mkmm_mon.
@@ -311,9 +344,50 @@ Section use_first_continuous.
     apply/cmod_F2MF; case => n q' phi' coin.
     specialize (mod phi); move: mod; rewrite cmod_F2MF => mod.
     apply/mod/coin_subl/coin => q''.
-    elim: (n) => //n' ih lstn.
-    rewrite /make_mod_mon.
-    by apply/L2SS_cat; right.
+    by elim: (n) => //n' ih lstn; apply/L2SS_cat; right.
+  Qed.
+  
+  Definition terminates_with (mu: _ -> _ -> seq Q):=
+    forall phi q' n, M phi (n, q') -> (mu phi (n.+1, q')) \is_sublist_of (mu phi (n, q')).
+
+  Definition truncate_along (mu: (Q -> A) -> _ -> seq Q) phi (nq': nat * Q'):=
+    let (n, q') := nq' in
+    mu phi (ord_search (fun k => M phi (k, q')) n, q').
+
+  Lemma trunc_term mu: terminates_with (truncate_along mu).
+  Proof.
+    move => phi q' n val q /=.
+    by rewrite osrchS (@osrch_correct (fun k => M phi (k, q'))) //.
+  Qed.
+    
+  Lemma trunc_mod mu: monotone_modulus mu -> mu \modulus_function_for M ->
+                      truncate_along mu \modulus_function_for use_first M.
+  Proof.
+    move => /monm_spec mon mod phi [n q'] psi coin.
+    rewrite !sfrst_osrch (@mod _ _ psi) //.
+    rewrite -(@osrch_cont (fun k => M phi (k, q'))) // => k ineq.
+    rewrite (@mod _ _ psi) //.
+    exact/coin_subl/coin/mon.
+  Qed.    
+
+  Lemma trunc_modmod mu:
+    monotone_modulus mu ->
+    mu \modulus_function_for mu -> mu \modulus_function_for M ->
+                         truncate_along mu \modulus_function_for truncate_along mu.
+  Proof.
+    move => /monm_spec mon modmod mod phi [n q'] psi coin.    
+    rewrite /= (@modmod _ _ psi) //.
+    rewrite -(@osrch_cont (fun k => M phi (k, q'))) // => k ineq.
+    by rewrite (@mod _ _ psi) //; apply/coin_subl/coin/mon.
+  Qed.
+      
+  Lemma trunc_mon mu: monotone_modulus mu -> monotone_modulus (truncate_along mu).
+  Proof.
+    move => mon phi q' n q lstn.
+    rewrite /truncate_along osrchS; case: ifP => // fls.
+    apply/mon; suff <-: ord_search (fun k => M phi (k, q')) n = n by trivial.
+    apply/eqP/osrch_eqP => [[[m /= ineq] pm]]; suff: false by trivial.
+    by rewrite -fls; apply/(@osrch_correct_le (fun k => M phi (k, q')) _ _ pm)/leq_trans/ineq.
   Qed.
 End use_first_continuous.      
 Notation get_pf := get_partial_function.
@@ -449,7 +523,7 @@ Section cost_bounds.
     move => cntf phi Fphi val; have [Lf mod] := cntf phi.
     have phifd: phi \from domain (pf_cost M).
     - by rewrite PF2MF_dom; apply/pf_cost_dom/sfrst_dom; exists Fphi.
-    exists (fun q' => make_monotone Lf q' (pf_cost M (exist _ phi phifd) q')).
+    exists (fun q' => make_Lf_mon Lf q' (pf_cost M (exist _ phi phifd) q')).
     move => q' phi' coin Fphi' val'.
     apply/Some_inj.
     have [n eq]:= val q'; have [m eq']:= val' q'; rewrite -eq -eq'.
@@ -473,7 +547,7 @@ Section cost_bounds.
     have /mnlf_spec mon := @mkm_mon _ _ Lf; apply/mon/osrch_min => /=.
     by rewrite -(mod _ phi') //; apply/coin_subl/coin/mkm_subl.
   Qed.
-
+  
   Definition use_first_mod M (mu: B -> nat * Q' -> seq Q) phi nq' :=
     match cost_machine M phi (nq'.1,nq'.2) with
     | Some m => Some (mu phi (m,nq'.2))
@@ -617,5 +691,5 @@ Section lemmas.
     exists k; rewrite eq; f_equal.
     have -> //:= sing _ _ Fphi' val.
     exact/Fval.
-  Qed.  
+  Qed.
 End lemmas.

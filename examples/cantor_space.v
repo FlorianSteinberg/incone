@@ -107,6 +107,11 @@ Lemma nz_bool_p_cont: nz_bool_p \has_continuous_realizer.
 Proof.
   by exists nzb_rlzr; split; try exact/nzb_rlzr_spec; apply/nzb_rlzr_cntop.
 Qed.
+(** While the partial function is computable, the above does not have computational content.
+It can be implemented as a partial function in Coq by adding a proof that the input eventually
+hits zero as input. Another way to implement it is the use of the operator assignment, which
+requires to specify slightly more information and is described in more detail in the 
+"implementing operators" file. **)
 
 (** Another way to make the function continuous is to use Sirpinski space.
 This space has two points, but is equipped with a different representation,

@@ -1,7 +1,7 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrnat ssrbool eqtype fintype.
 From mf Require Import all_mf classical_mf.
 From metric Require Import pointwise.
-Require Import all_cont search PhiN FMop Umach classical_mach multivalued_application seq_cont.
+Require Import all_cont search PhiN FMop Umach classical_mach seq_cont.
 Require Import axioms Classical ChoiceFacts Psatz Morphisms.
 
 Set Implicit Arguments.
@@ -418,10 +418,14 @@ Section construct_associate.
     rewrite (@mod _ _ phi) //.
     exact/coin_sym/coin_subl/coin.
   Qed.
-  
-  Lemma psi_FM_noval_phi' KL K t q' phi: phi \coincides_with (GL2F KL) \on (unzip1 KL) ->
+
+
+  Lemma psi_FM_noval_phi' KL K t q' phi:
+    phi \coincides_with (GL2F KL) \on (unzip1 KL) ->
     M phi (t, q') -> t <= size KL -> psi_FM (KL, q') = inr K ->
-    let l := ord_search (fun n => ~~ check_sublist (mu (GL2F KL) (n, q')) (unzip1 KL) || M (GL2F KL) (n, q')) (size KL) in                                
+    let l := ord_search
+               (fun n => ~~ check_sublist (mu (GL2F KL) (n, q')) (unzip1 KL) || M (GL2F KL) (n, q'))
+               (size KL) in
     K = filter (fun q => ~~ (q \in unzip1 KL)) (mu (GL2F KL) (l, q'))
                            /\ forall t', t' < l -> mu (GL2F KL) (t', q') \is_subset_of unzip1 KL.
   Proof.
@@ -437,15 +441,18 @@ Section construct_associate.
     move => fls [<-].
     suff: false by trivial.
     rewrite -fls.
-    apply/(@osrch_correct_le (fun k => ~~ check_sublist (mu (GL2F KL) (k, q')) (unzip1 KL) || M (GL2F KL) (k, q')) t (size KL)) => //.
+    apply/(@osrch_correct_le (fun k => ~~ check_sublist (mu (GL2F KL) (k, q')) (unzip1 KL)
+                                    ||
+                                    M (GL2F KL) (k, q')) t (size KL)) => //.
     apply/orP.
     case cl: (check_sublist (mu (GL2F KL) (t, q')) (unzip1 KL)); last by left.
     right.
     move: cl => /clP subl.
     rewrite (@mod _ _ phi) //.
     exact/coin_subl/coin_sym/coin.
-   Qed.
+  Qed.
 
+  Hypothesis choice: forall A, FunctionalChoice_on Q A.
   Lemma psi_FM_exte: \F_(U psi_FM) \extends \F_(use_first M).
   Proof.
     move => phi Fphi val q'.
@@ -509,7 +516,7 @@ Section construct_associate.
       exact/coin_subl/coinlm/leq_maxl/mprp.
 
     have [psi lmt]: exists psi, psi \is_limit_of phin.
-    - suff /full_choice: forall q, exists a, exists n, forall m, n <= m -> a = phin m q by trivial.
+    - suff /choice: forall q, exists a, exists n, forall m, n <= m -> a = phin m q by trivial.
       move => q.
       case: (classic (exists k, q \in gather_queries psi_FM phi (k, q'))) => [[m /inP lstn] | ].
       * by exists (phi q); exists m => m' ineq; rewrite /phin/trunc; have /inP ->:= gq_subl ineq lstn.
@@ -635,7 +642,7 @@ Section construct_associate.
     - by rewrite /phin /trunc; case: ifP => /inP.
            
     have [psi lim]: exists psi, psi \from limit phin.
-    - suff /full_choice [psi lim]: forall q, exists a, exists N, forall m, N <= m -> a = phin m q by exists psi.
+    - suff /choice [psi lim]: forall q, exists a, exists N, forall m, N <= m -> a = phin m q by exists psi.
       move => q.
       case: (classic (exists n, q \from Kn n)) => [[n lstn] | /not_ex_all_not nt].
       - by exists (phi q); exists n => m ineq; apply/val/(Kn_mon _ _ ineq).

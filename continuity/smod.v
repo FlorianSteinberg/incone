@@ -215,3 +215,47 @@ Section composition.
     by rewrite (crt phi)//(crt psi)//; apply/agre_spec/restr_rcmp_equiv/coin.
   Qed.
 End composition.
+
+Section extensionality.
+  Context (Q A Q' A': Type).
+  Notation B := (Q -> A).
+  Notation B':= (Q' -> A').
+
+  Definition extensional_in (F: B ->> B') phi:= forall phi', phi =1 phi' ->
+          forall Fphi Fphi', Fphi \from F phi -> Fphi' \from F phi' -> Fphi =1 Fphi'.
+  Definition extensional F := forall phi, extensional_in F phi.
+  
+  Lemma F2MF_exti F phi: extensional_in (F2MF F) phi <-> forall phi', phi =1 phi' -> F phi =1 F phi'.
+  Proof.
+    split => exti phi' eq; first by move => q'; apply/(exti phi' _ (F phi) (F phi')).
+    by move => _ _ <- <-; apply/exti.
+  Qed.
+
+  Lemma F2MF_ext F: extensional (F2MF F) <-> forall phi phi', phi =1 phi' -> F phi =1 F phi'.
+  Proof. by split => ext phi; apply/F2MF_exti/ext. Qed.
+    
+  Lemma PF2MF_ext F: extensional (PF2MF F) <-> forall phi phi', sval phi =1 sval phi' -> F phi =1 F phi'.
+  Proof.
+    split => [ext phi phi' eq | ass phi phi' eq Fphi Fphi' [phifd <-] [phi'fd <-]]; last exact/ass.
+    apply/(ext (sval phi) (sval phi') eq (F phi) (F phi')); first by case: (phi) => f P; exists P.
+    by case: (phi') => f P; exists P.
+  Qed.
+End extensionality.
+
+Lemma fun_exti_frcs:
+  (forall Q A (f g: Q -> A), f =1 g -> f = g)
+  <->
+  forall Q A (F: (Q -> A) ->> (Q -> A)) phi,
+    extensional_in F phi <-> (phi \from dom F  -> phi \from dom (forces F)).
+Proof.
+  split => [fun_ext Q A F phi | prp Q A f g eq].
+  - split => [ext [Fphi val] | frcs phi' /fun_ext <- Fphi Fphi' val val'].
+    + by exists Fphi => Fphi' val'; apply/fun_ext/ext/val/val'.
+    have [ | Fphi'' prp]:= frcs; first by exists Fphi.
+    by have -> := prp Fphi val; have -> := prp Fphi' val'.  
+  pose F := make_mf (fun (phi phi': Q -> A) => phi =1 phi').
+  have /prp [ | f' frcs']: extensional_in F f.
+  - by move => f' eq' Fphi Fphi' /= val val' q; rewrite -val -val'.
+  - by exists f.
+  by symmetry; have ->:= frcs' g eq; have ->:= frcs' f.
+Qed.

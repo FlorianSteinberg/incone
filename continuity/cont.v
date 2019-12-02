@@ -121,8 +121,7 @@ Section continuity.
   Proof. by split => [cont | eq]; [rewrite cont_dom | rewrite cont_spec -eq => phi []]. Qed.
     
   Definition modulus_for mu :=
-    dom F \is_subset_of dom mu /\ continuity_modulus \extends mu.
-
+    dom F \is_subset_of dom mu /\ continuity_modulus \extends mu.  
 End continuity.
 Notation "Lf \is_modulus_of F \on_input phi" := (Lf \from continuity_modulus F phi) (at level 15): name_scope.
 Notation "mu \modulus_for F" := (modulus_for F mu) (at level 30): name_scope.
@@ -240,15 +239,19 @@ Section continuity_lemmas.
     split => [mod phi q' | prp phi q' psi coin].
     - by exists (f phi q') => psi coin _ <-; symmetry; apply/mod.
     by have:= prp phi; rewrite cmod_F2MF => prp'; apply/prp'.
-  Qed.
-  
-  Lemma modl_F2MF mu (f: B -> B'):
+  Qed.    
+    
+  Lemma modf_F2MF mu (f: B -> B'):
     mu \modulus_function_for f <-> (F2MF mu) \modulus_for (F2MF f).
   Proof.
     rewrite modf_spec; split => [mod | [_ mod] phi]; last exact/mod.
     by split => [phi _ | phi _ <-]; [apply/F2MF_tot | apply/mod].
   Qed.
-    
+
+  Lemma PF2MF_mod_dom (mu: partial_function B (Q' -> seq Q)) (F: partial_function B B'):
+                         mu \modulus_for F -> domain F \is_subset_of domain mu.
+  Proof. by rewrite !PF2MF_dom; case. Qed.
+      
   Lemma modf_cont mu (f: B -> B'):
     mu \modulus_function_for f -> f \is_continuous_function.
   Proof. by move => mod phi; exists (mu phi) => q' psi coin; apply/mod. Qed.
@@ -258,10 +261,31 @@ Section continuity_lemmas.
     split => [cont | [mu [subs mod]]]; last by apply/cont_spec => phi fd; apply/exte_dom/subs/fd.
     by exists (continuity_modulus F); split; first exact/cont_spec; exact/exte_refl.
   Qed.
+  
+  Lemma cont_ext (F: B ->> B'): F \is_continuous -> extensional F.
+  Proof.
+    move => cont phi phi' eq Fphi Fphi' val val' q'.
+    have [Lf cert]:= cont phi Fphi val.
+    symmetry; apply/cert/val'/coin_agre => q qfd; apply/eq.
+  Qed.
+
 End continuity_lemmas.
 Notation "f \is_continuous_function":= (continuous_function f) (at level 30): name_scope.
 Notation "mu \modulus_function_for f" := (modulus_function mu f) (at level 30): name_scope.
 
+Lemma fun_ext_sing:
+  (forall Q A (f g: Q -> A), f =1 g -> f = g) <->
+  forall Q A Q' A' (F: (Q -> A) ->> (Q' -> A')), extensional F <-> singlevalued F.
+Proof.
+  split => [fun_ext Q A Q' A' F | ass Q A f g eq].
+  - split => [ext phi Fphi Fphi' val val' | sing phi _ /fun_ext <- Fphi Fphi' val val'].
+    + by apply/fun_ext/ext/val'/val.
+    by rewrite (sing phi Fphi Fphi').
+  pose F := make_mf (fun (f g: Q -> A) => f =1 g).
+  have /ass sing: extensional F by move => ? ? eqphi ? ? eq' eq'' q;  rewrite -eq' -eq'' eqphi.
+  by apply/sing/eq.
+Qed.  
+  
 Section composition.
   Context (Q A Q' A' Q'' A'': Type).
   Notation B := (Q -> A).

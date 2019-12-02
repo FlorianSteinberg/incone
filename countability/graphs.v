@@ -44,7 +44,7 @@ Section lists_and_subsets.
     rewrite -add1n -drop_drop drop1 => t lstn.
     by apply/ih; case: (drop n L) lstn => //; right.
   Qed.
-  
+
   Lemma lstn_app (L K: seq T)t: List.In t (L ++ K) <-> List.In t L \/ List.In t K.
   Proof.
     split; last by have:= List.in_or_app L K t.
@@ -67,6 +67,10 @@ Section lists_and_subsets.
     split => [[ | /ih []] | ]; [left; left | left; right | right | ] => //.
     by rewrite /= in ih; rewrite ih => [[[] | ]]; [left | right; left | right; right ].
   Qed.
+
+  Lemma subl_cat (K L L': seq T):
+    K \is_sublist_of L \/ K \is_sublist_of L' -> K \is_sublist_of (L ++ L').
+  Proof. by case => subl q lstn; rewrite L2SS_cat; [left | right]; apply/subl. Qed.
 
   Lemma L2SS_rev K: L2SS K === L2SS (rev K).
   Proof.
@@ -346,12 +350,40 @@ Section coincide.
 End coincide.
 Notation "phi '\coincides_with' psi '\on' L" := (coincide L phi psi) (at level 30): name_scope.
 
-Local Open Scope name_scope.
-Lemma coin_funeq (T: eqType) S (L: seq T) (phi psi: T -> S):
-	phi \coincides_with psi \on L <-> {in L, phi =1 psi}.
-Proof.
-  rewrite /prop_in1 /in_mem /=; elim: L => // t L /=->.
-  split => [[eq coin] s /orP [/eqP -> | Ls] | prp]//; first exact/coin.
-  by split => [ | s Ls]; apply/prp/orP; [left | right].
-Qed.
+Section eqTypes.
+  Context (Q: eqType) A (somea: A).
+  Local Open Scope name_scope.
+  Lemma coin_funeq (L: seq Q) (phi psi: Q -> A):
+    phi \coincides_with psi \on L <-> {in L, phi =1 psi}.
+  Proof.
+    rewrite /prop_in1 /in_mem /=; elim: L => // t L /=->.
+    split => [[eq coin] s /orP [/eqP -> | Ls] | prp]//; first exact/coin.
+    by split => [ | s Ls]; apply/prp/orP; [left | right].
+  Qed.
+  Notation GL2F KL := (LF2F somea (GL2LF KL)).
+
+  Definition trunc (phi: Q -> A) (K: seq Q) q := if q \in K then phi q else somea.
+  
+  Lemma trunc_val_spec phi K q : trunc phi K q = LF2F somea (GL2LF (F2GL phi K)) q.
+  Proof.
+    rewrite /trunc.
+    case: ifP => [/inP lstn | ].    
+    - have := @LF2F_spec _ _ somea (GL2LF (F2GL phi K)) q.
+      rewrite GL2LF_spec GL2MF_spec; case => //.
+      by exists (phi q); split => //; apply/lstn.
+    elim: K => // k K ih /=.
+    rewrite in_cons => /negP /negP; rewrite Bool.negb_orb => /andP [/eqP neq lstn].
+    rewrite /LF2F /=; case: ifP => [/eqP eq | ]; last by rewrite {1}ih //; apply/negP/negP.
+    by rewrite eq in neq.
+  Qed.
+
+  Lemma trunc_prpr phi phi' (K K': seq Q):
+    phi =1 phi' -> K === K' -> trunc phi K =1 trunc phi' K'.
+  Proof.
+    by rewrite /trunc => eq eq' q; case: ifP => /inP /eq' /inP; [move => ->; apply/eq | case: ifP].
+  Qed.
+  
+  Lemma trunc_coin phi K: trunc phi K \coincides_with phi \on K.
+  Proof. by rewrite /trunc; apply/coin_agre => q' /inP ->. Qed.
+End eqTypes.
 Local Close Scope name_scope.

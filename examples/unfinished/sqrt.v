@@ -9,6 +9,7 @@ From metric Require Import all_metric reals standard Qmetric.
 Require Import Ibounds IrealsZ.
 Require Import search.
 Require Import Iextract.
+From mathcomp Require Import choice.
 From Interval Require Import Interval_tactic.
 From Interval Require Import Interval_specific_ops Interval_bigint_carrier Interval_stdz_carrier.
 From Interval Require Import Interval_interval_float_full Interval_interval.
@@ -711,7 +712,7 @@ Proof.
     by exists y.
   have [H1 H2] := H.
   exists (evaluate H1).
-  have := (@eval_spec _ _ _ H1).
+  have := (@eval_spec _ _ _ _ H1).
   rewrite <-FM_Phi => e.
   by apply (H2 _ e).
 Defined.
@@ -752,7 +753,7 @@ Proof.
     by exists y.
   have [H1 H2] := H.
   exists (evaluate H1).
-  have := (@eval_spec _ _ _ H1).
+  have := (@eval_spec _ _ _ _ H1).
   rewrite <-FM_Phi => e.
   by apply (H2 _ e).
 Defined.

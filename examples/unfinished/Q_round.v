@@ -9,6 +9,8 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Import QArith ZArith.
 
+Set Printing Coercions.
+
 Section rounding.
 
   Definition Qround_eps (x eps : Q) :=
@@ -188,8 +190,6 @@ Proof.
   rewrite F2MF_rlzr => phi x phinx eps eg0.
 
   (* rewrite the phinx assumption: *)
-  unfold RQ in phinx.
-  unfold Q_representation in phinx.
   simpl in phinx.
 
   (* tidy up the goal: *)
@@ -201,10 +201,6 @@ Proof.
   set rrI := 1 - rr.
   set eps1 := eps * (1-rr).
   set eps2 := eps * rr.
-
-  have rrg0 : 0 < rr by [].
-  have rrl1 : rr < 1 by [].
-  have rrIg0 : 0 < rrI by [].
 
   have e1g0: (0 < eps1)%R.
   1:{
@@ -246,20 +242,13 @@ Proof.
   have ->: ((x - phi eps1) + - (roundedx - phi eps1))%R = (x - roundedx)%R by field.
   move => triang.
   apply: Rle_trans; first exact triang.
-  Search _ (_ + _ <= _ + _)%R.
   have le_e12 : (\| x - phi eps1 | + \| - (roundedx - phi eps1) | <= eps1 + eps2)%R by apply: Rplus_le_compat.
   apply: Rle_trans; first exact le_e12.
-  have e12 : (eps1 + eps2 == eps).
+  have e12 : eps1 + eps2 == eps.
   unfold eps1. unfold eps2.
   by ring.
-  (* have e12R : (eps1 + eps2 = eps)%R.
-  by rewrite e12. *)
+  apply: Req_le.
   rewrite -Q2R_plus.
-  Search _ (_ == _) (_ <= _)%R.
-  have temp : QOrder.eq_le e12 (Rle_refl eps).
-  rewrite e12.
+  by apply: Qeq_eqR.
 
-  (* apply Rabs_triang. *)
-
-(* TODO *)
-Admitted.
+Qed.

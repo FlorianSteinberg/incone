@@ -194,14 +194,13 @@ Proof.
 
   (* tidy up the goal: *)
   unfold id.
-  (* rewrite Rcomplements.Rabs_le_between. *)
-  (* unfold Rminus. *)
   unfold round_name_RQ.
   set rr := rounding_ratio.
   set rrI := 1 - rr.
   set eps1 := eps * (1-rr).
   set eps2 := eps * rr.
 
+  (* prepare to apply phinx with eps1: *)
   have e1g0: (0 < eps1)%R.
   1:{
     unfold eps1.
@@ -217,6 +216,7 @@ Proof.
 
   have phinxe1_dist_x := phinx eps1 e1g0.
 
+  (* prepare to apply Qround_eps_safe with eps2: *)
   have e2g0: (0 < eps2).
   1:{
     unfold eps2.
@@ -230,14 +230,18 @@ Proof.
     apply temp2. 
   }
 
-  set roundedx := Qround_eps (phi eps1) eps2.
+
+  (* apply Qround_eps_safe with eps2 and tidy up: *)
   have qround_dist_e2 := Qround_eps_safe (x := phi eps1) e2g0.
+  set roundedx := Qround_eps (phi eps1) eps2.
   fold roundedx in qround_dist_e2.
   apply Qle_Rle in qround_dist_e2.
   rewrite Qabs_Rabs in qround_dist_e2.
   rewrite Q2R_minus in qround_dist_e2.
   rewrite -Rabs_Ropp in qround_dist_e2.
 
+  (* finish the proof using triangle inequality, 
+     unifying the arithmetic (Q vs R): *)
   have := Rabs_triang (x - phi eps1) (- (roundedx - phi eps1)%R).
   have ->: ((x - phi eps1) + - (roundedx - phi eps1))%R = (x - roundedx)%R by field.
   move => triang.
@@ -245,8 +249,7 @@ Proof.
   have le_e12 : (\| x - phi eps1 | + \| - (roundedx - phi eps1) | <= eps1 + eps2)%R by apply: Rplus_le_compat.
   apply: Rle_trans; first exact le_e12.
   have e12 : eps1 + eps2 == eps.
-  unfold eps1. unfold eps2.
-  by ring.
+  unfold eps1. unfold eps2. by ring.
   apply: Req_le.
   rewrite -Q2R_plus.
   by apply: Qeq_eqR.

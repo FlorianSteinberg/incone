@@ -18,11 +18,22 @@ Section rounding.
     let p := Qfloor (qQ*x+(1 # 2)) in
     p # q.
 
+  Lemma Qabs_le : forall x a : Q, (-a <= x <= a) -> (Qabs x  <= a).
+  Proof.
+    move => x a [ax xa].
+    apply Qle_Rle in xa.
+    apply Qle_Rle in ax.
+    rewrite Q2R_opp in ax.
+    have temp:= Rabs_le x a.
+    have temp2: (\| x | <= a)%R. apply temp; split. apply ax. apply xa.
+    apply Rle_Qle.
+    by rewrite Qabs_Rabs.
+  Qed.
+
+
   Lemma Qround_eps_safe x eps : 
     (0 < eps) ->
-    Qround_eps x eps - x <= eps 
-    /\
-    (- eps) <= Qround_eps x eps - x.
+    Qabs (Qround_eps x eps - x) <= eps.
   Proof.
     move => zero_lt_eps.
     have zero_lt_2eps : 0 < (1+1)*eps by lra.
@@ -66,16 +77,17 @@ Section rounding.
       have z_le_half : 0 <= 1#2 by [].
       have := (Qmult_le_compat_r (1) (qQ*((1+1)*eps)) (1#2) one_lt_q2eps z_le_half).
       rewrite Qmult_1_l.
-      have rhs : qQ * ((1 + 1) * eps) * (1 # 2) == eps * qQ by field.
-      by rewrite rhs.
+      have ->: qQ * ((1 + 1) * eps) * (1 # 2) == eps * qQ by field.
+      by [].
     }
 
     (* rewrite the goal: *)
+    apply Qabs_le.
     unfold Qround_eps.
     fold inveps2 qZpre q Z.mul qQ.
     split. (* 2 goals *)
 
-    1:{
+    2:{
       have round_qx_le: Qfloor (qQ * x + (1#2)) # q <= (qQ *x + (1#2))/qQ.
       rewrite Qmake_Qdiv.
       unfold inject_Z.
@@ -99,10 +111,9 @@ Section rounding.
       2: { 
         move => temp3.
         move: (Qmult_le_compat_r _ _ _ temp3 zero_lt_invq).
-        have lhs: (eps + x) * qQ * / qQ == eps + x by field.
-        rewrite lhs.
-        have rhs : (qQ * x + (1 # 2)) * / qQ == (qQ * x + (1 # 2)) / qQ by field.
-        by rewrite rhs.
+        have ->: (eps + x) * qQ * / qQ == eps + x by field.
+        have ->: (qQ * x + (1 # 2)) * / qQ == (qQ * x + (1 # 2)) / qQ by field.
+        by [].
       } (* reduced goal 1 to the above *)
 
       rewrite Qmult_plus_distr_l.
@@ -126,12 +137,11 @@ Section rounding.
       rewrite -(Qplus_le_l _ _ 1).
       have temp3: qQ * x + (1 # 2) - 1 + 1 == qQ * x + (1 # 2) by ring.
       rewrite temp3. elim: temp3.
-      have temp3: (Qfloor (qQ * x + (1 # 2)) # 1) + 1 == Qfloor (qQ * x + (1 # 2)) + 1 # 1.  
+      have ->: (Qfloor (qQ * x + (1 # 2)) # 1) + 1 == Qfloor (qQ * x + (1 # 2)) + 1 # 1.  
       rewrite !Qmake_Qdiv. 
       rewrite inject_Z_plus.
       unfold inject_Z.
       by field.  
-      rewrite temp3. elim: temp3.
       by apply: Qlt_le_weak.
       (* proved: round_qx_le (see above) *)
     }
@@ -148,20 +158,19 @@ Section rounding.
     2:{
       move => temp3.
       move: (Qmult_le_compat_r _ _ _ temp3 zero_lt_invq).
-      have lhs: (x - eps) * qQ * / qQ == x - eps by field.
-      rewrite lhs.
-      have rhs: (qQ * x + (1 # 2) - 1) * / qQ == (qQ * x + (1 # 2) - 1) / qQ by field.
-      by rewrite rhs.
+      have ->: (x - eps) * qQ * / qQ == x - eps by field.
+      have ->: (qQ * x + (1 # 2) - 1) * / qQ == (qQ * x + (1 # 2) - 1) / qQ by field.
+      by [].
     }
 
     rewrite Qmult_plus_distr_l.
     rewrite Qmult_comm.
-    have temp: qQ * x + (1 # 2) - 1 == qQ * x + (- (1 # 2)) by field.
-    rewrite temp; elim: temp.
+    have ->: qQ * x + (1 # 2) - 1 == qQ * x + (- (1 # 2)) by field.
     rewrite Qplus_le_r.
     apply Qopp_le_compat in half_le_epsq.
-    have temp: -eps * qQ == -(eps*qQ) by ring.
-    by rewrite temp.
+    have ->: -eps * qQ == -(eps*qQ) by ring.
+    by [].
+
 Qed.
 
 End rounding.
@@ -175,6 +184,82 @@ Definition round_name_RQ (phi : names_RQ) : names_RQ :=
     Qround_eps (phi eps1) eps2.
 
 Lemma round_RQ_correct : F2MF round_name_RQ \realizes (id : RQ -> RQ).
-Proof. 
+Proof.
+  rewrite F2MF_rlzr => phi x phinx eps eg0.
+
+  (* rewrite the phinx assumption: *)
+  unfold RQ in phinx.
+  unfold Q_representation in phinx.
+  simpl in phinx.
+
+  (* tidy up the goal: *)
+  unfold id.
+  (* rewrite Rcomplements.Rabs_le_between. *)
+  (* unfold Rminus. *)
+  unfold round_name_RQ.
+  set rr := rounding_ratio.
+  set rrI := 1 - rr.
+  set eps1 := eps * (1-rr).
+  set eps2 := eps * rr.
+
+  have rrg0 : 0 < rr by [].
+  have rrl1 : rr < 1 by [].
+  have rrIg0 : 0 < rrI by [].
+
+  have e1g0: (0 < eps1)%R.
+  1:{
+    unfold eps1.
+    have temp: (0 < rrI)%R.
+    2: {
+      have temp2 : (0 < eps * rrI)%R by apply: Rmult_lt_0_compat.
+      rewrite -Q2R_mult in temp2.
+      apply temp2. 
+    }
+    rewrite -RMicromega.IQR_0.
+    by apply: Qlt_Rlt.
+  }
+
+  have phinxe1_dist_x := phinx eps1 e1g0.
+
+  have e2g0: (0 < eps2).
+  1:{
+    unfold eps2.
+    have temp2 : (0 < eps * rr)%R.
+    apply: (Rmult_lt_0_compat) => //. 
+    rewrite -RMicromega.IQR_0.
+    by apply: Qlt_Rlt.
+    rewrite -Q2R_mult in temp2.
+    apply: Rlt_Qlt.
+    rewrite RMicromega.IQR_0.
+    apply temp2. 
+  }
+
+  set roundedx := Qround_eps (phi eps1) eps2.
+  have qround_dist_e2 := Qround_eps_safe (x := phi eps1) e2g0.
+  fold roundedx in qround_dist_e2.
+  apply Qle_Rle in qround_dist_e2.
+  rewrite Qabs_Rabs in qround_dist_e2.
+  rewrite Q2R_minus in qround_dist_e2.
+  rewrite -Rabs_Ropp in qround_dist_e2.
+
+  have := Rabs_triang (x - phi eps1) (- (roundedx - phi eps1)%R).
+  have ->: ((x - phi eps1) + - (roundedx - phi eps1))%R = (x - roundedx)%R by field.
+  move => triang.
+  apply: Rle_trans; first exact triang.
+  Search _ (_ + _ <= _ + _)%R.
+  have le_e12 : (\| x - phi eps1 | + \| - (roundedx - phi eps1) | <= eps1 + eps2)%R by apply: Rplus_le_compat.
+  apply: Rle_trans; first exact le_e12.
+  have e12 : (eps1 + eps2 == eps).
+  unfold eps1. unfold eps2.
+  by ring.
+  (* have e12R : (eps1 + eps2 = eps)%R.
+  by rewrite e12. *)
+  rewrite -Q2R_plus.
+  Search _ (_ == _) (_ <= _)%R.
+  have temp : QOrder.eq_le e12 (Rle_refl eps).
+  rewrite e12.
+
+  (* apply Rabs_triang. *)
+
 (* TODO *)
 Admitted.

@@ -3,6 +3,9 @@ From mathcomp Require Import all_ssreflect.
 From mf Require Import all_mf.
 Require Import all_cont search PhiN monotone_application FMop seq_cont continuous_machines.
 Require Import axioms Classical Psatz.
+Require Import cs naming_spaces.
+Require Import cs_names.
+Require Import iso.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -436,3 +439,213 @@ Definition F2MM (Q Q' : Type) A A' (f : (Q -> A) -> (Q' -> A')) mu : mu \modulus
   set is_mon := (@Build_is_monotone _ _ _ _ cm f2mm (F2M_mterm mm)).
   apply (Build_monotone_machine is_mon). 
 Defined.
+Section monotone_machines_product.
+  Local Open Scope name_scope.
+  Local Open Scope cs_scope.
+  Context (X1 Y1 X2 Y2 : cs).
+  Definition Q1 := (Q_ X1).
+  Definition A1 := (A_ X1).
+  Definition Q1' := (Q_ Y1).
+  Definition A1' := (A_ Y1).
+  Definition Q2 := (Q_ X2).
+  Definition A2 := (A_ X2).
+  Definition Q2' := (Q_ Y2).
+  Definition A2' := (A_ Y2).
+  Context (default1 : A1') (default2 : A2').
+  Context (M1: monotone_machine Q1 A1 Q1' A1').
+  Context (M2: monotone_machine Q2 A2 Q2' A2').
+  Definition monotone_machine_product (phi : ((Q1 + Q2) -> (A1 * A2))) nq :=
+    match nq.2 with
+      | (inl q) => 
+          match (M1 ((fst \o_f phi \o_f inl)) (nq.1, q)) with
+            | (Some a) => (Some (a, default2))
+            | _ => None
+          end
+      | (inr q) =>
+          match (M2 (snd \o_f phi \o_f inr) (nq.1, q)) with
+                    | (Some a) => (Some (default1, a))
+                    | _ => None
+                   end
+    end.
+
+  Definition monotone_machine_product_mu (phi : ((Q1 + Q2) -> (A1 * A2))) nq :=
+          match nq.2 with
+            | (inl q) => 
+               (map inl (modulus M1 (fst \o_f phi \o_f inl) (nq.1, q)))
+            | (inr q) =>
+              (map inr (modulus M2 (snd \o_f phi \o_f inr) (nq.1, q)))
+            end.
+
+  Lemma monotone_machine_product_mod : monotone_machine_product_mu \modulus_function_for monotone_machine_product.
+  Proof.
+    rewrite /monotone_machine_product_mu/monotone_machine_product => phi [n q] psi /=.
+    case q => q' c.
+    - have c' : (fst \o_f phi) \o_f inl \coincides_with (fst \o_f psi) \o_f inl \on (modulus M1 ((fst \o_f phi) \o_f inl) (n, q')).
+    + move : c.
+      elim (modulus M1 ((fst \o_f phi) \o_f inl) (n, q')) => // a l IH /= [p1 p2].
+      split; first by rewrite p1.
+      by apply IH.   
+    by rewrite (modulus_correct c').
+    have c2' : (snd \o_f phi) \o_f inr \coincides_with (snd \o_f psi) \o_f inr \on (modulus M2 ((snd \o_f phi) \o_f inr) (n, q')).
+    - move : c.
+      elim (modulus M2 ((snd \o_f phi) \o_f inr) (n, q')) => // a l IH /= [p1 p2].
+      split; first by rewrite p1.
+      by apply IH.
+    by rewrite (modulus_correct c2').
+  Qed.
+
+  Lemma mon_mprd: FMop.monotone (monotone_machine_product).
+  Proof.
+    move => phi q n.
+    rewrite /monotone_machine_product.
+    case (M_monotone M1 ) => M1_mon M1_term.
+    case (M_monotone M2 ) => M2_mon M2_term.
+    case q => q' /=.
+    - case e : (M1 ((fst \o_f phi) \o_f inl) (n, q')) => [a1' |] //.
+      by rewrite M1_mon e.
+    case  e' : (M2 ((snd \o_f phi) \o_f inr) (n, q')) => [a2' |] // /= _.
+    by rewrite M2_mon e'.
+  Qed.
+
+  Lemma monotone_machine_product_mod_mod : monotone_machine_product_mu \modulus_function_for monotone_machine_product_mu.
+  Proof.
+    rewrite /monotone_machine_product_mu => phi [n q] psi /=.
+    case q => q' c.
+    - have c' : (fst \o_f phi) \o_f inl \coincides_with (fst \o_f psi) \o_f inl \on (modulus M1 ((fst \o_f phi) \o_f inl) (n, q')).
+      + move : c.
+        elim (modulus M1 ((fst \o_f phi) \o_f inl) (n, q')) => // a l IH /= [p1 p2].
+      split; first by rewrite p1.
+      by apply IH.   
+    by rewrite (modmod c').
+    have c' : (snd \o_f phi) \o_f inr \coincides_with (snd \o_f psi) \o_f inr \on (modulus M2 ((snd \o_f phi) \o_f inr) (n, q')).
+    - move : c.
+      elim (modulus M2 ((snd \o_f phi) \o_f inr) (n, q')) => // a l IH /= [p1 p2].
+      split; first by rewrite p1.
+      by apply IH.
+    by rewrite (modmod c').
+  Qed.
+
+  Lemma term_mprd:
+    terminates_with monotone_machine_product
+    monotone_machine_product_mu.
+  Proof.
+    rewrite /monotone_machine_product_mu/monotone_machine_product => phi q n.
+    case q => q' /=.
+    - case e : (M1 ((fst \o_f phi) \o_f inl) (n, q')) => [a1' |] // _.
+      have e0 : (isSome (M1 ((fst \o_f phi) \o_f inl) (n, q'))) by rewrite e.
+      move => x.
+      case x => a; last by elim (modulus M1 ((fst \o_f phi) \o_f inl) (n.+1,q')) => // y l IH; case => //.
+      move => H.
+      apply map_inl.
+      have mod_term := (modulus_terminating e0).
+      apply (mod_term (monm_mon M1)).
+      move : H.
+      elim (modulus M1 ((fst \o_f phi) \o_f inl) (n.+1,q')) => // y l IH /=.
+      case => [| P]; try by case;auto.
+      apply or_intror.
+      by apply IH.
+    case e : (M2 ((snd \o_f phi) \o_f inr) (n, q')) => [a1' |] // _.
+    have e0 : (isSome (M2 ((snd \o_f phi) \o_f inr) (n, q'))) by rewrite e.
+    move => x.
+    case x => a; first by elim (modulus M2 ((snd \o_f phi) \o_f inr) (n.+1,q')) => // y l IH; case => //.
+    move => H.
+    apply map_inr.
+    have mod_term := (modulus_terminating e0).
+    apply (mod_term (monm_mon M2)).
+    move : H.
+    elim (modulus M2 ((snd \o_f phi) \o_f inr) (n.+1,q')) => // y l IH /=.
+    case => [| P]; try by case;auto.
+    apply or_intror.
+    by apply IH.
+  Qed.
+
+  Definition product: monotone_machine (Q1+Q2) (A1 * A2) (Q1' + Q2') (A1'*A2').
+    exists (Build_continuous_machine monotone_machine_product_mod  monotone_machine_product_mod_mod).
+    split.
+    - exact /mon_mprd.   
+    exact/term_mprd.
+  Defined.
+
+  Lemma mprd_spec F G : (\F_M1) \solves F -> (\F_M2) \solves G ->  (\F_product \solves (F ** G)).
+  Proof.
+  rewrite  /=/monotone_machine_product /=.
+  move => H1 H2.
+  move => phipsi xy.
+  case => /= [[phi psi] [/= prp1 [prp2 prp3]]] .
+  have -> : (fst \o_f phipsi \o_f inl) = phi by case : prp1.
+  have -> : (snd \o_f phipsi \o_f inr) = psi by case : prp1.
+  case => /=; move => [y1 y2] [/= y1y2prp1 y1y2prp2].
+  case (H1 phi xy.1 prp2 ) => [| phid P]; first by exists y1.
+  case (H2 psi xy.2 prp3 ) => [| psid P']; first by exists y2.
+  case phid => f1 f1prp.
+  case psid => f2 f2prp.
+  split.
+  exists (fun (q : Q_ (Y1 \*_cs Y2)) => (match q with
+              |inl q' => (((f1 q'), default2)) 
+              |inr q' => ((default1, (f2 q')))
+              end)).
+  move => q1q2'.
+  by case q1q2' =>q'; [case (f1prp q') | case (f2prp q')] => n nprp; exists n; rewrite nprp.
+  move => Fphi prp.
+
+  have := (P (lprj Fphi)).
+  case => [q1' | y1'].
+  - case (prp (inl q1')) => n nprp.
+    exists n.
+    move : nprp.
+    case (M1 phi (n,q1')) => // a.
+    case.
+    by rewrite /lprj /= => <-.
+  move => [yprp1 yprp2].
+  have := (P' (rprj Fphi)).
+  case => [q' | y2'].
+  case (prp (inr q')) => n nprp.
+  exists n.
+  move : nprp.
+  case (M2 psi (n,q')) => // a.
+  case.
+  by rewrite /rprj /= => <-.
+  move => [y2'prp1 y2'prp2].
+  exists (y1',y2').
+  split => //.
+  by exists (unpair Fphi); split => // /=.
+  Qed.
+End monotone_machines_product.
+Section constructions.
+Local Open Scope name_scope.
+Local Open Scope cs_scope.
+Lemma cmp_machine (S T U : cs) (F : S ->> T) (G : U ->> S)  H (a : A_ S) : {f : (monotone_machine  Q_ S A_ S Q_ T A_ T) |  \F_f \solves F} -> {g : (monotone_machine  Q_ U A_ U Q_ S A_ S)|  \F_g \solves G} -> H =~= F \o G -> {h : (monotone_machine  Q_ U A_ U Q_ T A_ T) |  \F_h \solves H}.
+Proof.
+  case => f fprp.
+  case => g gprp.
+  exists (compose a g f).
+  apply /tight_slvs; last first.
+  apply mcpm_spec.
+  rewrite slvbl_prpr => //.
+  apply slvs_comp => //.
+  apply fprp.
+  apply gprp.
+  by auto.
+Defined.
+Lemma cmp_machine_tight (S T U : cs) (F : S ->> T) (G : U ->> S)  H (a : A_ S) : {f : (monotone_machine  Q_ S A_ S Q_ T A_ T) |  \F_f \solves F} -> {g : (monotone_machine  Q_ U A_ U Q_ S A_ S)|  \F_g \solves G} -> (F \o G) \tightens H -> {h : (monotone_machine  Q_ U A_ U Q_ T A_ T) |  \F_h \solves H}.
+Proof.
+  case => f fprp.
+  case => g gprp.
+  exists (compose a g f).
+  apply /tight_slvs; last first.
+  apply mcpm_spec.
+  apply /slvs_tight.
+  apply slvs_comp => //.
+  apply fprp.
+  apply gprp.
+  by auto.
+Defined.
+Lemma prd_machine (S T U V: cs) (F : S ->> T) (G : U ->> V) H (a1 : A_ T) (a2 : A_ V)  : {f : (monotone_machine  Q_ S A_ S Q_ T A_ T) |  \F_f \solves F} -> {g : (monotone_machine  Q_ U A_ U Q_ V A_ V)|  \F_g \solves G} -> H =~= (F ** G) -> {h : (monotone_machine  Q_ (S \*_cs U) A_ (S \*_cs U) Q_ (T \*_cs V) A_ (T \*_cs V)) | \F_h \solves H}.
+Proof.
+  case => f fprp.
+  case => g gprp prp.
+  exists (product a1 a2 f g).
+  rewrite prp.
+  by apply mprd_spec.
+Defined.
+End constructions.

@@ -428,6 +428,17 @@ Proof.
   by rewrite /which_rlzrf (P1' kp1) (P2' kp2).
 Qed.
 
+Definition which_rlzrf_mu (phi : (names_Sirp \*_ns names_Sirp)) (q : nat) : (seq (nat + nat)) := [:: (inl q);(inr q)].
+
+Lemma which_rlzrf_mu_mod : which_rlzrf_mu \modulus_function_for which_rlzrf.
+Proof.
+  by rewrite /which_rlzrf_mu/which_rlzrf/lprj/rprj/= => phi q' psi [-> [-> _]] .
+Qed.
+
+Lemma which_rlzrf_mu_modmod : which_rlzrf_mu \modulus_function_for which_rlzrf_mu.
+Proof.
+by trivial.
+Qed.
 Definition K_truthf (K : Kleeneans) := match K with
                          | bot_K | false_K => bot
                          | top_K => top
@@ -492,6 +503,36 @@ Proof.
     by case : (phi _).
 Qed. 
 
+Definition K_truth_mu (phi : nat -> (option bool)) n := init_seg (ord_search (fun m => (isSome (phi m))) n).+1.
+Lemma coin_iseq_issome (phi : nat -> (option bool)) psi n: (phi \coincides_with psi \on (init_seg n.+1)) -> forall k, (k <= n)%nat -> (isSome (phi k)) = (isSome (psi k)).
+Proof.
+ elim n => [[coin _] k /leP kprp  | n' IH coin k /leP kprp].
+ - have -> : (k = 0 ) by lia.
+   by rewrite coin.
+ case e: (k <= n').
+ - apply IH => //.
+   by apply coin.
+  move /leP :  e => e.
+ have -> : (k = n'.+1) by lia.
+ by have [-> _]:= coin. 
+Qed.
+
+Lemma K_truth_mu_mod : K_truth_mu \modulus_function_for K_truth_rlzrf.
+Proof.
+  rewrite /K_truth_rlzrf => phi q psi coin.
+  have [-> _] := coin.
+  rewrite (osrch_cont (coin_iseq_issome coin)).
+  by case ((ord_search (fun k => psi k) q) == q) => //.
+Qed.
+
+Lemma K_truth_mu_modmod : K_truth_mu \modulus_function_for K_truth_mu.
+Proof.
+  rewrite /K_truth_mu => phi n psi.
+  elim n => // n' IH coin.
+  f_equal.
+  by rewrite (osrch_cont (coin_iseq_issome coin)).
+Qed.
+
 Definition B2K (b : bool) := match b with
                     | true => true_K
                     | false => false_K
@@ -503,6 +544,24 @@ Definition K2B_rlzrM phi (un : nat * unit) := let m := (ord_search (fun m => (is
                               | (Some false) => (Some false)
                               | _ => None
                               end.
+
+Definition K2B_mu (phi : nat -> (option bool)) (nq : (nat * (Q_(cs_bool)))) := init_seg (ord_search (fun m => (isSome (phi m))) nq.1).+1.
+
+Lemma K2B_mu_mod : K2B_mu \modulus_function_for K2B_rlzrM.
+Proof.
+  rewrite /K2B_rlzrM => phi [n q] psi coin.
+  have [-> _] := coin.
+  rewrite (osrch_cont (coin_iseq_issome coin)).
+  by case ((ord_search (fun k => psi k) n) == n) => //.
+Qed.
+
+Lemma K2B_mu_modmod : K2B_mu \modulus_function_for K2B_mu.
+Proof.
+  rewrite /K2B_mu => phi n psi.
+  elim n => // n' IH coin.
+  f_equal.
+  by rewrite (osrch_cont (coin_iseq_issome coin)).
+Qed.
 Lemma F_K2B_rlzrM_spec : \F_K2B_rlzrM \solves ((F2MF B2K)\^-1).
 Proof.
   move => /= phi k phin [b bp].

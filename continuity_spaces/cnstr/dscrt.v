@@ -142,3 +142,7 @@ Section NATURALS.
     by rewrite cont_F2MF => phi; exists (fun _ => [:: inl tt; inr tt]) => psi str [-> [->]].
   Qed.
 End NATURALS.
+Section INTEGERS.
+Canonical cs_Z := discrete_space Z_count.
+
+End INTEGERS.

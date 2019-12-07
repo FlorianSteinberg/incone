@@ -9,6 +9,8 @@ From metric Require Import all_metric reals standard Qmetric.
 Require Import Ibounds IrealsZ.
 Require Import search.
 Require Import Iextract.
+Require Import monotone_machine_composition.
+Require Import continuous_machines.
 From mathcomp Require Import choice.
 From Interval Require Import Interval_tactic.
 From Interval Require Import Interval_specific_ops Interval_bigint_carrier Interval_stdz_carrier.
@@ -570,11 +572,22 @@ Qed.
 
 (* square root approximation using linear search without speedup *)
 Definition sqrt_approx_totalM_slow phi mnq := (sqrt_approx_total_rlzrM mnq.2.1 phi (mnq.1,mnq.2.2)).
+Lemma lim_eff_rlzr_mu_sm : lim_eff_rlzr_mu \modulus_function_for lim_eff_rlzr_mu.
+Proof.
+  by rewrite /lim_eff_rlzr_mu /= => phi [n m].
+Qed.
+ Definition limit_cont_machine := (Build_continuous_machine lim_eff_rlzr_mu_spec lim_eff_rlzr_mu_sm).
+Definition limit_mon_machine := (Build_monotone_machine (mkmn_spec limit_cont_machine) ).
 
 (* sqrt approximation with speedups *)
 Definition sqrt_approx_totalM phi mnq := (sqrt_approx_totalM_slow phi ((speedup mnq.1 13),(mnq.2.1,(speedup mnq.2.2 13)))).
 
-  
+Definition sqrt_approx_totalM_mu (phi : B_(IR)) (mnq : nat * (nat * nat)) := [:: (speedup mnq.1 13)]. 
+
+Lemma sqrt_approx_totalM_mu_spec : sqrt_approx_totalM_mu \modulus_function_for sqrt_approx_totalM.
+Proof.  
+  rewrite /sqrt_approx_totalM/sqrt_approx_totalM_slow/sqrt_approx_total_rlzrM/sqrt_approx_total_rlzrMtoIR/scaleM/lt_n_M/K2B_rlzrM /= => phi n psi /= [].
+  rewrite /lt_nk_rlzrf.
 Lemma sqrt_approx_total_rlzrM_spec : \F_(use_first (sqrt_approx_totalM_slow)) \solves ((sqrt_approx_total_seq : (IR ->> (IR \^w)))).
   move => phi x phin dom.
   rewrite <- (sfrst_dom (sqrt_approx_totalM_slow)).

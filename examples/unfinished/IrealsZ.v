@@ -132,7 +132,17 @@ Section addition.
 Definition Rplus_rlzrf (phi: names_IR \*_ns names_IR) (n: nat):= I.add (nat2p n) (lprj phi n) (rprj phi n).
 Definition Rplus_rlzr: B_ (IR \*_cs IR) ->>  B_ IR := F2MF Rplus_rlzrf.
 
+Definition Rplus_rlzr_mu (phi : names_IR \*_ns names_IR) n: seq (nat + nat) := [:: (inl n); (inr n)].
 
+Lemma Rplus_rlzr_mu_mod : Rplus_rlzr_mu \modulus_function_for Rplus_rlzrf.
+Proof.
+  by rewrite /Rplus_rlzrf/lprj/rprj => phi n psi [] /= -> [] ->.
+Qed.
+
+Lemma Rplus_rlzr_mu_modmod : Rplus_rlzr_mu \modulus_function_for Rplus_rlzr_mu.
+Proof.
+  by rewrite /Rplus_rlzr_mu => phi n psi /=.
+Qed.
 Lemma Rplus_rlzr_spec : Rplus_rlzr \realizes (uncurry Rplus).
 Proof.
   rewrite F2MF_rlzr => phi [x y] /prod_name_spec [/=[xephin convx] [yephin convy]].
@@ -1166,6 +1176,16 @@ Proof.
   apply functional_extensionality => [[x y]].
   rewrite /uncurry /=.
   case: (total_order_T x y) => [[xlty | xeqy] | xgty]; case: (total_order_T (x-y) 0) => [[xlty' | ] | xgty']; try by auto; try by lra.
+Qed.
+Definition ltK_mu (phi : (names_IR \*_ns names_IR)) (n : nat) : seq (nat + nat) := [:: (inr n); (inl n)].
+Lemma ltK_mu_mod : ltK_mu \modulus_function_for ltK_rlzr.
+Proof.
+  by rewrite /ltK_rlzr/lt0_rlzr/Rminus_rlzrf/Rplus_rlzrf/Ropp_rlzrf/rprj/lprj => phi n psi /= [-> [-> _]].
+Qed.
+
+Lemma ltK_mu_modmod : ltK_mu \modulus_function_for ltK_mu.
+Proof.
+  by rewrite /ltK_mu => phi n psi.
 Qed.
 End comparison.
 

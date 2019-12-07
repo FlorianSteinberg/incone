@@ -59,7 +59,22 @@ Section representations.
   Notation hcr_wrt delta delta' f:= (has_continuous_solution_wrt delta delta' (F2MF f)).
 
   Local Notation "delta '\translatable_to' delta'" := (hcr_wrt delta delta' id) (at level 35).
-  
+
+  Lemma trns_refl T (delta: representation_of T): delta \translatable_to delta.
+  Proof.
+    exists mf_id; split; try exact/id_rlzr.
+    by apply/cont_F2MF => phi; exists (fun q => cons q nil) => q' psi /= [->].
+  Qed.
+
+  Lemma trns_trans T (delta delta' delta'': representation_of T):
+    delta \translatable_to delta' -> delta' \translatable_to delta'' -> delta \translatable_to delta''.
+  Proof.
+    move => [R [Rcont Rcrct]] [R' [R'cont R'crct]].
+    exists (R' \o R); split; try exact/cont_comp.
+    apply/rlzr_tight; first exact/rlzr_comp/Rcrct/R'crct.
+    by rewrite comp_id_r; apply/tight_ref.
+  Qed.
+
   Definition equivalent X (delta delta': representation_of X):=
     delta \translatable_to delta' /\  delta' \translatable_to delta.
 

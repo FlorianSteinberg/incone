@@ -74,13 +74,6 @@ Section choice.
 
   Definition static phi:= make_mf (fun q a => forall n, M phi (n,q) = some a).
 
-  Definition F2M (F: B -> (Q' -> A')) phi nq' := F2N (F phi) nq'.
-
-  Lemma F2M_spec F: \F_(F2M F) =~= F2MF F.
-  Proof.
-    move => phi Fphi; split => [val | <-]; last by exists 0.
-    by apply/functional_extensionality => q'; have [_ []]:= val q'.
-  Qed.
 End choice.
 
 Section monotonicity.
@@ -391,6 +384,48 @@ Section use_first_continuous.
   Qed.
 End use_first_continuous.      
 Notation get_pf := get_partial_function.
+
+Section F2M.
+  Local Open Scope name_scope.
+  Context (Q Q': Type) A A' (M: (Q -> A) -> nat * Q' -> option A').
+  Notation B := (Q -> A).
+  Definition F2M (F: B -> (Q' -> A')) phi nq' := F2N (F phi) nq'.
+
+  Lemma F2M_spec F: \F_(F2M F) =~= F2MF F.
+  Proof.
+    move => phi Fphi; split => [val | <-]; last by exists 0.
+    by apply/functional_extensionality => q'; have [_ []]:= val q'.
+  Qed.
+
+  Lemma F2M_mon (f : B -> (Q' -> A')) : (F2M f) \is_monotone.
+  Proof.
+   by trivial.
+  Qed.   
+
+  Definition F2M_mu (mu : B -> Q' -> seq Q) phi (mn : nat * Q') := (mu phi mn.2).
+
+  Lemma F2M_mu_mod (f: B -> (Q' -> A')) mu: (mu \modulus_function_for f) -> ((F2M_mu mu) \modulus_function_for (F2M f)).
+  Proof.
+    rewrite /F2M_mu/F2M /F2N => H phi [n q'] psi coin.
+    by rewrite (H phi q' psi coin). 
+  Qed.
+
+  Lemma F2M_mu_modmod mu : (mu \modulus_function_for mu) -> (F2M_mu mu) \modulus_function_for (F2M_mu mu).
+  Proof. 
+    rewrite /F2M_mu => H phi [n q'] psi coin.
+    by rewrite (H phi q' psi coin).
+  Qed.
+
+  Lemma F2M_mu_mon mu : (monotone_modulus (F2M_mu mu)).
+  Proof.
+    by rewrite /F2M_mu => phi q' n.
+  Qed.
+  Lemma F2M_mterm mu (f : B -> (Q' -> A')) : (mu \modulus_function_for f) -> (terminates_with (F2M f) (F2M_mu mu) ).
+  Proof.
+    move => H phi q' n _.
+    by rewrite /F2M_mu.
+  Qed.
+End F2M.
 
 Section cost_bounds.
   Local Open Scope name_scope.

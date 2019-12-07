@@ -427,3 +427,12 @@ Section compose_monotone_machines.
     apply M_monotone.
   Qed.
 End compose_monotone_machines.
+
+Local Open Scope name_scope.
+Definition F2MM (Q Q' : Type) A A' (f : (Q -> A) -> (Q' -> A')) mu : mu \modulus_function_for f -> mu \modulus_function_for mu -> (@monotone_machine Q A Q' A').
+  move => m mm.
+  have f2mm := (@F2M_mon _ _ _ _ f).
+  set cm := (Build_continuous_machine (F2M_mu_mod m) (F2M_mu_modmod mm)).
+  set is_mon := (@Build_is_monotone _ _ _ _ cm f2mm (F2M_mterm mm)).
+  apply (Build_monotone_machine is_mon). 
+Defined.

@@ -7,6 +7,8 @@ Require Import all_cs_base classical_mach.
 Require Import Reals Psatz FunctionalExtensionality ClassicalChoice.
 Require Import Ibounds.
 Require Import naming_spaces.
+Require Import computable_reals.
+Require Import monotone_machine_composition.
 Import Qreals.
 Require Q_reals.
 From Interval Require Import Interval_specific_ops Interval_bigint_carrier Interval_stdz_carrier.
@@ -251,6 +253,17 @@ Definition Rmult_rlzrf (phi: names_IR \*_ns names_IR) (n: nat):= I.mul (nat2p n)
 
 Definition Rmult_rlzr: B_ (IR \*_cs IR) ->> B_ IR := F2MF Rmult_rlzrf.
 
+Definition Rmult_rlzr_mu (phi : names_IR \*_ns names_IR) n: seq (nat + nat) := [:: (inl n); (inr n)].
+
+Lemma Rmult_rlzr_mu_mod : Rmult_rlzr_mu \modulus_function_for Rmult_rlzrf.
+Proof.
+  by rewrite /Rmult_rlzrf/lprj/rprj => phi n psi [] /= -> [] ->.
+Qed.
+
+Lemma Rmult_rlzr_mu_modmod : Rmult_rlzr_mu \modulus_function_for Rmult_rlzr_mu.
+Proof.
+  by rewrite /Rplus_rlzr_mu => phi n psi /=.
+Qed.
 Lemma maxN3 x y z B: ((maxn x (maxn  y z)) <= B)%nat -> (x <= B /\ y <= B /\ z <= B)%nat.
 Proof.
   split; first by apply (leq_trans (leq_maxl x (maxn y z)) H).
@@ -1113,21 +1126,6 @@ Proof.
   by apply (H' _ (phin1 n)).
 Qed.
 
-Definition ltK (xy : R*R) := let (x,y) := xy in
-                     match (total_order_T x y) with
-                     | (inleft (left _)) => true_K
-                     | (inright _) => false_K
-                     | _ => bot_K
-                     end.
-
-Lemma ltK_spec x y: ((ltK (x,y)) = true_K <-> (x < y)) /\ ((ltK (x,y)) = false_K <-> (y < x)) /\ ((ltK (x,y)) = bot_K <-> (x = y)). 
-Proof.
-  rewrite /ltK.
-  case: (total_order_T x y) => [[xlty | <-] | xgty].
-  split; split;[| | split | split]; try lra;try by auto.
-  split; split;[| | split | split]; try lra;try by auto.
-  split; split;[| | split | split]; try lra;try by auto.
-Qed.
 
 Lemma lt0_rlzr_spec : (F2MF lt0_rlzr) \realizes (fun x => (ltK (x,0))).
 Proof.
@@ -1303,6 +1301,34 @@ Qed.
 Definition IR2Qmf := \F_(IR_RQ_rlzrM').
 End speedup.
 
+Section computable_real_structure.
+Definition interval_reals: computable_reals.
+  exists IR.
+  exists \F_(use_first IR_RQ_rlzrM').
+  - rewrite /IR2Qmf/IR_RQ_rlzrM'.
+    split; first by apply /sfrst_cntf_cont/modf_cont/(@IR_RQ_mu_spec (fun n=> (speedup n 5))).
+    by apply (tight_rlzr (F_M_realizer_IR_RQ (speedup_gt 5))); apply sfrst_spec.
+  exists (F2MM Rplus_rlzr_mu_mod Rplus_rlzr_mu_modmod).
+  - rewrite /implements F2M_spec.
+    apply Rplus_rlzr_spec.
+  exists (F2MM Rmult_rlzr_mu_mod Rmult_rlzr_mu_modmod).
+  - rewrite /implements F2M_spec.
+    apply Rmult_rlzr_spec.
+  exists (F2MM ltK_mu_mod ltK_mu_modmod).
+  - rewrite /implements F2M_spec.
+    apply ltK_rlzr_spec.
+  set f2m := (fun (phi : B_(cs_Z \*_cs cs_Z)) => (FloattoIR (lprj phi tt) (rprj phi tt))).
+  set mu := (fun (phi: B_(cs_Z \*_cs cs_Z)) (q : Q_(IR)) =>  [:: (inr tt); (inl tt)]) .
+  have mm : mu \modulus_function_for f2m by rewrite /mu/f2m/lprj/rprj/= => phi q' psi [[]] -> [->].
+  have mu_mod : (mu \modulus_function_for mu) by trivial.
+  exists (F2MM mm mu_mod).
+  rewrite /implements F2M_spec.
+  rewrite /f2m.
+  rewrite F2MF_rlzr/uncurry => phi [m e] [] [] /= z1 z2 [[-> ->] [-> ->]].
+  rewrite <-D2R_Float.
+  by apply (FloattoIR_correct m e).
+Defined.  
+End computable_real_structure.
 (* notations *)
 
 Definition mp (phi psi : names_IR) := (pair (phi,psi)).

@@ -51,6 +51,13 @@ Section cs_dscrt.
     rewrite cont_F2MF => phi; exists (fun _ => [:: tt]) => q' psi [eq _].
     by have ->: phi = psi by apply/fun_ext => str; elim str.        
   Qed.
+  Lemma dscrt_slfmod (X : cs) (f : B_(discrete_space) ->  B_(X)): (fun phi t => [:: tt]) \modulus_function_for f /\ (fun (phi : B_(discrete_space)) (t : unit) => [:: tt]) \modulus_function_for  (fun phi t => [:: tt]).
+  Proof.
+    split => phi q' psi [] /= H; last by trivial.
+    suff -> : (phi = psi) by trivial.
+    apply functional_extensionality.
+    by case.
+  Qed.
 End cs_dscrt.
 
 Lemma dscrt_id (X: cs) (x: X) (Xcount: X \is_countable):

@@ -296,7 +296,7 @@ Section Kleeneans.
   Inductive Kleeneans := false_K | true_K | bot_K.
 
   Definition names_Kleeneans:= Build_naming_space 0 nat_count (option_count bool_count).
-
+  
   Definition rep_K :=
     make_mf (fun (phi: names_Kleeneans) (t: Kleeneans) =>
 	       match t with
@@ -326,6 +326,34 @@ Section Kleeneans.
   Defined.
 
   Canonical cs_Kleeneans:= repf2cs Kleeneans_representation.
+
+  Require Import search.
+  Definition clean (phi: B_(cs_Kleeneans)) n := phi (ord_search (fun k => phi k) n).
+
+  Lemma cln_mon phi n: clean phi n <> None -> clean phi n = clean phi n.+1.
+  Proof.
+    rewrite/clean osrchS.
+    by case: ifP => //; case: (phi _).
+  Qed.
+    
+  Lemma cln_rlzr_id: (F2MF clean) \realizes id.
+  Proof.
+    rewrite F2MF_rlzr => phi [[n [eq min]] | [n [eq min]] | prp]; last by case => [|n]; exact/prp.
+    exists n; split => [ | m ineq].
+    - rewrite /clean; suff <-: n = ord_search (fun k => phi k) n by trivial.
+      by symmetry; apply/eqP/osrch_eqP => [[[m lt /=]]]; rewrite min //.
+    suff /osrchP: ~ exists k, k <= m /\ phi k by rewrite /clean; case: (phi _) => //.
+    case => k [leq val].
+    suff: phi k = None by case: (phi _) val.
+    by apply/min/leq_trans/ineq.
+    exists n; split => [ | m ineq].
+    - rewrite /clean; suff <-: n = ord_search (fun k => phi k) n by trivial.
+      by symmetry; apply/eqP/osrch_eqP => [[[m lt /=]]]; rewrite min //.
+    suff /osrchP: ~ exists k, k <= m /\ phi k by rewrite /clean; case: (phi _) => //.
+    case => k [leq val].
+    suff: phi k = None by case: (phi _) val.
+    by apply/min/leq_trans/ineq.    
+  Qed.
 End Kleeneans.
 
 Section Open_subsets_of_nat.

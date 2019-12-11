@@ -7,6 +7,7 @@ Require Import cs naming_spaces.
 Require Import cs_names.
 Require Import iso.
 
+Require Import FunctionalExtensionality ClassicalChoice.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
@@ -443,14 +444,14 @@ Section monotone_machines_product.
   Local Open Scope name_scope.
   Local Open Scope cs_scope.
   Context (X1 Y1 X2 Y2 : cs).
-  Definition Q1 := (Q_ X1).
-  Definition A1 := (A_ X1).
-  Definition Q1' := (Q_ Y1).
-  Definition A1' := (A_ Y1).
-  Definition Q2 := (Q_ X2).
-  Definition A2 := (A_ X2).
-  Definition Q2' := (Q_ Y2).
-  Definition A2' := (A_ Y2).
+  Notation Q1 := (Q_ X1).
+  Notation A1 := (A_ X1).
+  Notation Q1' := (Q_ Y1).
+  Notation A1' := (A_ Y1).
+  Notation Q2 := (Q_ X2).
+  Notation A2 := (A_ X2).
+  Notation Q2' := (Q_ Y2).
+  Notation A2' := (A_ Y2).
   Context (default1 : A1') (default2 : A2').
   Context (M1: monotone_machine Q1 A1 Q1' A1').
   Context (M2: monotone_machine Q2 A2 Q2' A2').
@@ -609,6 +610,202 @@ Section monotone_machines_product.
   exists (y1',y2').
   split => //.
   by exists (unpair Fphi); split => // /=.
+  Qed.
+End monotone_machines_product.
+Section monotone_machines_sum.
+  Local Open Scope name_scope.
+  Local Open Scope cs_scope.
+  Context (X1 Y1 X2 Y2 : cs).
+  Notation Q1 := (Q_ X1).
+  Notation A1 := (A_ X1).
+  Notation Q1' := (Q_ Y1).
+  Notation A1' := (A_ Y1).
+  Notation Q2 := (Q_ X2).
+  Notation A2 := (A_ X2).
+  Notation Q2' := (Q_ Y2).
+  Notation A2' := (A_ Y2).
+  Context (M1: monotone_machine Q1 A1 Q1' A1').
+  Context (M2: monotone_machine Q2 A2 Q2' A2').
+  Definition monotone_machine_sum (phi : ((Q1 * Q2) -> (A1 + A2))) nq :=
+    match (phi (someq,someq)) with
+    | (inl a) => match (M1 (lslct phi a) (nq.1, nq.2.1)) with
+                | Some a' => (Some (inl a'))
+                | _ => None
+                end
+               
+      | (inr a) => match (M2 (rslct phi a) (nq.1, nq.2.2)) with
+                | Some a' => (Some (inr a'))
+                | _ => None
+                end
+    end.
+
+  Definition monotone_machine_sum_mu (phi : ((Q1 * Q2) -> (A1 + A2))) nq  :=
+    match (phi (someq, someq)) with
+      | (inl a) =>
+          [:: (someq, someq)] ++ [seq (i,someq) | i <- (modulus M1 (lslct phi a) (nq.1, nq.2.1))]
+     | (inr a) =>
+       [:: (someq, someq)] ++ [seq (someq,i) | i <- (modulus M2 (rslct phi a) (nq.1, nq.2.2))]
+      end.
+  
+  Lemma monotone_machine_sum_mod : monotone_machine_sum_mu \modulus_function_for monotone_machine_sum.
+  Proof.
+    rewrite /monotone_machine_sum_mu/monotone_machine_sum => phi [n [q1 q2]] psi.
+    case e : (phi (someq, someq)) => [a|a];rewrite !coin_cat => [[[<- _]]] P;rewrite e.
+    have P1' : (lslct phi a) \coincides_with (lslct psi a) \on (modulus M1 (lslct phi a) (n, q1)).
+    - have /= := P.
+      elim (modulus M1 _) => // x l IH [H1 H2].
+      split; by [apply IH | rewrite /lslct H1].
+    by rewrite (modulus_correct P1').
+    have P2' : (rslct phi a) \coincides_with (rslct psi a) \on (modulus M2 (rslct phi a) (n, q2)).
+    - have /= := P.
+      elim (modulus M2 _) => // x l IH [H1 H2].
+      split; by [apply IH | rewrite /rslct H1].
+    by rewrite (modulus_correct P2').
+  Qed.
+
+  Lemma mon_msum: FMop.monotone (monotone_machine_sum).
+  Proof.
+    move => phi q n.
+    rewrite /monotone_machine_sum.
+    case (M_monotone M1 ) => M1_mon M1_term.
+    case (M_monotone M2 ) => M2_mon M2_term.
+    case (phi (someq, someq)) => q0 /= H.
+    rewrite M1_mon => //.
+    move : H.
+    by case (M1 _) => //.
+    rewrite M2_mon => //.
+    move : H.
+    by case (M2 _) => //.
+  Qed.
+
+  Lemma monotone_machine_sum_mod_mod : monotone_machine_sum_mu \modulus_function_for monotone_machine_sum_mu.
+  Proof.
+    rewrite /monotone_machine_sum_mu => phi [n [q1 q2]] psi.
+    case e : (phi (someq, someq)) => [a|a];rewrite !coin_cat => [[[<- _]]] P;rewrite e.
+    have P1' : (lslct phi a) \coincides_with (lslct psi a) \on (modulus M1 (lslct phi a) (n, q1)).
+    - have /= := P.
+      elim (modulus M1 _) => // x l IH [H1 H2].
+      split; by [apply IH | rewrite /lslct H1].
+    by f_equal;f_equal; apply modmod.
+    have P2' : (rslct phi a) \coincides_with (rslct psi a) \on (modulus M2 (rslct phi a) (n, q2)).
+    - have /= := P.
+      elim (modulus M2 _) => // x l IH [H1 H2].
+      split; by [apply IH | rewrite /rslct H1].
+    by f_equal;f_equal; apply modmod.
+  Qed.
+
+  Lemma term_msum:
+    terminates_with monotone_machine_sum
+    monotone_machine_sum_mu.
+  Proof.
+    rewrite /monotone_machine_sum_mu/monotone_machine_sum => phi [q1 q2] n.
+    case (phi (someq, someq)) => q0.
+    - case e : (M1 _) =>// _.
+      have e0 : (isSome (M1 (lslct phi q0) (n, q1))) by rewrite e.
+      have mod_term := (modulus_terminating e0).
+      apply cons_subs; split; first by apply or_introl.
+      apply subl_cat.
+      apply or_intror => /=.
+      apply func.map_subl.
+      by apply (mod_term (monm_mon M1)).
+    case e : (M2 _) =>// _.
+    have e0 : (isSome (M2 (rslct phi q0) (n, q2))) by rewrite e.
+    have mod_term := (modulus_terminating e0).
+    apply cons_subs; split; first by apply or_introl.
+    apply subl_cat.
+    apply or_intror => /=.
+    apply func.map_subl.
+    by apply (mod_term (monm_mon M2)).
+  Qed.
+
+  Definition sum: monotone_machine (Q1*Q2) (A1 + A2) (Q1' * Q2') (A1' + A2').
+    exists (Build_continuous_machine monotone_machine_sum_mod  monotone_machine_sum_mod_mod).
+    split.
+    - exact /mon_msum.   
+    exact/term_msum.
+  Defined.
+
+  Lemma msum_spec F G : (\F_M1) \solves F -> (\F_M2) \solves G ->  (\F_sum \solves (F +s+ G)).
+  Proof.
+  rewrite  /=/monotone_machine_sum => H1 H2 phi x [x0 [x0prp P1]] P2.
+  split.
+  - rewrite FM_dom  => q /=.
+    move : x0 x0prp P1.
+    rewrite /slct /= => [[a aprp | a aprp ]]; move : P2; case x => x' [[]] s sprp P //.
+    + case (H1 a x' P); first by exists s.
+      case => psi psiprp Fqprp.
+      exists (inl (psi q.1)).
+      case (psiprp q.1) => n nprp.
+      exists n.
+      move : aprp.
+      by case (phi (someq, someq)) => a0 [] // ->;rewrite nprp.
+    case (H2 a x' P); first by exists s.
+    case => psi psiprp Fqprp.
+    exists (inr (psi q.2)).
+    case (psiprp q.2) => n nprp.
+    exists n.
+    move : aprp.
+    by case (phi (someq, someq)) => a0 [] // ->;rewrite nprp.
+  move => psi psiprp.
+  move : x0 x0prp P1.
+  rewrite /slct /= => [[phil philprp | phir phirprp ]]; move : P2.
+  - case x => x0 //.
+    case.
+    case => s sprp P //.
+    have := (psiprp (someq, someq)).
+    move :philprp.
+    case e: (phi (someq, someq)) => [a0 | a0] // [] prp .
+    rewrite prp.
+    case => m0.
+    case (M1 _ _) => b0 // [] B.
+    case (H1 phil x0 P) => [| dom ex]; first by exists s.
+    case (ex (lslct psi b0)).
+    move => q'.
+    case (psiprp (q', someq)) => n.
+    rewrite e. 
+    rewrite prp /=.
+    case e1 : (M1 _ _) => [m1v | ] // [m1P].
+    exists n. 
+    rewrite e1.
+    f_equal. 
+    rewrite /lslct.
+    by rewrite <- m1P.
+    rewrite /lslct.
+    move => h [hprp1 hprp2].
+    exists (inl h).
+    split => //.
+    exists (inl (lslct psi b0)).
+    rewrite /slct.
+    rewrite <-B.
+    split => //.
+  case x => x0 //.
+  case.
+  case => s sprp P //.
+  have := (psiprp (someq, someq)).
+  move :phirprp.
+  case e: (phi (someq, someq)) => [a0 | a0] // [] prp .
+  rewrite prp.
+  case => m0.
+  case (M2 _ _) => b0 // [] B.
+  case (H2 phir x0 P) => [| dom ex]; first by exists s.
+  case (ex (rslct psi b0)).
+  move => q'.
+  case (psiprp (someq,q')) => n.
+  rewrite e. 
+  rewrite prp /=.
+  case e1 : (M2 _ _) => [m2v | ] // [m2P].
+  exists n. 
+  rewrite e1.
+  f_equal. 
+  rewrite /rslct.
+  by rewrite <- m2P.
+  move => h [hprp1 hprp2].
+  exists (inr h).
+  split => //.
+  exists (inr (rslct psi b0)).
+  rewrite /slct.
+  rewrite <-B.
+  split => //.
   Qed.
 End monotone_machines_product.
 Section constructions.

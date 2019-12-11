@@ -1318,11 +1318,7 @@ Definition interval_reals: computable_reals.
   - rewrite /implements F2M_spec.
     apply ltK_rlzr_spec.
   set f2m := (fun (phi : B_(cs_Z \*_cs cs_Z)) => (FloattoIR (lprj phi tt) (rprj phi tt))).
-  set mu := (fun (phi: B_(cs_Z \*_cs cs_Z)) (q : Q_(IR)) =>  [:: (inr tt); (inl tt)]) .
-  have mm : mu \modulus_function_for f2m by rewrite /mu/f2m/lprj/rprj/= => phi q' psi [[]] -> [->].
-  have mu_mod : (mu \modulus_function_for mu) by trivial.
-  exists (F2MM mm mu_mod).
-  rewrite /implements F2M_spec.
+  exists f2m.
   rewrite /f2m.
   rewrite F2MF_rlzr/uncurry => phi [m e] [] [] /= z1 z2 [[-> ->] [-> ->]].
   rewrite <-D2R_Float.

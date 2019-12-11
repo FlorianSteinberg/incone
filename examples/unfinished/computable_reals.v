@@ -37,6 +37,21 @@ Structure computable_reals:=
                                             implements (uncurry (Rmult: R -> R -> R)) M};
     ltk_machine: {M : monotone_machine| let R := Build_continuity_space representation in
                            implements (ltK : R * R -> Kleeneans) M};
-    F2R_machine: {M : monotone_machine| let R := Build_continuity_space representation in
-                           implements (uncurry (fun (m exp : Z) => (m * powerRZ 2 exp)) : (Z * Z -> R)) M};
+    F2R: {f | let R := Build_continuity_space representation in
+                           (F2MF f) \realizes (uncurry (fun (m exp : Z) => (m * powerRZ 2 exp)) : (Z * Z -> R))};
   }.
+
+
+(* sometimes we need the machine instead of the function *)
+Lemma F2R_machine (cr : computable_reals) : {M : monotone_machine | let R := Build_continuity_space (representation cr) in implements (uncurry (fun (m exp : Z) => (m * powerRZ 2 exp)) : (Z * Z -> R)) M}.
+Proof.
+  set mu := (fun (phi: B_(cs_Z \*_cs cs_Z)) (q : Q_(name_space (representation cr))) =>  [:: (inr tt); (inl tt)]) .
+  case (F2R cr) => f2r f2r_prp.
+  have mm : mu \modulus_function_for (f2r).
+  - move => phi q psi [[H1 [H2 _]]]. 
+    suff -> : (phi = psi) by trivial.
+    apply functional_extensionality => [[]]; by case.
+  have mu_mod : (mu \modulus_function_for mu) by trivial.
+  exists (F2MM mm mu_mod).
+  by rewrite /implements F2M_spec.
+Defined.

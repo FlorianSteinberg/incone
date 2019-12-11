@@ -65,6 +65,8 @@ examples/reals/Rstruct.v
 examples/reals/Q_reals.v
 examples/reals/division_for_Q_reals.v
 
+examples/unfinished/Q_round.v
+
 examples/unfinished/computable_reals.v
 examples/unfinished/Ibounds.v
 examples/unfinished/IrealsZ.v

@@ -334,6 +334,17 @@ End multiplication.
 Section division.
 Definition Rdiv_rlzrf (phi: names_IR \*_ns names_IR) (n: nat):= I.div (nat2p n) (lprj phi n) (rprj phi n).
 
+Definition Rdiv_rlzr_mu (phi : names_IR \*_ns names_IR) n: seq (nat + nat) := [:: (inl n); (inr n)].
+
+Lemma Rdiv_rlzr_mu_mod : Rdiv_rlzr_mu \modulus_function_for Rdiv_rlzrf.
+Proof.
+  by rewrite /Rdiv_rlzrf/lprj/rprj => phi n psi [] /= -> [] ->.
+Qed.
+
+Lemma Rdiv_rlzr_mu_modmod : Rdiv_rlzr_mu \modulus_function_for Rdiv_rlzr_mu.
+Proof.
+  by rewrite /Rdiv_rlzr_mu => phi n psi /=.
+Qed.
 Definition Rdiv_rlzr: B_ (IR \*_cs IR) ->> B_ IR := F2MF Rdiv_rlzrf.
 Lemma Rdiv_rlzr_spec :  Rdiv_rlzr \solves (make_mf (fun xy z => (xy.2 <> 0 /\ z = (Rdiv xy.1 xy.2)))).
 Proof.
@@ -1314,6 +1325,9 @@ Definition interval_reals: computable_reals.
   exists (F2MM Rmult_rlzr_mu_mod Rmult_rlzr_mu_modmod).
   - rewrite /implements F2M_spec.
     apply Rmult_rlzr_spec.
+  exists (F2MM Rdiv_rlzr_mu_mod Rdiv_rlzr_mu_modmod).
+  - rewrite /implements F2M_spec.
+    apply Rdiv_rlzr_spec.
   exists (F2MM ltK_mu_mod ltK_mu_modmod).
   - rewrite /implements F2M_spec.
     apply ltK_rlzr_spec.

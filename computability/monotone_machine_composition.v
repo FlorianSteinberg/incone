@@ -807,7 +807,7 @@ Section monotone_machines_sum.
   rewrite <-B.
   split => //.
   Qed.
-End monotone_machines_product.
+End monotone_machines_sum.
 Section constructions.
 Local Open Scope name_scope.
 Local Open Scope cs_scope.
@@ -844,5 +844,13 @@ Proof.
   exists (product a1 a2 f g).
   rewrite prp.
   by apply mprd_spec.
+Defined.
+Lemma sum_machine (S T U V: cs) (F : S ->> T) (G : U ->> V) H  : {f : (monotone_machine  Q_ S A_ S Q_ T A_ T) |  \F_f \solves F} -> {g : (monotone_machine  Q_ U A_ U Q_ V A_ V)|  \F_g \solves G} -> H =~= (F +s+ G) -> {h : (monotone_machine  Q_ (S \+_cs U) A_ (S \+_cs U) Q_ (T \+_cs V) A_ (T \+_cs V)) | \F_h \solves H}.
+Proof.
+  case => f fprp.
+  case => g gprp prp.
+  exists (sum f g).
+  rewrite prp.
+  by apply msum_spec.
 Defined.
 End constructions.

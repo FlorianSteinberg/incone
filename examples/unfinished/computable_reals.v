@@ -27,6 +27,7 @@ Proof.
   split; split;[| | split | split]; try lra;try by auto.
 Qed.
 
+Definition Rdiv_mf := make_mf (fun xy z => (xy.2 <> 0 /\ z = (xy.1/xy.2))).
 Structure computable_reals:=
   {
     representation: representation_of R;
@@ -35,6 +36,8 @@ Structure computable_reals:=
                            implements (uncurry (Rplus: R -> R  -> R)) M};
     multiplication_machine: {M: monotone_machine| let R := Build_continuity_space representation in
                                             implements (uncurry (Rmult: R -> R -> R)) M};
+    division_machine: {M: monotone_machine| let R := Build_continuity_space representation in
+                                            \F_M \solves (Rdiv_mf : (R * R) ->> R)};
     ltk_machine: {M : monotone_machine| let R := Build_continuity_space representation in
                            implements (ltK : R * R -> Kleeneans) M};
     F2R: {f | let R := Build_continuity_space representation in

@@ -12,6 +12,24 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+Section modulus_facts.
+  Local Open Scope name_scope.
+  Context (Q : eqType).
+  Context (A A' Q': Type).
+  Notation B := (Q -> A).
+  Notation B' := (Q' -> A').
+  Definition undup_mod (mu : B -> Q' -> seq Q) := fun phi q => (undup (mu phi q)).
+  Lemma undup_mod_spec (mu : B -> Q' -> seq Q) (f: B -> B') : mu \modulus_function_for f -> (undup_mod mu) \modulus_function_for f.
+  Admitted.
+  Lemma undup_modmod (mu : B -> Q' -> seq Q) : mu \modulus_function_for mu -> (undup_mod mu) \modulus_function_for (undup_mod mu).
+  Admitted.
+End modulus_facts.
+Section modulus_facts2.
+  Context (Q : eqType).
+  Context (A A' Q': Type).
+  Lemma undup_term (mu : (Q->A) -> nat*Q' -> seq Q) (f: (Q -> A) -> (nat * Q' -> (option A'))) : terminates_with f mu -> terminates_with f (undup_mod mu).
+  Admitted.
+End modulus_facts2.
 Section monotone_machine_application.
   (**
      This section reiterates the results from the file "multivalued_application" in a slightly
@@ -808,6 +826,19 @@ Section monotone_machines_sum.
   split => //.
   Qed.
 End monotone_machines_sum.
+Section undup.
+  Context (Q : eqType) (Q' A A' : Type).
+  Definition undup (M : monotone_machine Q A Q' A') : monotone_machine Q A Q' A'.
+    have mod := (undup_mod_spec (@mod _ _ _ _ _ M)).
+    have modmod := (undup_modmod A' (@modmod _ _ _ _ _ M)).
+    exists (Build_continuous_machine mod modmod).
+    split.
+    apply M_monotone.
+    apply /undup_term.
+    by apply M_monotone.
+Defined.
+  
+End undup.
 Section constructions.
 Local Open Scope name_scope.
 Local Open Scope cs_scope.
@@ -853,4 +884,5 @@ Proof.
   rewrite prp.
   by apply msum_spec.
 Defined.
+
 End constructions.

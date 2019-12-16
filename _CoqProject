@@ -81,4 +81,4 @@ examples/unfinished/Iextract.v
 #examples/unfinished/sdvsc.v
 
 examples/unfinished/softcomparison.v
-examples/unfinished/sqrt.v
+examples/unfinished/magnitude.v

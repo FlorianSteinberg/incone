@@ -13,7 +13,6 @@ Require Import search.
 Require Import computable_reals.
 Require Import Ibounds.
 Require Import softcomparison.
-
 (* Some helper functions we need that should be moved to another file later *)
 Definition nat2csN (n : nat) := (fun (_ : unit) => n). 
 Definition Z2csZ (z : Z) := (fun (_ : unit) => z). 
@@ -450,7 +449,6 @@ Qed.
 End magnitude.
 
 Section machines.
-Check if_X.
 Definition if_rlzrf X (phi : B_(cs_bool \*_cs X)) q1q2 :=  match (lprj phi tt) with
                                  | true => (inl (rprj phi q1q2.1))
                                  | false => (inr (rprj phi q1q2.2))
@@ -521,7 +519,7 @@ Proof.
   have mumm : mu \modulus_function_for mu by trivial.
   exists (F2MM mum mumm).
   by rewrite F2M_spec.
-Qed.
+Defined.
 
 Definition andb_rlzrf (phi : B_(cs_bool \*_cs cs_bool)) tt := andb (lprj phi tt) (rprj phi tt).
 Lemma andb_rlzrf_spec : (F2MF andb_rlzrf) \realizes (uncurry andb).
@@ -686,8 +684,12 @@ Proof.
   - rewrite /magnitude_rlzrM.
     set m := mu.1.
     case e: ((ord_search _ _) == m.+1) => //.
-    case => H.
-    rewrite <- H.
+    move => H.
+    have s x y : (Some x = Some y -> x = y).
+    by case.
+    have H': (ord_search (fun n : nat => (magnitude_checkM n) phi (m,tt) == Some true) m.+1) = n.
+    by apply s.
+    rewrite <- H'.
     apply /eqP.
     apply (@search_lt (fun n => (magnitude_checkM n phi (m,tt)) == (Some true)) m.+1).
     apply /leP.
@@ -762,13 +764,18 @@ Lemma mod_magnitude_check_nm_spec : mod_magnitude_check_nm \modulus_function_for
 Proof.
   rewrite /magnitude_check_nm/magnitude_checkM/mod_magnitude_check_nm.
   move => phi [n m] psi coin.
-  by rewrite (@modulus_correct _ _ _ _ _ (projT1 (magnitude_check_machine_spec n)) phi (m,tt) psi).
+  have H := (@modulus_correct _ _ _ _ _ (projT1 (magnitude_check_machine_spec n)) phi (m,tt) psi).
+  rewrite H.
+  rewrite /fst/snd.
+  by reflexivity.
+  by apply coin.
 Qed.
 
 Lemma mod_magnitude_check_nm_mod : mod_magnitude_check_nm \modulus_function_for mod_magnitude_check_nm.
 Proof.
   rewrite /mod_magnitude_check_nm => phi [n m] psi coin.
-  by apply modmod.
+  apply modmod.
+  apply coin.
 Qed.
 
 Definition magnitude_rlzrM' phi (mtt : nat * unit) := ((use_first magnitude_check_nm) phi (mtt.1,mtt.1)).
@@ -816,6 +823,20 @@ Proof.
   apply sfrst_spec.
 Defined.
 
+Lemma paib_machine_exists (X : cs) : {M : monotone_machine | \F_M \realizes (@paib X)}.
+Proof.
+  set rlzr := (paib (T:=B_(X))) \o_f (@slct B_(X) B_(X)).
+  set mu := (fun (phi : (sum_names B_(X) B_((X)))) (q : Q_(X)) => [:: (someq, someq); (q,someq); (someq, q)]).
+  have rlzr_spec : (F2MF rlzr) \realizes (@paib X) by apply paib_rlzr_crct.
+  have mu_spec : mu \modulus_function_for rlzr. 
+  - rewrite /rlzr/paib/slct/lslct/rslct => phi q psi [] /= -> [H1 [H2 _]].
+    case : (psi (someq, someq)) => a; by [rewrite H1 | rewrite H2].
+  have mu_mod : mu \modulus_function_for mu by trivial.
+  exists (F2MM mu_spec mu_mod).
+  rewrite F2M_spec.
+  by apply rlzr_spec.
+Defined.
+
 Lemma magnitude_machine_spec : {M : monotone_machine | \F_M \solves (magnitude : Rc ->> Z)}.
 Proof.  
   have fp : forall f, (f =~= f) by trivial.
@@ -854,7 +875,7 @@ Proof.
   apply /(int_constant_machine 1).
   apply default.
   apply (default, default).
-  apply (inv_machine Rc).
+  apply (division_machine Rc).
   apply (default, default).
   apply /cmp_machine => //;last first.
   apply magnitude_rlzrMM_spec.
@@ -870,7 +891,28 @@ Proof.
   apply default.
   rewrite /mag_check_lt.
   apply /cmp_machine => //; last first.
-  admit.
+  have d2 : (F2MF (fun x => Rdiv x 2)) =~= (Rdiv_mf \o (mf_id ** (@mf_cnst Rc Rc 2))) \o mf_diag.
+  - rewrite /mf_id/mf_cnst/mf_diag/Rdiv_mf.
+    rewrite <- F2MF_fprd.
+    rewrite !comp_F2MF.
+    rewrite /mf.diag/fprd/cnst/=.
+    move => x /=.
+    split => // /= [H|].
+    split; first by exists (x,2) => /= //.
+    move => [x1 x2] /= [prp1 prp2].
+    exists (x1/x2); split;  by [lra | ].
+    by case => [[[x1 x2 [[<- <- [_ ->]]]]]].
+  apply /cmp_machine => //; last first.
+  apply diag_machine_exists.
+  apply /cmp_machine => //; last first.
+  apply fp.
+  apply /prd_machine => //; last first.
+  apply (int_constant_machine 2%Z).
+  apply id_machine_exists.
+  apply default.
+  apply (division_machine Rc).
+  apply (default, default).
+  apply (default, default).
   apply /cmp_machine => //; last first.
   apply magnitude_rlzrMM_spec.
   set rlzr := (fun (nn : unit -> nat) (tt : unit) => ((-Z.of_nat (nn tt))+1)%Z).
@@ -883,707 +925,707 @@ Proof.
   apply rlzr_spec.
   apply 0%nat.
   apply default.
-  rewrite F2M_spec.
-  apply rlzr_spec.
-  admit.
+  apply paib_machine_exists.
   apply (inl 0)%Z.
   apply (inl default).
   apply (false, default).
   apply (default,default).
-Lemma magnitude_checkM_spec n : {M : (monotone_machine _ _ _ _ ) | \F_M \solves (magnitude_check n)}.
-Proof.
-  have fp : forall f, (f =~= f) by trivial.
-  apply /compM => //.
-  apply ((false,false) : A_(cs_bool \*_cs cs_bool)).
-  exists (F2MM andb_mu_mod andb_mu_modmod).
-  rewrite F2M_spec.
-  apply andb_rlzrf_spec.
-  apply /compM => //; last first.
-  exists (@diagM IR).
-  rewrite F2M_spec.
-  apply diag_rlzrf_spec.
-  apply /prdM => //; try by apply false.
-  apply /compM => //; last first.
-  exists (F2MM (@magnitude_check_cmp_mu_modr n) (@magnitude_check_mu_modmod n)).
-  rewrite F2M_spec.
-  apply magnitude_check_rhs_rlzrf_spec.
-  apply lt_n_M_spec.
-  apply (0%nat, (Interval_interval_float.Inan, Interval_interval_float.Inan)).
-  apply /compM => //; last first.
-  exists (F2MM (@magnitude_check_cmp_mu_modl n) (@magnitude_check_mu_modmod n)).
-  rewrite F2M_spec.
-  apply magnitude_check_lhs_rlzrf_spec.
-  apply lt_n_M_spec.
-  apply (0%nat, (Interval_interval_float.Inan, Interval_interval_float.Inan)).
-  apply ((Interval_interval_float.Inan, Interval_interval_float.Inan)).
-  by rewrite /magnitude_check.
 Defined.
+End machines.
+(* Lemma magnitude_checkM_spec n : {M : (monotone_machine _ _ _ _ ) | \F_M \solves (magnitude_check n)}. *)
+(* Proof. *)
+(*   have fp : forall f, (f =~= f) by trivial. *)
+(*   apply /compM => //. *)
+(*   apply ((false,false) : A_(cs_bool \*_cs cs_bool)). *)
+(*   exists (F2MM andb_mu_mod andb_mu_modmod). *)
+(*   rewrite F2M_spec. *)
+(*   apply andb_rlzrf_spec. *)
+(*   apply /compM => //; last first. *)
+(*   exists (@diagM IR). *)
+(*   rewrite F2M_spec. *)
+(*   apply diag_rlzrf_spec. *)
+(*   apply /prdM => //; try by apply false. *)
+(*   apply /compM => //; last first. *)
+(*   exists (F2MM (@magnitude_check_cmp_mu_modr n) (@magnitude_check_mu_modmod n)). *)
+(*   rewrite F2M_spec. *)
+(*   apply magnitude_check_rhs_rlzrf_spec. *)
+(*   apply lt_n_M_spec. *)
+(*   apply (0%nat, (Interval_interval_float.Inan, Interval_interval_float.Inan)). *)
+(*   apply /compM => //; last first. *)
+(*   exists (F2MM (@magnitude_check_cmp_mu_modl n) (@magnitude_check_mu_modmod n)). *)
+(*   rewrite F2M_spec. *)
+(*   apply magnitude_check_lhs_rlzrf_spec. *)
+(*   apply lt_n_M_spec. *)
+(*   apply (0%nat, (Interval_interval_float.Inan, Interval_interval_float.Inan)). *)
+(*   apply ((Interval_interval_float.Inan, Interval_interval_float.Inan)). *)
+(*   by rewrite /magnitude_check. *)
+(* Defined. *)
 
-Lemma magnitude_check_correct phi n m x : (phi \is_name_of x) -> (0 < x <= 1) -> (magnitude_checkM phi n m)  -> n \from (magnitude1 x).
-Proof.
-  move => phin [xgt xlt].
-  rewrite /magnitude_checkM.
-  case e :lt_n_M => [b |]; try by auto.
-  move : e;case b => e; try by auto.
-  have [psin psin'] := (magnitude_check_cmp_names n). 
-  apply (lt_N_b_correct phin psin) in e.
-  case e' :lt_n_M => [b' |]; try by auto.
-  move : e';case b' => e'; try by auto.
-  apply (lt_N_b_correct psin'  phin) in e'.
-  move => _.
-  by apply (@magnitude_spec x n).
-Qed.
-
-
-(* There always exists n,m such that magnitude_check returns true *)
-Lemma magnitude_check_srch_term phi x : (phi \is_name_of x) -> (0 < x <= 1) -> exists n m, (magnitude_checkM phi n m).
-Proof.
-  move => phin xbnd.
-  case (magnitude_n_exists xbnd) => n [nprp1 nprp2].
-  Check lt_n_nf2.
-  have is_true1 b : b \from (lt_n (n.+2,(x, (3 * (/ 2 ^n) + (/ 2 ^ n.+2))))) -> b = true.
-  - case b; first by auto.
-    by have := (lt_n_nf2 nprp2).
-  have is_true2 b : b \from (lt_n (n.+2,((/ 2 ^ n), x))) -> b = true.
-  - case b; first by auto.
-    by have := (lt_n_nf1 nprp1).
-  exists n.
-  rewrite /magnitude_checkM.
-  have [psin psin'] := (magnitude_check_cmp_names n).
-  case (lt_N_b_term n.+2 phin psin) => m1; case => b1 m1prp.
-  case (lt_N_b_term n.+2 psin' phin) => m2; case => b2 m2prp.
-  move : (m1prp _ (Max.le_max_l m1 m2)) => mprp.
-  have b1prp : b1 = true.
-  - apply is_true1.
-    by apply (lt_N_b_correct phin psin mprp ).
-  rewrite b1prp in mprp.
-  move : (m2prp _ (Max.le_max_r m1 m2)) => mprp'.
-  have b2prp : b2 = true.
-  - apply is_true2.
-    by apply (lt_N_b_correct psin' phin mprp' ).
-  rewrite b2prp in mprp'.
-  exists (Nat.max m1 m2).
-  by rewrite mprp mprp'.
-Qed.
-
-(* the magnitude realizer searches for the first value the check machine returns true *)
+(* Lemma magnitude_check_correct phi n m x : (phi \is_name_of x) -> (0 < x <= 1) -> (magnitude_checkM phi n m)  -> n \from (magnitude1 x). *)
+(* Proof. *)
+(*   move => phin [xgt xlt]. *)
+(*   rewrite /magnitude_checkM. *)
+(*   case e :lt_n_M => [b |]; try by auto. *)
+(*   move : e;case b => e; try by auto. *)
+(*   have [psin psin'] := (magnitude_check_cmp_names n).  *)
+(*   apply (lt_N_b_correct phin psin) in e. *)
+(*   case e' :lt_n_M => [b' |]; try by auto. *)
+(*   move : e';case b' => e'; try by auto. *)
+(*   apply (lt_N_b_correct psin'  phin) in e'. *)
+(*   move => _. *)
+(*   by apply (@magnitude_spec x n). *)
+(* Qed. *)
 
 
-Lemma magnitude_rlzrMM_spec : (\F_magnitude_rlzrMM \solves magnitude1). 
-Proof.
-Admitted.
-Lemma magnitude_check_monotonic phi n m m' : (m <= m')%nat -> (magnitude_checkM phi n m) -> (magnitude_checkM phi n m').
-Proof.
-  move /leP => lt.
-  rewrite /magnitude_checkM /lt_n_M.
-  case e : (K2B_rlzrM _) => [b |] //; case bv : b; try by auto.
-  rewrite bv in e.
-  case e' : (K2B_rlzrM _) => [b' |] //; case bv' : b'; try by auto.
-  rewrite bv' in e' => _.
-  rewrite (K2B_rlzrM_monotonic e lt).
-  by rewrite (K2B_rlzrM_monotonic e' lt).
-Qed.
+(* (* There always exists n,m such that magnitude_check returns true *) *)
+(* Lemma magnitude_check_srch_term phi x : (phi \is_name_of x) -> (0 < x <= 1) -> exists n m, (magnitude_checkM phi n m). *)
+(* Proof. *)
+(*   move => phin xbnd. *)
+(*   case (magnitude_n_exists xbnd) => n [nprp1 nprp2]. *)
+(*   Check lt_n_nf2. *)
+(*   have is_true1 b : b \from (lt_n (n.+2,(x, (3 * (/ 2 ^n) + (/ 2 ^ n.+2))))) -> b = true. *)
+(*   - case b; first by auto. *)
+(*     by have := (lt_n_nf2 nprp2). *)
+(*   have is_true2 b : b \from (lt_n (n.+2,((/ 2 ^ n), x))) -> b = true. *)
+(*   - case b; first by auto. *)
+(*     by have := (lt_n_nf1 nprp1). *)
+(*   exists n. *)
+(*   rewrite /magnitude_checkM. *)
+(*   have [psin psin'] := (magnitude_check_cmp_names n). *)
+(*   case (lt_N_b_term n.+2 phin psin) => m1; case => b1 m1prp. *)
+(*   case (lt_N_b_term n.+2 psin' phin) => m2; case => b2 m2prp. *)
+(*   move : (m1prp _ (Max.le_max_l m1 m2)) => mprp. *)
+(*   have b1prp : b1 = true. *)
+(*   - apply is_true1. *)
+(*     by apply (lt_N_b_correct phin psin mprp ). *)
+(*   rewrite b1prp in mprp. *)
+(*   move : (m2prp _ (Max.le_max_r m1 m2)) => mprp'. *)
+(*   have b2prp : b2 = true. *)
+(*   - apply is_true2. *)
+(*     by apply (lt_N_b_correct psin' phin mprp' ). *)
+(*   rewrite b2prp in mprp'. *)
+(*   exists (Nat.max m1 m2). *)
+(*   by rewrite mprp mprp'. *)
+(* Qed. *)
 
-Lemma magnitude_rlzrM_simpl phi m n : (magnitude_rlzrM phi m) = (Some n) -> (magnitude_checkM phi n m).
-Proof.
-  rewrite /magnitude_rlzrM.
-  set m0 := (ord_search (fun n' => (magnitude_checkM phi n' m)) m).
-  move => H.
-  have m0lt : (m0 < m)%nat.
-  - apply /leP.
-    have /leP p0 := (osrch_le (fun n' => (magnitude_checkM phi n' m)) m).
-    suff: (m0 <> m) by lia.  
-    move : H.
-    case e: (m0 == m)%B => // _.
-    by move /eqP :e.
-  have <- : (m0 = n)%nat.
-  - move : H.
-    case e: (m0 == m)%B => //.
-    by case.
-  by have m0prp : (magnitude_checkM phi m0 m); apply (search_lt m0lt).
-Qed.
+(* (* the magnitude realizer searches for the first value the check machine returns true *) *)
 
-Lemma magnitude_rlzrM_correct phi x m n : (phi \is_name_of x) -> (0 < x <= 1) -> (magnitude_rlzrM phi m) = (Some n) -> (n \from magnitude1 x).
-  move => phin xbnd H.
-  have H' := (magnitude_rlzrM_simpl H). 
-  by apply (magnitude_check_correct phin xbnd H').
-Qed.
 
-Lemma magnitude_rlzrM_term phi x : (phi \is_name_of x) -> (0 < x <= 1) -> exists m, forall m', (m <= m')%nat -> exists n, (magnitude_rlzrM phi m') = (Some n).
-Proof.
-  rewrite /magnitude_rlzrM.
-  move => phin xbnd.
-  case (magnitude_check_srch_term  phin xbnd) => n; case => m mprp.
-  exists (Nat.max (n.+1) (m.+1)) => m' m'prp.
-  have m'le : (m <= m')%nat by apply /leP;have := (Max.le_max_r n.+1 m.+1); move /leP : m'prp;lia.
-  have mprp2 := (magnitude_check_monotonic m'le mprp).
-  have le := (@osrch_min (fun n => (magnitude_checkM phi n m')) m' n mprp2).
-  exists (ord_search (fun n => (magnitude_checkM phi n m')) m').
-  apply ifF.
-  apply /eqP => P.
-  move /leP : le.
-  rewrite P.
-  have := (Max.le_max_l n.+1 m.+1).
-  move /leP : m'prp.
-  by lia.
-Qed.
+(* Lemma magnitude_rlzrMM_spec : (\F_magnitude_rlzrMM \solves magnitude1).  *)
+(* Proof. *)
+(* Admitted. *)
+(* Lemma magnitude_check_monotonic phi n m m' : (m <= m')%nat -> (magnitude_checkM phi n m) -> (magnitude_checkM phi n m'). *)
+(* Proof. *)
+(*   move /leP => lt. *)
+(*   rewrite /magnitude_checkM /lt_n_M. *)
+(*   case e : (K2B_rlzrM _) => [b |] //; case bv : b; try by auto. *)
+(*   rewrite bv in e. *)
+(*   case e' : (K2B_rlzrM _) => [b' |] //; case bv' : b'; try by auto. *)
+(*   rewrite bv' in e' => _. *)
+(*   rewrite (K2B_rlzrM_monotonic e lt). *)
+(*   by rewrite (K2B_rlzrM_monotonic e' lt). *)
+(* Qed. *)
 
-Lemma magnitude_rlzrM_spec phi x : (phi \is_name_of x) -> (0 < x <= 1) -> exists m n, (magnitude_rlzrM phi m) = (Some n) /\ (n \from magnitude1 x).
-Proof.
-  move => phin xbnd.
-  case (magnitude_check_srch_term phin xbnd) => n; case => m mprp.
-  exists (Nat.max n m).+1.
-  exists (ord_search (fun n' => (magnitude_checkM phi n' (Nat.max n m).+1)) (Nat.max n m).+1).
-  rewrite /magnitude_rlzrM.
-  have lt1 : (m < (Nat.max n m).+1)%nat.
-  - apply /leP.
-    have := (Max.le_max_r n m).
-    lia.
-  have lt2 : (n < (Nat.max n m).+1)%nat.
-  - apply /leP.
-    by have := (Max.le_max_l n m);lia.
-  have le1 : (m <= (Nat.max n m).+1)%nat by apply /leP;lia. 
-  have le2 : (n <= (Nat.max n m).+1)%nat by apply /leP;lia. 
-  have M := (magnitude_check_monotonic le1 mprp).
-  rewrite ifF.
-  - split; first by auto.
-    by apply (magnitude_check_correct phin xbnd (@search_correct_le (fun n' => (magnitude_checkM phi n' (Nat.max n m).+1)) _ _ M le2)).
-  apply ltn_eqF.
-  apply /leq_ltn_trans.
-  apply (@osrch_min (fun n' => (magnitude_checkM phi n' (Nat.max n m).+1)) _ _ M).
-  by apply lt2.
-Qed.
+(* Lemma magnitude_rlzrM_simpl phi m n : (magnitude_rlzrM phi m) = (Some n) -> (magnitude_checkM phi n m). *)
+(* Proof. *)
+(*   rewrite /magnitude_rlzrM. *)
+(*   set m0 := (ord_search (fun n' => (magnitude_checkM phi n' m)) m). *)
+(*   move => H. *)
+(*   have m0lt : (m0 < m)%nat. *)
+(*   - apply /leP. *)
+(*     have /leP p0 := (osrch_le (fun n' => (magnitude_checkM phi n' m)) m). *)
+(*     suff: (m0 <> m) by lia.   *)
+(*     move : H. *)
+(*     case e: (m0 == m)%B => // _. *)
+(*     by move /eqP :e. *)
+(*   have <- : (m0 = n)%nat. *)
+(*   - move : H. *)
+(*     case e: (m0 == m)%B => //. *)
+(*     by case. *)
+(*   by have m0prp : (magnitude_checkM phi m0 m); apply (search_lt m0lt). *)
+(* Qed. *)
 
-(* Next we extend to all positive real numbers *)
-Lemma magnitude_inv x n: (0 < x) -> n \from (magnitude1 (/ x)) ->  (/ 4) * (2 ^ n) < x < (2 ^ n).
-Proof.
-  move => xlt /= [nprp1 nprp2].
-  split.
-  - apply Rinv_lt_cancel; first by lra.
-    rewrite Rinv_mult_distr; try by lra.
-    apply pow_nonzero;lra.
-  by apply Rinv_lt_cancel; [apply pow_lt |];lra.
-Qed.
+(* Lemma magnitude_rlzrM_correct phi x m n : (phi \is_name_of x) -> (0 < x <= 1) -> (magnitude_rlzrM phi m) = (Some n) -> (n \from magnitude1 x). *)
+(*   move => phin xbnd H. *)
+(*   have H' := (magnitude_rlzrM_simpl H).  *)
+(*   by apply (magnitude_check_correct phin xbnd H'). *)
+(* Qed. *)
 
-Lemma magnitude_1 x : ((/ 2) < x < 2) -> 1%nat \from (magnitude1 x).
-Proof.
-  by simpl;lra.
-Qed.
+(* Lemma magnitude_rlzrM_term phi x : (phi \is_name_of x) -> (0 < x <= 1) -> exists m, forall m', (m <= m')%nat -> exists n, (magnitude_rlzrM phi m') = (Some n). *)
+(* Proof. *)
+(*   rewrite /magnitude_rlzrM. *)
+(*   move => phin xbnd. *)
+(*   case (magnitude_check_srch_term  phin xbnd) => n; case => m mprp. *)
+(*   exists (Nat.max (n.+1) (m.+1)) => m' m'prp. *)
+(*   have m'le : (m <= m')%nat by apply /leP;have := (Max.le_max_r n.+1 m.+1); move /leP : m'prp;lia. *)
+(*   have mprp2 := (magnitude_check_monotonic m'le mprp). *)
+(*   have le := (@osrch_min (fun n => (magnitude_checkM phi n m')) m' n mprp2). *)
+(*   exists (ord_search (fun n => (magnitude_checkM phi n m')) m'). *)
+(*   apply ifF. *)
+(*   apply /eqP => P. *)
+(*   move /leP : le. *)
+(*   rewrite P. *)
+(*   have := (Max.le_max_l n.+1 m.+1). *)
+(*   move /leP : m'prp. *)
+(*   by lia. *)
+(* Qed. *)
 
-Definition mag_first_check (x : R) := (2%nat, (x, 1)).
-Definition mag_second_check (x : R) := (2%nat, (x,2)).
-Definition mag_first_check_rlzr (phi : B_(IR)) := (@pair B_(cs_nat) _ (nat2csN 2, (mp phi (FloattoIR 1%Z 0%Z)))).
-Definition mag_second_check_rlzr phi := (@pair B_(cs_nat) _ (nat2csN 2, (mp phi (FloattoIR 2%Z 0%Z)))).
-Lemma mag_first_check_rlzr_spec  : (F2MF mag_first_check_rlzr) \realizes mag_first_check.
-Proof.
-  rewrite F2MF_rlzr => phi x phin.
-  apply prod_name_spec.
-  split; first by rewrite /lprj /= /nat2csN.
-  apply prod_name_spec.
-  split; rewrite /lprj/rprj/mag_first_check_rlzr; try by auto.
-  apply FloattoIR_correct.
-Qed.
-Lemma mag_second_check_rlzr_spec  : (F2MF mag_second_check_rlzr) \realizes mag_second_check.
-Proof.
-  rewrite F2MF_rlzr => phi x phin.
-  apply prod_name_spec.
-  split; first by rewrite /lprj /= /nat2csN.
-  apply prod_name_spec.
-  split; rewrite /lprj/rprj/mag_second_check_rlzr; try by auto.
-  apply FloattoIR_correct.
-Qed.
+(* Lemma magnitude_rlzrM_spec phi x : (phi \is_name_of x) -> (0 < x <= 1) -> exists m n, (magnitude_rlzrM phi m) = (Some n) /\ (n \from magnitude1 x). *)
+(* Proof. *)
+(*   move => phin xbnd. *)
+(*   case (magnitude_check_srch_term phin xbnd) => n; case => m mprp. *)
+(*   exists (Nat.max n m).+1. *)
+(*   exists (ord_search (fun n' => (magnitude_checkM phi n' (Nat.max n m).+1)) (Nat.max n m).+1). *)
+(*   rewrite /magnitude_rlzrM. *)
+(*   have lt1 : (m < (Nat.max n m).+1)%nat. *)
+(*   - apply /leP. *)
+(*     have := (Max.le_max_r n m). *)
+(*     lia. *)
+(*   have lt2 : (n < (Nat.max n m).+1)%nat. *)
+(*   - apply /leP. *)
+(*     by have := (Max.le_max_l n m);lia. *)
+(*   have le1 : (m <= (Nat.max n m).+1)%nat by apply /leP;lia.  *)
+(*   have le2 : (n <= (Nat.max n m).+1)%nat by apply /leP;lia.  *)
+(*   have M := (magnitude_check_monotonic le1 mprp). *)
+(*   rewrite ifF. *)
+(*   - split; first by auto. *)
+(*     by apply (magnitude_check_correct phin xbnd (@search_correct_le (fun n' => (magnitude_checkM phi n' (Nat.max n m).+1)) _ _ M le2)). *)
+(*   apply ltn_eqF. *)
+(*   apply /leq_ltn_trans. *)
+(*   apply (@osrch_min (fun n' => (magnitude_checkM phi n' (Nat.max n m).+1)) _ _ M). *)
+(*   by apply lt2. *)
+(* Qed. *)
 
-Definition mag_checks_mu (phi : B_(IR))  (q : Q_(cs_nat \*_cs (IR \*_cs IR))):=
-  match q with
-  | (inl tt) => [:: 0%nat]
-  | (inr (inl n)) => [:: 0%nat;n]
-  | (inr (inr n)) => [:: 0%nat;n]
-  end.
+(* (* Next we extend to all positive real numbers *) *)
+(* Lemma magnitude_inv x n: (0 < x) -> n \from (magnitude1 (/ x)) ->  (/ 4) * (2 ^ n) < x < (2 ^ n). *)
+(* Proof. *)
+(*   move => xlt /= [nprp1 nprp2]. *)
+(*   split. *)
+(*   - apply Rinv_lt_cancel; first by lra. *)
+(*     rewrite Rinv_mult_distr; try by lra. *)
+(*     apply pow_nonzero;lra. *)
+(*   by apply Rinv_lt_cancel; [apply pow_lt |];lra. *)
+(* Qed. *)
+
+(* Lemma magnitude_1 x : ((/ 2) < x < 2) -> 1%nat \from (magnitude1 x). *)
+(* Proof. *)
+(*   by simpl;lra. *)
+(* Qed. *)
+
+(* Definition mag_first_check (x : R) := (2%nat, (x, 1)). *)
+(* Definition mag_second_check (x : R) := (2%nat, (x,2)). *)
+(* Definition mag_first_check_rlzr (phi : B_(IR)) := (@pair B_(cs_nat) _ (nat2csN 2, (mp phi (FloattoIR 1%Z 0%Z)))). *)
+(* Definition mag_second_check_rlzr phi := (@pair B_(cs_nat) _ (nat2csN 2, (mp phi (FloattoIR 2%Z 0%Z)))). *)
+(* Lemma mag_first_check_rlzr_spec  : (F2MF mag_first_check_rlzr) \realizes mag_first_check. *)
+(* Proof. *)
+(*   rewrite F2MF_rlzr => phi x phin. *)
+(*   apply prod_name_spec. *)
+(*   split; first by rewrite /lprj /= /nat2csN. *)
+(*   apply prod_name_spec. *)
+(*   split; rewrite /lprj/rprj/mag_first_check_rlzr; try by auto. *)
+(*   apply FloattoIR_correct. *)
+(* Qed. *)
+(* Lemma mag_second_check_rlzr_spec  : (F2MF mag_second_check_rlzr) \realizes mag_second_check. *)
+(* Proof. *)
+(*   rewrite F2MF_rlzr => phi x phin. *)
+(*   apply prod_name_spec. *)
+(*   split; first by rewrite /lprj /= /nat2csN. *)
+(*   apply prod_name_spec. *)
+(*   split; rewrite /lprj/rprj/mag_second_check_rlzr; try by auto. *)
+(*   apply FloattoIR_correct. *)
+(* Qed. *)
+
+(* Definition mag_checks_mu (phi : B_(IR))  (q : Q_(cs_nat \*_cs (IR \*_cs IR))):= *)
+(*   match q with *)
+(*   | (inl tt) => [:: 0%nat] *)
+(*   | (inr (inl n)) => [:: 0%nat;n] *)
+(*   | (inr (inr n)) => [:: 0%nat;n] *)
+(*   end. *)
                                                                                                
-Lemma mag_checks_mu_mod1 : mag_checks_mu \modulus_function_for mag_first_check_rlzr.
-Proof.
-  rewrite /mag_checks_mu/mag_first_check_rlzr => phi m psi.
-  case m => q /=.
-  by case q => /= [] [] ->.
-  case q => q' => /= [].
-  by case => [] _ [] ->.
-  by case => /= ->.
-Qed.
-Lemma mag_checks_mu_mod2 : mag_checks_mu \modulus_function_for mag_second_check_rlzr.
-Proof.
-  rewrite /mag_checks_mu/mag_second_check_rlzr => phi m psi.
-  case m => q /=.
-  by case q => /= [] [] ->.
-  case q => q' => /= [].
-  by case => _ [->].
-  by case => /= [] [] ->.
-Qed.
+(* Lemma mag_checks_mu_mod1 : mag_checks_mu \modulus_function_for mag_first_check_rlzr. *)
+(* Proof. *)
+(*   rewrite /mag_checks_mu/mag_first_check_rlzr => phi m psi. *)
+(*   case m => q /=. *)
+(*   by case q => /= [] [] ->. *)
+(*   case q => q' => /= []. *)
+(*   by case => [] _ [] ->. *)
+(*   by case => /= ->. *)
+(* Qed. *)
+(* Lemma mag_checks_mu_mod2 : mag_checks_mu \modulus_function_for mag_second_check_rlzr. *)
+(* Proof. *)
+(*   rewrite /mag_checks_mu/mag_second_check_rlzr => phi m psi. *)
+(*   case m => q /=. *)
+(*   by case q => /= [] [] ->. *)
+(*   case q => q' => /= []. *)
+(*   by case => _ [->]. *)
+(*   by case => /= [] [] ->. *)
+(* Qed. *)
 
-Lemma mag_checks_mu_modmod : mag_checks_mu \modulus_function_for mag_checks_mu.
-Proof.
-  by rewrite /mag_checks_mu => phi q psi /=.
-Qed.
+(* Lemma mag_checks_mu_modmod : mag_checks_mu \modulus_function_for mag_checks_mu. *)
+(* Proof. *)
+(*   by rewrite /mag_checks_mu => phi q psi /=. *)
+(* Qed. *)
 
-Definition if_rlzrf (X : cs) (phi : B_(cs_bool \*_cs X \*_cs X))  := if (lprj (lprj phi) tt) then (rprj (lprj phi)) else (rprj phi).
-Lemma if_rlzrf_spec (X : cs) : (F2MF (@if_rlzrf X)) \solves (@if_mv X).
-Proof.
-  rewrite F2MF_rlzr/if_rlzrf/uncurry =>  phi [[b1 x] y] /prod_name_spec []  /prod_name_spec [->] /=.
-  by case b1=> /=.
-Qed.
+(* Definition if_rlzrf (X : cs) (phi : B_(cs_bool \*_cs X \*_cs X))  := if (lprj (lprj phi) tt) then (rprj (lprj phi)) else (rprj phi). *)
+(* Lemma if_rlzrf_spec (X : cs) : (F2MF (@if_rlzrf X)) \solves (@if_mv X). *)
+(* Proof. *)
+(*   rewrite F2MF_rlzr/if_rlzrf/uncurry =>  phi [[b1 x] y] /prod_name_spec []  /prod_name_spec [->] /=. *)
+(*   by case b1=> /=. *)
+(* Qed. *)
 
-Definition if_mu X (phi : B_(cs_bool \*_cs X \*_cs X)) (q : Q_(X)) : (seq Q_(cs_bool \*_cs X \*_cs X)) := [:: (inl (inl tt));(inl (inr q)); (inr q) ].
-Lemma if_mu_mod X : (@if_mu X) \modulus_function_for (@if_rlzrf X).
-Proof.
-  rewrite /if_mu/if_rlzrf/lprj/rprj/= => phi n psi /= [-> []] H1 [] H2 _.
-  case (psi (inl (inl tt))).1.1 => /=.
-  by rewrite H1.
-  by rewrite H2.
-Qed.
+(* Definition if_mu X (phi : B_(cs_bool \*_cs X \*_cs X)) (q : Q_(X)) : (seq Q_(cs_bool \*_cs X \*_cs X)) := [:: (inl (inl tt));(inl (inr q)); (inr q) ]. *)
+(* Lemma if_mu_mod X : (@if_mu X) \modulus_function_for (@if_rlzrf X). *)
+(* Proof. *)
+(*   rewrite /if_mu/if_rlzrf/lprj/rprj/= => phi n psi /= [-> []] H1 [] H2 _. *)
+(*   case (psi (inl (inl tt))).1.1 => /=. *)
+(*   by rewrite H1. *)
+(*   by rewrite H2. *)
+(* Qed. *)
 
-Lemma if_mu_modmod X : (@if_mu X) \modulus_function_for (@if_mu X).
-Proof.
-  by trivial.
-Qed.
+(* Lemma if_mu_modmod X : (@if_mu X) \modulus_function_for (@if_mu X). *)
+(* Proof. *)
+(*   by trivial. *)
+(* Qed. *)
 
-Definition Zopp_rlzrf (phi : B_(cs_Z)) tt := (Zopp (phi tt)).
-Definition Zopp_rlzr_mu (phi : B_(cs_Z)) (tt : unit) := [:: tt].
-Lemma Zopp_rlzrf_spec : (F2MF Zopp_rlzrf) \realizes Zopp.
-Proof.
-  by rewrite F2MF_rlzr/Zopp_rlzrf => phi z /= ->.
-Qed.
-Lemma Zopp_rlzr_mu_spec : Zopp_rlzr_mu \modulus_function_for Zopp_rlzrf.
-Proof.
-  by rewrite /Zopp_rlzrf => phi q psi /= [] ->.
-Qed.
-Lemma Zopp_rlzr_mu_mod : Zopp_rlzr_mu \modulus_function_for Zopp_rlzr_mu.
-Proof.
-  by auto.
-Qed.
+(* Definition Zopp_rlzrf (phi : B_(cs_Z)) tt := (Zopp (phi tt)). *)
+(* Definition Zopp_rlzr_mu (phi : B_(cs_Z)) (tt : unit) := [:: tt]. *)
+(* Lemma Zopp_rlzrf_spec : (F2MF Zopp_rlzrf) \realizes Zopp. *)
+(* Proof. *)
+(*   by rewrite F2MF_rlzr/Zopp_rlzrf => phi z /= ->. *)
+(* Qed. *)
+(* Lemma Zopp_rlzr_mu_spec : Zopp_rlzr_mu \modulus_function_for Zopp_rlzrf. *)
+(* Proof. *)
+(*   by rewrite /Zopp_rlzrf => phi q psi /= [] ->. *)
+(* Qed. *)
+(* Lemma Zopp_rlzr_mu_mod : Zopp_rlzr_mu \modulus_function_for Zopp_rlzr_mu. *)
+(* Proof. *)
+(*   by auto. *)
+(* Qed. *)
 
-Definition Zofnat_rlzrf (phi : B_(cs_nat)) tt := (Z.of_nat (phi tt)).
-Definition Zofnat_rlzr_mu (phi : B_(cs_nat)) (tt : unit) := [:: tt].
-Lemma Zofnat_rlzrf_spec : (F2MF Zofnat_rlzrf) \realizes Z.of_nat.
-Proof.
-  by rewrite F2MF_rlzr/Zofnat_rlzrf => phi z /= ->.
-Qed.
-Lemma Zofnat_rlzr_mu_spec : Zofnat_rlzr_mu \modulus_function_for Zofnat_rlzrf.
-Proof.
-  by rewrite /Zofnat_rlzrf => phi q psi /= [] ->.
-Qed.
-Lemma Zofnat_rlzr_mu_mod : Zofnat_rlzr_mu \modulus_function_for Zofnat_rlzr_mu.
-Proof.
-  by auto.
-Qed.
+(* Definition Zofnat_rlzrf (phi : B_(cs_nat)) tt := (Z.of_nat (phi tt)). *)
+(* Definition Zofnat_rlzr_mu (phi : B_(cs_nat)) (tt : unit) := [:: tt]. *)
+(* Lemma Zofnat_rlzrf_spec : (F2MF Zofnat_rlzrf) \realizes Z.of_nat. *)
+(* Proof. *)
+(*   by rewrite F2MF_rlzr/Zofnat_rlzrf => phi z /= ->. *)
+(* Qed. *)
+(* Lemma Zofnat_rlzr_mu_spec : Zofnat_rlzr_mu \modulus_function_for Zofnat_rlzrf. *)
+(* Proof. *)
+(*   by rewrite /Zofnat_rlzrf => phi q psi /= [] ->. *)
+(* Qed. *)
+(* Lemma Zofnat_rlzr_mu_mod : Zofnat_rlzr_mu \modulus_function_for Zofnat_rlzr_mu. *)
+(* Proof. *)
+(*   by auto. *)
+(* Qed. *)
 
-Definition Zminus2_rlzrf (phi : B_(cs_Z)) tt := ((phi tt)-2)%Z.
-Definition Zminus2_rlzr_mu (phi : B_(cs_Z)) (tt : unit) := [:: tt].
-Lemma Zminus2_rlzrf_spec : (F2MF Zminus2_rlzrf) \realizes Zminus2.
-Proof.
-  by rewrite F2MF_rlzr/Zminus2_rlzrf => phi z /= ->.
-Qed.
-Lemma Zminus2_rlzr_mu_spec : Zminus2_rlzr_mu \modulus_function_for Zminus2_rlzrf.
-Proof.
-  by rewrite /Zminus2_rlzrf => phi q psi /= [] ->.
-Qed.
-Lemma Zminus2_rlzr_mu_mod : Zminus2_rlzr_mu \modulus_function_for Zminus2_rlzr_mu.
-Proof.
-  by auto.
-Qed.
+(* Definition Zminus2_rlzrf (phi : B_(cs_Z)) tt := ((phi tt)-2)%Z. *)
+(* Definition Zminus2_rlzr_mu (phi : B_(cs_Z)) (tt : unit) := [:: tt]. *)
+(* Lemma Zminus2_rlzrf_spec : (F2MF Zminus2_rlzrf) \realizes Zminus2. *)
+(* Proof. *)
+(*   by rewrite F2MF_rlzr/Zminus2_rlzrf => phi z /= ->. *)
+(* Qed. *)
+(* Lemma Zminus2_rlzr_mu_spec : Zminus2_rlzr_mu \modulus_function_for Zminus2_rlzrf. *)
+(* Proof. *)
+(*   by rewrite /Zminus2_rlzrf => phi q psi /= [] ->. *)
+(* Qed. *)
+(* Lemma Zminus2_rlzr_mu_mod : Zminus2_rlzr_mu \modulus_function_for Zminus2_rlzr_mu. *)
+(* Proof. *)
+(*   by auto. *)
+(* Qed. *)
 
-Definition Rinv_rlzrf phi := (FloattoIR 1%Z 0%Z) \: phi. 
-Lemma Rinv_rlzrf_spec : (F2MF Rinv_rlzrf) \solves Rinv_mf.
-Proof.
-  rewrite /Rinv_rlzrf/Rinv_mf F2MF_slvs => phi x phin [t [xp a]].
-  exists (/ x).
-  split => //.
-  have /F2MF_rlzr cln := cleanup_spec.
-  have /F2MF_slvs div := Rdiv_rlzr_spec.
-  apply cln.
-  have -> : (/ x = (1 / x)) by lra.
-  case (div (pair ((FloattoIR 1%Z 0%Z),phi)) (1, x)).
-   rewrite prod_name_spec lprj_pair rprj_pair; split; by [apply FloattoIR_correct | ].
-  by exists (1/x).
-  move => xy [[_ /=  xy_prop] P].
-  rewrite <- xy_prop.                                                              
-  by apply P.                                                    
-Qed.
+(* Definition Rinv_rlzrf phi := (FloattoIR 1%Z 0%Z) \: phi.  *)
+(* Lemma Rinv_rlzrf_spec : (F2MF Rinv_rlzrf) \solves Rinv_mf. *)
+(* Proof. *)
+(*   rewrite /Rinv_rlzrf/Rinv_mf F2MF_slvs => phi x phin [t [xp a]]. *)
+(*   exists (/ x). *)
+(*   split => //. *)
+(*   have /F2MF_rlzr cln := cleanup_spec. *)
+(*   have /F2MF_slvs div := Rdiv_rlzr_spec. *)
+(*   apply cln. *)
+(*   have -> : (/ x = (1 / x)) by lra. *)
+(*   case (div (pair ((FloattoIR 1%Z 0%Z),phi)) (1, x)). *)
+(*    rewrite prod_name_spec lprj_pair rprj_pair; split; by [apply FloattoIR_correct | ]. *)
+(*   by exists (1/x). *)
+(*   move => xy [[_ /=  xy_prop] P]. *)
+(*   rewrite <- xy_prop.                                                               *)
+(*   by apply P.                                                     *)
+(* Qed. *)
 
-Definition Rinv_rlzrf_mu (phi : B_(IR)) (n : nat) := [:: n].
-Lemma Rinv_rlzrf_mu_spec : Rinv_rlzrf_mu \modulus_function_for Rinv_rlzrf.
-Proof.
-  by rewrite /Rinv_rlzrf/Rdiv_rlzrf/mp/lprj/rprj/cleanup/cleanup_generic => phi n psi [] /= ->.
-Qed.
-Lemma Rinv_rlzrf_mu_mod : Rinv_rlzrf_mu \modulus_function_for Rinv_rlzrf_mu.
-Proof.
-  by rewrite /Rinv_rlzrf_mu.
-Qed.
+(* Definition Rinv_rlzrf_mu (phi : B_(IR)) (n : nat) := [:: n]. *)
+(* Lemma Rinv_rlzrf_mu_spec : Rinv_rlzrf_mu \modulus_function_for Rinv_rlzrf. *)
+(* Proof. *)
+(*   by rewrite /Rinv_rlzrf/Rdiv_rlzrf/mp/lprj/rprj/cleanup/cleanup_generic => phi n psi [] /= ->. *)
+(* Qed. *)
+(* Lemma Rinv_rlzrf_mu_mod : Rinv_rlzrf_mu \modulus_function_for Rinv_rlzrf_mu. *)
+(* Proof. *)
+(*   by rewrite /Rinv_rlzrf_mu. *)
+(* Qed. *)
 
-Definition cnst_rlzrf (phi : B_(IR)) (tt : unit) := (-1)%Z.  
-Lemma cnst_rlzrf_spec : (F2MF cnst_rlzrf) \realizes (@cnst R Z (-1)%Z).
-Proof.
-  by rewrite F2MF_rlzr => phi x.
-Qed.
-Lemma cnst_mod : (fun phi tt => [::]) \modulus_function_for (cnst_rlzrf).
-Proof.
-  by auto.
-Qed.
-Lemma magnitude_machine_spec : {M : (monotone_machine _ _ _ _) | \F_M \solves magnitude_mf}.
-Proof.
-  rewrite /magnitude_mf.
-  have fp : forall f, (f =~= f) by trivial.
-  apply /compM => //; last first.
-  exists (@diagM IR).
-  rewrite F2M_spec.
-  apply diag_rlzrf_spec.
-  apply /compM => //; last first.
-  apply /prdM => //; last first.
-  apply /compM => //; last first.
-  exists (@diagM IR).
-  rewrite F2M_spec.
-  apply diag_rlzrf_spec.
-  apply /prdM => //; last first.
-  exists (idM IR).
-  rewrite F2M_spec.
-  apply id_rlzr.
-  exists (@diagM IR).
-  rewrite F2M_spec.
-  apply diag_rlzrf_spec.
-  apply (Interval_interval_float.Inan).
-  apply (Interval_interval_float.Inan, Interval_interval_float.Inan).
-  apply (Interval_interval_float.Inan, Interval_interval_float.Inan).
-  exists (@diagM IR).
-  rewrite F2M_spec.
-  apply diag_rlzrf_spec.
-  apply ((Interval_interval_float.Inan, Interval_interval_float.Inan), Interval_interval_float.Inan).
-  apply (Interval_interval_float.Inan, Interval_interval_float.Inan).
-  apply /compM => //; last first.
-  apply /prdM => //; last first.
-  apply /compM => //; last first.
-  apply /prdM => //; last first.
-  apply /compM => //; last first.
-  exists (F2MM Rinv_rlzrf_mu_spec Rinv_rlzrf_mu_mod).
-  rewrite F2M_spec.
-  apply Rinv_rlzrf_spec.
-  apply /compM => //; last first.
-  exists magnitude_rlzrMM.
-  apply magnitude_rlzrMM_spec.
-  apply /compM => //; last first.
-  exists (F2MM Zofnat_rlzr_mu_spec Zofnat_rlzr_mu_mod).
-  rewrite F2M_spec.
-  apply Zofnat_rlzrf_spec.
-  exists (F2MM Zminus2_rlzr_mu_spec Zminus2_rlzr_mu_mod).
-  rewrite F2M_spec.
-  apply Zminus2_rlzrf_spec.
-  apply 0%Z.
-  apply 0%nat.
-  apply Interval_interval_float.Inan.
-  apply /prdM => //; last first.
-  have mm : (fun (phi : (Q_(IR) -> A_(IR))) (tt : unit) => [::] : (seq Q_(IR))) \modulus_function_for  (fun (phi : (Q_(IR) -> A_(IR))) (tt : unit) => [::] : (seq Q_(IR))) by auto.
-  exists (F2MM (cnst_mod) mm).
-  rewrite F2M_spec.
-  apply cnst_rlzrf_spec.
-  apply /compM => //; last first.
-  exists (F2MM mag_checks_mu_mod2 mag_checks_mu_modmod).
-  rewrite F2M_spec.
-  apply mag_second_check_rlzr_spec.
-  apply lt_n_M_spec.
-  apply (0%nat, (Interval_interval_float.Inan, Interval_interval_float.Inan)).
-  apply 0%Z.
-  apply false.
-  apply 0%Z.
-  apply (false, 0%Z).
-  exists (F2MM (@if_mu_mod cs_Z) (@if_mu_modmod cs_Z)).
-  rewrite F2M_spec.
-  apply if_rlzrf_spec.
-  apply ((false, 0%Z), 0%Z).
-  apply /prdM => //; last first.
-  apply /compM => //; last first.
-  exists magnitude_rlzrMM.
-  apply magnitude_rlzrMM_spec.
-  apply /compM => //; last first.
-  exists (F2MM Zofnat_rlzr_mu_spec Zofnat_rlzr_mu_mod).
-  rewrite F2M_spec.
-  apply Zofnat_rlzrf_spec.
-  exists (F2MM Zopp_rlzr_mu_spec Zopp_rlzr_mu_mod).
-  rewrite F2M_spec.
-  apply Zopp_rlzrf_spec.
-  apply 0%Z.
-  apply 0%nat.
-  apply /compM => //; last first.
-  exists (F2MM mag_checks_mu_mod1 mag_checks_mu_modmod).
-  rewrite F2M_spec.
-  apply mag_first_check_rlzr_spec.
-  apply lt_n_M_spec.
-  apply (0%nat, (Interval_interval_float.Inan, Interval_interval_float.Inan)).
-  apply 0%Z.
-  apply false.
-  apply 0%Z.
-  apply (false, 0%Z).
-  exists (F2MM (@if_mu_mod cs_Z) (@if_mu_modmod cs_Z)).
-  rewrite F2M_spec.
-  apply if_rlzrf_spec.
-  apply ((false, 0%Z), 0%Z).
-  apply ((Interval_interval_float.Inan, Interval_interval_float.Inan), ((Interval_interval_float.Inan, Interval_interval_float.Inan), Interval_interval_float.Inan)).
-  apply (Interval_interval_float.Inan, Interval_interval_float.Inan).
-Defined.
+(* Definition cnst_rlzrf (phi : B_(IR)) (tt : unit) := (-1)%Z.   *)
+(* Lemma cnst_rlzrf_spec : (F2MF cnst_rlzrf) \realizes (@cnst R Z (-1)%Z). *)
+(* Proof. *)
+(*   by rewrite F2MF_rlzr => phi x. *)
+(* Qed. *)
+(* Lemma cnst_mod : (fun phi tt => [::]) \modulus_function_for (cnst_rlzrf). *)
+(* Proof. *)
+(*   by auto. *)
+(* Qed. *)
+(* Lemma magnitude_machine_spec : {M : (monotone_machine _ _ _ _) | \F_M \solves magnitude_mf}. *)
+(* Proof. *)
+(*   rewrite /magnitude_mf. *)
+(*   have fp : forall f, (f =~= f) by trivial. *)
+(*   apply /compM => //; last first. *)
+(*   exists (@diagM IR). *)
+(*   rewrite F2M_spec. *)
+(*   apply diag_rlzrf_spec. *)
+(*   apply /compM => //; last first. *)
+(*   apply /prdM => //; last first. *)
+(*   apply /compM => //; last first. *)
+(*   exists (@diagM IR). *)
+(*   rewrite F2M_spec. *)
+(*   apply diag_rlzrf_spec. *)
+(*   apply /prdM => //; last first. *)
+(*   exists (idM IR). *)
+(*   rewrite F2M_spec. *)
+(*   apply id_rlzr. *)
+(*   exists (@diagM IR). *)
+(*   rewrite F2M_spec. *)
+(*   apply diag_rlzrf_spec. *)
+(*   apply (Interval_interval_float.Inan). *)
+(*   apply (Interval_interval_float.Inan, Interval_interval_float.Inan). *)
+(*   apply (Interval_interval_float.Inan, Interval_interval_float.Inan). *)
+(*   exists (@diagM IR). *)
+(*   rewrite F2M_spec. *)
+(*   apply diag_rlzrf_spec. *)
+(*   apply ((Interval_interval_float.Inan, Interval_interval_float.Inan), Interval_interval_float.Inan). *)
+(*   apply (Interval_interval_float.Inan, Interval_interval_float.Inan). *)
+(*   apply /compM => //; last first. *)
+(*   apply /prdM => //; last first. *)
+(*   apply /compM => //; last first. *)
+(*   apply /prdM => //; last first. *)
+(*   apply /compM => //; last first. *)
+(*   exists (F2MM Rinv_rlzrf_mu_spec Rinv_rlzrf_mu_mod). *)
+(*   rewrite F2M_spec. *)
+(*   apply Rinv_rlzrf_spec. *)
+(*   apply /compM => //; last first. *)
+(*   exists magnitude_rlzrMM. *)
+(*   apply magnitude_rlzrMM_spec. *)
+(*   apply /compM => //; last first. *)
+(*   exists (F2MM Zofnat_rlzr_mu_spec Zofnat_rlzr_mu_mod). *)
+(*   rewrite F2M_spec. *)
+(*   apply Zofnat_rlzrf_spec. *)
+(*   exists (F2MM Zminus2_rlzr_mu_spec Zminus2_rlzr_mu_mod). *)
+(*   rewrite F2M_spec. *)
+(*   apply Zminus2_rlzrf_spec. *)
+(*   apply 0%Z. *)
+(*   apply 0%nat. *)
+(*   apply Interval_interval_float.Inan. *)
+(*   apply /prdM => //; last first. *)
+(*   have mm : (fun (phi : (Q_(IR) -> A_(IR))) (tt : unit) => [::] : (seq Q_(IR))) \modulus_function_for  (fun (phi : (Q_(IR) -> A_(IR))) (tt : unit) => [::] : (seq Q_(IR))) by auto. *)
+(*   exists (F2MM (cnst_mod) mm). *)
+(*   rewrite F2M_spec. *)
+(*   apply cnst_rlzrf_spec. *)
+(*   apply /compM => //; last first. *)
+(*   exists (F2MM mag_checks_mu_mod2 mag_checks_mu_modmod). *)
+(*   rewrite F2M_spec. *)
+(*   apply mag_second_check_rlzr_spec. *)
+(*   apply lt_n_M_spec. *)
+(*   apply (0%nat, (Interval_interval_float.Inan, Interval_interval_float.Inan)). *)
+(*   apply 0%Z. *)
+(*   apply false. *)
+(*   apply 0%Z. *)
+(*   apply (false, 0%Z). *)
+(*   exists (F2MM (@if_mu_mod cs_Z) (@if_mu_modmod cs_Z)). *)
+(*   rewrite F2M_spec. *)
+(*   apply if_rlzrf_spec. *)
+(*   apply ((false, 0%Z), 0%Z). *)
+(*   apply /prdM => //; last first. *)
+(*   apply /compM => //; last first. *)
+(*   exists magnitude_rlzrMM. *)
+(*   apply magnitude_rlzrMM_spec. *)
+(*   apply /compM => //; last first. *)
+(*   exists (F2MM Zofnat_rlzr_mu_spec Zofnat_rlzr_mu_mod). *)
+(*   rewrite F2M_spec. *)
+(*   apply Zofnat_rlzrf_spec. *)
+(*   exists (F2MM Zopp_rlzr_mu_spec Zopp_rlzr_mu_mod). *)
+(*   rewrite F2M_spec. *)
+(*   apply Zopp_rlzrf_spec. *)
+(*   apply 0%Z. *)
+(*   apply 0%nat. *)
+(*   apply /compM => //; last first. *)
+(*   exists (F2MM mag_checks_mu_mod1 mag_checks_mu_modmod). *)
+(*   rewrite F2M_spec. *)
+(*   apply mag_first_check_rlzr_spec. *)
+(*   apply lt_n_M_spec. *)
+(*   apply (0%nat, (Interval_interval_float.Inan, Interval_interval_float.Inan)). *)
+(*   apply 0%Z. *)
+(*   apply false. *)
+(*   apply 0%Z. *)
+(*   apply (false, 0%Z). *)
+(*   exists (F2MM (@if_mu_mod cs_Z) (@if_mu_modmod cs_Z)). *)
+(*   rewrite F2M_spec. *)
+(*   apply if_rlzrf_spec. *)
+(*   apply ((false, 0%Z), 0%Z). *)
+(*   apply ((Interval_interval_float.Inan, Interval_interval_float.Inan), ((Interval_interval_float.Inan, Interval_interval_float.Inan), Interval_interval_float.Inan)). *)
+(*   apply (Interval_interval_float.Inan, Interval_interval_float.Inan). *)
+(* Defined. *)
 
-Eval vm_compute in (projT1 magnitude_machine_spec (FloattoIR 1%Z (2)%Z) (6%nat,tt)).
-Definition magnitude_rlzrM_gt0 (phi : B_(IR)) m := match (lt_n_M (@pair B_(cs_nat) _ ((nat2csN 2), (mp phi (FloattoIR 1%Z 0%Z)))) (m,tt)) with
-                                        | (Some true) =>
-                                          match (magnitude_rlzrM phi m) with
-                                            | (Some n) => (Some (- (Z.of_nat n))%Z)
-                                            | _ => None
-                                          end
-                                        | (Some false) =>
-                                         match (lt_n_M (@pair B_(cs_nat) _ ((nat2csN 2), (mp phi (FloattoIR 2%Z 0%Z)))) (m,tt)) with
-                                         | (Some true)  => (Some (-1)%Z)
-                                         | (Some false) =>
-                                          match (magnitude_rlzrM ((FloattoIR 1%Z 0%Z) \: phi) m) with
-                                            | (Some n) => (Some ((Z.of_nat n)-2)%Z)
-                                            | _ => None
-                                          end
-                                         | _ => None
-                                         end
-                                        | _ => None
-                                        end.
+(* Eval vm_compute in (projT1 magnitude_machine_spec (FloattoIR 1%Z (2)%Z) (6%nat,tt)). *)
+(* Definition magnitude_rlzrM_gt0 (phi : B_(IR)) m := match (lt_n_M (@pair B_(cs_nat) _ ((nat2csN 2), (mp phi (FloattoIR 1%Z 0%Z)))) (m,tt)) with *)
+(*                                         | (Some true) => *)
+(*                                           match (magnitude_rlzrM phi m) with *)
+(*                                             | (Some n) => (Some (- (Z.of_nat n))%Z) *)
+(*                                             | _ => None *)
+(*                                           end *)
+(*                                         | (Some false) => *)
+(*                                          match (lt_n_M (@pair B_(cs_nat) _ ((nat2csN 2), (mp phi (FloattoIR 2%Z 0%Z)))) (m,tt)) with *)
+(*                                          | (Some true)  => (Some (-1)%Z) *)
+(*                                          | (Some false) => *)
+(*                                           match (magnitude_rlzrM ((FloattoIR 1%Z 0%Z) \: phi) m) with *)
+(*                                             | (Some n) => (Some ((Z.of_nat n)-2)%Z) *)
+(*                                             | _ => None *)
+(*                                           end *)
+(*                                          | _ => None *)
+(*                                          end *)
+(*                                         | _ => None *)
+(*                                         end. *)
                       
-Lemma magnitude_rlzrM_gt0_correct phi x m z : (phi \is_name_of x) -> (0 < x) -> (magnitude_rlzrM_gt0 phi m) = (Some z) -> (powerRZ 2 z) < x < (powerRZ 2 (z+2)).
-Proof.
-  move => phin xlt.
-  rewrite /magnitude_rlzrM_gt0.
-  have psin : (FloattoIR 1%Z 0%Z) \is_name_of 1 by apply FloattoIR_correct.
-  have psin' : (FloattoIR 2%Z 0%Z) \is_name_of 2 by apply FloattoIR_correct.
-  have simpl1 y : true \from (lt_n (2%nat,(x,y))) -> (x < y).
-  - move => H.
-    suff : not (y <= x) by lra.
-    move => le.
-    case H => _ H'.
-    by have := (H' le).
-  have simpl2 y : false \from (lt_n (2%nat,(x,y))) -> (y - /2 < x).
-  - move => H.
-    suff : not (x + (/ 2 ^ 2) <= y) by simpl;lra.
-    move => le.
-    case H => H' _.
-    by have := (H' le).
-  case e :(lt_n_M _) => [b |] //;case bv : b; rewrite bv in e.
-  - apply (lt_N_b_correct phin psin) in e.
-    apply simpl1 in e.
-    case M: (magnitude_rlzrM _) => // [n] nprp.
-    have /= := (magnitude_rlzrM_correct phin _ M).
-    case; first by lra.
-    rewrite <- powerRZ2_neg_pos.
-    rewrite powerRZ_add /=; try by lra.
-    have -> : (- Z.of_nat n)%Z = z by move : nprp; case.
-    by lra.   
-  apply (lt_N_b_correct phin psin) in e.
-  apply simpl2 in e.
-  case e' :(lt_n_M _) => [b' |] //;case bv' : b'; rewrite bv' in e'.
-  - apply (lt_N_b_correct phin psin') in e'.
-    apply simpl1 in e'.   
-    move => H.
-    have -> /= : (z = -1)%Z by move : H;case.
-    by have := (magnitude_1);lra.
-  have phind : ((cleanup \o_f Rdiv_rlzrf) (mp (FloattoIR 1%Z 0%Z) phi) : B_(IR)) \is_name_of (/ x).
-  - have xn : (x <> 0) by lra.
-    have /F2MF_rlzr cln := cleanup_spec.
-    have /F2MF_slvs div := Rdiv_rlzr_spec.
-    apply cln.
-    have -> : (/ x = (1 / x)) by lra.
-    case (div (pair ((FloattoIR 1%Z 0%Z),phi)) (1, x)); [by rewrite prod_name_spec lprj_pair rprj_pair | by exists (1/x) | ].
-    move => xy [[_ /=  xy_prop] P].
-    rewrite <- xy_prop.                                                              
-    by apply P.                                                    
-  apply (lt_N_b_correct phin psin') in e'.
-  apply simpl2 in e'.
-  case M: (magnitude_rlzrM _) => // [n] nprp.
-  have := (magnitude_rlzrM_correct phind _ M).
-  case.
-  - split; first by apply Rinv_0_lt_compat;lra.
-    have -> : (1 = (/ 1)) by lra. 
-    by apply Rle_Rinv; lra.
-   move => H1 H2.
-   case (@magnitude_inv _ n xlt); first by simpl; lra.
-   have -> : (z = (Z.of_nat n - 2)%Z) by move : nprp;case.
-   rewrite !powerRZ_add /=; try by lra.
-   rewrite !pow_powerRZ.
-   by lra.
- Qed.
+(* Lemma magnitude_rlzrM_gt0_correct phi x m z : (phi \is_name_of x) -> (0 < x) -> (magnitude_rlzrM_gt0 phi m) = (Some z) -> (powerRZ 2 z) < x < (powerRZ 2 (z+2)). *)
+(* Proof. *)
+(*   move => phin xlt. *)
+(*   rewrite /magnitude_rlzrM_gt0. *)
+(*   have psin : (FloattoIR 1%Z 0%Z) \is_name_of 1 by apply FloattoIR_correct. *)
+(*   have psin' : (FloattoIR 2%Z 0%Z) \is_name_of 2 by apply FloattoIR_correct. *)
+(*   have simpl1 y : true \from (lt_n (2%nat,(x,y))) -> (x < y). *)
+(*   - move => H. *)
+(*     suff : not (y <= x) by lra. *)
+(*     move => le. *)
+(*     case H => _ H'. *)
+(*     by have := (H' le). *)
+(*   have simpl2 y : false \from (lt_n (2%nat,(x,y))) -> (y - /2 < x). *)
+(*   - move => H. *)
+(*     suff : not (x + (/ 2 ^ 2) <= y) by simpl;lra. *)
+(*     move => le. *)
+(*     case H => H' _. *)
+(*     by have := (H' le). *)
+(*   case e :(lt_n_M _) => [b |] //;case bv : b; rewrite bv in e. *)
+(*   - apply (lt_N_b_correct phin psin) in e. *)
+(*     apply simpl1 in e. *)
+(*     case M: (magnitude_rlzrM _) => // [n] nprp. *)
+(*     have /= := (magnitude_rlzrM_correct phin _ M). *)
+(*     case; first by lra. *)
+(*     rewrite <- powerRZ2_neg_pos. *)
+(*     rewrite powerRZ_add /=; try by lra. *)
+(*     have -> : (- Z.of_nat n)%Z = z by move : nprp; case. *)
+(*     by lra.    *)
+(*   apply (lt_N_b_correct phin psin) in e. *)
+(*   apply simpl2 in e. *)
+(*   case e' :(lt_n_M _) => [b' |] //;case bv' : b'; rewrite bv' in e'. *)
+(*   - apply (lt_N_b_correct phin psin') in e'. *)
+(*     apply simpl1 in e'.    *)
+(*     move => H. *)
+(*     have -> /= : (z = -1)%Z by move : H;case. *)
+(*     by have := (magnitude_1);lra. *)
+(*   have phind : ((cleanup \o_f Rdiv_rlzrf) (mp (FloattoIR 1%Z 0%Z) phi) : B_(IR)) \is_name_of (/ x). *)
+(*   - have xn : (x <> 0) by lra. *)
+(*     have /F2MF_rlzr cln := cleanup_spec. *)
+(*     have /F2MF_slvs div := Rdiv_rlzr_spec. *)
+(*     apply cln. *)
+(*     have -> : (/ x = (1 / x)) by lra. *)
+(*     case (div (pair ((FloattoIR 1%Z 0%Z),phi)) (1, x)); [by rewrite prod_name_spec lprj_pair rprj_pair | by exists (1/x) | ]. *)
+(*     move => xy [[_ /=  xy_prop] P]. *)
+(*     rewrite <- xy_prop.                                                               *)
+(*     by apply P.                                                     *)
+(*   apply (lt_N_b_correct phin psin') in e'. *)
+(*   apply simpl2 in e'. *)
+(*   case M: (magnitude_rlzrM _) => // [n] nprp. *)
+(*   have := (magnitude_rlzrM_correct phind _ M). *)
+(*   case. *)
+(*   - split; first by apply Rinv_0_lt_compat;lra. *)
+(*     have -> : (1 = (/ 1)) by lra.  *)
+(*     by apply Rle_Rinv; lra. *)
+(*    move => H1 H2. *)
+(*    case (@magnitude_inv _ n xlt); first by simpl; lra. *)
+(*    have -> : (z = (Z.of_nat n - 2)%Z) by move : nprp;case. *)
+(*    rewrite !powerRZ_add /=; try by lra. *)
+(*    rewrite !pow_powerRZ. *)
+(*    by lra. *)
+(*  Qed. *)
 
-Lemma magnitude_rlzrM_gt0_term1 phi x : (phi \is_name_of x) -> (0 < x) -> exists m, forall m', (m <= m')%nat -> exists z, (magnitude_rlzrM_gt0 phi m') = (Some z).
-Proof.
-  move => phin xgt.
-  rewrite /magnitude_rlzrM_gt0.
-  have psin : (FloattoIR 1%Z 0%Z) \is_name_of 1 by apply FloattoIR_correct.
-  have psin' : (FloattoIR 2%Z 0%Z) \is_name_of 2 by apply FloattoIR_correct.
-  have lt_N_term_m : exists m b b', (forall m', (m <= m')%coq_nat -> (((lt_n_M (@pair B_(cs_nat) _ ((nat2csN 2), (mp phi (FloattoIR 1%Z 0%Z)))) (m',tt))) = (Some b)
-           /\ ((lt_n_M (@pair B_(cs_nat) _ ((nat2csN 2), (mp phi (FloattoIR 2%Z 0%Z)))) (m',tt))) = (Some b')))
-           /\ ((b = true) -> (x < 1)) /\ (b = false -> (/2 < x)) /\ ((b' = true) -> (x < 2)) /\ ((b' = false) -> (1 < x)).
-  - case (lt_N_b_term 2%nat phin psin) => m1; case => b1 mprp1.
-    case (lt_N_b_term 2%nat phin psin') => m2; case => b2 mprp2.
-    exists (Nat.max m1 m2); exists b1; exists b2.
-    split =>  [m' m'prp | ].
-    + have m'gtm1 : (m1 <= m')%coq_nat by have := (Max.le_max_l m1 m2);lia.
-      have m'gtm2 : (m2 <= m')%coq_nat by have := (Max.le_max_r m1 m2);lia.
-      have mprp1' := (mprp1 _ m'gtm1).
-      have mprp2' := (mprp2 _ m'gtm2).
-      by split.
-    have mprp1' := (mprp1 _ (le_n m1)).
-    have mprp2' := (mprp2 _ (le_n m2)).
-    have [P1 P2] := (lt_N_b_correct phin psin mprp1').
-    have [P1' P2'] :=(lt_N_b_correct phin psin' mprp2').
-    have helper a b: ((a <= b) -> (true = false)) -> (b < a).
-    + move => H.
-      apply Rnot_le_lt => le.
-      by have := (H le).
-    have helper' a a' b c: ((a + a' <= b) -> (false = true)) -> (c <= b-a') -> (c < a).
-    + move => H H'.
-      apply Rnot_le_lt => le.
-      have le' : (a + a' <= b) by lra.
-      by have := (H le').
-    split; [ | split; [| split]] => H; rewrite H /= in P1,P2, P1',P2'; try by apply helper.
-    by apply (helper' _ _ _ _ P1); lra.
-    by apply (helper' _ _ _ _ P1'); lra.
-  case lt_N_term_m => m; case => b; case => b'.
-  case : b => [[H1 [P _]] |].
-  - have P' : (x < 1) by auto.
-    case (magnitude_rlzrM_term phin) => [ | m' m'prp]; first by lra.
-    exists (Nat.max m m') => M mprp.
-    have  := (H1 M).
-    case => [| H1' _]; first move /leP : mprp;have := (Max.le_max_l m m').
-    + by lia.
-    have  := (m'prp M).
-    case => [| n H2']; first apply /leP; have := (Max.le_max_r m m'); move /leP : mprp.
-    + by lia.
-    by exists (- Z.of_nat n)%Z; rewrite H1' H2'.
-  case b' => [[H1 _] |[H1 [_ [_ [_ P]]]]].
-  - exists m => M /leP Mprp.
-    have [H1' H2'] := (H1 _ Mprp).
-    by exists (-1)%Z; rewrite H1' H2'.
-  have xinvlt : (/ x) <= 1.
-  - suff : (/ x < 1) by lra.
-    rewrite <- Rinv_1.
-    apply Raux.Rinv_lt;try by lra.
-    by auto.
-  have phin' : ((cleanup \o_f Rdiv_rlzrf) (mp (FloattoIR 1%Z 0%Z) phi) : B_(IR)) \is_name_of (/ x).
-  - have xn : (x <> 0) by lra.
-    have /F2MF_rlzr cln := cleanup_spec.
-    have /F2MF_slvs div := Rdiv_rlzr_spec.
-    apply cln.
-    have -> : (/ x = (1 / x)) by lra.
-    case (div (pair ((FloattoIR 1%Z 0%Z),phi)) (1, x)); [by rewrite prod_name_spec lprj_pair rprj_pair | by exists (1/x) | ].
-    move => xy [[_ /=  xy_prop] P'].
-    rewrite <- xy_prop.                                                              
-    by apply P'.                                                    
-  case (magnitude_rlzrM_term phin') => [ | m' m'prp]; first by split;[apply Rinv_0_lt_compat;lra|lra].
-  exists (Nat.max m m') => M Mprp.
-  have  := (H1 M).
-  case => [| H1' H2']; first move /leP : Mprp;have := (Max.le_max_l m m').
-  + by lia.
-    have  := (m'prp M).
-    case => [| n H3']; first apply /leP; have := (Max.le_max_r m m'); move /leP : Mprp.
-    + by lia.
-  by exists (Z.of_nat n - 2)%Z; rewrite H1' H2' H3'.
-Qed.
+(* Lemma magnitude_rlzrM_gt0_term1 phi x : (phi \is_name_of x) -> (0 < x) -> exists m, forall m', (m <= m')%nat -> exists z, (magnitude_rlzrM_gt0 phi m') = (Some z). *)
+(* Proof. *)
+(*   move => phin xgt. *)
+(*   rewrite /magnitude_rlzrM_gt0. *)
+(*   have psin : (FloattoIR 1%Z 0%Z) \is_name_of 1 by apply FloattoIR_correct. *)
+(*   have psin' : (FloattoIR 2%Z 0%Z) \is_name_of 2 by apply FloattoIR_correct. *)
+(*   have lt_N_term_m : exists m b b', (forall m', (m <= m')%coq_nat -> (((lt_n_M (@pair B_(cs_nat) _ ((nat2csN 2), (mp phi (FloattoIR 1%Z 0%Z)))) (m',tt))) = (Some b) *)
+(*            /\ ((lt_n_M (@pair B_(cs_nat) _ ((nat2csN 2), (mp phi (FloattoIR 2%Z 0%Z)))) (m',tt))) = (Some b'))) *)
+(*            /\ ((b = true) -> (x < 1)) /\ (b = false -> (/2 < x)) /\ ((b' = true) -> (x < 2)) /\ ((b' = false) -> (1 < x)). *)
+(*   - case (lt_N_b_term 2%nat phin psin) => m1; case => b1 mprp1. *)
+(*     case (lt_N_b_term 2%nat phin psin') => m2; case => b2 mprp2. *)
+(*     exists (Nat.max m1 m2); exists b1; exists b2. *)
+(*     split =>  [m' m'prp | ]. *)
+(*     + have m'gtm1 : (m1 <= m')%coq_nat by have := (Max.le_max_l m1 m2);lia. *)
+(*       have m'gtm2 : (m2 <= m')%coq_nat by have := (Max.le_max_r m1 m2);lia. *)
+(*       have mprp1' := (mprp1 _ m'gtm1). *)
+(*       have mprp2' := (mprp2 _ m'gtm2). *)
+(*       by split. *)
+(*     have mprp1' := (mprp1 _ (le_n m1)). *)
+(*     have mprp2' := (mprp2 _ (le_n m2)). *)
+(*     have [P1 P2] := (lt_N_b_correct phin psin mprp1'). *)
+(*     have [P1' P2'] :=(lt_N_b_correct phin psin' mprp2'). *)
+(*     have helper a b: ((a <= b) -> (true = false)) -> (b < a). *)
+(*     + move => H. *)
+(*       apply Rnot_le_lt => le. *)
+(*       by have := (H le). *)
+(*     have helper' a a' b c: ((a + a' <= b) -> (false = true)) -> (c <= b-a') -> (c < a). *)
+(*     + move => H H'. *)
+(*       apply Rnot_le_lt => le. *)
+(*       have le' : (a + a' <= b) by lra. *)
+(*       by have := (H le'). *)
+(*     split; [ | split; [| split]] => H; rewrite H /= in P1,P2, P1',P2'; try by apply helper. *)
+(*     by apply (helper' _ _ _ _ P1); lra. *)
+(*     by apply (helper' _ _ _ _ P1'); lra. *)
+(*   case lt_N_term_m => m; case => b; case => b'. *)
+(*   case : b => [[H1 [P _]] |]. *)
+(*   - have P' : (x < 1) by auto. *)
+(*     case (magnitude_rlzrM_term phin) => [ | m' m'prp]; first by lra. *)
+(*     exists (Nat.max m m') => M mprp. *)
+(*     have  := (H1 M). *)
+(*     case => [| H1' _]; first move /leP : mprp;have := (Max.le_max_l m m'). *)
+(*     + by lia. *)
+(*     have  := (m'prp M). *)
+(*     case => [| n H2']; first apply /leP; have := (Max.le_max_r m m'); move /leP : mprp. *)
+(*     + by lia. *)
+(*     by exists (- Z.of_nat n)%Z; rewrite H1' H2'. *)
+(*   case b' => [[H1 _] |[H1 [_ [_ [_ P]]]]]. *)
+(*   - exists m => M /leP Mprp. *)
+(*     have [H1' H2'] := (H1 _ Mprp). *)
+(*     by exists (-1)%Z; rewrite H1' H2'. *)
+(*   have xinvlt : (/ x) <= 1. *)
+(*   - suff : (/ x < 1) by lra. *)
+(*     rewrite <- Rinv_1. *)
+(*     apply Raux.Rinv_lt;try by lra. *)
+(*     by auto. *)
+(*   have phin' : ((cleanup \o_f Rdiv_rlzrf) (mp (FloattoIR 1%Z 0%Z) phi) : B_(IR)) \is_name_of (/ x). *)
+(*   - have xn : (x <> 0) by lra. *)
+(*     have /F2MF_rlzr cln := cleanup_spec. *)
+(*     have /F2MF_slvs div := Rdiv_rlzr_spec. *)
+(*     apply cln. *)
+(*     have -> : (/ x = (1 / x)) by lra. *)
+(*     case (div (pair ((FloattoIR 1%Z 0%Z),phi)) (1, x)); [by rewrite prod_name_spec lprj_pair rprj_pair | by exists (1/x) | ]. *)
+(*     move => xy [[_ /=  xy_prop] P']. *)
+(*     rewrite <- xy_prop.                                                               *)
+(*     by apply P'.                                                     *)
+(*   case (magnitude_rlzrM_term phin') => [ | m' m'prp]; first by split;[apply Rinv_0_lt_compat;lra|lra]. *)
+(*   exists (Nat.max m m') => M Mprp. *)
+(*   have  := (H1 M). *)
+(*   case => [| H1' H2']; first move /leP : Mprp;have := (Max.le_max_l m m'). *)
+(*   + by lia. *)
+(*     have  := (m'prp M). *)
+(*     case => [| n H3']; first apply /leP; have := (Max.le_max_r m m'); move /leP : Mprp. *)
+(*     + by lia. *)
+(*   by exists (Z.of_nat n - 2)%Z; rewrite H1' H2' H3'. *)
+(* Qed. *)
   
-End magnitude.
+(* End magnitude. *)
 
 
-Definition lt_nk_rlzrM := projT1 lt_nK_M_spec.
+(* Definition lt_nk_rlzrM := projT1 lt_nK_M_spec. *)
 
-(* We get a realizer as composition of the (partial) mapping from Kleeneans
- to Booleans and the test on the Kleeneans *)
-Definition lt_n_rlzr := (\F_K2B_rlzrM : B_(cs_Kleeneans) ->> B_(cs_bool)) \o (F2MF lt_nk_rlzrf).
-Lemma lt_n_rlzr_spec : lt_n_rlzr \solves lt_n.
-Proof.
-  rewrite lt_n_spec /lt_n_rlzr.
-  by apply slvs_comp; [apply F_K2B_rlzrM_spec | apply (projT2 lt_nK_rlzr_spec)].
-Qed.  
+(* (* We get a realizer as composition of the (partial) mapping from Kleeneans *)
+(*  to Booleans and the test on the Kleeneans *) *)
+(* Definition lt_n_rlzr := (\F_K2B_rlzrM : B_(cs_Kleeneans) ->> B_(cs_bool)) \o (F2MF lt_nk_rlzrf). *)
+(* Lemma lt_n_rlzr_spec : lt_n_rlzr \solves lt_n. *)
+(* Proof. *)
+(*   rewrite lt_n_spec /lt_n_rlzr. *)
+(*   by apply slvs_comp; [apply F_K2B_rlzrM_spec | apply (projT2 lt_nK_rlzr_spec)]. *)
+(* Qed.   *)
 
-(* The machine for lt_n *)
-Definition lt_n_M := fun phi => (K2B_rlzrM (lt_nk_rlzrf phi)).
-(* Define the machine for K2B *)
-Lemma lt_n_M_spec : {M : (monotone_machine _ _ _ _) | \F_M \solves lt_n}.
-Proof.
-  apply /compM; last first.
-  apply lt_n_spec.
-  apply lt_nK_M_spec.
-  exists K2BM.
-  apply F_K2B_rlzrM_spec.
-  apply None.
-Defined.
+(* (* The machine for lt_n *) *)
+(* Definition lt_n_M := fun phi => (K2B_rlzrM (lt_nk_rlzrf phi)). *)
+(* (* Define the machine for K2B *) *)
+(* Lemma lt_n_M_spec : {M : (monotone_machine _ _ _ _) | \F_M \solves lt_n}. *)
+(* Proof. *)
+(*   apply /compM; last first. *)
+(*   apply lt_n_spec. *)
+(*   apply lt_nK_M_spec. *)
+(*   exists K2BM. *)
+(*   apply F_K2B_rlzrM_spec. *)
+(*   apply None. *)
+(* Defined. *)
 
 
-Lemma lt_N_b_correct phi psi (x y : IR) n m b : (phi \is_name_of x) -> (psi \is_name_of y) -> (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n),(mp phi psi))) (m,tt)) = (Some b) -> b \from (lt_n (n,(x,y))).
-Proof.
-  move => phin psin.
-  rewrite /lt_n_M lt_n_spec  => /K2B_rlzrM_name H.
-  have := (projT2 lt_nK_rlzr_spec (@pair B_(cs_nat) _ ((nat2csN n),(mp phi psi))) (n,(x,y))).
-  case.
-  apply prod_name_spec; split; first by auto.
-  apply prod_name_spec; split; by auto.
-  by apply dom_lt_nk.
-  move => H1 H2.
-  have := (H2 (lt_nk_rlzrf (@pair B_(cs_nat) _ (nat2csN n, mp phi psi)))).
-  case; first by auto.
-  move => b' [b'prp1 b'prp2].
-  rewrite (rep_sing b'prp2 H) in b'prp1.
-  split; first by exists (B2K b);split.
-  move => k.
-  case k; move => [[kprp1 kprp2] kprp3]; try by auto.
-  by exists false.
-  by exists true.
-Qed.
+(* Lemma lt_N_b_correct phi psi (x y : IR) n m b : (phi \is_name_of x) -> (psi \is_name_of y) -> (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n),(mp phi psi))) (m,tt)) = (Some b) -> b \from (lt_n (n,(x,y))). *)
+(* Proof. *)
+(*   move => phin psin. *)
+(*   rewrite /lt_n_M lt_n_spec  => /K2B_rlzrM_name H. *)
+(*   have := (projT2 lt_nK_rlzr_spec (@pair B_(cs_nat) _ ((nat2csN n),(mp phi psi))) (n,(x,y))). *)
+(*   case. *)
+(*   apply prod_name_spec; split; first by auto. *)
+(*   apply prod_name_spec; split; by auto. *)
+(*   by apply dom_lt_nk. *)
+(*   move => H1 H2. *)
+(*   have := (H2 (lt_nk_rlzrf (@pair B_(cs_nat) _ (nat2csN n, mp phi psi)))). *)
+(*   case; first by auto. *)
+(*   move => b' [b'prp1 b'prp2]. *)
+(*   rewrite (rep_sing b'prp2 H) in b'prp1. *)
+(*   split; first by exists (B2K b);split. *)
+(*   move => k. *)
+(*   case k; move => [[kprp1 kprp2] kprp3]; try by auto. *)
+(*   by exists false. *)
+(*   by exists true. *)
+(* Qed. *)
 
-Lemma lt_N_b_term phi psi (x y : IR) n : (phi \is_name_of x) -> (psi \is_name_of y) -> exists m, exists b, forall m', (m <= m')%coq_nat -> (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n),(mp phi psi))) (m',tt)) = (Some b).
-Proof.
-  move => phinx phiny.
-  rewrite /lt_n_M.
-  have p : ((@pair B_(cs_nat) _ ((nat2csN n), mp phi psi)) : B_(cs_nat \*_cs (IR \*_cs IR))) \is_name_of (n, (x,y)).
-  - by apply /prod_name_spec; split; [|apply /prod_name_spec;split ].
-  have := (projT2 lt_nK_rlzr_spec _ _ p).
-  case; first by apply dom_lt_nk.
-  move => H P.
-  case H => k' kprp'.
-  case (P k' kprp') => k [kprp1 kprp2].
-  have : exists b, (B2K b) = k.
-  - move : kprp1.
-    by case k; move=> [[P1 P2] P3]; [exists false | exists true | ].
-  case => b bprp.
-  rewrite <- bprp in kprp2.
-  case (K2B_rlzrM_terms kprp2 ) => m mprp.
-  exists m; exists b.
-  apply K2B_rlzrM_monotonic.
-  rewrite /lt_nk_rlzrf.
-  by rewrite kprp'.
-Qed.
-Lemma lt_n_M_monotonic phi psi n b m : (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n), (mp phi psi))) (m,tt)) = (Some b) -> forall m', (m <= m')%coq_nat -> (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n), (mp phi psi))) (m',tt)) = (Some b).
-Proof.
-  rewrite /lt_n_M => prp m' m'prp.
-  by apply (K2B_rlzrM_monotonic prp m'prp).
-Qed.
+(* Lemma lt_N_b_term phi psi (x y : IR) n : (phi \is_name_of x) -> (psi \is_name_of y) -> exists m, exists b, forall m', (m <= m')%coq_nat -> (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n),(mp phi psi))) (m',tt)) = (Some b). *)
+(* Proof. *)
+(*   move => phinx phiny. *)
+(*   rewrite /lt_n_M. *)
+(*   have p : ((@pair B_(cs_nat) _ ((nat2csN n), mp phi psi)) : B_(cs_nat \*_cs (IR \*_cs IR))) \is_name_of (n, (x,y)). *)
+(*   - by apply /prod_name_spec; split; [|apply /prod_name_spec;split ]. *)
+(*   have := (projT2 lt_nK_rlzr_spec _ _ p). *)
+(*   case; first by apply dom_lt_nk. *)
+(*   move => H P. *)
+(*   case H => k' kprp'. *)
+(*   case (P k' kprp') => k [kprp1 kprp2]. *)
+(*   have : exists b, (B2K b) = k. *)
+(*   - move : kprp1. *)
+(*     by case k; move=> [[P1 P2] P3]; [exists false | exists true | ]. *)
+(*   case => b bprp. *)
+(*   rewrite <- bprp in kprp2. *)
+(*   case (K2B_rlzrM_terms kprp2 ) => m mprp. *)
+(*   exists m; exists b. *)
+(*   apply K2B_rlzrM_monotonic. *)
+(*   rewrite /lt_nk_rlzrf. *)
+(*   by rewrite kprp'. *)
+(* Qed. *)
+(* Lemma lt_n_M_monotonic phi psi n b m : (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n), (mp phi psi))) (m,tt)) = (Some b) -> forall m', (m <= m')%coq_nat -> (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n), (mp phi psi))) (m',tt)) = (Some b). *)
+(* Proof. *)
+(*   rewrite /lt_n_M => prp m' m'prp. *)
+(*   by apply (K2B_rlzrM_monotonic prp m'prp). *)
+(* Qed. *)
 
-Lemma lt_n_M_unique phi psi n b b' m m' : (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n), (mp phi psi))) (m,tt)) = (Some b) -> (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n), (mp phi psi))) (m',tt)) = (Some b') -> b = b'.
-Proof.
-  move => H1 H2.
-  case (Nat.le_gt_cases m m') => e.
-  - have := (lt_n_M_monotonic H1 e).
-    rewrite H2.
-    by case.
-  have e' : (m' <= m)%coq_nat by lia.
-  have := (lt_n_M_monotonic H2 e').
-  rewrite H1.
-  by case.
-Qed.
+(* Lemma lt_n_M_unique phi psi n b b' m m' : (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n), (mp phi psi))) (m,tt)) = (Some b) -> (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n), (mp phi psi))) (m',tt)) = (Some b') -> b = b'. *)
+(* Proof. *)
+(*   move => H1 H2. *)
+(*   case (Nat.le_gt_cases m m') => e. *)
+(*   - have := (lt_n_M_monotonic H1 e). *)
+(*     rewrite H2. *)
+(*     by case. *)
+(*   have e' : (m' <= m)%coq_nat by lia. *)
+(*   have := (lt_n_M_monotonic H2 e'). *)
+(*   rewrite H1. *)
+(*   by case. *)
+(* Qed. *)
 
-(* We can define a machine that checks for a given n if it is in magnitude1 *)
-Definition magnitude_checkM phi n m := match (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n.+2), (mp phi (FloattoIR 3%Z 0%Z) \* (FloattoIR 1%Z (- (Z.of_nat n))%Z) \+ (FloattoIR 1%Z (- (Z.of_nat (n.+2)))%Z)))) (m,tt)) with
-                                       | (Some true) =>
-                                         match (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n.+2), (mp (FloattoIR 1%Z (- (Z.of_nat n))%Z)) phi)) (m,tt)) with
-                                           | (Some true) => true
-                                           | (Some false) => false
-                                           | _ =>  false
-                                         end
+(* (* We can define a machine that checks for a given n if it is in magnitude1 *) *)
+(* Definition magnitude_checkM phi n m := match (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n.+2), (mp phi (FloattoIR 3%Z 0%Z) \* (FloattoIR 1%Z (- (Z.of_nat n))%Z) \+ (FloattoIR 1%Z (- (Z.of_nat (n.+2)))%Z)))) (m,tt)) with *)
+(*                                        | (Some true) => *)
+(*                                          match (lt_n_M (@pair B_(cs_nat) _ ((nat2csN n.+2), (mp (FloattoIR 1%Z (- (Z.of_nat n))%Z)) phi)) (m,tt)) with *)
+(*                                            | (Some true) => true *)
+(*                                            | (Some false) => false *)
+(*                                            | _ =>  false *)
+(*                                          end *)
                                                     
-                                       | (Some false)=> false
-                                       | _ => false
-                                       end.
+(*                                        | (Some false)=> false *)
+(*                                        | _ => false *)
+(*                                        end. *)

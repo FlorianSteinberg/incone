@@ -188,13 +188,22 @@ Section baire_fprd.
 	       FphiGpsi = inc (slct FphiGpsi)
 	       /\
 	       (F +s+ G) (slct phipsi) (slct FphiGpsi)).
-
+ 
   Lemma fsum_rlzr_comp F G: fsum_rlzr F G =~= (F2MF (@inc D D')) \o (F +s+ G) \o delta. 
   Proof.
     rewrite sum_rep_spec comp_assoc comp_rcmp; last exact/F2MF_tot.
     rewrite comp_F2MF => phipsi FphiGpsi.
     by split => [[{2}-> val] | [[Fphi | Gpsi] [val <-]]] //; exists (slct FphiGpsi).
   Qed.
+
+  Lemma fsum_rlzr_spec (F: B ->> D) (G: B' ->> D'): (fsum_rlzr F G) \solves (F +s+ G).
+  Proof.
+    rewrite rlzr_delta fsum_rlzr_comp -!comp_assoc !sum_rep_spec.
+    have /sec_cncl -> : (cancel (@inc D D')  (@slct D D')).  
+    - by rewrite /slct/inc/linc/rinc/lslct/rslct => [[x | x]] /= //.
+    by rewrite comp_id_l;apply tight_ref.
+  Qed.
+
   (*
   Lemma fsum_rlzr_cntop F G:
     F \is_continuous_operator -> G \is_continuous_operator ->

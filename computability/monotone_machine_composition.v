@@ -12,24 +12,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Section modulus_facts.
-  Local Open Scope name_scope.
-  Context (Q : eqType).
-  Context (A A' Q': Type).
-  Notation B := (Q -> A).
-  Notation B' := (Q' -> A').
-  Definition undup_mod (mu : B -> Q' -> seq Q) := fun phi q => (undup (mu phi q)).
-  Lemma undup_mod_spec (mu : B -> Q' -> seq Q) (f: B -> B') : mu \modulus_function_for f -> (undup_mod mu) \modulus_function_for f.
-  Admitted.
-  Lemma undup_modmod (mu : B -> Q' -> seq Q) : mu \modulus_function_for mu -> (undup_mod mu) \modulus_function_for (undup_mod mu).
-  Admitted.
-End modulus_facts.
-Section modulus_facts2.
-  Context (Q : eqType).
-  Context (A A' Q': Type).
-  Lemma undup_term (mu : (Q->A) -> nat*Q' -> seq Q) (f: (Q -> A) -> (nat * Q' -> (option A'))) : terminates_with f mu -> terminates_with f (undup_mod mu).
-  Admitted.
-End modulus_facts2.
 Section monotone_machine_application.
   (**
      This section reiterates the results from the file "multivalued_application" in a slightly
@@ -448,7 +430,9 @@ Section compose_monotone_machines.
     apply modmod.
     apply M_monotone.
   Qed.
+
 End compose_monotone_machines.
+
 
 Local Open Scope name_scope.
 Definition F2MM (Q Q' : Type) A A' (f : (Q -> A) -> (Q' -> A')) mu : mu \modulus_function_for f -> mu \modulus_function_for mu -> (@monotone_machine Q A Q' A').
@@ -826,19 +810,6 @@ Section monotone_machines_sum.
   split => //.
   Qed.
 End monotone_machines_sum.
-Section undup.
-  Context (Q : eqType) (Q' A A' : Type).
-  Definition undup (M : monotone_machine Q A Q' A') : monotone_machine Q A Q' A'.
-    have mod := (undup_mod_spec (@mod _ _ _ _ _ M)).
-    have modmod := (undup_modmod A' (@modmod _ _ _ _ _ M)).
-    exists (Build_continuous_machine mod modmod).
-    split.
-    apply M_monotone.
-    apply /undup_term.
-    by apply M_monotone.
-Defined.
-  
-End undup.
 Section constructions.
 Local Open Scope name_scope.
 Local Open Scope cs_scope.
@@ -886,3 +857,127 @@ Proof.
 Defined.
 
 End constructions.
+Section partial_function_product.
+  Context (S T U V: Type).
+  Local Notation pf := partial_function.
+  Definition partial_product (f: pf S T) (g: pf U V): (pf (S*U)%type (T*V)%type) .
+    exists (set_prod (domain f) (domain g)).
+    case => [[s1 s2] /= [p1 p2]].
+    by apply ((f (exist (domain f) s1 p1)), (g (exist (domain g) s2 p2))).
+  Defined.
+  Lemma pprd_spec f g: partial_product f g =~= f ** g.
+  Proof.
+    move => [s1 s2] [t1 t2].
+    split => /= [[[p1 p2 [<- <-]]] | [[p1 [<- [p2 <-]]]]]; last by exists (conj p1 p2).
+    split; by [exists  p1 | exists p2 ].
+  Qed.
+End partial_function_product.
+Search _ (_ + _)%type.
+  Definition set_sum S T (P: mf_set.subset S) (Q: mf_set.subset T) :=
+	  make_subset (fun s => match s with
+                        | inl s' => P s'
+                        | inr s' => Q s'
+                        end).
+
+Section partial_function_sum.
+  Context (S T U V: Type).
+  Local Notation pf := partial_function.
+  Definition partial_sum (f: pf S T) (g: pf U V): (pf (S+U)%type (T+V)%type) .
+    exists (set_sum (domain f) (domain g)).
+    case => [[s prp | p prp]].
+    by apply (inl (f (exist (domain f) s prp))).
+    by apply (inr (g (exist (domain g) p prp))).
+  Defined.
+
+  Lemma psum_spec f g: partial_sum f g =~= f +s+ g.
+  Proof.
+    move => [s [t | t']| s' [t | t']]; split => /= //; try by case => x.
+    by case => [x [<-]]; exists x.
+    by case => [x [<-]]; exists x.
+    by case => [x [<-]]; exists x.
+    by case => [x [<-]]; exists x.
+  Qed.
+End partial_function_sum.
+
+Section partial_functions.
+Local Open Scope name_scope.
+Local Open Scope cs_scope.
+Lemma cmp_pf (S T U : cs) (F : S ->> T) (G : U ->> S)  H : {f : (partial_function  B_(S) B_(T)) |  f \solves F} -> {g : (partial_function  B_(U) B_(S))|  g \solves G} -> H =~= F \o G -> {h : (partial_function  B_(U) B_(T)) |  h \solves H}.
+Proof.
+  case => f fprp.
+  case => g gprp.
+  exists (partial_composition f g).
+  rewrite pcmp_spec.
+  rewrite H0.
+  apply slvs_comp => //.
+Defined.
+
+Lemma cmp_pf_tight (S T U : cs) (F : S ->> T) (G : U ->> S)  H (a : A_ S) : {f : (partial_function  B_(S) B_(T)) |  f \solves F} -> {g : (partial_function  B_(U) B_(S))|  g \solves G} -> (F \o G) \tightens H -> {h : (partial_function  B_(U) B_(T)) |  h \solves H}.
+Proof.
+  case => f fprp.
+  case => g gprp.
+  exists (partial_composition f g).
+  rewrite pcmp_spec.
+  apply /slvs_tight.
+  apply /slvs_comp/gprp/fprp.
+  by apply H0.
+Defined.
+
+
+  Definition pprd_rlzrf (X Y X' Y' : cs) (f: partial_function B_(X) B_(Y) ) (g: partial_function B_(X') B_(Y'))  := (partial_composition (partial_composition  (F2PF (@pair B_(Y) B_(Y'))) (partial_product f g)) (F2PF (fun (phipsi : B_(X) \*_ns B_(X')) => (lprj phipsi, rprj phipsi)))).
+  Lemma F2PF_spec S T (f : S -> T) : (F2PF f) =~= (F2MF f). 
+  Proof.
+    move => x y.
+    by split => [[[ ]]| H] /= //.
+  Qed.
+
+Lemma pprd_rlzrf_spec (X Y X' Y' : cs) (f: partial_function B_(X) B_(Y) ) (g: partial_function B_(X') B_(Y'))  F G: (f \solves F) -> (g \solves G) -> (pprd_rlzrf f g) \solves (F ** G). 
+Proof.
+  rewrite /pprd_rlzrf => fprp gprp.
+  rewrite !pcmp_spec pprd_spec  !F2PF_spec.
+  apply /tight_slvs.
+  apply /prod.fprd_rlzr_spec/gprp/fprp.
+  rewrite fprd_rlzr_comp.
+  apply /tight_comp => /= //.
+  apply /tight_comp; first by rewrite tight_F2MF.
+  by move => x y; by split.
+  rewrite /mf_id.
+  rewrite <- F2MF_fprd.
+  rewrite F2MF_rcmp_F2MF tight_F2MF.
+  by rewrite /unpair.
+Qed.
+
+Lemma prd_pf (S T U V: cs) (F : S ->> T) (G : U ->> V) H : {f : (partial_function  B_(S) B_(T)) |  f \solves F} -> {g : (partial_function  B_(U) B_(V))|  g \solves G} -> H =~= (F ** G) -> {h : (partial_function  B_(S \*_cs U) B_(T \*_cs V)) | h \solves H}.
+Proof.
+  case => f fprp.
+  case => g gprp prp.
+  exists (pprd_rlzrf f g).
+  rewrite prp.
+  by apply pprd_rlzrf_spec.
+Defined.
+
+Definition psum_rlzrf (X Y X' Y' : cs) (f: partial_function B_(X) B_(Y) ) (g: partial_function B_(X') B_(Y'))  := (partial_composition (partial_composition  (F2PF (@inc B_(Y) B_(Y'))) (partial_sum f g)) (F2PF (@slct B_(X) B_(X')))).
+
+Lemma psum_rlzrf_spec (X Y X' Y' : cs) (f: partial_function B_(X) B_(Y) ) (g: partial_function B_(X') B_(Y'))  F G: (f \solves F) -> (g \solves G) -> (psum_rlzrf f g) \solves (F +s+ G). 
+Proof.
+  rewrite /psum_rlzrf => fprp gprp.
+  rewrite !pcmp_spec psum_spec  !F2PF_spec.
+  apply /tight_slvs.
+  apply /sum.fsum_rlzr_spec/gprp/fprp.
+  rewrite fsum_rlzr_comp.
+  apply /tight_comp => /= //.
+  apply /tight_comp; first by rewrite tight_F2MF.
+  by move => x y; by split.
+  rewrite fsum_id rcmp_id_l.
+  exact/tight_ref.
+Qed.
+
+Lemma sum_pf (S T U V: cs) (F : S ->> T) (G : U ->> V) H : {f : (partial_function  B_(S) B_(T)) |  f \solves F} -> {g : (partial_function  B_(U) B_(V))|  g \solves G} -> H =~= (F +s+ G) -> {h : (partial_function  B_(S \+_cs U) B_(T \+_cs V)) | h \solves H}.
+Proof.
+  case => f fprp.
+  case => g gprp prp.
+  exists (psum_rlzrf f g).
+  rewrite prp.
+  by apply psum_rlzrf_spec.
+Defined.
+End partial_functions.

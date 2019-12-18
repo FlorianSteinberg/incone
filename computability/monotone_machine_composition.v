@@ -912,7 +912,7 @@ Proof.
   apply slvs_comp => //.
 Defined.
 
-Lemma cmp_pf_tight (S T U : cs) (F : S ->> T) (G : U ->> S)  H (a : A_ S) : {f : (partial_function  B_(S) B_(T)) |  f \solves F} -> {g : (partial_function  B_(U) B_(S))|  g \solves G} -> (F \o G) \tightens H -> {h : (partial_function  B_(U) B_(T)) |  h \solves H}.
+Lemma cmp_pf_tight (S T U : cs) (F : S ->> T) (G : U ->> S)  H  : {f : (partial_function  B_(S) B_(T)) |  f \solves F} -> {g : (partial_function  B_(U) B_(S))|  g \solves G} -> (F \o G) \tightens H -> {h : (partial_function  B_(U) B_(T)) |  h \solves H}.
 Proof.
   case => f fprp.
   case => g gprp.
@@ -980,4 +980,14 @@ Proof.
   rewrite prp.
   by apply psum_rlzrf_spec.
 Defined.
+
+Definition speedup n s := (2 ^ (n+s))%nat.
+Definition speedup_machine Q A Q' A' (M : (@monotone_machine Q A Q' A')) phi nq := (M phi ((speedup nq.1 7), nq.2)). 
+
+Definition mm2pf Q A Q' A' (M : (@monotone_machine Q A Q' A')) := (get_partial_function (speedup_machine M)).
+
+(* Lemma mm2pf_spec Q A Q' A' (M : (@monotone_machine Q A Q' A')) : (mm2pf M) =~= \F_(M). *)
+(* Proof. *)
+(*   have := (@monotone _ _ _ _ _ (M_monotone M)). *)
+(*   Search _ (_ \is_monotone). *)
 End partial_functions.

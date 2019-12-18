@@ -21,13 +21,6 @@ Require ExtrHaskellZInteger.
 Require ExtrHaskellNatInteger.
 Require Import Coq.Lists.StreamMemo.
 Extraction Language Haskell.
-Definition memoize_real (phi : IR_type) :IR_type  := let p := (memo_list ID phi) in
-                                                     fun n => memo_get ID n p.
-Lemma memoize_real_correct phi : (memoize_real phi) = phi.
-Proof.
-apply functional_extensionality => n.
-by apply memo_get_correct.
-Qed.
 Definition shiftL (m : Z) (d : Z) :=
   match d with
     (Z.pos p) => (m * (2 ^ (Z.pos p)))%Z |
@@ -149,4 +142,4 @@ Extract Inlined Constant StdZRadix2.mantissa_shl => "(\n m -> Data.Bits.shiftL n
 Extract Inlined Constant StdZRadix2.mantissa_digits => "(\n -> Prelude.toInteger (GHC.Exts.I# (GHC.Integer.Logarithms.integerLog2# n)))".
 Extract Inlined Constant Nat.log2 => "(\n -> Prelude.toInteger (GHC.Exts.I# (GHC.Integer.Logarithms.integerLog2# n)))".
 Extract Inlined Constant memoize_real => "Data.Function.Memoize.memoize".
-(* Extract Inlined Constant StdZRadix2.mantissa_shr => mantissa_shr. *)
+Extract Inlined Constant StdZRadix2.mantissa_shr => mantissa_shr.

@@ -31,15 +31,6 @@ Definition magnitude_check_lhs n (x : R) := (n.+2, ((/ 2 ^ n), x)).
 
 Definition magnitude_check n := (F2MF (uncurry andb)) \o ((lt_n \o (F2MF (magnitude_check_rhs n)))  ** (lt_n \o (F2MF (magnitude_check_lhs n))) \o mf_diag).
 
-Lemma ltn_tot : lt_n \is_total.
-Proof.
-  move => a.
-  rewrite lt_n_spec /lt_nK/B2K.
-  rewrite <-comp_dom_codom; first by rewrite dom_lt_nk.
-  rewrite <- codom_dom_inv.
-  case => Hd; [ by exists false | by exists true |].
-  by case Hd => [_ [_ H0]].
-Qed.
 
 Lemma dom_magnitude_check n : (magnitude_check n) \is_total.
 Proof.

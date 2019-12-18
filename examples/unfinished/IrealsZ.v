@@ -7,8 +7,9 @@ Require Import all_cs_base classical_mach.
 Require Import Reals Psatz FunctionalExtensionality ClassicalChoice.
 Require Import Ibounds.
 Require Import naming_spaces.
-Require Import computable_reals.
+Require Import computable_reals_pf.
 Require Import monotone_machine_composition.
+Require Import Coq.Lists.StreamMemo.
 Import Qreals.
 Require Q_reals.
 From Interval Require Import Interval_specific_ops Interval_bigint_carrier Interval_stdz_carrier.
@@ -1251,17 +1252,30 @@ Proof.
 Qed.
 
 (* We choose size 1/2 as the maximal size of intervals *)
-Definition cleanup :=  (cleanup_generic 1%nat).
+Definition memoize_real (phi : IR_type) :IR_type  := let p := (memo_list ID phi) in
+                                                     fun n => memo_get ID n p.
+Lemma memoize_real_correct phi : (memoize_real phi) = phi.
+Proof.
+apply functional_extensionality => n.
+by apply memo_get_correct.
+Qed.
+Definition cleanup :=  (memoize_real) \o_f (cleanup_generic 1%nat).
 
 Lemma cleanup_spec : (F2MF cleanup) \realizes (id : IR -> IR).
 Proof.
+  rewrite /cleanup.
+  rewrite <- F2MF_comp_F2MF.
+  have -> : (F2MF memoize_real =~= mf_id).
+  move => phi n /=.
+  by rewrite memoize_real_correct.
+  rewrite comp_id_l.
   by apply cleanup_generic_spec.
 Qed.
 End cleanup.
 
 Section speedup.
-Definition speedup n s := (2 ^ (n+s))%nat.
 
+Definition speedup n s := (2 ^ (n+s))%nat.
 Lemma speedup_gt s n : (n <= (speedup n s))%nat.
 Proof.
   rewrite /speedup.
@@ -1313,31 +1327,53 @@ Definition IR2Qmf := \F_(IR_RQ_rlzrM').
 End speedup.
 
 Section computable_real_structure.
+Lemma cleanup_slvs (X : cs) f (F : X ->> R) : (f \solves F) -> ((F2MF cleanup) \o f) \solves F.
+Proof.
+  move => H.
+  rewrite <- comp_id_l.
+  apply /slvs_comp => //.
+  by apply cleanup_spec.
+Qed.
+
 Definition interval_reals: computable_reals.
   exists IR.
   exists \F_(use_first IR_RQ_rlzrM').
   - rewrite /IR2Qmf/IR_RQ_rlzrM'.
     split; first by apply /sfrst_cntf_cont/modf_cont/(@IR_RQ_mu_spec (fun n=> (speedup n 5))).
     by apply (tight_rlzr (F_M_realizer_IR_RQ (speedup_gt 5))); apply sfrst_spec.
-  exists (F2MM Rplus_rlzr_mu_mod Rplus_rlzr_mu_modmod).
-  - rewrite /implements F2M_spec.
+  exists (F2PF (cleanup \o_f Rplus_rlzrf)).
+  - rewrite /= F2PF_spec.
+    rewrite <- F2MF_comp_F2MF.
+    apply cleanup_slvs.
     apply Rplus_rlzr_spec.
-  exists (F2MM Rmult_rlzr_mu_mod Rmult_rlzr_mu_modmod).
-  - rewrite /implements F2M_spec.
+  exists (F2PF (cleanup \o_f Rmult_rlzrf)).
+  - rewrite /= F2PF_spec.
+    rewrite <- F2MF_comp_F2MF.
+    apply cleanup_slvs.
     apply Rmult_rlzr_spec.
-  exists (F2MM Rdiv_rlzr_mu_mod Rdiv_rlzr_mu_modmod).
-  - rewrite /implements F2M_spec.
+  exists (F2PF (cleanup \o_f Rdiv_rlzrf)).
+  - rewrite /= F2PF_spec.
+    rewrite <- F2MF_comp_F2MF.
+    apply cleanup_slvs.
     apply Rdiv_rlzr_spec.
-  exists (F2MM ltK_mu_mod ltK_mu_modmod).
-  - rewrite /implements F2M_spec.
+  exists (F2PF (ltK_rlzr)).
+  - rewrite /= F2PF_spec.
     apply ltK_rlzr_spec.
+  exists cleanup.
+  by apply cleanup_spec.
   set f2m := (fun (phi : B_(cs_Z \*_cs cs_Z)) => (FloattoIR (lprj phi tt) (rprj phi tt))).
-  exists f2m.
+  exists (cleanup \o_f f2m).
+  simpl.
+  rewrite <-F2MF_comp_F2MF.
+  rewrite <- comp_id_l.
+  apply /slvs_comp.
+  by apply cleanup_spec.
   rewrite /f2m.
   rewrite F2MF_rlzr/uncurry => phi [m e] [] [] /= z1 z2 [[-> ->] [-> ->]].
   rewrite <-D2R_Float.
   by apply (FloattoIR_correct m e).
 Defined.  
+
 End computable_real_structure.
 (* notations *)
 

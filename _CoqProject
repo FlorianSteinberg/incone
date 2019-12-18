@@ -67,7 +67,7 @@ examples/reals/division_for_Q_reals.v
 
 examples/unfinished/Q_round.v
 
-examples/unfinished/computable_reals.v
+examples/unfinished/computable_reals_pf.v
 examples/unfinished/Ibounds.v
 examples/unfinished/IrealsZ.v
 examples/unfinished/Iextract.v
@@ -80,5 +80,5 @@ examples/unfinished/Iextract.v
 #examples/unfinished/sd_reals.v
 #examples/unfinished/sdvsc.v
 
-examples/unfinished/softcomparison.v
-examples/unfinished/magnitude.v
+examples/unfinished/softcomparison_pf.v
+examples/unfinished/magnitude_pf.v

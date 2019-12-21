@@ -1361,6 +1361,9 @@ Definition interval_reals: computable_reals.
     apply ltK_rlzr_spec.
   exists cleanup.
   by apply cleanup_spec.
+  exists (get_partial_function limit_eff_rlzrM) => /=.
+  rewrite gtpf_spec.
+  by apply /tight_slvs/sfrst_spec/F_lim_eff_rlzrM_spec.
   set f2m := (fun (phi : B_(cs_Z \*_cs cs_Z)) => (FloattoIR (lprj phi tt) (rprj phi tt))).
   exists (cleanup \o_f f2m).
   simpl.

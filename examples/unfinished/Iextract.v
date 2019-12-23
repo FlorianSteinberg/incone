@@ -141,5 +141,5 @@ Extract Inlined Constant shiftL => "(\n m -> Data.Bits.shiftL n (Prelude.fromInt
 Extract Inlined Constant StdZRadix2.mantissa_shl => "(\n m -> Data.Bits.shiftL n (Prelude.fromIntegral m))".
 Extract Inlined Constant StdZRadix2.mantissa_digits => "(\n -> Prelude.toInteger (GHC.Exts.I# (GHC.Integer.Logarithms.integerLog2# n)))".
 Extract Inlined Constant Nat.log2 => "(\n -> Prelude.toInteger (GHC.Exts.I# (GHC.Integer.Logarithms.integerLog2# n)))".
-Extract Inlined Constant memoize_real => "Data.Function.Memoize.memoize".
+(* Extract Inlined Constant memoize_real => "Data.Function.Memoize.memoize". *)
 Extract Inlined Constant StdZRadix2.mantissa_shr => mantissa_shr.

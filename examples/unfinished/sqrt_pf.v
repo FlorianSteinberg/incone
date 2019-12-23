@@ -25,10 +25,6 @@ Local Open Scope Z_scope.
 Import QArith.
 Local Open Scope R_scope.
 
-Definition RS2CS Rc := (Build_continuity_space (representation Rc)).
-Coercion RS2CS : computable_reals >-> continuity_space.
-Variable (Rc : computable_reals).
-Definition Rc_nonneg := make_subset (fun (x : Rc) => 0 <= x).
 Lemma tpmn_mult_l n m : (/ 2 ^ (n * m)%nat) = ((/ 2 ^ m) ^ n).
 Proof.
   rewrite <- powerRZ2_neg_pos, powerRZ_Rpower; last by lra.
@@ -43,6 +39,9 @@ Section heron_method.
 (* To approximate sqrt(x) for 0.25 <= x <= 2 we use the Heron method. *)
 
 (* sqrt_approx does n iterations of the Heron method with initial value x0 *)
+Definition RS2CS Rc := (Build_continuity_space (representation Rc)).
+Coercion RS2CS : computable_reals >-> continuity_space.
+Variable (Rc : computable_reals).
 Fixpoint sqrt_approx x0 n x := match n with
                                | 0%nat => x0
                                | (S n') => let P := (sqrt_approx x0 n' x) in
@@ -239,6 +238,7 @@ Qed.
 End scaling.
 
 Section sqrt_specification.
+Variable (Rc : computable_reals).
 
 (* To compute the square root on all x>= 0 we first scale it appropriately *)
 Lemma sqrt_approx_scale_correct n x y p:  (powerRZ 4 p)*y = x -> ((/ 4) <= y <= 2) ->(Rabs ((powerRZ 2 p)*(sqrt_approx 1 n y)-sqrt x)) <= (powerRZ 2 p)*(/ 2 ^ (2 ^ n)).
@@ -435,7 +435,7 @@ Qed.
 
 Notation lim_eff:= (efficient_limit: (Rc\^w) ->> Rc).
 (* We show that the efficient limit of our approximation function is an extension of the square root *)
-Lemma sqrt_as_lim :  (lim_eff \o sqrt_approx_total_seq) \tightens ((F2MF sqrt : Rc ->> Rc)|_(Rc_nonneg)).
+Lemma sqrt_as_lim :  (lim_eff \o sqrt_approx_total_seq) \tightens ((F2MF sqrt : Rc ->> Rc)|_(make_subset (fun (x : Rc) => 0 <= x))).
 Proof.
   apply split_tight.
   - move => x.
@@ -456,6 +456,7 @@ Qed.
 End sqrt_specification.
 
 Section rlzrs.
+Variable (Rc : computable_reals).
 Arguments partial_function {S} {T}.
 Lemma scale_rlzr_spec : {f : partial_function | f \solves (scale : Rc ->> (Rc * cs_Z))}.
 Proof.
@@ -526,7 +527,6 @@ Proof.
   by rewrite /=; lra.
   apply (multiplication_rlzr Rc).
 Defined.
-Print sqrt_approx.
 
 Definition mp (phi psi : B_(Rc)) := (pair (phi,psi)).
 Notation "f '\*' g" := ((partial_composition (partial_composition (projT1 (multiplication_rlzr Rc))  (pprd_rlzrf f g)) (F2PF (fun phi => (pair (phi,phi))))) : (@partial_function B_(Rc) B_(Rc)))   (at level 3).
@@ -548,59 +548,31 @@ Proof.
   exists (sqrt_approx1_rlzr (Nat.log2 n.+1).+1).
   by apply sqrt_approx1_rlzr_spec.
 Defined.
-
-Lemma sqrt_approx_total_rlzr (n : nat) : {f : partial_function | f \solves ((sqrt_approx_total n) : (Rc ->> Rc))}.
+Lemma sqrt_approx_comp_inner (n : nat) : {f : partial_function | f \solves ((F2MF (fun xnz : sequence_in Rc * Z => xnz.1 (n + Z.to_nat xnz.2)%nat) \o
+        (make_mf
+           (fun (x : Rc) (yn : sequence_in Rc) =>
+            forall n0 : nat, yn n0 \from ((fun n1 : nat => F2MF (sqrt_approx_seq^~ n1)) n0) x) **
+         F2MF ssrfun.id)) : ((Rc * cs_Z) ->> Rc))}.
 Proof.
   have fp : forall f, (f =~= f) by trivial.
-  apply /cmp_pf_tight; last first.
-  apply (sq_apprx_tot_spec).
-  apply diag_pf_exists.
-  apply /cmp_pf => //; last first.
-  apply /prd_pf => //; last first.
-  exists (F2PF (ssrfun.id)).
+  apply /cmp_pf => //.
+  set rlzr := F2PF (fun (phi : B_(Rc\^w \*_cs cs_Z)) (q : Q_(Rc)) => ((lprj phi) (((n+(Z.to_nat (rprj phi tt)))%nat), q))).
+  have rlzr_spec : (rlzr \realizes (fun xnz => (xnz.1 (n+(Z.to_nat xnz.2))%nat))).
+  - rewrite /rlzr F2PF_spec F2MF_rlzr => phi [xn z] /prod_name_spec [/= phin1 ->].
+    by apply phin1.
+  exists rlzr.
+  apply rlzr_spec.
+  apply /prd_pf => //.
+  apply /seq_pf => //.
+  apply sqrt_approx_rlzr.
+  exists (F2PF (ssrfun.id : B_(cs_Z) -> B_(cs_Z))).
   rewrite F2PF_spec.
   apply id_rlzr.
-  apply /cmp_pf => //; last first.
-  rewrite /close_to_zero_check. 
-  apply /cmp_pf =>//.
-  apply /prd_pf => //.
-  apply /constant_pf_spec.
-  have np : (cs_nat (nat2csN ((2*n).+1)) ((2*n).+1)) by auto.
-  apply np.
-  apply /prd_pf => //.
-  exists (F2PF (ssrfun.id)).
-  rewrite F2PF_spec.
-  apply id_rlzr.
-  apply /cmp_pf => //.
-  apply tpmn_rlzr.
-  apply /constant_pf_spec.
-  have np : (cs_nat (nat2csN ((2*n))) ((2*n)%nat)) by auto.
-  apply np.
-  apply /cmp_pf => //.
-  apply /prd_pf => //.
-  exists (F2PF (ssrfun.id)).
-  rewrite F2PF_spec.
-  apply id_rlzr.
-  apply diag_pf_exists.
-  apply diag_pf_exists.
-  rewrite /mf_diag/mf.diag/cnst !F2MF_comp_F2MF.
-  rewrite <- !F2MF_fprd.
-  by rewrite !F2MF_comp_F2MF /fprd /=.
-  apply ltn_rlzr.
-  apply /cmp_pf => //; last first.
-  exists (F2PF (@if_rlzrf Rc)).
-  rewrite F2PF_spec.
-  apply if_rlzrf_spec.
-  apply /cmp_pf => //; last first.
-  apply /sum_pf => //; last first.
-  apply /cmp_pf => //; last first.
-  apply scale_rlzr_spec.
-  rewrite /scale_sq.
-  rewrite /sqrt_approx_seq.
-  apply /cmp_pf.
-  apply /cmp_pf => //.
-  apply (multiplication_rlzr Rc).
-  apply /prd_pf => //.
+Defined.
+
+Lemma sqrt_approx_comp_inner' : {f : partial_function | f \solves ((F2MF (fun z => (powerRZ 2 z))) \o (F2MF snd) : ((Rc * cs_Z) ->> (Rc)))}.
+Proof.
+  have fp : forall f, (f =~= f) by trivial.
   apply /cmp_pf => //.
   case (F2R Rc) => f2r /= f2rprp.
   set rlzr := F2PF ((fun (phi : B_(cs_Z)) => (f2r (@pair B_(cs_Z) B_(cs_Z) (Z2csZ 1,phi))) : (B_(Rc)))).
@@ -618,32 +590,119 @@ Proof.
     by rewrite Fp1.
   exists rlzr.
   apply rlzr_spec.
-  exists (F2PF ((@rprj B_(Rc) B_(cs_Z)) : (B_(Rc \*_cs cs_Z)) -> _)).
+  exists (F2PF ((@rprj B_(Rc) B_(cs_Z)) : (B_(Rc \*_cs cs_Z)) -> B_(cs_Z))).
   rewrite F2PF_spec.
   apply snd_rlzr_spec.
+Defined.
+Lemma sqrt_approx_comp_inner'' (n : nat): {f : partial_function | f \solves (((F2MF (uncurry Rmult)) \o (((F2MF (fun z => (powerRZ 2 z))) \o (F2MF snd)) ** ((F2MF (fun xnz : sequence_in Rc * Z => xnz.1 (n + Z.to_nat xnz.2)%nat) \o
+        (make_mf
+           (fun (x : Rc) (yn : sequence_in Rc) =>
+            forall n0 : nat, yn n0 \from ((fun n1 : nat => F2MF (sqrt_approx_seq^~ n1)) n0) x) **
+         F2MF ssrfun.id))))) : ((Rc * cs_Z) * (Rc * cs_Z) ->> Rc))}.
+Proof.
+  have fp : forall f, (f =~= f) by trivial.
   apply /cmp_pf => //.
-  set rlzr := F2PF (fun (phi : B_(Rc\^w \*_cs cs_Z)) (q : Q_(Rc)) => ((lprj phi) ((Nat.log2 (n+(Z.to_nat (rprj phi tt)).+1)).+1, q))).
-  have rlzr_spec : (rlzr \realizes (fun xnz => (xnz.1 (Nat.log2 (n+(Z.to_nat xnz.2).+1)).+1))).
-  - rewrite /rlzr F2PF_spec F2MF_rlzr => phi [xn z] /prod_name_spec [/= phin1 ->].
-    by apply phin1.
-  exists rlzr.
-  apply rlzr_spec.
+  apply (multiplication_rlzr Rc).
   apply /prd_pf => //.
-  apply /seq_pf => //.
-  apply sqrt_approx_rlzr.
+  apply sqrt_approx_comp_inner'.
+  apply sqrt_approx_comp_inner.
+  apply fp.
+Defined.
+
+Lemma sqrt_approx_comp_rlzr (n : nat) : {f : partial_function |
+  f \realizes ((fun yp : R * Z => powerRZ 2 yp.2 * sqrt_approx_seq yp.1 (n + Z.to_nat yp.2)) : ((Rc * cs_Z) -> (Rc)))}.
+Proof.
+  have fp : forall f, (f =~= f) by trivial.
+  rewrite /sqrt_approx_seq.
+  apply /cmp_pf.
+  apply sqrt_approx_comp_inner''.
+  apply diag_pf_exists.
+  rewrite /mf_diag/mf.diag/uncurry !F2MF_comp_F2MF.
+  rewrite !comp_F2MF.
+  move => [x z] p /=.
+  split; last first.
+  move => [H1 _].
+  case H1 => [[a b [[<-[[[xn z0 [[<- <- <- _ <-]]]] ]]]]];by rewrite /sqrt_approx_seq /=.
+  move => H1.
+  split => // /=.
+  exists (powerRZ 2 z, (sqrt_approx_seq x (n+Z.to_nat z))).
+  split => //.
+  split => //.
+  split; last by rewrite F2MF_dom.
+  exists ((sqrt_approx_seq x), z).
+  split => //; try by rewrite F2MF_dom.
+  move => x0 H.
+  by rewrite F2MF_dom.
+Defined.
+Lemma close_to_zero_check_const (n : nat) : {f : partial_function | f \solves (((F2MF (cnst (2 * n).+1) ** (F2MF ssrfun.id ** (F2MF (fun n0 : nat => / 2 ^ n0) \o F2MF (cnst (2 * n)%nat))))) : (Rc * (Rc * Rc) ->> (nat * (Rc * Rc))))}. 
+  have fp : forall f, (f =~= f) by trivial.
+
+  apply /prd_pf => //.
+  apply /constant_pf_spec.
+  have np : (cs_nat (nat2csN ((2*n).+1)) ((2*n).+1)) by auto.
+  apply np.
+ apply /prd_pf => //.
+  exists (F2PF (ssrfun.id)).
+  rewrite F2PF_spec.
+  apply id_rlzr.
+  apply /cmp_pf => //.
+  apply tpmn_rlzr.
+  apply /constant_pf_spec.
+  have np : (cs_nat (nat2csN ((2*n))) ((2*n)%nat)) by auto.
+  apply np.
+Defined.
+Lemma close_to_zero_check_diag  : {f : partial_function | f \solves (((F2MF ssrfun.id ** mf_diag) \o mf_diag) : (Rc ->> (Rc * (Rc * Rc))))}. 
+Proof.
+  have fp : forall f, (f =~= f) by trivial.
+  apply /cmp_pf => //.
+  apply /prd_pf => //.
   exists (F2PF (ssrfun.id)).
   rewrite F2PF_spec.
   apply id_rlzr.
   apply diag_pf_exists.
-  rewrite /mf_diag/mf.diag/uncurry !F2MF_comp_F2MF.
-  rewrite !comp_F2MF.
-  move => [x z] p.
-  admit.
+  apply diag_pf_exists.
+Defined.
+Lemma close_to_zero_check_rlzr (n : nat) : {f : partial_function | f \solves ((F2MF (close_to_zero_check n)) : (Rc ->> (cs_nat * (Rc * Rc))))}.
+Proof.
+  have fp : forall f, (f =~= f) by trivial.
+  rewrite /close_to_zero_check.
+  apply /cmp_pf =>//.
+  apply (close_to_zero_check_const n).
+  apply close_to_zero_check_diag.
+  rewrite /mf_diag/mf.diag/cnst !F2MF_comp_F2MF.
+  rewrite <- !F2MF_fprd.
+  by rewrite !F2MF_comp_F2MF /fprd /=.
+Defined.
+
+Lemma sqrt_approx_total_rlzr (n : nat) : {f : partial_function | f \solves ((sqrt_approx_total n) : (Rc ->> Rc))}.
+Proof.
+  have fp : forall f, (f =~= f) by trivial.
+  apply /cmp_pf_tight; last first.
+  apply (sq_apprx_tot_spec).
+  apply diag_pf_exists.
+  apply /cmp_pf => //; last first.
+  apply /prd_pf => //; last first.
+  exists (F2PF (ssrfun.id)).
+  rewrite F2PF_spec.
+  apply id_rlzr.
+  apply /cmp_pf => //; last first.
+  apply close_to_zero_check_rlzr.
+  apply ltn_rlzr.
+  apply /cmp_pf => //; last first.
+  exists (F2PF (@if_rlzrf Rc)).
+  rewrite F2PF_spec.
+  apply if_rlzrf_spec.
+  apply /cmp_pf => //; last first.
+  apply /sum_pf => //; last first.
+  apply /cmp_pf => //; last first.
+  apply scale_rlzr_spec.
+  rewrite /scale_sq.
+  apply sqrt_approx_comp_rlzr.
   apply int_constant_pf.
   apply paib_pf_exists.
-Admitted.
+Defined.
 
-Lemma sqrt_rlzr : {f : partial_function | f \solves (F2MF (sqrt : Rc -> Rc))|_Rc_nonneg}.
+Lemma sqrt_rlzr : {f : partial_function | f \solves (F2MF (sqrt : Rc -> Rc))|_(make_subset (fun (x : Rc) => 0 <= x))}.
 Proof.
   apply /cmp_pf_tight; last first.
   Check sqrt_as_lim.
@@ -653,515 +712,12 @@ Proof.
   case (limit_rlzr Rc) => l lp.
   by exists l.
 Defined.
-(* realizer for the sqrt_approx function *)
-Fixpoint sqrt_approx_rlzr phi0 n phi := match n with
-                                 | 0%nat => phi0 
-                                 | (S n') => let P := clean \o_f (sqrt_approx_rlzr phi0 n' phi)) in
-                                          one_half \* (P \+ (phi \: P))
-                                 end : B_(IR).
 
 
-(* realizer for the square root approximation function *)
-Definition sqrt_approx_n x n := (sqrt_approx_rlzr one (Nat.log2 n.+1).+1 x).
-
+Lemma sqrt_rlzr_dom phi x : (0 <= x) -> (phi \is_name_of x) -> (phi \from (dom (projT1 sqrt_rlzr))).
+Proof.
+  move => xgt phin.
+  apply (projT2 sqrt_rlzr phi x phin). 
+  by exists (sqrt x).
+Qed.  
 End rlzrs.
-(* Some convenient definitions *)
-Definition lim := \F_limit_eff_rlzrM.
-Notation lim_eff:= (efficient_limit: (IR\^w) ->> IR).
-Definition IR_nonneg := make_subset (fun (x : IR) => 0 <= x).
-Definition one := (FloattoIR 1%Z 0%Z).
-Definition one_half := (FloattoIR 1%Z (-1)%Z).
-Definition two := (FloattoIR 1%Z 1%Z).
-
-
-Lemma one_describes_one : (one \is_name_of 1).
-Proof.
-  suff <- : (D2R (Float 1%Z 0%Z)) = 1 by apply FloattoIR_correct.
-  by rewrite D2R_Float //=;lra.
-Qed.
-
-Definition tpnIR n := (FloattoIR 1%Z n).
-
-Lemma tpnIR_spec n : (tpnIR n) \is_name_of (powerRZ 2 n).
-Proof.
-  rewrite /tpnIR.
-  suff -> : (powerRZ 2 n) = (D2R (Float 1%Z n)) by apply FloattoIR_correct.
-  by rewrite D2R_Float;lra.
-Qed.
-
-Definition tpmnIR_rlzr phi := (tpnIR (-(Z.of_nat (phi tt)))%Z).
-Lemma tpmnIR_rlzr_spec : (F2MF tpmnIR_rlzr) \realizes (fun (n : nat) => (/ 2 ^ n)).
-Proof.
-  rewrite F2MF_rlzr => phi n phin.
-  rewrite /tpmnIR_rlzr phin.
-  rewrite <- powerRZ2_neg_pos.
-  by apply tpnIR_spec.
-Qed.
-
-Lemma mul_comp (phi psi : B_(IR))  (x y : R) : (phi \is_name_of x) -> (psi \is_name_of y) -> (((phi \* psi) : B_(IR)) \is_name_of (x*y)).
-Proof.
-  move => phin psin.
-  have /F2MF_rlzr cln := cleanup_spec.
-  suff xyname : (pair (phi,psi) : B_(IR \*_cs IR)) \is_name_of (x,y).
-  - apply cln.
-    have  :=  (Rmult_rlzr_spec ).
-    rewrite F2MF_rlzr => sp.
-    by apply (sp _ _ xyname).
-    rewrite prod_name_spec.
-  by rewrite lprj_pair rprj_pair.
-Qed.
-
-Lemma plus_comp (phi psi : B_(IR)) (x y : R) : (phi \is_name_of x) -> (psi \is_name_of y) -> (((phi \+ psi) : B_(IR)) \is_name_of (x+y)).
-Proof.
-  move => phin psin.
-  have /F2MF_rlzr cln := cleanup_spec.
-  suff xyname : (pair (phi,psi) : B_(IR \*_cs IR)) \is_name_of (x,y).
-  - apply cln.
-    have  :=  (Rplus_rlzr_spec ).
-    rewrite F2MF_rlzr => sp.
-    by apply (sp _ _ xyname).
-    rewrite prod_name_spec.
-  by rewrite lprj_pair rprj_pair.
-Qed.
-Lemma div_comp phi psi (x y : R) : (y <> 0) -> (phi \is_name_of x) -> (psi \is_name_of y) -> (((phi \: psi) : (B_(IR))) \is_name_of (x/y)).
-Proof.
-  move => yneg0 phin psin.
-  have /F2MF_rlzr cln := cleanup_spec.
-  suff xyname : (pair (phi,psi) : B_(IR \*_cs IR)) \is_name_of (x,y).
-  - apply cln.
-    have  :=  (Rdiv_rlzr_spec ).
-    rewrite F2MF_slvs => sp.
-    case (sp _ _  xyname) => [| xy [[_ /= xy_prop] P]]; first by exists (x/y).
-    rewrite /Rdiv in xy_prop.
-    rewrite <- xy_prop.                                                              
-    by apply P.                                                    
-  rewrite prod_name_spec.
-  by rewrite lprj_pair rprj_pair.
-Qed.
-Section heron.
-
-(* realizer for the sqrt_approx function *)
-Fixpoint sqrt_approx_rlzr phi0 n phi := match n with
-                                 | 0%nat => phi0 
-                                 | (S n') => let P := (memoize_real (sqrt_approx_rlzr phi0 n' phi)) in
-                                          one_half \* (P \+ (phi \: P))
-                                 end : B_(IR).
-
-
-(* realizer for the square root approximation function *)
-Definition sqrt_approx_n x n := (sqrt_approx_rlzr one (Nat.log2 n.+1).+1 x).
-
-Lemma sqrt_approx_step (phi psi : B_(IR)) (x x0 :IR) : (phi \is_name_of x) -> (psi \is_name_of x0) -> (@representation IR (sqrt_approx_rlzr psi 0%nat phi) x0) /\ forall n y, (@representation IR (sqrt_approx_rlzr psi n phi) y) -> (y <> 0) -> (@representation IR (sqrt_approx_rlzr psi n.+1 phi) (/2 * (y + (x /y)))).
-Proof.
-  split => [| n y P yneq0]; first by auto.
-  rewrite /sqrt_approx_rlzr.
-  apply mul_comp.
-  - suff <- : (D2R (Float 1%Z (-1)%Z)) = (/ 2) by apply FloattoIR_correct.
-    rewrite D2R_Float //=.
-    by lra.
-  rewrite memoize_real_correct.
-  apply plus_comp; try by auto.
-  apply div_comp; try by auto.
-Qed.
-
-
-
-Lemma sqrt_approx_n_rlzr_spec phi x n : (phi \is_name_of x) -> ((/ 4) <= x <= 2) -> ((sqrt_approx_n phi n) : B_(IR)) \is_name_of (sqrt_approx_seq x n).
-Proof.
-  move => phin xbnd /=.
-  have [P1 P2] := (sqrt_approx_step phin one_describes_one).
-  rewrite /sqrt_approx_n /sqrt_approx_seq.
-  set m := (Nat.log2 n.+1).+1.
-  elim m => [| m' IH]; first by apply P1.
-  apply P2; first by apply IH.
-  rewrite -/sqrt_approx.
-  suff : 0 < (sqrt_approx 1 m' x) by lra.
-  by apply sqrt_approx_gt_0;lra.
-Qed.
-
-End heron.
-Section scaling.
-(* To extend the square root we define a scaling function *)
-Definition next_even z := (if Z.even z then (z+2)%Z else (z+1)%Z). 
-
-
-  Definition scaleM_correct phi x m psi p:  (phi \is_name_of x) -> (0 < x) -> (scaleM phi m) = (Some (psi, p)) -> exists (y : IR), (psi \is_name_of y) /\ ((/ 4) <= y <= 2) /\ (powerRZ 4 p)*y = x.
-Proof.
-  move => phin xgt0.
-  rewrite /scaleM.
-  case e: (magnitude_rlzrM_gt0 _ _) => [z | ] //.
-  have M := (magnitude_rlzrM_gt0_correct phin xgt0 e).
-  case => H. 
-  have := (mul_comp (tpnIR_spec (- (next_even z))%Z) phin).
-  rewrite /next_even => H' pprp.
-  rewrite <- H.
-  have pwrz_simpl z' : (powerRZ 2 (z - z')) <= (powerRZ 2 (-z')%Z)*x <= (powerRZ 2 ((z+2)-z')).
-  - rewrite Rmult_comm.
-    rewrite powerRZ_add; try by lra.
-    rewrite powerRZ_add; try by lra.
-    split; by apply Rmult_le_compat_r; [apply powerRZ_le;lra |lra].
-  have p' : (2*p = z+(if (Z.even z) then 2 else 1))%Z.
-  - rewrite <- pprp.
-    rewrite <-Z_div_exact_2 => //;case is_even : (Z.even z); try by lia.
-    by rewrite (Zmod_even _) Z.even_add is_even /=.
-    by rewrite (Zmod_even _) Z.even_succ Zodd_even_bool is_even /=.
-  have pwrz_simpl2 z1' z2' z1 z2 v : (z1' <= z1)%Z -> (z2 <= z2')%Z -> ((powerRZ 2 z1) <= v <= (powerRZ 2 z2))  -> (powerRZ 2 z1') <= v <= (powerRZ 2 z2').
-  - rewrite !powerRZ_Rpower; try by lra.
-    move => H1 H2 H3.
-    split.
-    + apply /Rle_trans.
-      apply Rle_Rpower; try by lra.
-      apply IZR_le.
-      apply H1.
-      by apply H3.
-    apply /Rle_trans.
-    apply H3.
-    apply Rle_Rpower; try by lra.
-    apply IZR_le.
-    by apply H2.
-  have -> : 2 = (powerRZ 2 1%Z) by simpl; lra.
-  have -> : (/ 4) = (powerRZ 2 (-2)%Z) by simpl; lra.
-  have -> z' : (powerRZ 4 z') = (powerRZ 2 (2*z')%Z).
-  - rewrite !powerRZ_Rpower; try by lra.
-    rewrite mult_IZR.
-    rewrite <- Rpower_mult.
-    rewrite <- (powerRZ_Rpower 2%Z _); try by lra.
-    by have -> : (powerRZ 2 2) = 4 by simpl;lra.
-  exists  (powerRZ 2 (- (if Z.even z then (z+2)%Z else (z + 1)%Z)) * x).
-  split => //.
-  rewrite <- Rmult_assoc.
-  rewrite <- powerRZ_add; try by lra.
-  rewrite p'.
-  case (Z.even z);split; try by rewrite Z.add_opp_diag_r /= ;lra.
-  - apply (pwrz_simpl2 _ _ (z-(z+2))%Z (z+2-(z+2))%Z); try by lia.
-    by apply pwrz_simpl.
- apply (pwrz_simpl2 _ _ (z-(z+1))%Z (z+2-(z+1))%Z); try by lia.
- by apply pwrz_simpl.
-Qed.
-
-Lemma scaleM_term phi x : (phi \is_name_of x) -> (0 < x) -> exists m, forall m', (m <= m')%nat -> exists a, (scaleM phi m') = (Some a).
-Proof.
-  move => phin xgt0.
-  case (magnitude_rlzrM_gt0_term1 phin xgt0) => m mprp.
-  exists m => m' m'prp. 
-  case (mprp _ m'prp) => p pprp.
-  exists (((((cleanup \o_f Rmult_rlzrf) (mp (tpnIR (- next_even p)%Z) phi)) : B_(IR)), (next_even p / 2)%Z)).
-  by rewrite /scaleM pprp.
-Qed.
-
-
-Lemma scale_exists x : (0 < x) -> exists p y, ((/ 4) <= y <= 2) /\ (powerRZ 4 p)*y = x.
-Proof.
-  move => xgt0.
-  set p := ((ln x)/(ln 4)).
-  have pprp : -1 <= ((ln x)/(ln 4) - up p) <= 0 by have := (archimed p); rewrite /p;lra.
-  have : (/ 4) <= (Rpower 4 ((ln x)/(ln 4)-up p)) <= 1.
-  - have -> : (/ 4) = (Rpower 4 (-1)) by rewrite Rpower_Ropp Rpower_1; lra.
-    have -> : 1 = (Rpower 4 0) by rewrite Rpower_O;lra.
-    split;apply Rle_Rpower;try by lra.
-  exists (up p).
-  exists (Rpower 4 ((ln x/ ln 4) - up p)).
-  split;first by lra.
-  rewrite powerRZ_Rpower; last by lra.
-  rewrite <- Rpower_plus.
-  have -> : (up p + (ln x / ln 4 - up p)) = (ln x / ln 4) by lra.
-  rewrite /Rpower.
-  have -> : (ln x/ln 4)*(ln 4) = (ln x) by rewrite /Rdiv Rmult_assoc Rinv_l;have := ln_lt_2;have := (ln_le 2 4);lra.
-  by apply exp_ln;lra.
-Qed.
-End scaling.
-
-Section total_sqrt.
-
-(* Definition of the realizer machine *)
-Definition sqrt_approx_total_rlzrMtoIR n phi m := match (lt_n_M (@pair B_(cs_nat) _ ((fun (u : unit) => ((2*n).+1)%nat),(mp phi (tpnIR (-2*(Z.of_nat n))%Z)))) (m,tt)) with
-                                          | (Some true)  => (Some (ZtoIR 0%Z))
-                                          | (Some false) =>
-                                            match (scaleM phi m) with
-                                              (Some (psi, p))  =>
-                                                (Some ((tpnIR p) \* (sqrt_approx_n psi (n+(Z.to_nat p)))))
-                                              | _ => None
-                                              end
-                                          | _ => None
-                                               end.
-
-Definition sqrt_approx_total_rlzrM (n : nat) phi mq := match (sqrt_approx_total_rlzrMtoIR n phi mq.1) with
-                                                       | (Some psi) => (Some (psi mq.2))
-                                                       | _ => None
-                                                     end.
-
-
-
-Lemma sqrt_approx_rlzrM_is_total n phi (x : IR) : (phi \is_name_of x) -> \Phi_(sqrt_approx_total_rlzrM n phi) \is_total.
-Proof.
-  move => phin q.
-  rewrite /sqrt_approx_total_rlzrM /sqrt_approx_total_rlzrMtoIR /=.
-  have psin : (tpnIR (-2*(Z.of_nat n))%Z) \is_name_of (powerRZ 2 (-2 * (Z.of_nat n))%Z) by apply tpnIR_spec.
-  case (lt_N_b_term (2*n).+1  phin psin) => m1; case => b1 mprp1.
-  case (Rle_or_lt x 0) => xprp.
-  - exists I0; exists m1.
-    rewrite (mprp1 _ (le_n m1)).
-    suff -> : (b1 = true) by trivial.
-   have :=  (lt_N_b_correct phin psin (mprp1 _ (le_n m1))).
-   case b1 => //.
-   move => [H _].
-   apply H.
-   have -> : (- 2 * (Z.of_nat n))%Z = (- ((Z.of_nat 2)*(Z.of_nat n)))%Z by lia.
-   rewrite <- Nat2Z.inj_mul.
-   rewrite powerRZ2_neg_pos.
-   rewrite (tpmn_half (2*n)).
-   suff : (0 <= (/ 2 ^ (2*n).+1)) by lra.
-   by apply tpmn_pos.
-  case (scaleM_term phin xprp) => m2 m2prp.
-  move : (mprp1 _ (Max.le_max_l m1 m2)).
-  move : (m2prp (Nat.max m1 m2)).
-  case => [| [psi p] psipprp]; first by apply /leP; apply Max.le_max_r.
-  case b1 => ltn; first by exists I0; exists (Nat.max m1 m2); rewrite ltn.
-  exists ((cleanup \o_f Rmult_rlzrf)  (mp (tpnIR p) (sqrt_approx_n psi (n+(Z.to_nat p)))) q); exists (Nat.max m1 m2).
-  by rewrite ltn psipprp /=.
-Qed.
-
-Lemma sqrt_approx_search_simpl n phi q m : (ord_search (fun k => (isSome (sqrt_approx_total_rlzrM n phi (k,q)))) m) = (ord_search (fun k => (isSome (sqrt_approx_total_rlzrMtoIR n phi k))) m).
-Proof.
-  elim m => // m' IH.
-  rewrite !osrchS.
-  rewrite IH.
-  case e : (sqrt_approx_total_rlzrM n phi _) => [p1 |]; case e' : (sqrt_approx_total_rlzrMtoIR n phi _) => [p2 | ] // /=; by move : e; rewrite /sqrt_approx_total_rlzrM e'.
-Qed.
-
-Lemma sqrt_approx_use_first_simpl1 n phi m: exists m', forall q, (use_first (sqrt_approx_total_rlzrM n) phi (m,q)) = (sqrt_approx_total_rlzrM n phi (m', q)). 
-Proof.
-  exists (ord_search (fun k => (isSome (sqrt_approx_total_rlzrMtoIR n phi k))) m) => q.
-  rewrite sfrst_osrch.
-  by rewrite sqrt_approx_search_simpl.
-Qed.
-
-Lemma sqrt_approx_use_first_simpl2 n phi m0 : (isSome ((use_first (sqrt_approx_total_rlzrM n)) phi (m0,0%nat))) -> exists M, ((forall q, (isSome (sqrt_approx_total_rlzrM n phi (M,q)))) /\ forall m',forall q, ((M <= m')%nat -> (use_first (sqrt_approx_total_rlzrM n) phi (m',q)) = (sqrt_approx_total_rlzrM n phi (M,q))) /\ ((m' < M)%nat -> (use_first (sqrt_approx_total_rlzrM n) phi (m',q)) = None)).
-Proof.
-  case (sqrt_approx_use_first_simpl1 n phi m0) => m M.
-  rewrite (M 0%nat) => H.
-  set s1 := (fun k => (isSome (sqrt_approx_total_rlzrMtoIR n phi k))).
-  have H' : (s1 m).
-  - move : H.
-    rewrite /s1 /sqrt_approx_total_rlzrM.
-    case e : (sqrt_approx_total_rlzrMtoIR _ _ _) => //.
-  exists (ord_search s1 m); split => [q | m' q]; first by have := (@osrch_correct s1 m H');rewrite /s1 /sqrt_approx_total_rlzrM; case e : (sqrt_approx_total_rlzrMtoIR _ _ _) => //.
-  split => mprp.
-  - rewrite sfrst_osrch sqrt_approx_search_simpl -/s1.
-    rewrite <- (@osrch_eq s1 _ m' (@osrch_correct s1 _ (@osrch_correct s1 _ H'))) => //.
-    by rewrite osrch_osrch.
-  rewrite sfrst_osrch.
-  rewrite sqrt_approx_search_simpl -/s1.
-  rewrite /sqrt_approx_total_rlzrM /=.
-  case e :(sqrt_approx_total_rlzrMtoIR _ _ _) => [p | ]//.
-  suff /leP : ((ord_search s1 m) <= m')%nat by move /leP : mprp;lia.
-  rewrite <- (@osrch_eq s1 m' m); [by apply osrch_le | by rewrite /s1 e |].
-  apply /leP.
-  move /leP : mprp.
-  have /leP := (osrch_le s1 m).
-  by lia.
-Qed.
-
-
-(* square root approximation using linear search without speedup *)
-Definition sqrt_approx_totalM_slow phi mnq := (sqrt_approx_total_rlzrM mnq.2.1 phi (mnq.1,mnq.2.2)).
-Lemma lim_eff_rlzr_mu_sm : lim_eff_rlzr_mu \modulus_function_for lim_eff_rlzr_mu.
-Proof.
-  by rewrite /lim_eff_rlzr_mu /= => phi [n m].
-Qed.
- Definition limit_cont_machine := (Build_continuous_machine lim_eff_rlzr_mu_spec lim_eff_rlzr_mu_sm).
-Definition limit_mon_machine := (Build_monotone_machine (mkmn_spec limit_cont_machine) ).
-
-(* sqrt approximation with speedups *)
-Definition sqrt_approx_totalM phi mnq := (sqrt_approx_totalM_slow phi ((speedup mnq.1 13),(mnq.2.1,(speedup mnq.2.2 13)))).
-
-Definition sqrt_approx_totalM_mu (phi : B_(IR)) (mnq : nat * (nat * nat)) := [:: (speedup mnq.1 13)]. 
-
-Lemma sqrt_approx_totalM_mu_spec : sqrt_approx_totalM_mu \modulus_function_for sqrt_approx_totalM.
-Proof.  
-  rewrite /sqrt_approx_totalM/sqrt_approx_totalM_slow/sqrt_approx_total_rlzrM/sqrt_approx_total_rlzrMtoIR/scaleM/lt_n_M/K2B_rlzrM /= => phi n psi /= [].
-  rewrite /lt_nk_rlzrf.
-Lemma sqrt_approx_total_rlzrM_spec : \F_(use_first (sqrt_approx_totalM_slow)) \solves ((sqrt_approx_total_seq : (IR ->> (IR \^w)))).
-  move => phi x phin dom.
-  rewrite <- (sfrst_dom (sqrt_approx_totalM_slow)).
-  rewrite /sqrt_approx_totalM_slow.
-  split => [|Fq' prp]; first by apply FM_dom; move => [n q];apply (sqrt_approx_rlzrM_is_total n phin).
-  suff H : forall (n : nat), exists fan : IR, (fan \from (sqrt_approx_total n x)) /\ ((fun q => (Fq' (n,q))) \is_name_of fan).
-  - apply choice in H.
-    case H => f fprp.
-    exists f.
-    split => n; by apply (fprp n).
-  move => n.
-  set Fq := (fun q => (Fq' (n,q))).
-  have psin : (tpnIR (-2*(Z.of_nat n))%Z) \is_name_of (/ 2 ^ (2 * n)%nat).
-  - rewrite <- powerRZ2_neg_pos, Nat2Z.inj_mul, <- Z.mul_opp_l.
-    by apply tpnIR_spec.
-  case (prp (n, 0)%nat) => m0 m0prp.
-  rewrite sfrst_osrch /= in m0prp.
-  rewrite <- sfrst_osrch in m0prp.
-  have m0prp' : (isSome (use_first (sqrt_approx_total_rlzrM n) phi (m0, 0%nat))) by rewrite m0prp.
-  case (sqrt_approx_use_first_simpl2 m0prp') => M [Mprp1 Mprp2].
-  have ltnn : (lt_n_M (@pair B_(cs_nat) _ ((fun (u : unit) => ((2*n).+1)%nat),(mp phi (tpnIR (-2*(Z.of_nat n))%Z)))) (M,tt)) = (Some true) \/ (lt_n_M (@pair B_(cs_nat) _ ((fun (u : unit) => ((2*n).+1)%nat),(mp phi (tpnIR (-2*(Z.of_nat n))%Z)))) (M,tt)) = (Some false).
-  - have := (Mprp1 0%nat).
-    rewrite /sqrt_approx_total_rlzrM /sqrt_approx_total_rlzrMtoIR.
-    case e: (lt_n_M _) => [b |] //.
-    move : e.
-    by case b;auto.
-  have Fq_prp : forall q, exists p, (sqrt_approx_total_rlzrM n phi (M, q)) = (Some p) /\ (Fq q) = p.
-  - move => q.
-    have := (Mprp1 q).
-    case e : (sqrt_approx_total_rlzrM _ _ _) => [p | ] // _.
-    exists p;split => //.
-    case (prp (n,q)) => N Nprp.
-    rewrite sfrst_osrch /= in Nprp.
-    rewrite <- sfrst_osrch in Nprp.
-    have := (Mprp2 N q).
-    case => H1 H2.
-    case mlt : (M <= N)%nat;first by have := Nprp; rewrite (H1 mlt) e; case.
-    move /leP : mlt.
-    rewrite Nat.nle_gt => /leP mlt.
-    by have := (H2 mlt); rewrite Nprp.
-  case ltnn => ltn; have lt := (lt_N_b_correct phin psin ltn).
-  - exists 0.
-    split; first by apply or_introl; split.
-    suff p : forall q, (Fq q) = I0.
-    + split => [q | N];first by rewrite (p q) /=;lra.
-      exists 0%nat => q _.
-      rewrite (p q).
-      split => //.
-      rewrite Rminus_eq_0.
-      by apply tpmn_pos.
-    move => q.
-    case (Fq_prp q) => p [pprp1 pprp2]. 
-    move : pprp1.
-    rewrite /sqrt_approx_total_rlzrM /sqrt_approx_total_rlzrMtoIR ltn pprp2.
-    by case.
-  have : exists psi p, (scaleM phi M) = (Some (psi,p)).
-  - have := (Mprp1 0%nat).
-    rewrite /sqrt_approx_total_rlzrM /sqrt_approx_total_rlzrMtoIR ltn.
-    case e : (scaleM _ _) => [[psi p]   | ] // _.
-    by exists psi; exists p.
-  case => psi; case => p pspr.
-  have xgt0 : (0 < x).
-  - have [le _] := lt.
-    suff : exists u v, not (x+v <= u) /\  (v <= u) by case => u; case => v;lra.
-    exists (/ 2 ^ (2 * n)).
-    exists (/ 2 ^ (2 * n).+1).
-    split => [H |]; first by have := (le H).
-    by apply /tpmnP/leP;lia.
-  case  (scaleM_correct phin xgt0 pspr) => [y [yprp1 [yprp2 yprp3]]].
-  exists ((powerRZ 2 p)*(sqrt_approx_seq y (n+(Z.to_nat p))%nat)).
-  split.
-  - apply or_intror.
-    split => //.
-    exists p; exists y; by split.
-  have [sqname1 sqname2] := (mul_comp (tpnIR_spec p) (sqrt_approx_n_rlzr_spec (n+(Z.to_nat p)) yprp1 yprp2)).
-  split => q.
-  - case (Fq_prp q); rewrite /sqrt_approx_total_rlzrM/sqrt_approx_total_rlzrMtoIR ltn pspr => a [aprp ->].
-    move : aprp; case => <-.
-    by apply sqname1.
-  case (sqname2 q) => N Nprp. 
-  exists N => k kprp.
-  case (Fq_prp k); rewrite /sqrt_approx_total_rlzrM/sqrt_approx_total_rlzrMtoIR ltn pspr => a [aprp ->].
-  move : aprp; case => <-.
-  by apply (Nprp _ kprp).
-Qed.
-
-Lemma sqrt_approx_tot phi (x : IR) : (phi \is_name_of x) -> (\Phi_(sqrt_approx_totalM_slow phi)) \is_total.
-Proof.
-  move => phin [n q].
-  rewrite /sqrt_approx_totalM_slow /=.
-  by apply (sqrt_approx_rlzrM_is_total n phin).
-Qed.
-
-Definition sqrt_total_rlzr := (\F_limit_eff_rlzrM \o \F_(use_first sqrt_approx_totalM_slow)).
-
-Lemma sqrt_total_correct :  sqrt_total_rlzr \solves (F2MF sqrt)|_(IR_nonneg).
-Proof.
-   have t := (slvs_tight _ sqrt_as_lim).
-   rewrite /sqrt_total_rlzr.
-   apply t.
-   apply (slvs_tight (slvs_comp F_lim_eff_rlzrM_spec sqrt_approx_total_rlzrM_spec)).
-   by apply tight_restr_w.
-Qed.
-
-(* We show that a realizer for the sqrt exists *)
-Lemma sqrt_approx_slow_f_exists phi (x : IR)  : phi \is_name_of x ->  {psi | exists (y : (IR\^w)),  y \from (sqrt_approx_total_seq x) /\ psi \is_name_of y}.
-Proof.
-   move => phin.
-   have H : \Phi_(use_first sqrt_approx_totalM_slow phi) \is_total.
-   - have -> : (use_first sqrt_approx_totalM_slow phi) = (PhiN.use_first (sqrt_approx_totalM_slow phi)) by apply functional_extensionality.
-    rewrite <-sfrst_tot.
-    by apply (sqrt_approx_tot phin).
-  exists (evaluate H).
-  case (sqrt_approx_total_rlzrM_spec phin (sqrt_approx_total_seq_is_total x)  ) => _ prp.
-  case (prp (evaluate H)) => [| y yprp]; first by apply FM_Phi;apply eval_spec.
-  by exists y.
-Defined.
-
-Lemma sqrt_slow_f_exists phi (x: IR) : (0 <= x) -> phi \is_name_of x -> {psi | psi \is_name_of (sqrt x)}.
-Proof.
-  move => xgt0 phin.
-  case (sqrt_approx_slow_f_exists phin) => sqapprx prp.
-  have H : \Phi_(limit_eff_rlzrM (sqapprx)) \is_total /\  (forall Fq : B_(IR), Fq \from \F_limit_eff_rlzrM sqapprx -> Fq \is_name_of (sqrt x)).
-  - case prp => y [yprp1 yprp2].
-    case (F_lim_eff_rlzrM_spec yprp2).
-    + exists (sqrt x) => n /=.
-      rewrite Rabs_minus_sym.
-      by apply (sqrt_approx_total_correct xgt0 (yprp1 n)).
-    move => H1 H2.
-    split => [ | Fq Fqprp]; first by apply FM_dom.   
-    case (H2 Fq Fqprp) => y' [y'prp1 y'prp2].
-    move : y'prp2.
-    suff -> : y' = (sqrt x) by trivial.
-    apply sqrt_lim_eff => //.
-    by exists y.
-  have [H1 H2] := H.
-  exists (evaluate H1).
-  have := (@eval_spec _ _ _ _ H1).
-  rewrite <-FM_Phi => e.
-  by apply (H2 _ e).
-Defined.
-
-(* For now, admit the version with  speedups *)
-Lemma speedup_admitted phi : \Phi_(use_first sqrt_approx_totalM phi) \is_total. 
-Admitted.
-Lemma speedup_admitted2 phi x : exists (y : IR\^w), y \from sqrt_approx_total_seq x /\ ((evaluate (speedup_admitted phi)) : B_(IR\^w)) \is_name_of y.
-Admitted.
-
-Lemma sqrt_approx_f_exists phi (x : IR)  : phi \is_name_of x ->  {psi | exists (y : (IR\^w)),  y \from (sqrt_approx_total_seq x) /\ psi \is_name_of y}.
-Proof.
-   move => phin.
-   have H : \Phi_(use_first sqrt_approx_totalM_slow phi) \is_total.
-   - have -> : (use_first sqrt_approx_totalM_slow phi) = (PhiN.use_first (sqrt_approx_totalM_slow phi)) by apply functional_extensionality.
-    rewrite <-sfrst_tot.
-    by apply (sqrt_approx_tot phin).
-  exists (evaluate (speedup_admitted phi)).
-  by apply speedup_admitted2.
-Defined.
-
-Lemma sqrt_f_exists phi (x: IR) : (0 <= x) -> phi \is_name_of x -> {psi | psi \is_name_of (sqrt x)}.
-Proof.
-  move => xgt0 phin.
-  case (sqrt_approx_f_exists phin) => sqapprx prp.
-  have H : \Phi_(limit_eff_rlzrM (sqapprx)) \is_total /\  (forall Fq : B_(IR), Fq \from \F_limit_eff_rlzrM sqapprx -> Fq \is_name_of (sqrt x)).
-  - case prp => y [yprp1 yprp2].
-    case (F_lim_eff_rlzrM_spec yprp2).
-    + exists (sqrt x) => n /=.
-      rewrite Rabs_minus_sym.
-      by apply (sqrt_approx_total_correct xgt0 (yprp1 n)).
-    move => H1 H2.
-    split => [ | Fq Fqprp]; first by apply FM_dom.   
-    case (H2 Fq Fqprp) => y' [y'prp1 y'prp2].
-    move : y'prp2.
-    suff -> : y' = (sqrt x) by trivial.
-    apply sqrt_lim_eff => //.
-    by exists y.
-  have [H1 H2] := H.
-  exists (evaluate H1).
-  have := (@eval_spec _ _ _ _ H1).
-  rewrite <-FM_Phi => e.
-  by apply (H2 _ e).
-Defined.
-
-End total_sqrt.

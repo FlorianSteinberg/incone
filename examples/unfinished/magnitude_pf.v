@@ -17,6 +17,7 @@ Require Import softcomparison_pf.
 Definition nat2csN (n : nat) := (fun (_ : unit) => n). 
 Definition Z2csZ (z : Z) := (fun (_ : unit) => z). 
 
+Definition Rdiv_mf := make_mf (fun xy z => (xy.2 <> 0 /\ z = (xy.1/xy.2))).
 
 Section magnitude.
 (* As an application we define a multivalued magnitude function using the soft comparison *)

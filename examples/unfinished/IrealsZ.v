@@ -23,6 +23,12 @@ Unset Printing Implicit Defensive.
 Local Open Scope Z_scope.
 Import QArith.
 Local Open Scope R_scope.
+Definition ltK (xy : R*R) := let (x,y) := xy in
+                     match (total_order_T x y) with
+                     | (inleft (left _)) => true_K
+                     | (inright _) => false_K
+                     | _ => bot_K
+                     end.
 (* types (needed for extraction) *)
 Definition IR_type := nat -> Interval_interval_float.f_interval (s_float Z Z).
 Definition IR_pair :=  nat + nat -> Interval_interval_float.f_interval (s_float Z Z) * Interval_interval_float.f_interval (s_float Z Z).
@@ -237,7 +243,6 @@ Proof.
   have -> : (uncurry Rminus) =  (uncurry Rplus) \o_f (fun x => (x.1, -(x.2))).
   - apply functional_extensionality => x.
     by rewrite /uncurry /=; lra.
-    Search _ pair.
   rewrite /Rminus_rlzr.
   have ->: Rminus_rlzrf = Rplus_rlzrf \o_f (@fprd_frlzr IR IR IR IR (fun phi => phi) Ropp_rlzrf).
   - apply functional_extensionality => x;by auto.
@@ -1337,9 +1342,9 @@ Qed.
 
 Definition interval_reals: computable_reals.
   exists IR.
-  exists \F_(use_first IR_RQ_rlzrM').
-  - rewrite /IR2Qmf/IR_RQ_rlzrM'.
-    split; first by apply /sfrst_cntf_cont/modf_cont/(@IR_RQ_mu_spec (fun n=> (speedup n 5))).
+  exists (get_partial_function IR_RQ_rlzrM').
+  - rewrite /= gtpf_spec.
+    rewrite /IR2Qmf/IR_RQ_rlzrM'.
     by apply (tight_rlzr (F_M_realizer_IR_RQ (speedup_gt 5))); apply sfrst_spec.
   exists (F2PF (cleanup \o_f Rplus_rlzrf)).
   - rewrite /= F2PF_spec.

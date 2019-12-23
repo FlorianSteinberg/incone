@@ -14,6 +14,12 @@ Require Import computable_reals_pf.
 Require Import Ibounds.
 
 (* Some helper functions we need that should be moved to another file later *)
+Definition ltK (xy : R*R) := let (x,y) := xy in
+                     match (total_order_T x y) with
+                     | (inleft (left _)) => true_K
+                     | (inright _) => false_K
+                     | _ => bot_K
+                     end.
 Definition nat2csN (n : nat) := (fun (_ : unit) => n). 
 
 (* specification of the epsilon test with multivalued functions *)

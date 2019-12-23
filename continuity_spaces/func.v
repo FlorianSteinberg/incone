@@ -1,7 +1,7 @@
 From mathcomp Require Import ssreflect ssrfun seq.
 From rlzrs Require Import all_rlzrs choice_dict.
 Require Import axioms all_names representations cs prod sub.
-Require Import continuous_machines monotone_machine_composition.
+Require Import continuous_machines.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

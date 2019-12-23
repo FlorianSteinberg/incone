@@ -11,51 +11,52 @@ Import BigN BigZ.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
-
+Require Import Eqdep_dec.
+Require Import Streams.
 Local Open Scope Z_scope.
 Import QArith.
 Local Open Scope R_scope.
 Require ExtrHaskellBasic.
 Require ExtrHaskellZInteger.
 Require ExtrHaskellNatInteger.
+Require Import Coq.Lists.StreamMemo.
 Extraction Language Haskell.
-
-Definition memoize_real (phi : IR_type) := phi.
-
-Definition mantissa_shl m (d : Z) :=
+Definition shiftL (m : Z) (d : Z) :=
   match d with
-    (Z.pos p) => (m * (2 ^ p))%positive |
-    _ => 1%positive
+    (Z.pos p) => (m * (2 ^ (Z.pos p)))%Z |
+    _ => 1%Z
   end.
 
-Lemma mantissa_shl_spec m d : (mantissa_shl m d) = (StdZRadix2.mantissa_shl m d).
-Proof.
-  elim d => [| p//= | p //=]; try by compute.
-  rewrite Zaux.iter_pos_nat.
-  rewrite <-(Pos2Nat.id p) at 1.
-  case (Pos2Nat.is_succ p) => n ->.
-  elim n => [| n' ]; first by rewrite /Pos.pow //=;lia.
-  move => IH.
-  rewrite Zaux.iter_nat_S.
-  rewrite Nat2Pos.inj_succ; last by lia.
-  rewrite Pos.pow_succ_r.
-  rewrite Pos.mul_assoc.
-  rewrite <- (Pos.mul_comm 2%positive).
-  rewrite <- Pos.mul_assoc, IH. 
-  by lia.
-Qed.
+(* Lemma mantissa_shl_spec m d : (shiftL m d) = (StdZRadix2.mantissa_shl m d). *)
+(* Proof. *)
+(*   elim d => [| p//= | p //=]; try by compute. *)
+(*   rewrite Zaux.iter_pos_nat. *)
+(*   rewrite <-(Pos2Nat.id p) at 1. *)
+(*   case (Pos2Nat.is_succ p) => n ->. *)
+(*   elim n => [| n' ]; first by rewrite /Pos.pow //=;lia. *)
+(*   move => IH. *)
+(*   rewrite Zaux.iter_nat_S. *)
+(*   rewrite Nat2Pos.inj_succ; last by lia. *)
+(*   rewrite Pos.pow_succ_r. *)
+(*   rewrite Pos.mul_assoc. *)
+(*   rewrite <- (Pos.mul_comm 2%positive). *)
+(*   rewrite <- Pos.mul_assoc, IH.  *)
+(*   by lia. *)
+(* Qed. *)
 
+Definition shiftR m d := (Z.div m (2 ^ d))%Z.
 
 Definition mantissa_shr  m d (pos : Interval_generic.position) :=
   match d with
-  | Z.pos nb => let m' := (Z.div m (2 ^ d)) in
-               let mp := (m' * (2 ^ d))%Z in
+  | Z.pos nb => 
+               let m' := (shiftR m d) in
+               let mp := (shiftL m' d) in
                match pos with
                | Interval_generic.pos_Eq =>
                  if (Z.eqb mp m)
                  then (m', Interval_generic.pos_Eq)
                  else
-                   if (Z.eqb ((2*m'+1)*(2 ^ (d-1))) m)
+                   if (Z.eqb (shiftL (2*m'+1) (d-1)) m)
                    then (m', Interval_generic.pos_Mi)
                    else (m', Interval_generic.pos_Up)
                | _ =>  
@@ -77,7 +78,6 @@ Definition cmp_float (f1 f2 : D) :=
     if(Z.eqb d1 d2) then Xeq else
       if(Z.ltb d1 d2) then Xlt else Xgt
   end.
-
 Extract Inlined Constant BigZ.abs => "(Prelude.abs)".
 Extract Inlined Constant BigZ.leb => "(Prelude.<=)".
 Extract Inlined Constant BigZ.eqb => "(Prelude.==)".
@@ -99,6 +99,9 @@ Extract Inlined Constant Z.succ => "(Prelude.succ)".
 Extract Inlined Constant Z.pow_pos => "(Prelude.^)".
 Extract Inlined Constant Z.pow => "(Prelude.^)".
 Extract Inlined Constant Z.quotrem => "(Prelude.quotRem)".
+Extract Inlined Constant Z.pos_div_eucl => "(Prelude.quotRem)".
+Extract Inlined Constant Z.pos_div_eucl => "(Prelude.quotRem)".
+Extract Inlined Constant Zaux.Zfast_div_eucl => "(Prelude.quotRem)".
 Extract Inlined Constant Z.mul => "(Prelude.*)".
 Extract Inlined Constant Z.div => "(Prelude.div)".
 Extract Inlined Constant Nat.leb => "(Prelude.<=)".
@@ -107,6 +110,10 @@ Extract Inlined Constant Nat.succ => "(Prelude.succ)".
 Extract Inlined Constant Nat.add => "(Prelude.+)".
 Extract Inlined Constant Nat.mul => "(Prelude.*)".
 Extract Inlined Constant Nat.div => "(Prelude.div)".
+Extract Inlined Constant nat2p => "".
+Extract Inlined Constant Pos.of_nat => "".
+Extract Inlined Constant N.of_nat => "".
+Extract Inlined Constant Z.of_nat => "".
 Extract Inlined Constant addn => "(Prelude.+)".
 Extract Inlined Constant muln => "(Prelude.*)".
 Extract Inlined Constant subn => "(\n m -> if (n Prelude.> m) then (n Prelude.- m) else 0)".
@@ -126,12 +133,13 @@ Extract Inlined Constant StdZRadix2.exponent_sub => "(Prelude.-)".
 Extract Inlined Constant StdZRadix2.mantissa_mul => "(Prelude.*)".
 Extract Inlined Constant StdZRadix2.mantissa_cmp => "(Prelude.compare)".
 Extract Inlined Constant StdZRadix2.exponent_cmp => "(Prelude.compare)".
-Extract Inlined Constant SF2.cmp => cmp_float.
 Extract Inductive Coq.Init.Datatypes.comparison => "Prelude.Ordering" ["Prelude.EQ" "Prelude.LT" "Prelude.GT"].
 Extract Inlined Constant StdZRadix2.mantissa_digits => num_digits.
-Extract Inlined Constant StdZRadix2.mantissa_shl => mantissa_shl.
-Extract Inlined Constant StdZRadix2.mantissa_shr => mantissa_shr.
+Extract Inlined Constant shiftR => "(\n m -> Data.Bits.shiftR n (Prelude.fromIntegral m))".
+Extract Inlined Constant shiftL => "(\n m -> Data.Bits.shiftL n (Prelude.fromIntegral m))".
 
 Extract Inlined Constant StdZRadix2.mantissa_shl => "(\n m -> Data.Bits.shiftL n (Prelude.fromIntegral m))".
 Extract Inlined Constant StdZRadix2.mantissa_digits => "(\n -> Prelude.toInteger (GHC.Exts.I# (GHC.Integer.Logarithms.integerLog2# n)))".
-Extract Inlined Constant memoize_real => "Data.Function.Memoize.memoize".
+Extract Inlined Constant Nat.log2 => "(\n -> Prelude.toInteger (GHC.Exts.I# (GHC.Integer.Logarithms.integerLog2# n)))".
+(* Extract Inlined Constant memoize_real => "Data.Function.Memoize.memoize". *)
+Extract Inlined Constant StdZRadix2.mantissa_shr => mantissa_shr.

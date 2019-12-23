@@ -8,9 +8,28 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 Import QArith.
+Require Import QOrderedType.
 
 Local Open Scope R_scope.
 Notation "'\|' x '|'" := (Rabs x) (at level 30).
+
+Definition ltK (xy : R*R) := let (x,y) := xy in
+                     match (total_order_T x y) with
+                     | (inleft (left _)) => true_K
+                     | (inright _) => false_K
+                     | _ => bot_K
+                     end.
+
+Lemma ltK_spec x y: ((ltK (x,y)) = true_K <-> (x < y)) /\ ((ltK (x,y)) = false_K <-> (y < x)) /\ ((ltK (x,y)) = bot_K <-> (x = y)). 
+Proof.
+  rewrite /ltK.
+  case: (total_order_T x y) => [[xlty | <-] | xgty].
+  split; split;[| | split | split]; try lra;try by auto.
+  split; split;[| | split | split]; try lra;try by auto.
+  split; split;[| | split | split]; try lra;try by auto.
+Qed.
+
+Definition Rdiv_mf := make_mf (fun xy z => (xy.2 <> 0 /\ z = (xy.1/xy.2))).
 
 Section reals_via_rational_approximations.
   Coercion Q2R: Q >-> R.
@@ -522,3 +541,172 @@ Section metric_Qreals.
     exact/(cont_comp Rm2RQ_cont)/(cont_comp _ RQ2Rm_cont).
   Qed.
 End metric_Qreals.
+
+Section comparison.
+
+(* helper functions *)
+Definition Qeps_of_n n := ((/ (1+1))^Z.of_nat n)%Q.
+
+Lemma Qeps_of_n_g0 n : 0 < Qeps_of_n n.
+Proof.
+rewrite /Qeps_of_n -(tpmn_Q n).
+by apply tpmn_lt.
+Qed.
+
+Definition lt0_eps (phi : names_RQ) (eps : Q) : option bool := 
+    let xn := phi eps in
+    match eps ?= xn with
+      Lt => Some false
+      | _ =>
+        match xn ?= (-eps) with 
+          Lt => Some true | _ => None
+        end
+    end.
+
+(* sign function *)
+Definition lt0_rlzr (phi : names_RQ) := 
+  (fun n => lt0_eps phi (Qeps_of_n n))
+  : B_(cs_Kleeneans).
+
+(* Lemma lt0_rlzr_spec : (F2MF lt0_rlzr) \realizes (fun x => (ltK (x,0))). *)
+(* Proof. *)
+(*   rewrite F2MF_rlzr => phi x phin. *)
+(*   rewrite /ltK /lt0_rlzr. *)
+(*   simpl in phin. *)
+(*   simpl. *)
+
+(*   (* cases based on the sign of x: *) *)
+(*   case (total_order_T x 0) => [[xlt0|xeq0]|sgt0]. *)
+
+(*   (* x < 0 *) *)
+(*   1:{ *)
+(*     have mx2g0 : 0 < -x/2 by lra. *)
+
+(*     have neverfalse: forall n, lt0_eps phi (Qeps_of_n n) <> Some false. *)
+(*     1:{ *)
+(*       rewrite /lt0_eps. *)
+(*       move => n. *)
+(*       have epsng0 := Qeps_of_n_g0 n. *)
+(*       have := phin (Qeps_of_n n) epsng0; rewrite -tpmn_Q; move => phinx. *)
+(*       have : (phi (Qeps_of_n n) < Qeps_of_n n)%Q. *)
+(*         apply Rlt_Qlt. rewrite -tpmn_Q. *)
+(*         split_Rabs; lra. *)
+(*       rewrite Qgt_alt => isGt. *)
+(*       destruct (Qeps_of_n n ?= phi (Qeps_of_n n)). by []. by []. *)
+(*       destruct (phi (Qeps_of_n n) ?= - Qeps_of_n n); by []. *)
+(*     } *)
+
+(*     have [n nltmx2] : exists n : nat, / 2 ^ n < - x / 2 by apply dns0_tpmn. *)
+(*     have epsng0 := Qeps_of_n_g0 n. *)
+(*     have ntrue: lt0_eps phi (Qeps_of_n n) = Some true. *)
+(*     1:{ *)
+(*       (* have nnottrue := nevertrue n. *) *)
+(*       rewrite /lt0_eps. *)
+(*       have := phin (Qeps_of_n n) epsng0; rewrite -tpmn_Q; move => phinx. *)
+(*       have phinl0: phi (Qeps_of_n n) < 0 by move : phinx; split_Rabs; lra. *)
+(*       have : (phi (Qeps_of_n n) < Qeps_of_n n)%Q  *)
+(*                 by apply Rlt_Qlt; apply (Rlt_trans _ 0 _); by []. *)
+(*       rewrite Qgt_alt => isGt. *)
+(*       destruct (Qeps_of_n n ?= phi (Qeps_of_n n)). *)
+(*       by []. by []. *)
+(*       suff: (phi (Qeps_of_n n) < - Qeps_of_n n)%Q. *)
+(*           rewrite Qlt_alt => isLt. *)
+(*           destruct (phi (Qeps_of_n n) ?= - Qeps_of_n n); by []. *)
+(*       apply Rlt_Qlt. rewrite Q2R_opp.  rewrite -tpmn_Q. *)
+(*       move : phinx; split_Rabs; try lra. *)
+(*     } *)
+    
+(*     suff [n0 [n0first1 n0first2]] : exists (n0 : nat), lt0_eps phi (Qeps_of_n n0) <> None  *)
+(*       /\ (forall m : nat, (m < n0)%nat -> lt0_eps phi (Qeps_of_n m) = None). *)
+(*       exists n0. split. *)
+(*       have := neverfalse n0. *)
+(*       destruct (lt0_eps phi (Qeps_of_n n0)). *)
+(*       destruct b; by []. by []. by []. *)
+(*     have nnotnone : exists n, ~~ (opt_eq (lt0_eps phi (Qeps_of_n n)) None) by exists n; rewrite ntrue; by []. *)
+(*     have [n0 n0notnone n0min] := find_ex_minn nnotnone. *)
+(*     exists n0. split. *)
+(*     destruct (lt0_eps phi (Qeps_of_n n0)). by []. by []. *)
+(*     move => m. have n0m := n0min m. *)
+(*     destruct (lt0_eps phi (Qeps_of_n m)). *)
+(*     have n0lem: (n0 <= m)%nat. apply: n0m. by []. *)
+(*     have notmlen0: ~~ (m < n0)%nat. rewrite -ltnNge. by []. *)
+(*     have notmlen0': ~ (m < n0)%nat. *)
+(*     destruct (m < n0)%nat. by []. by []. *)
+(*     by []. by [].  *)
+(*   } *)
+
+(*   (* x > 0  *) *)
+(*   2:{ *)
+(*     have mx2g0 : 0 < x/2 by lra. *)
+
+(*     have nevertrue: forall n, lt0_eps phi (Qeps_of_n n) <> Some true. *)
+(*     1:{ *)
+(*       rewrite /lt0_eps. *)
+(*       move => n. *)
+(*       have epsng0 := Qeps_of_n_g0 n. *)
+(*       have := phin (Qeps_of_n n) epsng0; rewrite -tpmn_Q; move => phinx. *)
+(*       have : (phi (Qeps_of_n n) > - Qeps_of_n n)%Q. *)
+(*         apply Rlt_Qlt. rewrite Q2R_opp -tpmn_Q. *)
+(*         split_Rabs; lra. *)
+(*       rewrite Qgt_alt => isGt. *)
+(*       destruct (Qeps_of_n n ?= phi (Qeps_of_n n)). *)
+(*       destruct (phi (Qeps_of_n n) ?= - Qeps_of_n n); by []. by []. *)
+(*       destruct (phi (Qeps_of_n n) ?= - Qeps_of_n n); by []. *)
+(*     } *)
+
+(*     have [n nltmx2] : exists n : nat, / 2 ^ n < x / 2 by apply dns0_tpmn. *)
+(*     have epsng0 := Qeps_of_n_g0 n. *)
+(*     have nepsnl0 : - Qeps_of_n n < 0 by lra. *)
+(*     have nfalse: lt0_eps phi (Qeps_of_n n) = Some false. *)
+(*     1:{ *)
+(*       (* have nnottrue := nevertrue n. *) *)
+(*       rewrite /lt0_eps. *)
+(*       have := phin (Qeps_of_n n) epsng0; rewrite -tpmn_Q; move => phinx. *)
+(*       have phinl0: phi (Qeps_of_n n) > 0 by move : phinx; split_Rabs; lra. *)
+(*       suff: (Qeps_of_n n < phi (Qeps_of_n n))%Q. *)
+(*           rewrite Qlt_alt => isLt. *)
+(*           destruct (Qeps_of_n n ?= phi (Qeps_of_n n)); by []. *)
+(*       apply Rlt_Qlt.  rewrite -tpmn_Q. *)
+(*       split_Rabs; try lra.  *)
+(*     } *)
+    
+(*     suff [n0 [n0first1 n0first2]] : exists (n0 : nat), lt0_eps phi (Qeps_of_n n0) <> None  *)
+(*       /\ (forall m : nat, (m < n0)%nat -> lt0_eps phi (Qeps_of_n m) = None). *)
+(*       exists n0. split. *)
+(*       have := nevertrue n0. *)
+(*       destruct (lt0_eps phi (Qeps_of_n n0)). *)
+(*       destruct b; by []. by []. by []. *)
+(*     have nnotnone : exists n, ~~ (opt_eq (lt0_eps phi (Qeps_of_n n)) None) by exists n; rewrite nfalse; by []. *)
+(*     have [n0 n0notnone n0min] := find_ex_minn nnotnone. *)
+(*     exists n0. split. *)
+(*     destruct (lt0_eps phi (Qeps_of_n n0)). by []. by []. *)
+(*     move => m. have n0m := n0min m. *)
+(*     destruct (lt0_eps phi (Qeps_of_n m)). *)
+(*     have n0lem: (n0 <= m)%nat. apply: n0m. by []. *)
+(*     have notmlen0: ~~ (m < n0)%nat. rewrite -ltnNge. by []. *)
+(*     have notmlen0': ~ (m < n0)%nat. *)
+(*     destruct (m < n0)%nat. by []. by []. *)
+(*     by []. by [].  *)
+(*   } *)
+
+(*   (* x = 0  *) *)
+(*   rewrite /lt0_eps. *)
+(*   move => n. *)
+(*   have epsng0 := Qeps_of_n_g0 n. *)
+(*   have := phin (Qeps_of_n n) epsng0; rewrite -tpmn_Q xeq0; move => phinx. *)
+(*   have : (Qeps_of_n n >= phi (Qeps_of_n n))%Q. *)
+(*     apply Rle_Qle. rewrite -tpmn_Q. *)
+(*     split_Rabs; lra. *)
+(*   rewrite Qge_alt => notLt1. *)
+(*   have : (phi (Qeps_of_n n) >= - Qeps_of_n n)%Q. *)
+(*     apply Rle_Qle. rewrite Q2R_opp -tpmn_Q. *)
+(*     split_Rabs; lra. *)
+(*   rewrite Qge_alt => notLt2. *)
+(*   destruct (Qeps_of_n n ?= phi (Qeps_of_n n)). *)
+(*   destruct (phi (Qeps_of_n n) ?= - Qeps_of_n n); by []. by []. *)
+(*   destruct (phi (Qeps_of_n n) ?= - Qeps_of_n n); by []. *)
+
+(* Qed. *)
+
+End comparison.
+

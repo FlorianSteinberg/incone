@@ -135,6 +135,7 @@ Section products.
   Lemma rcry_cont (X Y Z: cs) (f: X * Y -> Z) y:
     f \is_continuous -> (rcry_f f y) \is_continuous.
   Proof. by move => cont; rewrite /continuous F2MF_rcry; exact/rcry_hcr. Qed.
+
 End products.
 
 Class Uncurry T (f : T) src tgt := {prog : src -> tgt}.

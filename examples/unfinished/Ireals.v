@@ -1126,7 +1126,6 @@ Definition logistic_map_mp x0m x0e rm re (N :nat) (n :nat):= (to_pair (I.midpoin
 Definition midpoint_errI I := (to_pair(I.midpoint I), to_pair(SFBI2.sub Interval_definitions.rnd_UP 1%bigZ (I.upper I) (I.lower I))).
 Definition logistic_map_mp_rlzr (N :nat) (n :Z):= (midpoint_errI (logistic_map_rlzrf (I.bnd (Float 1%bigZ (-1)%bigZ) (Float (1%bigZ) (-1)%bigZ)) (I.bnd (Float 15%bigZ (-2)%bigZ) (Float 15%bigZ (-2)%bigZ)) N (BigZ.of_Z n))).
 
-Compute (logistic_map_mp_rlzr 10 20).
 
 Require ExtrHaskellBasic.
 Require ExtrHaskellZInteger.
@@ -1296,16 +1295,6 @@ Definition cmp_float (f1 f2 : Dz) :=
       if(Z.ltb d1 d2) then Xlt else Xgt
   end.
 
-Extract Inlined Constant BigZ.abs => "(Prelude.abs)".
-Extract Inlined Constant BigZ.leb => "(Prelude.<=)".
-Extract Inlined Constant BigZ.eqb => "(Prelude.==)".
-Extract Inlined Constant BigZ.ltb => "(Prelude.<)".
-Extract Inlined Constant BigZ.opp => "(Prelude.negate)".
-Extract Inlined Constant BigZ.succ => "(Prelude.succ)".
-Extract Inlined Constant BigZ.pow_pos => "(Prelude.^)".
-Extract Inlined Constant BigZ.pow => "(Prelude.^)".
-Extract Inlined Constant BigZ.mul => "(Prelude.*)".
-Extract Inlined Constant BigZ.div => "(Prelude.div)".
 Extract Inlined Constant Z.abs => "(Prelude.abs)".
 Extract Inlined Constant Z.geb => "(Prelude.>=)".
 Extract Inlined Constant Z.leb => "(Prelude.<=)".
@@ -1337,18 +1326,7 @@ Extract Inlined Constant Pos.succ => "(Prelude.succ)".
 Extract Inlined Constant Pos.mul => "(Prelude.*)".
 Extract Inlined Constant Pos.pow => "(Prelude.^)".
 Extract Inlined Constant Pos.compare => "(Prelude.compare)".
-Extract Inlined Constant StdZRadix2.mantissa_add => "(Prelude.+)".
-Extract Inlined Constant StdZRadix2.exponent_add => "(Prelude.+)".
-Extract Inlined Constant StdZRadix2.mantissa_sub => "(Prelude.-)".
-Extract Inlined Constant StdZRadix2.exponent_sub => "(Prelude.-)".
-Extract Inlined Constant StdZRadix2.mantissa_mul => "(Prelude.*)".
-Extract Inlined Constant StdZRadix2.mantissa_cmp => "(Prelude.compare)".
-Extract Inlined Constant StdZRadix2.exponent_cmp => "(Prelude.compare)".
-Extract Inlined Constant SF2.cmp => cmp_float.
 Extract Inductive Coq.Init.Datatypes.comparison => "Prelude.Ordering" ["Prelude.EQ" "Prelude.LT" "Prelude.GT"].
-Extract Inlined Constant StdZRadix2.mantissa_digits => num_digits.
-Extract Inlined Constant StdZRadix2.mantissa_shl => mantissa_shl.
-Extract Inlined Constant StdZRadix2.mantissa_shr => mantissa_shr.
 Extraction "logisticI" cmp_float num_digits mantissa_shl mantissa_shr logistic_map_mp_rlzr.
 
 Definition make_iter T (rlzrf : T -> (name_space IR)) phi  (n : nat) m := match (rlzrf phi n) with

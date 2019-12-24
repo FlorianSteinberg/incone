@@ -66,74 +66,104 @@ Section sums.
     by have [t fs't]:= subs s' grs'; exists (inr t).
   Qed.
 
-  (*
-  Lemma fsum_spec (X Y X' Y': cs) F G (f: X ->> Y) (g: X' ->> Y'):
+  
+  Lemma sum_rep_spec (X Y: cs) : delta_ (X \+_cs Y) =~= delta +s+ delta \o delta.
+  Proof. by rewrite sum_rep_spec /= sing_rcmp; last exact/F2MF_sing. Qed.
+
+  Lemma fsum_tight S T S' T' (f: S ->> T) (g: S' ->> T') (f': S ->> T) (g': S' ->> T'):
+    f \tightens f' -> g \tightens g' -> (f +s+ g) \tightens (f' +s+ g').
+  Proof.
+    move => tight tight'; apply split_tight => [[s [[t /= prp | t']] | s' [[t | t' /= prp]]] | [s | s'] [[t p | t' p]] ] //.
+    - case (tight s) => [|[t' /= t'prp ] _]; first by exists t.
+      by exists (inl t').
+    - case (tight' s') => [|[t2 /= t2prp ] _]; first by exists t'.
+      by exists (inr t2).
+    - case => [t' /= prp | t' prp] //.
+      case (tight s) => [| /= H1 H2]; first by exists t.
+      by apply (H2 t' prp).
+    case => [t'' /= prp | t'' prp] //.
+    case (tight' s') => [| /= H1 H2]; first by exists t'.
+    by apply (H2 t'' prp).
+  Qed.
+
+  Lemma fsum_rlzr_spec (X Y X' Y': cs) (f: X ->> Y) (g: X' ->> Y') F G:
     F \solves f -> G \solves g -> (fsum_rlzr F G) \solves (f +s+ g).
   Proof.
-    rewrite (@comp_rcmp _ _ _ (F2MF (@inc _ _))); last exact/F2MF_tot.
-    rewrite comp_F2MF => rlzr rlzr' phi.
-    case => x [].
-    - case => [_ [<-] | _ [<-]].
-      + case E: (slct phi) => [psi | psi] //.
-        move => psinx [[]]//y val.
-        have [| [Fpsi val'] prp]:= rlzr psi x psinx; first by exists y.
-        split; first by exists (linc Fpsi); exists (inl Fpsi); split; first rewrite E.
-        move => _ [[] Fphi [FpsiFpsi <-]]; last by rewrite E in FpsiFpsi.    
-        have [ | _ prp']:= rlzr psi x psinx; first by exists y.
-        have [ | fa []]//:= prp' Fphi; first by rewrite E in FpsiFpsi.
-        by exists (inl fa); split; first exists (inl Fphi).
-      case E: (slct phi) => [psi | psi]//.
-      move => psinx [[]]//y val.
-      have [| [Fpsi val'] prp]:= rlzr psi x psinx; first by exists y.
-      split; first by exists (linc Fpsi); exists (inl Fpsi); split; first rewrite E.
-      move => _ [[] Fphi [FpsiFpsi <-]]; last by rewrite E in FpsiFpsi.    
-      have [ | _ prp']:= rlzr psi x psinx; first by exists y.
-      have [ | fa []]//:= prp' Fphi; first by rewrite E in FpsiFpsi.
-      by exists (inl fa); split; first exists (inl Fphi).
-    case => [_ [<-] | _ [<-]].
-    + case E: (slct phi) => [psi | psi]//.
-      move => psinx [[]]//y val.
-      have [| [Fpsi val'] prp]:= rlzr' psi x psinx; first by exists y.
-      split; first by exists (rinc Fpsi); exists (inr Fpsi); split; first rewrite E.
-      move => _ [[] Fphi [FpsiFpsi <-]]; first by rewrite E in FpsiFpsi.
-      have [ | _ prp']:= rlzr' psi x psinx; first by exists y.
-      have [ | fa []]//:= prp' Fphi; first by rewrite E in FpsiFpsi.
-      by exists (inr fa); split; first exists (inr Fphi).
-    case E: (slct phi) => [psi | psi]//.
-    move => psinx [[]]//y val.
-    have [| [Fpsi val'] prp]:= rlzr' psi x psinx; first by exists y.
-    split; first by exists (rinc Fpsi); exists (inr Fpsi); split; first rewrite E.
-    move => _ [[] Fphi [FpsiFpsi <-]]; first by rewrite E in FpsiFpsi.    
-    have [ | _ prp']:= rlzr' psi x psinx; first by exists y.
-    have [ | fa []]//:= prp' Fphi; first by rewrite E in FpsiFpsi.
-    by exists (inr fa); split; first exists (inr Fphi).
-  Qed. 
+    move => /rlzr_delta rlzr /rlzr_delta rlzr'.
+    rewrite rlzr_delta sum_rep_spec (sum_rep_spec (X:= Y)) fsum_rlzr_comp -!comp_assoc.
+    apply/tight_comp_l => /=.
+    rewrite !fsum_id (comp_assoc (_ +s+ _)) rcmp_id_l.
+    have /sec_cncl -> : (cancel (@inc B_ Y B_ Y')  (@slct B_ Y B_(Y'))).  
+    - by rewrite /slct/inc/linc/rinc/lslct/rslct => [[x | x]] /= //.
+    rewrite comp_id_r !fsum_comp.
+    exact/fsum_tight.
+  Qed.
+  (* Lemma fsum_spec (X Y X' Y': cs) F G (f: X ->> Y) (g: X' ->> Y'): *)
+  (*   F \solves f -> G \solves g -> (fsum_rlzr F G) \solves (f +s+ g). *)
+  (* Proof. *)
+  (*   rewrite (@comp_rcmp _ _ _ (F2MF (@inc _ _))); last exact/F2MF_tot. *)
+  (*   rewrite comp_F2MF => rlzr rlzr' phi. *)
+  (*   case => x []. *)
+  (*   - case => [_ [<-] | _ [<-]]. *)
+  (*     + case E: (slct phi) => [psi | psi] //. *)
+  (*       move => psinx [[]]//y val. *)
+  (*       have [| [Fpsi val'] prp]:= rlzr psi x psinx; first by exists y. *)
+  (*       split; first by exists (linc Fpsi); exists (inl Fpsi); split; first rewrite E. *)
+  (*       move => _ [[] Fphi [FpsiFpsi <-]]; last by rewrite E in FpsiFpsi.     *)
+  (*       have [ | _ prp']:= rlzr psi x psinx; first by exists y. *)
+  (*       have [ | fa []]//:= prp' Fphi; first by rewrite E in FpsiFpsi. *)
+  (*       by exists (inl fa); split; first exists (inl Fphi). *)
+  (*     case E: (slct phi) => [psi | psi]//. *)
+  (*     move => psinx [[]]//y val. *)
+  (*     have [| [Fpsi val'] prp]:= rlzr psi x psinx; first by exists y. *)
+  (*     split; first by exists (linc Fpsi); exists (inl Fpsi); split; first rewrite E. *)
+  (*     move => _ [[] Fphi [FpsiFpsi <-]]; last by rewrite E in FpsiFpsi.     *)
+  (*     have [ | _ prp']:= rlzr psi x psinx; first by exists y. *)
+  (*     have [ | fa []]//:= prp' Fphi; first by rewrite E in FpsiFpsi. *)
+  (*     by exists (inl fa); split; first exists (inl Fphi). *)
+  (*   case => [_ [<-] | _ [<-]]. *)
+  (*   + case E: (slct phi) => [psi | psi]//. *)
+  (*     move => psinx [[]]//y val. *)
+  (*     have [| [Fpsi val'] prp]:= rlzr' psi x psinx; first by exists y. *)
+  (*     split; first by exists (rinc Fpsi); exists (inr Fpsi); split; first rewrite E. *)
+  (*     move => _ [[] Fphi [FpsiFpsi <-]]; first by rewrite E in FpsiFpsi. *)
+  (*     have [ | _ prp']:= rlzr' psi x psinx; first by exists y. *)
+  (*     have [ | fa []]//:= prp' Fphi; first by rewrite E in FpsiFpsi. *)
+  (*     by exists (inr fa); split; first exists (inr Fphi). *)
+  (*   case E: (slct phi) => [psi | psi]//. *)
+  (*   move => psinx [[]]//y val. *)
+  (*   have [| [Fpsi val'] prp]:= rlzr' psi x psinx; first by exists y. *)
+  (*   split; first by exists (rinc Fpsi); exists (inr Fpsi); split; first rewrite E. *)
+  (*   move => _ [[] Fphi [FpsiFpsi <-]]; first by rewrite E in FpsiFpsi.     *)
+  (*   have [ | _ prp']:= rlzr' psi x psinx; first by exists y. *)
+  (*   have [ | fa []]//:= prp' Fphi; first by rewrite E in FpsiFpsi. *)
+  (*   by exists (inr fa); split; first exists (inr Fphi). *)
+  (* Qed.  *)
   
-  Lemma fsum_hcr (X Y X' Y': cs) (f: X ->> Y) (g: X' ->> Y'):
-    f \has_continuous_realizer -> g \has_continuous_realizer ->
-    (f +s+ g) \has_continuous_realizer.
-  Proof.                                  
-    move => [F [rlzr cont]] [G [rlzr' cont']]; exists (fsum_rlzr F G).
-    by split; [exact/fsum_spec | exact/fsum_rlzr_cntop ].
-  Qed.
+  (* Lemma fsum_hcr (X Y X' Y': cs) (f: X ->> Y) (g: X' ->> Y'): *)
+  (*   f \has_continuous_realizer -> g \has_continuous_realizer -> *)
+  (*   (f +s+ g) \has_continuous_realizer. *)
+  (* Proof.                                   *)
+  (*   move => [F [rlzr cont]] [G [rlzr' cont']]; exists (fsum_rlzr F G). *)
+  (*   by split; [exact/fsum_spec | exact/fsum_rlzr_cntop ]. *)
+  (* Qed. *)
 
-  Lemma fsum_cont (X Y X' Y': cs) (f: X -> Y) (g: X' -> Y'):
-    f \is_continuous -> g \is_continuous ->
-    (f +s+_f g) \is_continuous.
-  Proof.
-    by rewrite/continuous F2MF_fsum; apply/fsum_hcr.
-  Qed.
-*)
+  (* Lemma fsum_cont (X Y X' Y': cs) (f: X -> Y) (g: X' -> Y'): *)
+  (*   f \is_continuous -> g \is_continuous -> *)
+  (*   (f +s+_f g) \is_continuous. *)
+  (* Proof. *)
+  (*   by rewrite/continuous F2MF_fsum; apply/fsum_hcr. *)
+  (* Qed. *)
 
-  Lemma sum_uprp_fun (X Y Z: cs) (f: X -> Z) (g: Y -> Z):
-    exists! (F: X + Y -> Z),
-      (forall x, F (inl x) = f x)
-      /\
-      (forall y, F (inr y) = g y).
-  Proof.
-    exists (fun xy => paib (fsum f g xy)); rewrite /paib.
-    by split => // F [eq eq']; apply fun_ext => [[x | y]].
-  Qed.
+  (* Lemma sum_uprp_fun (X Y Z: cs) (f: X -> Z) (g: Y -> Z): *)
+  (*   exists! (F: X + Y -> Z), *)
+  (*     (forall x, F (inl x) = f x) *)
+  (*     /\ *)
+  (*     (forall y, F (inr y) = g y). *)
+  (* Proof. *)
+  (*   exists (fun xy => paib (fsum f g xy)); rewrite /paib. *)
+  (*   by split => // F [eq eq']; apply fun_ext => [[x | y]]. *)
+  (* Qed. *)
   
 (*
   Lemma sum_rec_cont (X Y Z: cs) (f: X -> Z) (g: Y -> Z):

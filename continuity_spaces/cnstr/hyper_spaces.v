@@ -699,7 +699,6 @@ Proof.
     by lia.
 Qed.
 
->>>>>>> d18d241df8c664e7c9c738fd71d7366f305a461d
 End Kleeneans.
 
 Section Open_subsets_of_nat.

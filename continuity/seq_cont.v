@@ -84,3 +84,22 @@ Section sequential_continuity.
 End sequential_continuity.
 Notation "F \is_sequentially_continuous_in phi" := (sequential_continuity_point F phi) (at level 40): name_scope.
 Notation "F \is_sequentially_continuous" := (sequentially_continuous F) (at level 40): name_scope.
+
+Section functions.
+  Context (Q A Q' A' : Type).
+  (* Q is for questions, A is for answers*)
+  Notation B := (Q -> A).
+  Notation B' := (Q' -> A').
+  Context (f: B -> B').
+  Definition sequentially_continuous_function :=
+    forall phin phi, phi \is_limit_of phin -> (f phi) \is_limit_of (fun n => f (phin n)).
+
+  Lemma scnt_F2MF:
+    sequentially_continuous_function <-> (F2MF f) \is_sequentially_continuous.
+  Proof.
+    split => scnt; last by move => ? ? lmt; apply/scnt; first exact/lmt.
+    move => phi phin Fphin Fphi lmt eq <- K.
+    have [n nprp]:= scnt phin phi lmt K.
+    by exists n => m ineq; rewrite -eq -nprp.
+  Qed.
+End functions.

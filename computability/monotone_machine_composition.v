@@ -872,12 +872,11 @@ Section partial_function_product.
     split; by [exists  p1 | exists p2 ].
   Qed.
 End partial_function_product.
-Search _ (_ + _)%type.
-  Definition set_sum S T (P: mf_set.subset S) (Q: mf_set.subset T) :=
-	  make_subset (fun s => match s with
-                        | inl s' => P s'
-                        | inr s' => Q s'
-                        end).
+Definition set_sum S T (P: mf_set.subset S) (Q: mf_set.subset T) :=
+  make_subset (fun s => match s with
+                     | inl s' => P s'
+                     | inr s' => Q s'
+                     end).
 
 Section partial_function_sum.
   Context (S T U V: Type).

@@ -189,12 +189,12 @@ Lemma innertest_exists : {f : partial_function | f \solves
 }.
 Proof.
   have fp : forall f, (f =~= f) by trivial.
-  apply /prd_pf => //.
+  apply/pf_fprd => //.
   exists (F2PF ((@rprj (B_(Rc)) (B_(Rc \*_cs Rc))) : (B_(Rc \*_cs (Rc \*_cs Rc)) -> B_(Rc \*_cs Rc)))).
   rewrite F2PF_spec.
   apply snd_rlzr_spec.
   apply /cmp_pf => //.
-  apply /prd_pf => //.
+  apply /pf_fprd => //.
   apply cleanup_after_pf.
   apply /cmp_pf => //.
   apply cleanup_after_pf.
@@ -206,7 +206,7 @@ Proof.
   apply snd_rlzr_spec.
   apply /cmp_pf => //.
   apply (addition_rlzr Rc).
-  apply /prd_pf => //.
+  apply /pf_fprd => //.
   apply cleanup_before_pf.
   exists (F2PF (ssrfun.id)).
   rewrite F2PF_spec.
@@ -222,14 +222,14 @@ Lemma Ktruth_cmp_exists : {f : partial_function | f \solves (((F2MF K_truthf) **
 Proof.
   have fp : forall f, (f =~= f) by trivial.
   apply /(cmp_pf) => //.
-  apply /prd_pf =>//.
+  apply /pf_fprd =>//.
   exists (F2PF (K_truth_rlzrf : B_(cs_Kleeneans) -> B_(cs_Sirp))).
   rewrite F2PF_spec.
   apply Ktruth_rlzr_spec.
   exists (F2PF (K_truth_rlzrf : B_(cs_Kleeneans) -> B_(cs_Sirp))).
   rewrite F2PF_spec.
   apply Ktruth_rlzr_spec.
-  apply /prd_pf =>//.
+  apply /pf_fprd =>//.
   apply (ltk_rlzr Rc).
   apply (ltk_rlzr Rc).
 Defined.
@@ -289,7 +289,7 @@ Proof.
   have fp : forall f, (f =~= f) by trivial.
   apply /cmp_pf => //.
   apply lt_epsK_rlzr.
-  apply /prd_pf => //.
+  apply /pf_fprd => //.
   apply cleanup_after_pf.
   apply tpmn_rlzr.
   exists (F2PF (ssrfun.id)).

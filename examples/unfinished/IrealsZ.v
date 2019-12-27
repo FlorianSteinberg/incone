@@ -3,12 +3,10 @@ From rlzrs Require Import all_rlzrs.
 From metric Require Import reals pointwise.
 From metric Require Import all_metric reals standard Qmetric.
 Require Import axioms all_cs cs_mtrc metric_names hyper_spaces.
-Require Import all_cs_base classical_mach.
+Require Import all_cs_base classical_mach naming_spaces.
+Require Import monotone_machine_composition computable_reals_pf.
 Require Import Reals Psatz FunctionalExtensionality ClassicalChoice.
 Require Import Ibounds.
-Require Import naming_spaces.
-Require Import computable_reals_pf.
-Require Import monotone_machine_composition.
 Require Import Coq.Lists.StreamMemo.
 Import Qreals.
 Require Q_reals.

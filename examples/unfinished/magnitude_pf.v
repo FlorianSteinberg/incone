@@ -527,13 +527,13 @@ Proof.
   apply rhs.
   apply diag_pf_exists.
   apply /cmp_pf => //;last first.
-  apply /prd_pf => //; last first.
+  apply /pf_fprd => //; last first.
   apply diag_pf_exists.
   exists (F2PF (ssrfun.id)).
   rewrite F2PF_spec.
   apply id_rlzr.
-  apply /prd_pf => //; last first.
-  apply /prd_pf => //; last first.
+  apply /pf_fprd => //; last first.
+  apply /pf_fprd => //; last first.
   apply /constant_pf_spec.
   apply (f2r_spec 13%Z (- Z.of_nat (n.+2))%Z).
   exists (F2PF (ssrfun.id)).
@@ -569,13 +569,13 @@ Proof.
   apply lhs.
   apply diag_pf_exists.
   apply /cmp_pf => //;last first.
-  apply /prd_pf => //; last first.
+  apply /pf_fprd => //; last first.
   apply diag_pf_exists.
   exists (F2PF (ssrfun.id)).
   rewrite F2PF_spec.
   apply id_rlzr.
-  apply /prd_pf => //; last first.
-  apply /prd_pf => //; last first.
+  apply /pf_fprd => //; last first.
+  apply /pf_fprd => //; last first.
   apply cleanup_after_pf.
   exists (F2PF (ssrfun.id)).
   rewrite F2PF_spec.
@@ -598,7 +598,7 @@ Proof.
   apply andb_rlzrf_spec.
   apply /cmp_pf => //; last first.
   apply diag_pf_exists.
-  apply /prd_pf => //.
+  apply /pf_fprd => //.
   apply /cmp_pf => //; last first.
   apply magnitude_check_rhs_pf.
   apply ltn_rlzr.
@@ -736,7 +736,7 @@ Proof.
   apply magnitude_mf_spec.
   apply diag_pf_exists.
   apply /cmp_pf => //;last first.
-  apply /prd_pf => //; last first. 
+  apply /pf_fprd => //; last first. 
   apply cleanup_after_pf.
   exists (F2PF (ssrfun.id)).
   rewrite F2PF_spec.
@@ -764,7 +764,7 @@ Proof.
   apply c.
   apply cleanup_before_pf.
   apply diag_pf_exists.
-  apply /prd_pf => //; last first.
+  apply /pf_fprd => //; last first.
   apply cleanup_after_pf.
   exists (F2PF (ssrfun.id)).
   rewrite F2PF_spec.
@@ -800,7 +800,7 @@ Proof.
   apply cleanup_after_pf.
   apply /cmp_pf => //; last first.
   apply fp.
-  apply /prd_pf => //; last first.
+  apply /pf_fprd => //; last first.
   apply (int_constant_pf 2%Z).
   apply cleanup_after_pf.
   exists (F2PF (ssrfun.id)).

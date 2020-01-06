@@ -340,7 +340,7 @@ Proof.
   apply comp_subs_dom; last by rewrite F2MF_dom.
   case => x1 x2 [<- <-].
   apply comp_subs_dom.
-  case => [b y [[[[m [u v [[<- <- <- [H1 H2] H3 [H4 ]]]]]]] ]].
+  case => b y [[[[m [u v [[<- <- <- [H1 H2] H3 H4]]]]]]].
   rewrite /= in H4.
   rewrite <- H4.
   apply comp_subs_dom; last by rewrite F2MF_dom.
@@ -466,7 +466,7 @@ Proof.
   apply scale_comp_spec.
   apply diag_pf_exists.
   apply /cmp_pf => //; last first.
-  apply /prd_pf => //; last first.
+  apply /pf_fprd => //; last first.
   apply cleanup_after_pf.
   exists (F2PF (ssrfun.id)).
   rewrite F2PF_spec.
@@ -486,12 +486,12 @@ Proof.
   apply /cmp_pf; last first.
   apply comp.
   apply diag_pf_exists.
-  apply /prd_pf => //; last first.
+  apply /pf_fprd => //; last first.
   exists (F2PF (@lprj B_(cs_Z) B_(Rc))).
   rewrite F2PF_spec.
   apply fst_rlzr_spec.
   apply /cmp_pf => //; last first.
-  apply /prd_pf => //; last first.
+  apply /pf_fprd => //; last first.
   exists (F2PF (ssrfun.id)).
   rewrite F2PF_spec.
   apply id_rlzr.
@@ -599,7 +599,7 @@ Proof.
     by apply phin1.
   exists rlzr.
   apply rlzr_spec.
-  apply /prd_pf => //.
+  apply /pf_fprd => //.
   apply /seq_pf => //.
   apply sqrt_approx_rlzr.
   exists (F2PF (ssrfun.id : B_(cs_Z) -> B_(cs_Z))).
@@ -640,7 +640,7 @@ Proof.
   have fp : forall f, (f =~= f) by trivial.
   apply /cmp_pf => //.
   apply (multiplication_rlzr Rc).
-  apply /prd_pf => //.
+  apply /pf_fprd => //.
   apply sqrt_approx_comp_inner'.
   apply sqrt_approx_comp_inner.
   apply fp.
@@ -674,11 +674,11 @@ Defined.
 Lemma close_to_zero_check_const (n : nat) : {f : partial_function | f \solves (((F2MF (cnst (2 * n).+1) ** (F2MF ssrfun.id ** (F2MF (fun n0 : nat => / 2 ^ n0) \o F2MF (cnst (2 * n)%nat))))) : (Rc * (Rc * Rc) ->> (nat * (Rc * Rc))))}. 
   have fp : forall f, (f =~= f) by trivial.
 
-  apply /prd_pf => //.
+  apply /pf_fprd => //.
   apply /constant_pf_spec.
   have np : (cs_nat (nat2csN ((2*n).+1)) ((2*n).+1)) by auto.
   apply np.
- apply /prd_pf => //.
+ apply /pf_fprd => //.
   exists (F2PF (ssrfun.id)).
   rewrite F2PF_spec.
   apply id_rlzr.
@@ -692,7 +692,7 @@ Lemma close_to_zero_check_diag  : {f : partial_function | f \solves (((F2MF ssrf
 Proof.
   have fp : forall f, (f =~= f) by trivial.
   apply /cmp_pf => //.
-  apply /prd_pf => //.
+  apply /pf_fprd => //.
   exists (F2PF (ssrfun.id)).
   rewrite F2PF_spec.
   apply id_rlzr.
@@ -718,7 +718,7 @@ Proof.
   apply (sq_apprx_tot_spec).
   apply diag_pf_exists.
   apply /cmp_pf => //; last first.
-  apply /prd_pf => //; last first.
+  apply /pf_fprd => //; last first.
   exists (F2PF (ssrfun.id)).
   rewrite F2PF_spec.
   apply id_rlzr.

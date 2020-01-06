@@ -614,71 +614,71 @@ Section construct_associate.
   Proof. exact/tight_trans/psi_FM_sfrst/sfrst_spec. Qed.
 
   Section associates_for_mu_and_M.
-      Definition psi_mu (KLnq': (seq (Q * A) * (nat * Q'))) :=
-    let (KL,nq'):= KLnq' in
-    let phi := GL2F KL in
-    let K' := (mu phi nq') in
-    if check_sublist K' (unzip1 KL)
-    then inl K'
-    else inr K'.
+    Definition psi_mu (KLnq': (seq (Q * A) * (nat * Q'))) :=
+      let (KL,nq'):= KLnq' in
+      let phi := GL2F KL in
+      let K' := (mu phi nq') in
+      if check_sublist K' (unzip1 KL)
+      then inl K'
+      else inr K'.
   
-  (* Instead of inl K' it would be nicer to have (filter (fun q => ~~(q \from unzip1 KL)) K') to
-     avoid unneccessary duplication. *)
-
-  Lemma mu_psi_spec: (U psi_mu) \evaluates (F2MF mu).
-  Proof.
-    apply/sing_exte_tight => [ | phi _ <- nq']; first exact/FU_sing.
-    pose K_step K := mu (trunc phi K) nq' ++ K.
-    pose Kn := fix Kn n := match n with
-                           | 0 => nil
-                           | n.+1 => K_step (Kn n)
-                           end.
-    have Kn_mon : forall n m, n <= m -> (Kn n) \is_sublist_of (Kn m).
-    - move => n m /subnK <-; elim: (m - n) => // k ih.
-      by rewrite addSn /= /K_step; apply/subl_cat; right.
-
-    pose phin n := trunc phi (Kn n).
-    have val n q: q \from Kn n -> phi q = phin n q.
-    - by rewrite /phin /trunc; case: ifP => /inP.
+    (* Instead of inl K' it would be nicer to have (filter (fun q => ~~(q \from unzip1 KL)) K') to
+       avoid unneccessary duplication. *)
+    
+    Lemma mu_psi_spec: (U psi_mu) \evaluates (F2MF mu).
+    Proof.
+      apply/sing_exte_tight => [ | phi _ <- nq']; first exact/FU_sing.
+      pose K_step K := mu (trunc phi K) nq' ++ K.
+      pose Kn := fix Kn n := match n with
+                             | 0 => nil
+                             | n.+1 => K_step (Kn n)
+                             end.
+      have Kn_mon : forall n m, n <= m -> (Kn n) \is_sublist_of (Kn m).
+      - move => n m /subnK <-; elim: (m - n) => // k ih.
+        by rewrite addSn /= /K_step; apply/subl_cat; right.
+        
+      pose phin n := trunc phi (Kn n).
+      have val n q: q \from Kn n -> phi q = phin n q.
+      - by rewrite /phin /trunc; case: ifP => /inP.
            
-    have [psi lim]: exists psi, psi \from limit phin.
-    - suff /choice [psi lim]: forall q, exists a, exists N, forall m, N <= m -> a = phin m q by exists psi.
-      move => q.
-      case: (classic (exists n, q \from Kn n)) => [[n lstn] | /not_ex_all_not nt].
-      - by exists (phi q); exists n => m ineq; apply/val/(Kn_mon _ _ ineq).
-      exists somea; exists 0 => m _.
-      rewrite /phin /trunc; case: ifP => // /inP lstn.
-      by exfalso; apply/(nt m).
+      have [psi lim]: exists psi, psi \from limit phin.
+      - suff /choice [psi lim]: forall q, exists a, exists N, forall m, N <= m -> a = phin m q by exists psi.
+        move => q.
+        case: (classic (exists n, q \from Kn n)) => [[n lstn] | /not_ex_all_not nt].
+        + by exists (phi q); exists n => m ineq; apply/val/(Kn_mon _ _ ineq).
+        exists somea; exists 0 => m _.
+        rewrite /phin /trunc; case: ifP => // /inP lstn.
+        by exfalso; apply/(nt m).
 
-    have cont: (F2MF mu) \is_continuous by apply/cont_F2MF/modf_cont/modmod.
+      have cont: (F2MF mu) \is_continuous by apply/cont_F2MF/modf_cont/modmod.
 
-    have lim': mu psi \from limit (fun n => mu (phin n)).
-    - by have /cont_scnt scnt:= cont; apply/scnt; first exact/lim.
+      have lim': mu psi \from limit (fun n => mu (phin n)).
+      - by have /cont_scnt scnt:= cont; apply/scnt; first exact/lim.
 
-    have coin n: phi \coincides_with (phin n) \on (Kn n).
-    - by rewrite /phin; apply/coin_agre => q lstn; exact/val.
+      have coin n: phi \coincides_with (phin n) \on (Kn n).
+      - by rewrite /phin; apply/coin_agre => q lstn; exact/val.
 
-    have ->: mu phi nq' = mu psi nq'.
-    - symmetry; apply/modmod.
-      have [N Nprp]:= lim' nq'; rewrite (Nprp N) //.
-      move: lim => /lim_coin lim.
-      have [M' Mprp]:= lim (mu (phin N) nq').
-      apply/coin_trans; first exact/Mprp/(leq_maxr N.+1 M').
-      by apply/coin_sym/coin_subl/coin/subs_trans/Kn_mon/leq_maxl/subl_cat; left.
+      have ->: mu phi nq' = mu psi nq'.
+      - symmetry; apply/modmod.
+        have [N Nprp]:= lim' nq'; rewrite (Nprp N) //.
+        move: lim => /lim_coin lim.
+        have [M' Mprp]:= lim (mu (phin N) nq').
+        apply/coin_trans; first exact/Mprp/(leq_maxr N.+1 M').
+        by apply/coin_sym/coin_subl/coin/subs_trans/Kn_mon/leq_maxl/subl_cat; left.
 
-    have eq : phi =1 phi by trivial.
+      have eq : phi =1 phi by trivial.
 
-    have gqn n: gather_queries psi_mu phi (n,nq') === Kn n.
-    - elim: n => // n ih.      
-      rewrite /gather_queries /= /K_step/=.
-      case: ifP => /clP subs /=.
-      - rewrite ih set_eq_subs; split; first by apply/subl_cat; right.
-        apply/cat_subl; split => //.
-        rewrite unzip1_F2GL in subs.
-        rewrite -ih; apply/subs_trans/subs; rewrite -trunc_spec.
-        by have /fun_ext -> := trunc_prpr eq ih.
-      have /fun_ext <-:= trunc_prpr eq ih; rewrite -trunc_spec => q.
-      by split => /L2SS_cat [] ?; apply/L2SS_cat; [left|right; apply/ih|left|right; apply/ih].
+      have gqn n: gather_queries psi_mu phi (n,nq') === Kn n.
+      - elim: n => // n ih.      
+        rewrite /gather_queries /= /K_step/=.
+        case: ifP => /clP subs /=.
+        + rewrite ih set_eq_subs; split; first by apply/subl_cat; right.
+          apply/cat_subl; split => //.
+          rewrite unzip1_F2GL in subs.
+          rewrite -ih; apply/subs_trans/subs; rewrite -trunc_spec.
+          by have /fun_ext -> := trunc_prpr eq ih.
+        have /fun_ext <-:= trunc_prpr eq ih; rewrite -trunc_spec => q.
+        by split => /L2SS_cat [] ?; apply/L2SS_cat; [left|right; apply/ih|left|right; apply/ih].
 
     have coin' : forall n, psi \coincides_with phi \on Kn n.
     - move: lim => /lim_coin lim n; have [N Nprp]:= lim (Kn n).

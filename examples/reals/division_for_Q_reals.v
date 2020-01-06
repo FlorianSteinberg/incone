@@ -210,5 +210,5 @@ Section division.
     rewrite ffr_spec.
     apply/comp_hcs/Rmult_cont/fprd_hcs/inv_cont.
     by exists mf_id; split; try exact/id_cntop; apply/id_rlzr.
-  Qed.
+  Qed.  
 End division.

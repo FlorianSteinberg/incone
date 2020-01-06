@@ -309,7 +309,7 @@ Section use_first_continuous.
     
   Definition make_monotone (mu: B -> nat * Q' -> seq Q) phi nq' :=
     make_Lf_mon (mu phi) nq'.2 nq'.1.
-
+    
   Lemma mkmm_mon mu: monotone_modulus (make_monotone mu).
   Proof. by move => phi q' n /= q'' lstn; apply/L2SS_cat; left. Qed.
 
@@ -327,7 +327,7 @@ Section use_first_continuous.
     rewrite /make_monotone /= => ih /coin_cat [coin eq].
     by rewrite ih //; f_equal; apply/mod.
   Qed.
-    
+
   Lemma sfrst_modf mu:
     mu \modulus_function_for M -> (make_monotone mu) \modulus_function_for (use_first M).      
   Proof.

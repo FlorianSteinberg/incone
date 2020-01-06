@@ -533,12 +533,49 @@ Notation "f '\*' g" := ((partial_composition (partial_composition (projT1 (multi
 Notation "f '\+' g" := ((partial_composition (partial_composition (projT1 (addition_rlzr Rc))  (pprd_rlzrf f g)) (F2PF (fun phi => (pair (phi,phi))))) : (@partial_function B_(Rc) B_(Rc)))   (at level 4).
 Notation "f '\:' g" := ((partial_composition (partial_composition (projT1 (division_rlzr Rc))  (pprd_rlzrf f g)) (F2PF (fun phi => (pair (phi,phi))))) : (@partial_function B_(Rc) B_(Rc)))   (at level 3).
 Notation "<x>" := (F2PF (ssrfun.id : B_(Rc) -> B_(Rc))) (at level 3).
+Notation "<x1>" := (F2PF ((@lprj B_(Rc) B_(Rc)) : B_(Rc \*_cs Rc) -> B_(Rc))) (at level 3).
+Notation "<x2>" := (F2PF ((@rprj B_(Rc) B_(Rc)) : B_(Rc \*_cs Rc) -> B_(Rc))) (at level 3).
 Notation "Fl( x , y )" := (projT1 (Float_constant_pf Rc x y) : (@partial_function B_(Rc) B_(Rc))) (at level 2).
+Definition clean := (F2PF (projT1 (cleanup Rc)) : (@partial_function B_(Rc) B_(Rc))).
+Lemma sqrt_approx1_inner : {f : partial_function | f \solves (((F2MF (uncurry Rmult)) \o ((@mf_cnst Rc Rc (powerRZ 2 (-1)%Z) \o (@mf_fst Rc  Rc)) ** ((F2MF (uncurry Rplus ) : Rc*Rc ->> Rc) \o ((@mf_snd Rc Rc) ** (Rdiv_mf  : (Rc*Rc ->> Rc)) \o mf_diag))) \o mf_diag)  : _ ->> Rc)}.
+Proof.
+  have fp : forall f, (f =~= f) by trivial.
+  apply cleanup_after_pf.
+  apply /cmp_pf => //; last first.
+  apply diag_pf_exists.
+  apply cleanup_after_pf.
+  apply /cmp_pf; last first.
+  apply fp.
+  apply /prd_pf => //; last first.
+  apply cleanup_after_pf.
+  apply /cmp_pf => //; last first.
+  apply /cmp_pf => //; last first.
+  apply diag_pf_exists.
+  apply /prd_pf => //; last first.
+  apply (division_rlzr Rc).
+  apply cleanup_after_pf.
+  exists (F2PF ((@rprj B_(Rc) B_(Rc)) : (B_(Rc \*_cs Rc)) -> B_(Rc))).
+  rewrite F2PF_spec.
+  apply snd_rlzr_spec.
+  apply (addition_rlzr Rc).
+  apply /cmp_pf => //; last first.
+  apply cleanup_after_pf.
+  exists (F2PF ((@lprj B_(Rc) B_(Rc)) : (B_(Rc \*_cs Rc)) -> B_(Rc))).
+  rewrite F2PF_spec.
+  apply fst_rlzr_spec.
+  case  (Float_constant_pf Rc 1 (-1)%Z) => rlzr spec.
+  apply cleanup_before_pf.
+  exists rlzr.
+  rewrite /mf_cnst.
+  by have -> :(powerRZ 2 (-1)) = 1*(powerRZ 2 (-1)) by lra.
+  apply (multiplication_rlzr Rc).
+Defined.
+
 
 Fixpoint sqrt_approx1_rlzr n := match n with
                                  | 0%nat => Fl(1,0)
-                                 | (S n') => let P := ((sqrt_approx1_rlzr n') : (@partial_function B_(Rc) B_(Rc))) in
-                                          Fl(1,-1) \* (P \+ (<x> \: P))
+                                 | (S n') => let P := ((partial_composition clean ((sqrt_approx1_rlzr n'))) : (@partial_function B_(Rc) B_(Rc))) in
+                                          (partial_composition (partial_composition (projT1 sqrt_approx1_inner) (pprd_rlzrf <x> P)) (partial_composition (F2PF (fun phi => (pair (phi,phi)))) clean))
                                  end.
 
 Lemma sqrt_approx1_rlzr_spec n : (sqrt_approx1_rlzr n) \realizes  (sqrt_approx 1 n).

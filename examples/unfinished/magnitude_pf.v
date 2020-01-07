@@ -18,6 +18,13 @@ Definition nat2csN (n : nat) := (fun (_ : unit) => n).
 Definition Z2csZ (z : Z) := (fun (_ : unit) => z). 
 
 Definition Rdiv_mf := make_mf (fun xy z => (xy.2 <> 0 /\ z = (xy.1/xy.2))).
+Lemma Rdiv_mf_spec : Rdiv_mf =~= division_for_Q_reals.find_fraction.
+Proof.
+  move => [x y] z /=.
+  split => [[H1 H2] | [H1 H2]]; split => //.
+  by rewrite H2;field_simplify_eq.
+  by rewrite <-H2;field_simplify_eq.
+Qed.
 
 Section magnitude.
 (* As an application we define a multivalued magnitude function using the soft comparison *)
@@ -437,6 +444,7 @@ Lemma lt2_check_pf_exists : {f : partial_function | f \solves ((F2MF lt2_check) 
 Proof.
   apply cleanup_before_pf.
   case (F2R Rc) => f2r /F2MF_rlzr f2r_spec.
+  Search _ partial_function.
   set rlzr := (fun (phi : B_(Rc)) (q : Q_(cs_nat \*_cs (Rc \*_cs Rc))) => match q with
                                                                      | (inl tt) => (1%nat, ((phi someq), (phi someq)))
                                                                      | (inr (inl q')) => (0%nat, ((phi q'), (phi someq)))
@@ -770,7 +778,9 @@ Proof.
   rewrite F2PF_spec.
   apply id_rlzr.
   apply /(int_constant_pf 1).
-  apply (division_rlzr Rc).
+  case (division_rlzr Rc) => div div_spec.
+  exists div.
+  by rewrite Rdiv_mf_spec.
   apply cleanup_before_pf.
   apply /cmp_pf => //;last first.
   apply magnitude1_pf.
@@ -806,7 +816,9 @@ Proof.
   exists (F2PF (ssrfun.id)).
   rewrite F2PF_spec.
   apply id_rlzr.
-  apply (division_rlzr Rc).
+  case (division_rlzr Rc) => div div_spec.
+  exists div.
+  by rewrite Rdiv_mf_spec.
   apply cleanup_before_pf.
   apply /cmp_pf => //; last first.
   apply magnitude1_pf.

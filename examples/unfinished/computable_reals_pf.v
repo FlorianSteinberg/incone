@@ -23,8 +23,8 @@ Structure computable_reals:=
                   f \solves (mf_id : R ->> R)};
     limit_rlzr: {f: partial_function| let R := Build_continuity_space representation in
                                        f \solves (efficient_limit: R\^w ->> R)};
-    F2R: {f: partial_function | let R := Build_continuity_space representation in
-                                f \realizes (uncurry (fun (m exp: Z) => m * powerRZ 2 exp): _ -> R)};
+    F2R: {f  | let R := Build_continuity_space representation in
+                                (F2MF f) \realizes (uncurry (fun (m exp: Z) => m * powerRZ 2 exp): _ -> R)};
   }.
 
 Require Import QArith BinNums BinIntDef BinInt Qreals ZArith Psatz.
@@ -44,8 +44,8 @@ Definition rational_reals: computable_reals.
   - by exists (F2PF ltK_rlzrf); rewrite F2PF_spec; apply/ltK_rlzrf_spec.
   - by exists (F2PF round_name_RQ); rewrite F2PF_spec; apply/round_RQ_correct.
   - by exists (F2PF lim_eff_rlzrf); rewrite F2PF_spec; apply/lim_eff_rlzr_spec.
-  exists (F2PF (fun phi _ => inject_Z (lprj phi (tt: Q_(cs_Z))) * ((1 + 1)^(rprj phi (tt: Q_ cs_Z))))%Q).
-  rewrite F2PF_spec /uncurry /= /lprj /rprj.
+  exists ((fun phi _ => inject_Z (lprj phi (tt: Q_(cs_Z))) * ((1 + 1)^(rprj phi (tt: Q_ cs_Z))))%Q).
+  rewrite /uncurry /= /lprj /rprj.
   apply/F2MF_rlzr => phi [m e] /prod_name_spec [<- <-] eps eg0 /=.
   rewrite /lprj /rprj /=.
   rewrite Q2R_mult {1}/Q2R /=.

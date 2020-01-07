@@ -125,8 +125,7 @@ Proof.
   rewrite <- (comp_id_r F).
   apply fp.
   case (cleanup Rc) => cln clnprp.
-  exists (F2PF cln).
-  rewrite F2PF_spec.
+  exists cln.
   apply clnprp.
   apply H.
 Defined.
@@ -139,8 +138,7 @@ Proof.
   apply fp.
   apply H.
   case (cleanup Rc) => cln clnprp.
-  exists (F2PF cln).
-  rewrite F2PF_spec.
+  exists cln.
   apply clnprp.
 Defined.
 (* We often need the operation n -> / 2 ^ n so we define a function *)

@@ -1362,22 +1362,23 @@ Definition interval_reals: computable_reals.
   - rewrite /= F2PF_spec.
     rewrite <- F2MF_comp_F2MF.
     apply cleanup_slvs.
-    apply Rdiv_rlzr_spec.
+    suff -> : division_for_Q_reals.find_fraction =~= make_mf (fun xy z => xy.2 <> 0 /\ z = xy.1 / xy.2) by apply Rdiv_rlzr_spec.
+    move => [x y] z /=.
+    split => [[H1 H2] | [H1 H2]]; split => //.
+    by field_simplify_eq;lra.
+    rewrite H2.
+    by field_simplify_eq;lra.
   exists (F2PF (ltK_rlzr)).
   - rewrite /= F2PF_spec.
     apply ltK_rlzr_spec.
-  exists cleanup.
+  exists (F2PF cleanup).
+  rewrite /= F2PF_spec.
   by apply cleanup_spec.
   exists (get_partial_function lim_eff_rlzrM_fast) => /=.
   rewrite gtpf_spec.
   by apply /tight_slvs/sfrst_spec/F_lim_eff_rlzrM_fast_spec.
   set f2m := (fun (phi : B_(cs_Z \*_cs cs_Z)) => (FloattoIR (lprj phi tt) (rprj phi tt))).
-  exists (cleanup \o_f f2m).
-  simpl.
-  rewrite <-F2MF_comp_F2MF.
-  rewrite <- comp_id_l.
-  apply /slvs_comp.
-  by apply cleanup_spec.
+  exists f2m.
   rewrite /f2m.
   rewrite F2MF_rlzr/uncurry => phi [m e] [] [] /= z1 z2 [[-> ->] [-> ->]].
   rewrite <-D2R_Float.

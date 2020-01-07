@@ -536,7 +536,7 @@ Notation "<x>" := (F2PF (ssrfun.id : B_(Rc) -> B_(Rc))) (at level 3).
 Notation "<x1>" := (F2PF ((@lprj B_(Rc) B_(Rc)) : B_(Rc \*_cs Rc) -> B_(Rc))) (at level 3).
 Notation "<x2>" := (F2PF ((@rprj B_(Rc) B_(Rc)) : B_(Rc \*_cs Rc) -> B_(Rc))) (at level 3).
 Notation "Fl( x , y )" := (projT1 (Float_constant_pf Rc x y) : (@partial_function B_(Rc) B_(Rc))) (at level 2).
-Definition clean := (F2PF (projT1 (cleanup Rc)) : (@partial_function B_(Rc) B_(Rc))).
+Definition clean := (projT1 (cleanup Rc)).
 Lemma sqrt_approx1_inner : {f : partial_function | f \solves (((F2MF (uncurry Rmult)) \o ((@mf_cnst Rc Rc (powerRZ 2 (-1)%Z) \o (@mf_fst Rc  Rc)) ** ((F2MF (uncurry Rplus ) : Rc*Rc ->> Rc) \o ((@mf_snd Rc Rc) ** (Rdiv_mf  : (Rc*Rc ->> Rc)) \o mf_diag))) \o mf_diag)  : _ ->> Rc)}.
 Proof.
   have fp : forall f, (f =~= f) by trivial.
@@ -546,13 +546,15 @@ Proof.
   apply cleanup_after_pf.
   apply /cmp_pf; last first.
   apply fp.
-  apply /prd_pf => //; last first.
+  apply /pf_fprd => //; last first.
   apply cleanup_after_pf.
   apply /cmp_pf => //; last first.
   apply /cmp_pf => //; last first.
   apply diag_pf_exists.
-  apply /prd_pf => //; last first.
-  apply (division_rlzr Rc).
+  apply /pf_fprd => //; last first.
+  case (division_rlzr Rc) => div div_spec.
+  exists div.
+  by rewrite Rdiv_mf_spec.
   apply cleanup_after_pf.
   exists (F2PF ((@rprj B_(Rc) B_(Rc)) : (B_(Rc \*_cs Rc)) -> B_(Rc))).
   rewrite F2PF_spec.
@@ -579,6 +581,7 @@ Fixpoint sqrt_approx1_rlzr n := match n with
                                  end.
 
 Lemma sqrt_approx1_rlzr_spec n : (sqrt_approx1_rlzr n) \realizes  (sqrt_approx 1 n).
+Proof.
 Admitted.
 Lemma sqrt_approx_rlzr (n : nat) : {f : partial_function | f \realizes (fun (x : Rc) => (sqrt_approx_seq x n) : Rc)}.
 Proof.

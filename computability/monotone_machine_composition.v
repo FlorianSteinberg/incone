@@ -269,7 +269,7 @@ Section monotone_machine_composition_Q_default.
     exact/M_mon.
   Qed.
 
-  Lemma mmcmp_mon_Q_default: monotone_machine_composition_Qdefault \is_monotone.
+  Lemma mmcmpQ_mon: monotone_machine_composition_Qdefault \is_monotone.
   Proof. by move => phi;  apply/mmapQ_mon/mu_term/M'_mon/M_mon. Qed.
 End monotone_machine_composition_Q_default.
 
@@ -677,6 +677,62 @@ Section compose_monotone_machines.
   Qed.
 
 End compose_monotone_machines.
+
+Section compose_monotone_machines_Q_default.
+  Local Open Scope name_scope.
+  Context (Q A Q' A' Q'' A'': Type) (someq: Q').
+  Context (M: monotone_machine Q A Q' A').
+  Context (M': monotone_machine Q' A' Q'' A'').
+  
+  Lemma mon_mcmpQ:
+    FMop.monotone (monotone_machine_composition_Qdefault someq M M' (modulus M')).
+  Proof.
+    apply/mmcmpQ_mon.
+    apply M_monotone.
+    apply M_monotone.
+    apply modulus_correct.
+    apply modulus_selfmodulating.
+    apply M_monotone.
+  Qed.
+
+  Lemma term_mcmpQ:
+    terminates_with (monotone_machine_composition_Qdefault someq M M' (modulus M'))
+    (modulus_composition_Qdefault someq M (modulus M') (modulus M)).
+  Proof.
+    apply/mcmpQ_term.
+    apply M_monotone.
+    apply modmod.
+    apply M_monotone.
+    apply M_monotone.
+  Qed.
+    
+  Definition composeQ: monotone_machine Q A Q'' A''.
+    have mod: modulus_composition_Qdefault someq M (modulus M') (modulus M)
+                               \modulus_function_for
+                               monotone_machine_composition_Qdefault someq M M' (modulus M').
+    - by apply/mcmpQ_spec/modmod/mod/mod.
+    have modmod:
+      modulus_composition_Qdefault someq M (modulus M') (modulus M)
+                          \modulus_function_for
+                          modulus_composition_Qdefault someq M (modulus M') (modulus M).
+    - by apply/mcmpQ_modmod/modmod/modmod/modulus_correct.
+    exists (Build_continuous_machine mod modmod).
+    split.
+    - exact/mon_mcmpQ.
+    exact/term_mcmpQ.
+  Defined.
+  
+  Lemma mcpmQ_spec: composeQ \evaluates (\F_M' \o \F_M).
+  Proof.
+    apply/mmcmpQ_spec.
+    apply M_monotone.
+    apply M_monotone.
+    apply mod.
+    apply modmod.
+    apply M_monotone.
+  Qed.
+
+End compose_monotone_machines_Q_default.
 
 
 Local Open Scope name_scope.

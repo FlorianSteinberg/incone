@@ -424,7 +424,8 @@ Section modulus_composition_Q_default.
     modulus_composition_Qdefault \modulus_function_for monotone_machine_composition_Qdefault someq M M' mu'.
   Proof.
     move => mod mod' modmod phi [n q''] psi /= coin.
-    (* establish that the default answer queries using phi and psi are identical *)
+
+    (* establish that the default answer queries using phi and psi are identical: *)
     have <-: M phi (n, someq) = M psi (n, someq).
     apply mod.
     move : coin.
@@ -432,10 +433,13 @@ Section modulus_composition_Q_default.
     apply coin_cat.
     move => coinsomeq; apply coinsomeq.
 
+    (* do away with all cases where we do not have default : A' : *)
     move : coin.
     elim (M phi (n, someq)) => [default|].
     2:{ by simpl. }
     move => coin_pre.
+
+    (* get rid of someq from coin : *)
     have coin: phi \coincides_with psi \on
            (gather (mu phi)
               [seq (n, q') | q' <- mu' (phi_ (M phi) default n) (n, q'')]).
@@ -454,37 +458,71 @@ Section modulus_composition_Q_default.
     by rewrite /phi_ (@mod _ _ psi) //.
   Qed.
 
-  (* Lemma gather_cont T T' (Lf Lg :T -> seq T') (K: seq T):
+  Lemma gather_contQ T T' (Lf Lg :T -> seq T') (K: seq T):
     (forall q, q \from K -> Lf q = Lg q) -> gather Lf K = gather Lg K.
   Proof.
     elim: K => // q K /= ih ass.
     rewrite ass; last by left.
     by rewrite ih // => q' ?; apply/ass; right.
-  Qed. *)
+  Qed.
     
-  (* Lemma mcmp_modmod:
+  Lemma mcmpQ_modmod:
     mu \modulus_function_for M -> mu \modulus_function_for mu -> mu' \modulus_function_for mu' ->
-    modulus_composition \modulus_function_for modulus_composition.
+    modulus_composition_Qdefault \modulus_function_for modulus_composition_Qdefault.
   Proof.
     move => mod modmod modmod' phi [n q''] psi /= coin.
+
+    (* establish that the default answer queries using phi and psi are identical: *)
+    have phipsisomeq : phi \coincides_with psi \on mu phi (n, someq).
+    move : coin.
+    destruct (M phi (n, someq)).
+    apply coin_cat.
+    move => coinsomeq; apply coinsomeq.
+    have <-: M phi (n, someq) = M psi (n, someq).
+    by apply mod.
+
+    (* do away with all cases where we do not have default : A' : *)
+    move : coin.
+    elim (M phi (n, someq)) => [default|].
+    Search _ coincide.
+    2:{ by apply modmod. }
+    move => coin.
+
     have coin': (M phi) \coincides_with (M psi)
-                        \on (map (fun q' => (n, q')) (mu' (phi_ (M phi) default n) (n, q''))).
+                        \on ((n, someq) :: map (fun q' => (n, q')) (mu' (phi_ (M phi) default n) (n, q''))).
+      move: coin => /coin_cat [coinq coin]. 
+    split; first by apply mod.
     - by move: coin; elim: map => // [[m q'] K] ih /=/coin_cat [coin1 /ih coin2]; split; first exact/mod.
+    
     suff coin'': phi_ (M phi) default n \coincides_with phi_ (M psi) default n \on
                       mu' (phi_ (M phi) default n) (n, q'').
     - rewrite (@modmod' _ _ (phi_ (M psi) default n)) //.
-      apply/gather_cont => q' lstn'.
+      f_equal.
+      apply modmod. move : coin. apply coin_cat.
+
+      apply/gather_contQ => q' lstn'.
       apply/modmod/coin_subl/coin => q lstn.
       move: lstn'.
-      rewrite (@modmod' _ _ (phi_ (M psi) default n)) //.
+      rewrite (@modmod' _ _ (phi_ (M psi) default n)) // /=.
+      move => qin.
+      apply /lstn_app. apply or_intror.
+      move: qin.
       elim: map => // nq' K' ih /= [-> | nin]; first by apply/L2SS_cat; left.
       by apply/L2SS_cat; right; apply/ih.
     move: coin; rewrite /=.
-    elim: mu' => // q' K ih /= /coin_cat [coin1 /ih]; split => //.
-    by rewrite /phi_ (@mod _ _ psi) //.
-  Qed. *)
+    elim: mu' => // q' K ih /= /coin_cat [coin1 ihh]. 
+    split => //.
+    rewrite /phi_ (@mod _ _ psi) //.
+    by move : ihh => /coin_cat [ihh1 _].
+    apply ih.
+    apply coin_cat.
+    split.
+    by [].
+    move : ihh.
+    by apply coin_cat.
+  Qed.
 
-  (* Lemma gthr_spec T T' (Lf: T -> seq T') K t':
+  Lemma gthr_specQ T T' (Lf: T -> seq T') K t':
     t' \from gather Lf K <-> exists t, t \from K /\ t' \from Lf t.
   Proof.
     split => [ | [t []]].
@@ -492,51 +530,75 @@ Section modulus_composition_Q_default.
       - by exists t; split; first by left.
       by exists k; split; first by right.
     by elim: K => // k K ih /= [-> lstn | tK t'Lf]; apply/L2SS_cat; [left | right; apply/ih].
-  Qed. *)
+  Qed.
 
-  (* Lemma gthr_subl T T' (Lf: T -> seq T') K K':
+  Lemma gthr_sublQ T T' (Lf: T -> seq T') K K':
     K \is_sublist_of K' -> (gather Lf K) \is_sublist_of (gather Lf K').
   Proof.
-    move => subl t' /gthr_spec [t [tK t'Lf]].
-    by apply/gthr_spec; exists t; split; first apply/subl.
-  Qed. *)
+    move => subl t' /gthr_specQ [t [tK t'Lf]].
+    by apply/gthr_specQ; exists t; split; first apply/subl.
+  Qed.
 
-  (* Lemma L2SS_map T T' (f: T -> T') (K: seq T) t:
+  Lemma L2SS_mapQ T T' (f: T -> T') (K: seq T) t:
     t \from K -> (f t) \from map f K.
   Proof.
     elim: K => // t' K ih /= [-> | lstn]; first by left.
     by right; apply/ih.
-  Qed. *)
+  Qed.
 
-  (* Lemma L2SS_map_spec T T' (f: T -> T') (K: seq T) t':
+  Lemma L2SS_map_specQ T T' (f: T -> T') (K: seq T) t':
     t' \from map f K <-> exists t, t \from K /\ f t = t'.
   Proof.
-    split => [ | [t [tK <-]]]; last exact/L2SS_map.
+    split => [ | [t [tK <-]]]; last exact/L2SS_mapQ.
     elim: K => // t K ih /= [ <- | /ih [t0 []]]; first by exists t; split; first by left.
     by exists t0; split; first by right.
-  Qed. *)
+  Qed.
 
-  (* Lemma map_subl T T' (f: T -> T') K K':
+  Lemma map_sublQ T T' (f: T -> T') K K':
     K \is_sublist_of K' -> (map f K) \is_subset_of (map f K').
   Proof.
-    move => subs q /L2SS_map_spec [t [tK <-]].
-    by apply/L2SS_map_spec; exists t; split; first apply/subs.
-  Qed. *)
+    move => subs q /L2SS_map_specQ [t [tK <-]].
+    by apply/L2SS_map_specQ; exists t; split; first apply/subs.
+  Qed.
     
-  (* Lemma mcmp_term:
+  Lemma mcmpQ_term:
     M \is_monotone ->
     mu' \modulus_function_for mu' ->
     terminates_with M mu -> terminates_with M' mu' ->
-    terminates_with (monotone_machine_composition default M M' mu') modulus_composition.
+    terminates_with (monotone_machine_composition_Qdefault someq M M' mu') modulus_composition_Qdefault.
   Proof.
-    move => mon modmod' term term' phi q'' n /=; case: ifP => // /cdP subs val q.  
+    move => mon modmod' term term' phi q'' n /= hasvalue.
+
+    (* M phi (n, someq) is defined *)
+    have Msomeq_some : M phi (n, someq) <> None.
+    move: hasvalue.
+    elim (M phi (n, someq)); by [].
+
+    (* unify all matches on M ... someq *)
+    have ->: M phi (n.+1, someq) = M phi (n, someq).
+    by apply mon.
+
+    (* eliminate cases where someq does not give a default : A' *)
+    move: (hasvalue).
+    elim (M phi (n, someq)) => [default|]; last by [].
+
+    case: ifP => // /cdP subs val q. 
     have subl := term' (phi_ (M phi) default n) q'' n val.
     have coin: phi_ (M phi) default n
                     \coincides_with phi_ (M phi) default n.+1
                     \on mu' (phi_ (M phi) default n) (n, q'').
     - by apply/coin_agre/agre_subs/phinS/mon/subs.
-    rewrite -(@modmod' (phi_ (M phi) default n)); last exact/coin_subl/coin/subl.
+    rewrite -(@modmod' (phi_ (M phi) default n)); last by exact/coin_subl/coin/subl.
+
+    (* deal with list concatenation involving someq *)
     move => lstn.
+    apply /lstn_app. 
+    apply lstn_app in lstn.
+    case : lstn => [lstn|lstn]. 
+    apply /or_introl. move : lstn.
+    apply /term. destruct M; by []. 
+    apply or_intror.
+
     have: q \from gather (mu phi)
             (map (fun q' => (n.+1, q')) (mu' (phi_ (M phi) default n) (n, q''))).
     by apply/gthr_subl/lstn/map_subl/subl.
@@ -544,7 +606,7 @@ Section modulus_composition_Q_default.
     - by apply/L2SS_cat; right; apply/ih.
     apply/L2SS_cat; left; apply/term => //.
     by have [a'] := q'fd; rewrite /curry /=; case: M.
-  Qed.     *)
+  Qed.    
 End modulus_composition_Q_default.
 
 

@@ -484,7 +484,6 @@ Section modulus_composition_Q_default.
     (* do away with all cases where we do not have default : A' : *)
     move : coin.
     elim (M phi (n, someq)) => [default|].
-    Search _ coincide.
     2:{ by apply modmod. }
     move => coin.
 

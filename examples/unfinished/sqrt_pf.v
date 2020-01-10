@@ -579,10 +579,79 @@ Fixpoint sqrt_approx1_rlzr n := match n with
                                  | (S n') => let P := ((partial_composition clean ((sqrt_approx1_rlzr n'))) : (@partial_function B_(Rc) B_(Rc))) in
                                           (partial_composition (partial_composition (projT1 sqrt_approx1_inner) (pprd_rlzrf <x> P)) (partial_composition (F2PF (fun phi => (pair (phi,phi)))) clean))
                                  end.
-
-Lemma sqrt_approx1_rlzr_spec n : (sqrt_approx1_rlzr n) \realizes  (sqrt_approx 1 n).
+Definition Rc_pos := (make_subset (fun (x : Rc) => 0 < x)).
+Lemma sqrt_approx1_rlzr_spec n : (sqrt_approx1_rlzr n) \solves  (F2MF (sqrt_approx 1 n))|_Rc_pos.
 Proof.
-Admitted.
+  elim n => [| n' IH] /=.
+  - apply /slvs_tight/tight_restr_w.
+    suff -> : (F2MF (fun _ : R => 1)) =~= mf_cnst (1 * powerRZ 2 0) by apply (projT2 (Float_constant_pf Rc 1 0)).
+    move => x t /=.
+    by rewrite /cnst;lra.
+    rewrite !pcmp_spec.
+    rewrite !F2PF_spec !PF2MF_fprd.
+    rewrite !pcmp_spec.
+    rewrite !F2PF_spec.
+   suff -> : (F2MF (fun x : R => / 2 * (sqrt_approx 1 n' x + x / sqrt_approx 1 n' x)))|_Rc_pos =~= ((F2MF (uncurry Rmult)) \o ((@mf_cnst Rc Rc (powerRZ 2 (-1)%Z) \o (@mf_fst Rc  Rc)) ** ((F2MF (uncurry Rplus ) : Rc*Rc ->> Rc) \o ((@mf_snd Rc Rc) ** (Rdiv_mf  : (Rc*Rc ->> Rc)) \o mf_diag))) \o mf_diag) \o ((mf_id ** ((@mf_id Rc) \o (F2MF (sqrt_approx 1 n'))|_(Rc_pos))))  \o (mf_diag \o mf_id).
+    - apply /slvs_comp; last by apply /slvs_comp; [apply diag_rlzr_spec | apply (projT2 (cleanup Rc))].
+      apply /slvs_comp; first by apply (projT2 (sqrt_approx1_inner)).
+      have -> : (F2MF (fun phipsi => (lprj phipsi, rprj phipsi))) =~= (B_(Rc) \*_cs B_(Rc)).
+      + move => x [t1 t2] /=.
+        by split => [[<- <-] | [[t1' t2' [<- [<- <-]]]]]; first by exists (lprj x, rprj x).
+      rewrite <- (@fprd_rlzr_comp B_(Rc) B_(Rc) B_(Rc) B_(Rc)).
+      by apply /prod.fprd_rlzr_spec/slvs_comp/IH/(projT2 (cleanup Rc))/id_rlzr.
+    rewrite !comp_id_r !comp_id_l .
+    rewrite cnst_comp.
+    rewrite F2MF_dom.
+    rewrite <- restr_all.
+    have -> : (powerRZ 2 (-1)) = (/ 2) by simpl;lra.
+    rewrite <-!prd_spec.
+    rewrite comp_assoc.
+    rewrite <-!prd_spec.
+    have -> f g d : (prd_mf f (g|_d)) =~= (prd_mf f g)|_d.
+    - move => x [y1 y2].
+      by split => /= [[H1 [H2 H3]] | [H1 [H2 H3]]] //.
+    rewrite /mf_id.
+    rewrite <-prd_f_spec.
+   have -> : (F2MF (fun x : R => / 2 * (sqrt_approx 1 n' x + x / sqrt_approx 1 n' x))) =~= (F2MF (uncurry Rmult)) \o (prd_mf (mf_cnst (/ 2)) (F2MF (fun x => (sqrt_approx 1 n' x + x / sqrt_approx 1 n' x)))).
+    - rewrite /mf_cnst.
+      rewrite <-!prd_f_spec.
+      rewrite F2MF_comp_F2MF.
+      by apply F2MF_eq.
+    have -> f g d : (f \o g)|_d =~= (f \o g|_d).
+    -rewrite <-comp_id_restr.    
+     rewrite <-(comp_id_restr g).
+     by rewrite comp_assoc.
+    rewrite !comp_assoc.
+    have P f g h : (f =~= g) -> (h \o f =~= h \o g) by move => ->.
+    apply P.
+    rewrite <-comp_assoc.   
+    rewrite /mf_cnst/mf_diag.
+    rewrite <-prd_f_spec.
+    rewrite /prd /=.
+    rewrite comp_F2MF.
+    move => x [y1 y2].
+    split => [[xgt0 [<- <- ]]|].
+    Search _ mf_cnst.
+    Print monotone_modulus.
+    split.
+    exists (x, sqrt_approx 1 n' x).
+    split => //.
+    split => //.
+    split => //.
+    simpl.   
+    exists (sqrt_approx 1 n' x, (x / (sqrt_approx 1 n' x))); try by split => //.
+    split => //.
+    split => //.
+    split => //.
+    suff : (0 < sqrt_approx 1 n' x) by lra.
+    simpl in xgt0.
+    apply (@sqrt_approx_gt_0 x 1 n'); try by lra.
+    by rewrite F2MF_dom.
+    move => [x1 x2 [_ [<- <- ]]].
+    simpl.
+    exists (/2, )
+    split => [<- | ].
+    
 Lemma sqrt_approx_rlzr (n : nat) : {f : partial_function | f \realizes (fun (x : Rc) => (sqrt_approx_seq x n) : Rc)}.
 Proof.
   exists (sqrt_approx1_rlzr (Nat.log2 n.+1).+1).

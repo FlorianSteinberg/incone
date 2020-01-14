@@ -7,7 +7,7 @@ Require Import all_cs_base classical_mach.
 Require Import Reals Psatz FunctionalExtensionality ClassicalChoice.
 Require Import axioms all_cs cs_mtrc metric_names hyper_spaces.
 Require Import continuous_machines.
-Require Import monotone_machine_composition.
+Require Import monotone_machines.
 From metric Require Import all_metric reals standard Qmetric.
 Require Import search.
 Require Import computable_reals_pf.

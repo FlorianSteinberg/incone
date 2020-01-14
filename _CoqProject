@@ -56,21 +56,21 @@ continuity_spaces/cnstr/cs_mtrc.v
 continuity_spaces/cnstr/hyper_spaces.v
 continuity_spaces/all_cs.v
 
-# examples/basic_continuity.v
-# examples/implementing_operators.v
-# examples/closed_choice.v
-# examples/cantor_space.v
-# examples/KleeneKreisel.v
+examples/basic_continuity.v
+examples/implementing_operators.v
+examples/closed_choice.v
+examples/cantor_space.v
+examples/KleeneKreisel.v
 examples/reals/Rstruct.v
 examples/reals/Q_reals.v
 examples/reals/division_for_Q_reals.v
 
-# examples/unfinished/Q_round.v
+examples/unfinished/Q_round.v
 
-# examples/unfinished/computable_reals_pf.v
-# examples/unfinished/Ibounds.v
-# examples/unfinished/IrealsZ.v
-# examples/unfinished/Iextract.v
+examples/unfinished/computable_reals_pf.v
+examples/unfinished/Ibounds.v
+examples/unfinished/IrealsZ.v
+examples/unfinished/Iextract.v
 
 #extras that are not currently part of the library but can be compiled on demand:
 #naming_spaces/naming_spaces_as_data_structure.v
@@ -80,6 +80,6 @@ examples/reals/division_for_Q_reals.v
 #examples/unfinished/sd_reals.v
 #examples/unfinished/sdvsc.v
 
-# examples/unfinished/softcomparison_pf.v
-# examples/unfinished/magnitude_pf.v
-# examples/unfinished/sqrt_pf.v
+ examples/unfinished/softcomparison_pf.v
+ examples/unfinished/magnitude_pf.v
+ examples/unfinished/sqrt_pf.v

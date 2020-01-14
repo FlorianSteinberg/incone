@@ -7,7 +7,7 @@ Require Import all_cs_base classical_mach.
 Require Import Reals Psatz FunctionalExtensionality ClassicalChoice.
 Require Import axioms all_cs cs_mtrc metric_names hyper_spaces.
 Require Import continuous_machines.
-Require Import monotone_machine_composition.
+Require Import monotone_machines.
 From metric Require Import all_metric reals standard Qmetric.
 Require Import search.
 Require Import computable_reals_pf.
@@ -444,7 +444,6 @@ Lemma lt2_check_pf_exists : {f : partial_function | f \solves ((F2MF lt2_check) 
 Proof.
   apply cleanup_before_pf.
   case (F2R Rc) => f2r /F2MF_rlzr f2r_spec.
-  Search _ partial_function.
   set rlzr := (fun (phi : B_(Rc)) (q : Q_(cs_nat \*_cs (Rc \*_cs Rc))) => match q with
                                                                      | (inl tt) => (1%nat, ((phi someq), (phi someq)))
                                                                      | (inr (inl q')) => (0%nat, ((phi q'), (phi someq)))

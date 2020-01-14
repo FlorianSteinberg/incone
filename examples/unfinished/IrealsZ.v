@@ -4,7 +4,7 @@ From metric Require Import reals pointwise.
 From metric Require Import all_metric reals standard Qmetric.
 Require Import axioms all_cs cs_mtrc metric_names hyper_spaces.
 Require Import all_cs_base classical_mach naming_spaces.
-Require Import monotone_machine_composition computable_reals_pf.
+Require Import monotone_machines computable_reals_pf.
 Require Import Reals Psatz FunctionalExtensionality ClassicalChoice.
 Require Import Ibounds.
 Require Import Coq.Lists.StreamMemo.
@@ -1301,7 +1301,7 @@ Proof.
   apply Nat.pow_le_mono_r; by lia.
 Qed.
 
-Definition IR_RQ_rlzrM' := (fun phi neps => IR_RQ_rlzrM (speedup neps.1 5) phi neps.2).
+Definition IR_RQ_rlzrM' := (fun phi neps => IR_RQ_rlzrM (speedup neps.1 7) phi neps.2).
 Canonical eqQ : eqType.
   apply (@Equality.Pack Q).
   apply eqdec_eqClass => q q'.

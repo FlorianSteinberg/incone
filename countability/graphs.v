@@ -60,6 +60,13 @@ Section lists_and_subsets.
     (L2SS L) === (L2SS K) <-> L \is_sublist_of K /\ K \is_sublist_of L.
   Proof. exact/set_eq_subs. Qed.
 
+  Lemma cons_subs t (L: seq T) P:
+    L2SS (t :: L) \is_subset_of P <-> t \from P /\ L2SS L \is_subset_of P.
+  Proof.
+    split => [subs | [Pa subs] q /=[<- | ]]//; last by apply/subs.
+    by split => [ | q lstn]; apply/subs; [left | right].
+  Qed.
+
   Lemma L2SS_cat (L K: seq T): L2SS (L ++ K) === ((L2SS L) \u (L2SS K)).
   Proof.
     move => t.
@@ -72,17 +79,17 @@ Section lists_and_subsets.
     K \is_sublist_of L \/ K \is_sublist_of L' -> K \is_sublist_of (L ++ L').
   Proof. by case => subl q lstn; rewrite L2SS_cat; [left | right]; apply/subl. Qed.
 
+  Lemma cat_subl (K K' L: seq T):
+    (K ++ K') \is_sublist_of L <-> K \is_sublist_of L /\ K' \is_sublist_of L.
+  Proof.
+    elim: K => [ | t K /= ih]; first by split => [ | []]//=; split.
+    by rewrite !cons_subs ih; firstorder.
+  Qed.
+
   Lemma L2SS_rev K: L2SS K === L2SS (rev K).
   Proof.
     elim: K => // a K ih a' /=; rewrite /rev/=catrevE lstn_app.
     by split => [[-> /= | /ih lstn] | [/ih lstn | []//]]; [right; left | left | right | left].
-  Qed.
-
-  Lemma cons_subs t (L: seq T) P:
-    L2SS (t :: L) \is_subset_of P <-> t \from P /\ L2SS L \is_subset_of P.
-  Proof.
-    split => [subs | [Pa subs] q /=[<- | ]]//; last by apply/subs.
-    by split => [ | q lstn]; apply/subs; [left | right].
   Qed.
 End lists_and_subsets.
 Notation "L '\is_sublist_of' K" := (L2SS L \is_subset_of L2SS K) (at level 2).
@@ -148,6 +155,9 @@ Section lists_and_multifunctions.
 
   Definition F2GL phi K := zip K (map phi K).
 
+  Lemma unzip1_F2GL phi K: unzip1 (F2GL phi K) = K.
+  Proof. by elim: K => // s K {2}<- /=. Qed.
+
   Lemma icf_GL2MF phi K: phi \is_choice_for (GL2MF (F2GL phi K)).
   Proof.
     elim: K => [q [] | q L ih q' [a /=[[<-] | lstn]]] //=; first by left.
@@ -161,6 +171,17 @@ Section lists_and_multifunctions.
       by split; first right; apply ih.
     by elim: K => [[] | q' K ih [/=[-> -> | lstn]]]//; [left |right; apply/ih].
   Qed.
+
+  Definition Graph (f: Q ->> A) := make_subset (fun tt' => tt'.2 \from f tt'.1).
+  
+  Lemma grph_spec (G: subset (Q * A)): Graph (G2MF G) === G.
+  Proof. by case. Qed.
+  
+  Lemma G2MF_spec f: G2MF (Graph f) =~= f.
+  Proof. done. Qed.
+
+  Lemma F2GL_spec phi K: F2GL phi K === Graph (F2MF phi)|_K.
+  Proof. by move => [t t']; rewrite lstn_F2GL; split; case. Qed.
 
   Lemma F2GL_cat phi K K': F2GL phi (K ++ K') = F2GL phi K ++ F2GL phi K'.
   Proof. by rewrite /F2GL map_cat zip_cat // size_map. Qed.
@@ -360,8 +381,18 @@ Section eqTypes.
     split => [[eq coin] s /orP [/eqP -> | Ls] | prp]//; first exact/coin.
     by split => [ | s Ls]; apply/prp/orP; [left | right].
   Qed.
-  Notation GL2F KL := (LF2F somea (GL2LF KL)).
+  
+  Lemma filter_ntn (K K': seq Q):
+    L2SS (filter (fun q => ~~ (q \in K')) K ++ K') === (L2SS K) \u (L2SS K').
+  Proof.
+    elim: K => [ | q K /= ih]; first by case: K' => [q /= | q' K' /= q /=]; firstorder.
+    by case: ifP => /inP lstn q'; move: (ih q') => /=; firstorder; apply/H1; rewrite -H2.
+  Qed.
 
+  Lemma GL2LF_cat (KL KL': seq (Q * A)) q:
+    GL2LF (KL ++ KL') q = GL2LF KL q ++ GL2LF KL' q.
+  Proof. by elim: KL => // qt KL /= ->; case: ifP. Qed.
+  
   Definition trunc (phi: Q -> A) (K: seq Q) q := if q \in K then phi q else somea.
   
   Lemma trunc_val_spec phi K q : trunc phi K q = LF2F somea (GL2LF (F2GL phi K)) q.
@@ -386,4 +417,7 @@ Section eqTypes.
   Lemma trunc_coin phi K: trunc phi K \coincides_with phi \on K.
   Proof. by rewrite /trunc; apply/coin_agre => q' /inP ->. Qed.
 End eqTypes.
+Lemma head_cat T (t: T) K K':
+    head t (K ++ K') = if K is nil then head t K' else head t K.
+Proof. by case: K. Qed.
 Local Close Scope name_scope.

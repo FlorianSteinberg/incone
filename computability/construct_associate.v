@@ -1,49 +1,12 @@
 From mathcomp Require Import ssreflect ssrfun seq ssrnat ssrbool eqtype fintype.
 From mf Require Import all_mf classical_mf.
 From metric Require Import pointwise.
-Require Import all_cont search PhiN FMop Umach classical_mach seq_cont.
+Require Import all_cont search PhiN FMop Umach classical_mach seq_cont graphs.
 Require Import axioms Classical ChoiceFacts Psatz Morphisms.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
-
-
-Lemma filter_ntn (Q: eqType) (K K': seq Q):
-  L2SS (filter (fun q => ~~ (q \in K')) K ++ K') === (L2SS K) \u (L2SS K').
-Proof.
-  elim: K => [ | q K /= ih]; first by case: K' => [q /= | q' K' /= q /=]; firstorder.
-  by case: ifP => /inP lstn q'; move: (ih q') => /=; firstorder; apply/H1; rewrite -H2.
-Qed.
-
-Lemma head_cat T (t: T) K K':
-    head t (K ++ K') = if K is nil then head t K' else head t K.
-Proof. by case: K. Qed.
-
-Lemma GL2LF_cat (Q: eqType) T (KL KL': seq (Q * T)) q:
-    GL2LF (KL ++ KL') q = GL2LF KL q ++ GL2LF KL' q.
-Proof. by elim: KL => // qt KL /= ->; case: ifP. Qed.
-
-Lemma cat_subl T (K K' L: seq T):
-  (K ++ K') \is_sublist_of L <-> K \is_sublist_of L /\ K' \is_sublist_of L.
-Proof.
-  elim: K => [ | t K /= ih]; first by split => [ | []]//=; split.
-  by rewrite !cons_subs ih; firstorder.
-Qed.
-
-Lemma unzip1_F2GL S T (phi: S -> T) K: unzip1 (F2GL phi K) = K.
-Proof. by elim: K => // s K {2}<- /=. Qed.
-
-Definition Graph T T' (f: T ->> T') := make_subset (fun tt': T * T' => tt'.2 \from f tt'.1).
-  
-Lemma grph_spec T T' (G: subset (T * T')): Graph (G2MF G) === G.
-Proof. by case. Qed.
-
-Lemma G2MF_spec T T' (f: T ->> T'): G2MF (Graph f) =~= f.
-Proof. done. Qed.
-     
-Lemma F2GL_spec T T' (phi: T -> T') K: F2GL phi K === Graph (F2MF phi)|_K.
-Proof. by move => [t t']; rewrite lstn_F2GL; split; case. Qed.
 
 Lemma subs_unionl T (P P': subset T): P \is_subset_of P \u P'.
 Proof. by left. Qed.
@@ -64,38 +27,14 @@ Section construct_associate.
   Notation B' := (Q' -> A').
   Context (mu: B -> nat * Q' -> seq Q).
   Hypothesis modmod: mu \modulus_function_for mu.
+  Implicit Types (KL: seq (Q * A)).
   
   Notation GL2F KL := (LF2F somea (GL2LF KL)).
-
-  Section truncation.
-    Definition trunc (phi: Q -> A) (K: seq Q) q := if q \in K then phi q else somea.
+  Notation trunc phi K := (trunc somea phi K).
     
-    Lemma trunc_val_spec phi K q : trunc phi K q = LF2F somea (GL2LF (F2GL phi K)) q.
-    Proof.
-      rewrite /trunc.
-      case: ifP => [/inP lstn | ].
-      - have := @LF2F_spec _ _ somea (GL2LF (F2GL phi K)) q.
-        rewrite GL2LF_spec GL2MF_spec; case => //.
-        by exists (phi q); split => //; apply/lstn.
-      elim: K => // k K ih /=.
-      rewrite in_cons => /negP /negP; rewrite Bool.negb_orb => /andP [/eqP neq lstn].
-      rewrite /LF2F /=; case: ifP => [/eqP eq | ]; last by rewrite {1}ih //; apply/negP/negP.
-      by rewrite eq in neq.
-    Qed.
-
-    Lemma trunc_spec phi K: trunc phi K = LF2F somea (GL2LF (F2GL phi K)).
-    Proof. by apply/fun_ext => q; apply/trunc_val_spec. Qed.
-
-    Lemma trunc_prpr phi phi' (K K': seq Q):
-      phi =1 phi' -> K === K' -> trunc phi K =1 trunc phi' K'.
-    Proof.
-      by rewrite/trunc => eq eq' ?; case: ifP =>/inP/eq'/inP; [move ->; apply/eq | case: ifP].
-    Qed.
+  Lemma trunc_spec phi (K: seq Q): trunc phi K = GL2F (F2GL phi K).
+  Proof. by apply/fun_ext => q; apply/trunc_val_spec. Qed.
   
-    Lemma trunc_coin phi K: trunc phi K \coincides_with phi \on K.
-    Proof. by rewrite /trunc; apply/coin_agre => q' /inP ->. Qed.
-  End truncation.
-    
   Context (M: B -> nat * Q' -> option A').
   Hypothesis (mod: mu \modulus_function_for M).
   
@@ -513,10 +452,10 @@ Section construct_associate.
     - suff /choice: forall q, exists a, exists n, forall m, n <= m -> a = phin m q by trivial.
       move => q.
       case: (classic (exists k, q \in gather_queries psi_FM phi (k, q'))) => [[m /inP lstn] | ].
-      * by exists (phi q); exists m => m' ineq; rewrite /phin/trunc; have /inP ->:= gq_subl ineq lstn.
+      * by exists (phi q); exists m => m' ineq; rewrite /phin/graphs.trunc; have /inP ->:= gq_subl ineq lstn.
       move => /not_ex_all_not prp.
       exists (somea); apply/not_all_not_ex => fls; apply/fls.
-      move => m ineq; rewrite /phin/trunc.
+      move => m ineq; rewrite /phin/graphs.trunc.
       by have ->: q \in gather_queries psi_FM phi (m, q') = false by apply/negP/prp.
 
     have lim: mu psi \is_limit_of ptw mu phin.
@@ -633,7 +572,7 @@ Section construct_associate.
         
       pose phin n := trunc phi (Kn n).
       have val n q: q \from Kn n -> phi q = phin n q.
-      - by rewrite /phin /trunc; case: ifP => /inP.
+      - by rewrite /phin /graphs.trunc; case: ifP => /inP.
            
       have [psi lim]: exists psi, psi \from limit phin.
       - suff /choice [psi lim]: forall q, exists a, exists N, forall m, N <= m -> a = phin m q by exists psi.
@@ -641,7 +580,7 @@ Section construct_associate.
         case: (classic (exists n, q \from Kn n)) => [[n lstn] | /not_ex_all_not nt].
         + by exists (phi q); exists n => m ineq; apply/val/(Kn_mon _ _ ineq).
         exists somea; exists 0 => m _.
-        rewrite /phin /trunc; case: ifP => // /inP lstn.
+        rewrite /phin /graphs.trunc; case: ifP => // /inP lstn.
         by exfalso; apply/(nt m).
 
       have cont: (F2MF mu) \is_continuous by apply/cont_F2MF/modf_cont/modmod.
@@ -670,8 +609,8 @@ Section construct_associate.
           apply/cat_subl; split => //.
           rewrite unzip1_F2GL in subs.
           rewrite -ih; apply/subs_trans/subs; rewrite -trunc_spec.
-          by have /fun_ext -> := trunc_prpr eq ih.
-        have /fun_ext <-:= trunc_prpr eq ih; rewrite -trunc_spec => q.
+          by have /fun_ext ->:= trunc_prpr somea eq ih.
+        have /fun_ext <-:= trunc_prpr somea eq ih; rewrite -trunc_spec => q.
         by split => /L2SS_cat [] ?; apply/L2SS_cat; [left|right; apply/ih|left|right; apply/ih].
 
     have coin' : forall n, psi \coincides_with phi \on Kn n.
@@ -684,7 +623,7 @@ Section construct_associate.
     rewrite US.
     suff ->: U psi_mu phi (k, nq') = None.
     - rewrite {1}/psi_mu unzip1_F2GL -trunc_spec.
-      have /fun_ext -> := trunc_prpr eq (gqn k).
+      have /fun_ext -> := trunc_prpr somea eq (gqn k).
       case: ifP => /clP; rewrite gqn; last move => /clP.
       + move => subs; f_equal; apply/modmod/coin_subl; first exact/subs.
         exact/coin_sym/coin_trans/coin/coin'.
@@ -695,7 +634,7 @@ Section construct_associate.
     elim: k => // k ih ineq.
     rewrite US ih; last by apply/leq_trans/ineq.
     rewrite {1}/psi_mu unzip1_F2GL -trunc_spec; case: ifP => // /clP.
-    rewrite gqn; have /fun_ext ->:= trunc_prpr eq (gqn k).
+    rewrite gqn; have /fun_ext ->:= trunc_prpr somea eq (gqn k).
     move => /clP Pk.
     have  ineq':= @nsrch_min (fun k => check_sublist (mu (trunc phi (Kn k)) nq') (Kn k)) N.+1 k Pk.
     suff /leP: k.+1 <= k by lia.
@@ -716,7 +655,7 @@ Section construct_associate.
     have eq': (mu (trunc phi K) (n, q') ++ K) === K.
     - apply/set_eq_subs; split; last by apply/subl_cat; right.
       by apply/cat_subl; split; try by apply/subl_cat; right.
-    by have /fun_ext -> := trunc_prpr eq eq'.
+    by have /fun_ext -> := trunc_prpr somea eq eq'.
   Qed.
 
   Context (psi_mu: seq (Q * A) * (nat * Q') -> seq Q + seq Q).

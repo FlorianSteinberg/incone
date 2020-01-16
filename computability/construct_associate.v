@@ -51,6 +51,12 @@ Proof. by left. Qed.
 Lemma subs_unionr T (P P': subset T): P \is_subset_of P' \u P.
 Proof. by right. Qed.
 
+Lemma maxnS n m: maxn n m.+1 = (maxn n.-1 m).+1.
+Proof. by case: n => [ | n]; [rewrite !max0n | rewrite maxnSS]. Qed.
+
+Lemma maxSn n m: maxn n.+1 m = (maxn n m.-1).+1.
+Proof. by case: m => [ | m]; [rewrite !maxn0 | rewrite maxnSS]. Qed.
+
 Section construct_associate.
   Local Open Scope name_scope.
   Context (Q: eqType) (Q' A A': Type) (somea: A) (someq: Q).
@@ -67,7 +73,7 @@ Section construct_associate.
     Lemma trunc_val_spec phi K q : trunc phi K q = LF2F somea (GL2LF (F2GL phi K)) q.
     Proof.
       rewrite /trunc.
-      case: ifP => [/inP lstn | ].    
+      case: ifP => [/inP lstn | ].
       - have := @LF2F_spec _ _ somea (GL2LF (F2GL phi K)) q.
         rewrite GL2LF_spec GL2MF_spec; case => //.
         by exists (phi q); split => //; apply/lstn.
@@ -83,7 +89,7 @@ Section construct_associate.
     Lemma trunc_prpr phi phi' (K K': seq Q):
       phi =1 phi' -> K === K' -> trunc phi K =1 trunc phi' K'.
     Proof.
-      by rewrite /trunc => eq eq' q; case: ifP => /inP /eq' /inP; [move => ->; apply/eq | case: ifP].
+      by rewrite/trunc => eq eq' ?; case: ifP =>/inP/eq'/inP; [move ->; apply/eq | case: ifP].
     Qed.
   
     Lemma trunc_coin phi K: trunc phi K \coincides_with phi \on K.
@@ -167,7 +173,7 @@ Section construct_associate.
     rewrite minnC.
     have <-:= osrch_or (fun k => ~~ check_sublist (mu (GL2F KL) (k, q')) (unzip1 KL))
      (fun k => M (GL2F KL) (k, q')) (size KL).
-    apply/psi_FM_osrch_or.
+    exact/psi_FM_osrch_or.
   Qed.
 
   Lemma psi_FM_osrch KL q':
@@ -249,12 +255,6 @@ Section construct_associate.
     apply/(@osrch_correct_le (fun m => M (GL2F KL) (m, q'))); first exact/pm'.
     by apply/leq_trans/lt.
   Qed.
-
-  Lemma maxnS n m: maxn n m.+1 = (maxn n.-1 m).+1.
-  Proof. by case: n => [ | n]; [rewrite !max0n | rewrite maxnSS]. Qed.
-
-  Lemma maxSn n m: maxn n.+1 m = (maxn n m.-1).+1.
-  Proof. by case: m => [ | m]; [rewrite !maxn0 | rewrite maxnSS]. Qed.
     
   Lemma psi_FM_rec_not_nil k l KL q' K: psi_FM_rec k l (KL,q') = inr K -> K <> nil.
   Proof.
@@ -271,11 +271,9 @@ Section construct_associate.
   Lemma psi_FM_size_gs_gq phi n q':
     size (gather_shapes psi_FM phi  q' n) <= size (gather_queries psi_FM phi (n, q')).
   Proof.
-    elim: n => // n ih.
-    rewrite /gather_queries /=.
+    rewrite /gather_queries; elim: n => //= n ih.
     case E: psi_FM => [ | K] //=.
-    rewrite size_cat.
-    apply/leq_trans/(@leq_add 1)/ih => //.
+    rewrite size_cat; apply/leq_trans/(@leq_add 1)/ih => //.
     by case: (K) (psi_FM_not_nil E). 
   Qed.
 
@@ -292,16 +290,14 @@ Section construct_associate.
   Qed.
   
   Lemma psi_FM_inr_M KL q':
-    (forall t', t' <= size KL -> M (GL2F KL) (t', q') = None)
-    -> ~~ (psi_FM (KL, q')).
+    (forall t', t' <= size KL -> M (GL2F KL) (t', q') = None) -> ~~ psi_FM (KL, q').
   Proof.
     move => min; rewrite psi_FM_dsrch.        
     case ds: direct_search => [Koa' | ] //.
     move: Koa' ds; case => [K oa'] ds.
     have [l' [ineq [eq1 eq2]]]:= dsrch_le ds.
     move: eq1 eq2 ds => -> -> ds.
-    case: ifP => // subl.
-    by rewrite min.
+    by case: ifP => // subl; rewrite min.
   Qed.
 
   Lemma psi_FM_val_spec KL q' a':
@@ -347,9 +343,7 @@ Section construct_associate.
   Lemma psi_FM_val KL q' a':
     psi_FM (KL, q') = inl a' -> use_first M (GL2F KL) (size KL, q') = Some a'.
   Proof.
-    move => /psi_FM_val_spec [t [ineq [val prp]]].
-    have /mon_spec mon:= @sfrst_mon _ _ _ M.
-    exact/mon/val.
+    by have/mon_spec mon:=sfrst_mon (M:= M)=> /psi_FM_val_spec [t [? [/mon eq ?]]]; apply/eq.
   Qed.
 
   Lemma psi_FM_size_gq phi q' k time: time \from cost M phi ->
@@ -497,13 +491,13 @@ Section construct_associate.
       apply/coin_trans/coin_sym/coin_subl/trunc_coin/subs_trans/gq_subl/leq_maxr/mprp => //.
       exact/coin_subl/trunc_coin/mprp.
       
-    have coin l m: l <= m -> phin m \coincides_with phi \on (K l).
+    have coin l m: l <= m -> phin m \coincides_with phi \on K l.
     - by move => ineq; apply/coin_subl/trunc_coin/gq_subl.    
 
-    have coinlm l m: l <= m -> (phin l) \coincides_with (phin m) \on (K l).
+    have coinlm l m: l <= m -> phin l \coincides_with phin m \on K l.
     - by move => ineq; apply/coin_trans/coin_sym/coin/ineq/coin.
 
-    suff: forall t, t <= time q' -> exists m, forall t', t' <= t -> (mu (phin m) (t', q')) \is_subset_of (K m).
+    suff: forall t, t <= time q' -> exists m, forall t', t' <= t -> mu (phin m) (t', q') \is_subset_of K m.
     - elim: (time q') => [ass | t ih ass].
       + by have [ | m mprp]//:= ass 0; exists m => t'; rewrite leqn0 => /eqP ->; apply/mprp.
       have [ | m mprp]:= ih; first by move => t' ineq; apply/ass/leq_trans; first exact/ineq.
@@ -525,7 +519,7 @@ Section construct_associate.
       move => m ineq; rewrite /phin/trunc.
       by have ->: q \in gather_queries psi_FM phi (m, q') = false by apply/negP/prp.
 
-    have lim: (mu psi) \is_limit_of (ptw mu phin).
+    have lim: mu psi \is_limit_of ptw mu phin.
     - suff scnt: (F2MF mu) \is_sequentially_continuous by apply/scnt; first exact/lmt.
       by apply/cont_scnt/cont_F2MF => phi'; exists (mu phi') => q'1 psi'; apply/modmod.
  

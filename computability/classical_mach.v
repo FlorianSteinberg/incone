@@ -36,11 +36,10 @@ Section classical_machines.
         dom (pf2MF po) === dom (projection_on D) /\ (projection_on D) \extends pf2MF po.
   Proof.
     move => choice.
-    have /choice [dp prp]: forall KL, exists ophi,
+    have /choice [dp prp] KL: exists ophi,
           (KL \from dom (projection_on D) <-> exists phi, ophi = some phi) /\
           forall phi, ophi = some phi -> (projection_on D) KL phi.
-    - move => KL.
-      case: (classic (KL \from dom (projection_on D))) => [[phi val] | nfd].
+    - case: (classic (KL \from dom (projection_on D))) => [[phi val] | nfd].
       - by exists (some phi); split => [ | phi' [<-]]; first by split; exists phi.
       by exists None; firstorder.
     exists dp.
@@ -143,11 +142,11 @@ Section initial_segment_associate.
 
   Lemma n_rec_le phi q' n m: n <= m -> n_rec phi q' n <= n_rec phi q' m.
   Proof.
-    move /subnK <-; elim: (m - n) => // k ih; rewrite addSn.
-    exact/leq_trans/n_rec_mon.
+    by move /subnK <-; elim: (m - n) => // k ih; rewrite addSn; apply/leq_trans/n_rec_mon.
   Qed.
   
-  Lemma n_rec_spec phi q': phi \from dom F -> FunctionalChoice_on Q' nat -> FunctionalCountableChoice_on bool ->
+  Lemma n_rec_spec phi q':
+    phi \from dom F -> FunctionalChoice_on Q' nat -> FunctionalCountableChoice_on bool ->
     exists n, n_rec phi q' n.+1 <= n_rec phi q' n.
   Proof.
     move => phifd choice choice'.
@@ -160,31 +159,25 @@ Section initial_segment_associate.
       case eq: (dp _) => [psi | ] // _ _.
       rewrite geq_max; apply/andP; split => //.
       have [md mn]:= mod eq.
-      apply/leq_trans/melt_iseg/ms.
       have /coin_GL2MF coin:= dp_icf eq.
       have /coin_F2GL -> := coin.
-      apply/mn.
-      have [a' crt]:= mod' q'.
-      exists a' => phi' coin'.
+      apply/leq_trans/melt_iseg/ms/mn.
+      have [a' crt]:= mod' q'; exists a' => phi' coin'.
       apply/crt/coin_trans/coin_subl/coin'/iseg_subl/subl.
       exact/coin_subl/coin_sym/coin/iseg_subl/subl.
     have eq: Lf' q' = max_elt sec (iseg cnt (Lf' q')).
     - have /leP := min (iseg cnt (Lf' q')) q' (mod' q').
       by have /leP := melt_iseg (Lf' q') ms; lia.
     move => /not_ex_all_not prp.
-    have all: forall n, n_rec phi q' n <= Lf' q'.
-    - move => n.
-      have nd := prp n.
-      rewrite leqNgt; apply/negP => ineq.
+    have all n: n_rec phi q' n <= Lf' q'.
+    - have nd := prp n; rewrite leqNgt; apply/negP => ineq.
       exact/nd/leq_trans/ineq.
     apply/not_all_not_ex => prp'.
     suff ineq: Lf' q' <= n_rec phi q' (Lf' q').
     - by apply/(prp' (Lf' q'))/leq_trans; first exact/all.
     suff this: forall n, n <= n_rec phi q' n by apply/this.
-    elim => // n ih.
-    rewrite ltnNge; apply/negP => ineq.
-    apply/(prp' n).
-    exact/leq_trans/ih.
+    elim => // n ih; rewrite ltnNge; apply/negP => ineq.
+    exact/(prp' n)/leq_trans/ih.
   Qed.
 
   Definition mod_M phi nq' :=
@@ -202,10 +195,9 @@ Section initial_segment_associate.
       have [ n ineq]:= n_rec_spec q' phifd choice choice'.
       exists (iseg cnt (n_rec phi q' n)); exists n.
       rewrite /mod_M ineq.
-      case: ifP => //=; case E: (dp _) => [ | ]//.
+      case: ifP => //=; case E: (dp _) => []//.
       have := (dp_dom (F2GL phi (iseg cnt (n_rec phi q' n)))).2.
-      rewrite /= E => [] [] //.  
-      move: phifd => [Fphi val].
+      rewrite /= E => [] [] //; move: phifd => [Fphi val].
       exists phi; split; first by exists Fphi.
       exact/coin_GL2MF/coin_ref.
     have [n]:= val q'.
@@ -229,20 +221,13 @@ Section initial_segment_associate.
 
   Lemma mod_M_mon: mod_M \is_monotone.
   Proof.
-    move => phi q' n.
-    rewrite /mod_M /=.
-    case: ifP => // ineq.
-    case: ifP => // eq _.
+    rewrite /mod_M => phi q' n /=.
+    case: ifP => // ineq; case: ifP => // eq _.
     suff <-: n_rec phi q' n = n_step phi q' (n_rec phi q' n) by rewrite ineq eq.
-    rewrite /n_step.
-    case eq: (dp _) eq => [psi | ] // _.
-    apply/eqP.
+    rewrite /n_step; case eq: (dp _) eq => [psi | ] // _; apply/eqP.
     rewrite eqn_leq; apply/andP; split; first exact/leq_maxr.
-    rewrite geq_max; apply/andP; split => //.
-    have [md mn]:= mod eq.
-    apply/leq_trans/ineq.
-    rewrite /n_step eq.
-    exact/leq_maxl.
+    rewrite geq_max; apply/andP; split => //; have [md mn]:= mod eq.
+    by apply/leq_trans/ineq; rewrite /n_step eq; apply/leq_maxl.
   Qed.
 
   Lemma exists_valf (somea': A'):
@@ -251,11 +236,9 @@ Section initial_segment_associate.
     exists vf, forall KL phi, dp KL = some phi -> F phi (vf KL).
   Proof.
     move => choice choice'.
-    suff /choice [Fphi prp]:
-      forall KL, exists Fphi, forall phi, dp KL = some phi ->
-            F phi Fphi.
+    suff /choice [Fphi prp] KL:
+      exists Fphi, forall phi, dp KL = some phi -> Fphi \from F phi.
     - by exists Fphi.
-    move => KL.                
     case E: (dp KL) => [phi | ]; last by exists (fun _ => somea').
     have [Fphi val]: phi \from dom F by have //[]:= @dp_spec KL phi; first by rewrite /= E.
     by exists Fphi => phi' [<-].
@@ -372,9 +355,8 @@ Section initial_segment_associate.
     iseg cnt' (n + k.+1) = segment cnt' n (n + k) ++ iseg cnt' n.
   Proof.
     case: n => [ | n]; first by rewrite cats0 iseg_seg.
-    rewrite (pred_Sn (n.+1 + k)).
-    rewrite iseg_cat_seg // -addnS //.
-    rewrite addnS -addSn; apply/leq_addr.
+    rewrite (pred_Sn (n.+1 + k)) iseg_cat_seg // -addnS //.
+    by rewrite addnS -addSn; apply/leq_addr.
   Qed.
 
   Lemma iseg_cat_seg T (cnt': nat -> T) (n k: nat):
@@ -391,8 +373,7 @@ Section initial_segment_associate.
   Lemma size_F2GL (phi: B) K: size (F2GL phi K) = size K.
   Proof. by elim: K => //= q K ->. Qed.
 
-  Lemma zip_F2GL_snd (phi: B) K:
-    zip K (map snd (F2GL phi K)) = F2GL phi K.
+  Lemma zip_F2GL_snd (phi: B) K: zip K (map snd (F2GL phi K)) = F2GL phi K.
   Proof. by elim: K => //= q K ->. Qed.
 
   Lemma gs_psig phi q' k: phi \from dom F ->
@@ -444,11 +425,9 @@ Section initial_segment_associate.
     apply/FM_dom => q'.
     have [ | k ineq']:= @n_rec_spec phi q' _ choice choice'; first by exists Fphi.
     set k' := nat_search (fun k => n_rec phi q' k.+1 <= n_rec phi q' k) k.
-    exists (Fphi q').
-    exists k'.+1.
+    exists (Fphi q'); exists k'.+1.
     have := @nsrch_correct (fun k => n_rec phi q' k.+1 <= n_rec phi q' k) _ ineq'.
-    rewrite -/k' => ineq.
-    rewrite US.
+    rewrite -/k' US => ineq.
     suff ->: U psi_iseg phi (k', q') = None.
     rewrite {1}/psi_iseg /= size_F2GL gs_psig; last by exists Fphi.
     rewrite size_iseg.
@@ -541,6 +520,7 @@ Section exists_associate.
     - exact/countable_choice.
     exact/countable_choice/nat_count.
   Qed. 
+
   Lemma exists_dpN: FunctionalChoice_on (seq (Q * A)) (option B) ->
                   exists N: (_ -> nat * Q -> option A), \F_N \tightens (projection_on (dom F)).
   Proof.
@@ -553,7 +533,7 @@ Section exists_associate.
     by have ->: phi' = phi by apply/functional_extensionality => q; have [_ []]:= eq q.
   Qed.
 End exists_associate.
-  
+
 Section mathcomp.
   Context (Q Q' A: eqType) (A': Type).
   Notation B := (Q -> A).
@@ -568,12 +548,10 @@ Section mathcomp.
     have choice: FunctionalChoice_on (seq (Q * A)) B.
     - by apply/count_eqT_choice; first exact/count; right; apply/inhabits/nil.
     move: count => /count_enum/(inh_enum nil) [cnt sur].
-    have /choice [p prp]: forall KL, exists phi, phi \from P /\
+    have /choice [p prp] KL: exists phi, phi \from P /\
           ((exists psi, psi \from P /\ psi \from cylinder KL) -> phi \from cylinder KL).
-    - move => KL.
-      case: (classic (exists phi, phi \from P /\ phi \is_choice_for (GL2MF KL))) => [ | nex].
-      + by move => [phi [phifP icf ]]; exists phi.
-      by exists sp.
+    - case: (classic (exists phi, phi \from P /\ phi \is_choice_for (GL2MF KL))) => [|nex]; last by exists sp.
+      by move => [phi [phifP icf ]]; exists phi.
     exists (Some \o_f p \o_f cnt).
     split => [phi [n /= <-] | phi phifP K]; first by have []:= prp (cnt n).
     exists (p (zip K (map phi K))).

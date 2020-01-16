@@ -18,15 +18,13 @@ Section Phi_assignment.
   Local Notation "\Phi_ N" := (Phi N) (at level 2).
   Notation "N '\evaluates_to' phi" := (\Phi_N \tightens phi) (at level 40).
 
-  Lemma sing_eval N phi: \Phi_N \is_singlevalued -> phi \is_singlevalued ->
-                        N \evaluates_to phi <-> \Phi_N \extends phi.
+  Lemma sing_eval N phi:
+    \Phi_N \is_singlevalued -> phi \is_singlevalued -> N \evaluates_to phi <-> \Phi_N \extends phi.
   Proof. by move => sing sing'; rewrite exte_tight. Qed.
 
-  Lemma sing_eval_F2MF N phi: \Phi_N \is_singlevalued ->
-                              N \evaluates_to F2MF phi <-> \Phi_N \extends F2MF phi.
-  Proof.
-    by move => sing; apply/sing_eval => //; apply/F2MF_sing.
-  Qed.
+  Lemma sing_eval_F2MF N phi:
+    \Phi_N \is_singlevalued -> N \evaluates_to F2MF phi <-> \Phi_N \extends F2MF phi.
+  Proof. by move => sing; apply/sing_eval => //; apply/F2MF_sing. Qed.
   
   Lemma eval_Phi N: N \evaluates_to \Phi_N.
   Proof. by move => q qfd; split. Qed.
@@ -54,8 +52,8 @@ Section choice.
     move => tot.
     suff f q: {a | N (cost tot q, q) = Some a}. 
     - by exists (fun q => sval (f q)) => q _ <-; exists (cost tot q); apply/(svalP (f q)).
-    by have:= (cost_spec tot q); case eq: N => [a | ] //; exists a.
-  Defined.
+    by have:= cost_spec tot q; case eq: N => [a | ] //; exists a.
+  Qed.
 
   Definition evaluate (N: Q ~> A): \Phi_N \is_total -> Q -> A.
     by move => tot; apply/(sval (tot_choice tot)).
@@ -83,8 +81,8 @@ Section monotonicity.
   Local Notation "Q ~> A" := (nat * Q -> option A) (at level 2).
   Definition monotone_in (N: Q ~> A) q := forall n, N(n,q) <> None -> N(n.+1,q) = N(n,q).
   
-  Lemma mon_in_spec (N: Q ~> A) q: monotone_in N q <->
-	  forall a n m, n <= m -> N(n,q) = Some a -> N(m,q) = Some a.
+  Lemma mon_in_spec (N: Q ~> A) q:
+    monotone_in N q <-> forall a n m, n <= m -> N(n,q) = Some a -> N(m,q) = Some a.
   Proof.
     split => [mon a' n m | mon n neq]; last by case E: (N(n,q)) neq=>[a | ]// _; apply/mon/E. 
     elim: m => [ineq eq | m ih]; first by have/eqP <-: n == 0 by rewrite -leqn0.
@@ -103,8 +101,8 @@ Section monotonicity.
   Definition monotone N:= forall q, monotone_in N q.
   Local Notation "N '\is_monotone'" := (monotone N) (at level 2).
 
-  Lemma mon_spec (N: Q ~> A): N \is_monotone <->
-                              forall q a n m, n <= m -> N(n,q) = Some a -> N(m,q) = Some a.
+  Lemma mon_spec (N: Q ~> A):
+    N \is_monotone <-> forall q a n m, n <= m -> N(n,q) = Some a -> N(m,q) = Some a.
   Proof.
     split => [mon q a n m | mon q].
     - have /mon_in_spec prp: monotone_in N q by apply/mon.
@@ -112,23 +110,21 @@ Section monotonicity.
     by rewrite mon_in_spec => a' n m ineq eq; apply/mon/eq.
   Qed.
 
-  Lemma mon_sing (N: Q ~> A):
-    N \is_monotone -> \Phi_N \is_singlevalued.
+  Lemma mon_sing (N: Q ~> A): N \is_monotone -> \Phi_N \is_singlevalued.
   Proof. by move => mon q a a' [n eq] [m eq']; apply/mon_in_eq/eq'/eq/mon. Qed.
   
-  Lemma mon_eval_sing N phi: N \is_monotone -> phi \is_singlevalued ->
-	\Phi_N \tightens phi <-> \Phi_N \extends phi.
+  Lemma mon_eval_sing N phi:
+    N \is_monotone -> phi \is_singlevalued -> \Phi_N \tightens phi <-> \Phi_N \extends phi.
   Proof. by move => mon sing; apply/sing_eval/sing/mon_sing. Qed.
 
-  Lemma mon_eval_F2MF N phi: N \is_monotone ->
-                             \Phi_N \tightens (F2MF phi) <-> \Phi_N \extends F2MF phi.
+  Lemma mon_eval_F2MF N phi:
+    N \is_monotone -> \Phi_N \tightens (F2MF phi) <-> \Phi_N \extends F2MF phi.
   Proof. by move => mon; apply/mon_eval_sing/F2MF_sing. Qed.
 End monotonicity.
 
 Lemma ovrt_po (Q A: eqType) (D: mf_set.subset (Q -> A)):
   overt D ->
-  exists (N: nat * seq (Q * A) -> option (Q -> A)),
-    dom \Phi_N === dom (projection_on D) /\ (projection_on D) \extends \Phi_N.
+  exists (N: nat * _ -> _), dom \Phi_N === dom (projection_on D) /\ (projection_on D) \extends \Phi_N.
 Proof.
   move => [ou [fd dns]].
   pose N nKL := if ou nKL.1 is some phi
@@ -284,8 +280,7 @@ Section finite_approximations.
     | q :: K' => N (n, q) && check_dom K' n
     end.
 
-  Lemma cdP (K: seq Q) n:
-    reflect (K \is_subset_of dom (pf2MF (curry N n))) (check_dom K n).
+  Lemma cdP (K: seq Q) n: reflect (K \is_subset_of dom (pf2MF (curry N n))) (check_dom K n).
   Proof.
     apply/(iffP idP).
     - elim: K => [_ q | q K ih /andP [val /ih subs]] //=.
@@ -298,8 +293,7 @@ Section finite_approximations.
   Hypothesis mon: monotone N.
   
   Local Open Scope name_scope.
-  Lemma icf_lim phi:
-    \Phi_N \is_total -> phi \is_choice_for (\Phi_N) <-> phi \is_limit_of phi_.
+  Lemma icf_lim phi: \Phi_N \is_total -> phi \is_choice_for (\Phi_N) <-> phi \is_limit_of phi_.
   Proof.
     have /mon_spec mon' := mon.
     move => tot; split => [icf q | lim q qfd].
@@ -328,8 +322,7 @@ Section finite_approximations.
     by rewrite (mon' _ _ _ _ _ eq); try apply/leq_addl.
   Qed.
 
-  Lemma mon_eq q n m a b:
-    N (n, q) = Some a -> N (m, q) = Some b -> a = b.
+  Lemma mon_eq q n m a b: N (n, q) = Some a -> N (m, q) = Some b -> a = b.
   Proof.
     move => eq eq'; have/mon_spec mon' := mon.
     case/orP: (leq_total n m) => ineq; first by have := mon' q _ _ _ ineq eq; rewrite eq'; case.
@@ -367,17 +360,14 @@ Section EnumeratedTypes.
   Context (T: EnumeratedType).
 
   Definition find (p: pred T) (n: nat):=
-    match direct_search
-            (enumeration T \o_p unpickle)
-            (fun ot => if ot is Some t then p t else false) n with
-    | Some (Some t) => Some t
-    | _ => None
-    end.
+    if direct_search
+         (enumeration T \o_p unpickle)
+         (fun ot => if ot is Some t then p t else false) n
+         is Some (Some t) then Some t else None.
 
   Lemma find_correct (p: pred T) n x: find p n = Some x -> p x.
   Proof.
-    rewrite /find.
-    case E: direct_search => [ot |] //.
+    rewrite /find; case E: direct_search => [ot |] //.
     have := (@dsrch_correct (option T) (enumeration T \o_p unpickle) _ _ _ E).
     by case: ot E => // t E pt [<-].
   Qed.

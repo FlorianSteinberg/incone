@@ -1,143 +1,74 @@
 From mathcomp Require Import ssreflect seq ssrnat ssrbool eqtype ssrfun.
 From mf Require Import all_mf.
-Require Import Q_reals.
-Require Import all_cont FMop.
-Require Import iseg.
-Require Import Coquelicot.PSeries.
-Require Import Setoid.
+From metric Require Import reals standard Qmetric.
+Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
+Require Import all_cs cs_mtrc Q_reals.
+From Coquelicot Require Import Coquelicot.
+From Interval Require Import Interval_tactic.
+Import QArith.
+
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
-Require Import Coquelicot.Coquelicot.
-From metric Require Import reals metric standard Qmetric.
-Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
-Require Import ProofIrrelevance ProofIrrelevanceFacts.
-Require Import Interval.Interval_tactic.
-Import QArith.
-From rlzrs Require Import all_rlzrs.
-Require Import all_cs cs_mtrc.
-Section names_for_realizers.
-  Definition names_RQ := (Q->Q).
-  Definition names_RQw := ((nat*Q)->Q).
-  Definition ps_names := ((unit+unit)+(nat*Q))->((nat*nat)*Q).
-  Definition psx_names := ((unit+unit)+(nat*Q)+Q)->((nat*nat)*Q*Q).
-  Definition RQ_pair (a:Q->Q) (b:Q->Q) := (pair 0%Q 0%Q (a,b)).
-End names_for_realizers.
 
 Section powerseries_basic_facts.
-  Definition single_element_seq (m : nat) x := (fun n => (if (n == m) then x else 0%R)).
+  Definition single_element_seq (m : nat) x n := if n == m then x else 0%R.
 
-  Lemma single_element_seq_zeros m x : forall k, (k != m) -> ((single_element_seq m x) k) = 0%R.
+  Notation "'e_' i"  := (single_element_seq i 1) (at level 30).
+
+  Lemma single_element_seq_zeros m x k: k != m -> single_element_seq m x k = 0.
+  Proof. exact/ifN_eq. Qed.
+
+  Lemma single_element_seq_bound m x n: 0 <= x -> 0 <= single_element_seq m x n <= x.
+  Proof. by rewrite /single_element_seq; case: ifP; lra. Qed.
+
+  Lemma single_element_sum_zero m x n : (n < m)%nat -> sum_n (single_element_seq m x) n = 0.
   Proof.
-  move => k k_prop.
-  rewrite /single_element_seq. 
-    by apply ifN_eq.
+    elim: n => [ineq | n ih ineq]; first by rewrite sum_O; apply/ifN_eqC/lt0n_neq0.
+    rewrite sum_Sn ih; last exact/leq_trans/ineq.
+    rewrite single_element_seq_zeros/plus/=; try lra.
+    by apply/negP => /eqP eq; move: ineq; rewrite eq ltnn.
   Qed.
 
-  Lemma single_element_seq_bound m x : (0 <= x)%R -> forall (n : nat), (0 <= ((single_element_seq m x) n) <= x)%R.
-  Proof.
-    move => H n.
-    case e : (n != m).
-      - rewrite single_element_seq_zeros; by [lra | apply e].
-    apply negb_true_iff in e.
-    rewrite negb_involutive in e.
-    rewrite /single_element_seq.
-    by rewrite ifT; first by lra.
-  Qed.
-
-  Lemma single_element_sum_zero m x n : (n < m)%nat -> (sum_n (single_element_seq m x) n) = 0%R.
-  Proof.
-    elim: n => [H | n IH H]; first by rewrite sum_O;apply ifN_eqC; apply (lt0n_neq0 H).
-    rewrite sum_Sn.
-    have H' : (n < m)%nat by auto.
-    rewrite (IH H').
-    rewrite plus_zero_l.
-    have lt := (neq_ltn n.+1 m).
-    symmetry in lt.
-    have triv : (n.+1 < m)%nat || (m < n.+1)%nat by rewrite H.
-    apply ifN_eq.
-    by rewrite triv in lt.
-  Qed.
-
-  Lemma single_element_sum_val m x : (sum_n (single_element_seq m x) m) = x.
+  Lemma single_element_sum_val m x : sum_n (single_element_seq m x) m = x.
   Proof.
     case m => [| n]; first by rewrite sum_O.
-    rewrite sum_Sn.
-    rewrite single_element_sum_zero; last by [].
-    by rewrite plus_zero_l; apply ifT.
+    by rewrite sum_Sn single_element_sum_zero // plus_zero_l; apply/ifT.
   Qed.
 
-  Lemma single_element_sum_zero2 m x n n' : (m < n)%nat -> (sum_n_m (single_element_seq m x) n n') = 0%R.
+  Lemma single_element_sum_zero2 m x n n': (m < n)%nat -> sum_n_m (single_element_seq m x) n n' = 0.
   Proof.
-    move => H.
-    have S := (sum_n_m_ext_loc (single_element_seq m x) (fun _ => 0%R) n n').
-    rewrite sum_n_m_const_zero in S.
-    apply S.
-    move => k [k_prop1 k_prop2].
-    have H' : (m < n)%coq_nat by apply /leP.
-    have k_prop' : (m < k)%coq_nat by lia.
-    have k_prop'' : (m < k)%nat by apply /ltP.
-    apply single_element_seq_zeros.
-    rewrite neq_ltn.
-    rewrite k_prop''.
-    by apply orbT.
+    move => H; rewrite (sum_n_m_ext_loc _ (cnst 0))=>[ | k [? ?]]; first exact/sum_n_m_const_zero.
+    by apply/single_element_seq_zeros/negP => /eqP eq; move: H; rewrite -eq =>/leP; lia.
   Qed.
 
-  Lemma single_element_sum m x : forall n, (m <= n)%nat -> (sum_n (single_element_seq m x) n) = x.
+  Lemma single_element_sum m x n: (m <= n)%nat -> sum_n (single_element_seq m x) n = x.
   Proof.
-    move => n n_prop.
-    have C := (sum_n_m_Chasles (single_element_seq m x) 0 m n).
-    rewrite /sum_n.
-    rewrite C;last by apply /leP.
-    - rewrite (single_element_sum_zero2 x n);last by [].
-      by rewrite plus_zero_r;apply single_element_sum_val.
-   by lia.
+    move => /leP ineq; rewrite /sum_n (sum_n_m_Chasles _ 0 m); try lia.
+    by rewrite (single_element_sum_zero2 x n) // plus_zero_r; apply/single_element_sum_val.
   Qed.
 
-  Lemma single_element_sum_lt m x : (0 <= x)%R ->  forall n, ( 0 <= (sum_n (single_element_seq m x) n) <= x)%R.
+  Lemma single_element_sum_lt m x n: 0 <= x ->  0 <= sum_n (single_element_seq m x) n <= x.
   Proof.
-    move => H n.
-    case prop : (n < m)%nat; first by rewrite single_element_sum_zero; by [lra|].
-    rewrite single_element_sum; first by lra.
-    apply negb_true_iff in prop.
-    have l := (leqNgt m n).
-    symmetry in l.
-    by rewrite l in prop.
+    move => pos; case ineq: (n < m)%nat; first by rewrite single_element_sum_zero; try lra.
+    by rewrite single_element_sum; try lra; rewrite leqNgt ineq.
   Qed.
 
-  Lemma single_element_sum_limit m x : (Series.Series (single_element_seq m x)) = x.
+  Lemma single_element_sum_limit m x: Series (single_element_seq m x) = x.
   Proof.
-    rewrite /Series.Series.
-    have le := (Lim_seq_ext_loc (sum_n (single_element_seq m x)) (fun n => x)).
-    rewrite Lim_seq_const in le.
-    rewrite le;first by [].
-    exists m.
-    move => n n_prop.
-    have n_prop' : (m <= n) % nat by apply /leP.
-    by apply single_element_sum.
+    rewrite /Series (Lim_seq_ext_loc _ (cnst x)); first by rewrite Lim_seq_const.
+    by exists m => n /leP ?; apply/single_element_sum.
   Qed.
 
-  Lemma positive_sum_grows (a : nat -> R) m: (Series.ex_series a) -> (forall n, (0 <= (a n))%R) -> ((a m) <= (Series.Series a))%R.
+  Lemma positive_sum_grows a m: ex_series a -> (forall n, 0 <= a n) -> a m <= Series a.
   Proof.
-    move => H0 H.
-    have le := (Series.Series_le (single_element_seq m (a m)) a).
-    rewrite single_element_sum_limit in le.
-    apply le; last by [].
-    move => n.
-    case e : (n != m).
-    - by rewrite single_element_seq_zeros; by [split; by [lra | apply H]|].
-    apply negb_true_iff in e.
-    rewrite negb_involutive in e.
-    rewrite /single_element_seq.
-    rewrite ifT;last by [].
-    split;first by apply H.
-    have e' : n = m by apply /eqP.
-    by rewrite e';lra.
+    move => H0 H; rewrite -(single_element_sum_limit m (a m)); apply/Series_le =>// n.
+    by rewrite/single_element_seq; case: ifP => [/eqP -> | _]; split; try exact/H; lra.
   Qed.
 
-  Lemma M_exists a : forall r : R, (0 < r)%R -> (Rbar_lt r (CV_radius a)) -> exists M : R , forall n, (Rabs(a n) <= M * (/ r) ^ n)%R.
+  Lemma M_exists a r: 0 < r -> Rbar_lt r (CV_radius a) -> exists M, forall n, Rabs(a n) <= M/(r ^ n).
   Proof.
-    move => r r_prop1 r_prop2.
+    move => r_prop1 r_prop2.
     have r_prop1' := (Rgt_ge r 0 (Rlt_gt 0 r r_prop1)).
     have absreqr := (Rabs_right r r_prop1').
     apply symmetry in absreqr.
@@ -174,25 +105,19 @@ Section powerseries_basic_facts.
    symmetry in rin.
    rewrite rin in ra;last by apply Rgt_not_eq;apply r_prop1.
    rewrite Rinv_r_simpl_l in ra; last by apply Rgt_not_eq;apply pow_lt.
+   rewrite /Rdiv Rinv_pow; try lra.
    by rewrite rin;last by  apply Rgt_not_eq;apply r_prop1.
   Qed.
 
-  Lemma nat_upper r : exists U : nat, (r < (INR U)) % R.
+  Lemma nat_upper r: exists U, r < INR U.
   Proof.
-    exists (Z.to_nat (up r)).
-   have [arch _] := (archimed r).
-   apply Rgt_lt in arch.
-   rewrite /Z.to_nat. 
-   case e : (up r) => [|a|a]; first by rewrite e in arch.
-   - by rewrite INR_IPR;rewrite e in arch.
-   rewrite e in arch.
-   have lt := (Zlt_neg_0 a).
-   apply /Rlt_trans.
-   apply arch.
-   by apply IZR_lt.
+    exists (Z.to_nat (up r)); have := archimed r.
+    rewrite /Z.to_nat; case: up => [/= | p | p]; try rewrite INR_IPR /IZR; try lra.
+    by rewrite/=/IZR -INR_IPR; have := INR_pos p; lra.
   Qed.
 
-  Definition series1 a := (Rbar_lt (1%R) (CV_radius a)). 
+  Definition series1 a := Rbar_lt 1 (CV_radius a). 
+
   Definition series_bound a A k := (0 < k)%coq_nat /\ (0 < A)%coq_nat /\ forall n, ((Rabs (a n)) <= (INR A) * (/ (1+/(INR k))) ^ n)%R.
   Lemma Ak_exists a : (series1 a) -> exists A k : nat, (series_bound a A k).
   Proof.

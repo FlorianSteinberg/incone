@@ -1,11 +1,13 @@
-From mathcomp Require Import ssreflect seq ssrnat ssrbool eqtype ssrfun.
+From mathcomp Require Import all_ssreflect all_algebra.
 From mf Require Import all_mf.
-From metric Require Import reals standard Qmetric.
+From metric Require Import pointwise reals standard Qmetric coquelicot.
 Require Import Qreals Reals Psatz ClassicalChoice FunctionalExtensionality.
-Require Import all_cs cs_mtrc Q_reals.
+Require Import axioms all_cs cs_mtrc Q_reals Rstruct.
 From Coquelicot Require Import Coquelicot.
 From Interval Require Import Interval_tactic.
-Import QArith.
+Import QArith GRing.Theory.
+Local Open Scope ring_scope.
+Local Open Scope R_scope.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -22,91 +24,116 @@ Section powerseries_basic_facts.
   Lemma single_element_seq_bound m x n: 0 <= x -> 0 <= single_element_seq m x n <= x.
   Proof. by rewrite /single_element_seq; case: ifP; lra. Qed.
 
-  Lemma single_element_sum_zero m x n : (n < m)%nat -> sum_n (single_element_seq m x) n = 0.
+  Lemma sum_big_ord (a: nat -> R) n: sum_n a n = \sum_(i < n.+1) a i.
   Proof.
+    rewrite sum_n_Reals.
+    by elim: n => [ | n ih]; [rewrite big_ord1; compute; lra |  rewrite big_ord_recr -ih].
+  Qed.
+  
+  Lemma selt_sum0 m x n : (n <= m)%nat -> \sum_(i < n) (single_element_seq m x) i = 0.
+  Proof.
+    case: n => [ | n]; first rewrite big_ord0 //; rewrite -sum_big_ord.
     elim: n => [ineq | n ih ineq]; first by rewrite sum_O; apply/ifN_eqC/lt0n_neq0.
     rewrite sum_Sn ih; last exact/leq_trans/ineq.
     rewrite single_element_seq_zeros/plus/=; try lra.
     by apply/negP => /eqP eq; move: ineq; rewrite eq ltnn.
   Qed.
 
-  Lemma single_element_sum_val m x : sum_n (single_element_seq m x) m = x.
+  Lemma selt_sum_val m x: \sum_(i < m.+1) single_element_seq m x i = x.
   Proof.
-    case m => [| n]; first by rewrite sum_O.
-    by rewrite sum_Sn single_element_sum_zero // plus_zero_l; apply/ifT.
+    rewrite -sum_big_ord; case m => [| n]; first by rewrite sum_O.
+    by rewrite sum_Sn sum_big_ord selt_sum0 // plus_zero_l; apply/ifT.
   Qed.
 
-  Lemma single_element_sum_zero2 m x n n': (m < n)%nat -> sum_n_m (single_element_seq m x) n n' = 0.
+  Lemma sum_sub (a: nat -> R) n m:
+    (n <= m)%nat -> \sum_(n <= i < m) a i = \sum_(i < m) a i - \sum_(i < n) a i.
   Proof.
-    move => H; rewrite (sum_n_m_ext_loc _ (cnst 0))=>[ | k [? ?]]; first exact/sum_n_m_const_zero.
+    move => /subnK <-; elim: (m - n)%nat => [ | k].
+    - by rewrite add0n /index_iota subnn big_nil Rminus_eq_0.
+    rewrite addSn big_ord_recr big_nat_recr/=/GRing.add/=/GRing.opp; last exact/leq_addl; lra.
+  Qed.
+
+  Lemma big_nat_ord (R: Type) (idx: R) (op: Monoid.law idx) (n: nat) (F: nat -> R):
+    \big[op/idx]_(0 <= i < n) F i = \big[op/idx]_(i < n) F i.
+  Proof.
+    elim: n => [ | n ih]; first by rewrite big_nil big_ord0.
+    by rewrite big_ord_recr big_nat_recr // ih.
+  Qed.
+  
+  Lemma sum_big_nat (a: nat -> R) n m: sum_n_m a n m = \sum_(n <= i < m.+1) a i.
+  Proof.
+    case ineq: (n <= m)%nat; last first.
+    - rewrite sum_n_m_zero; last by apply/leP; rewrite ltnNge ineq.
+      by rewrite big_geq; last by rewrite ltnNge ineq.
+    case: n ineq => [ | n ineq]; first by rewrite big_nat_ord -sum_big_ord.
+    rewrite sum_n_m_sum_n; last by apply/leP/leq_trans/ineq.
+    by rewrite !sum_big_ord sum_sub //; apply/leq_trans; first exact/ineq.
+  Qed.
+  
+  Lemma selt_sum0_gt m x n n':
+    (m < n)%nat -> \sum_(n <= i < n') single_element_seq m x i = 0.
+  Proof.
+    case ineq: (n < n')%nat; last by rewrite big_geq // leqNgt ineq.    
+    case: n' ineq => // n' H' H; rewrite -sum_big_nat.
+    rewrite (sum_n_m_ext_loc _ (cnst 0))=>[ | k [? ?]]; first exact/sum_n_m_const_zero.
     by apply/single_element_seq_zeros/negP => /eqP eq; move: H; rewrite -eq =>/leP; lia.
   Qed.
-
-  Lemma single_element_sum m x n: (m <= n)%nat -> sum_n (single_element_seq m x) n = x.
+  
+  Lemma selt_sum m x n: (m <= n)%nat -> \sum_(i < n.+1) single_element_seq m x i = x.
   Proof.
-    move => /leP ineq; rewrite /sum_n (sum_n_m_Chasles _ 0 m); try lia.
-    by rewrite (single_element_sum_zero2 x n) // plus_zero_r; apply/single_element_sum_val.
+    move => /leP ineq; rewrite -sum_big_ord /sum_n (sum_n_m_Chasles _ 0 m); try lia.
+    rewrite !sum_big_nat [X in plus _ X]selt_sum0_gt // plus_zero_r.
+    by rewrite big_nat_ord; apply/selt_sum_val.
   Qed.
 
-  Lemma single_element_sum_lt m x n: 0 <= x ->  0 <= sum_n (single_element_seq m x) n <= x.
+  Lemma single_element_sum_lt m x n: 0 <= x ->  0 <= \sum_(i < n) single_element_seq m x i <= x.
   Proof.
-    move => pos; case ineq: (n < m)%nat; first by rewrite single_element_sum_zero; try lra.
-    by rewrite single_element_sum; try lra; rewrite leqNgt ineq.
+    move => pos; case ineq: (n <= m)%nat; first by rewrite selt_sum0 //; lra.
+    by case: n ineq => // n ineq; rewrite selt_sum; try lra; rewrite leqNgt ineq.
   Qed.
 
-  Lemma single_element_sum_limit m x: Series (single_element_seq m x) = x.
+  Local Notation convergent a := (ex_series a).
+
+  Lemma is_series_lim (a: nat -> R) r:
+    is_series a r <-> r \from metric_limit (fun n => \sum_(i < n) a i).
+  Proof.
+    split => val.
+    - apply/Uncv_lim/is_lim_seq_Reals/(is_lim_seq_incr_n _ 1%nat) => eps eg0.
+      by have [N Nprp]:= val eps eg0; exists N => n ineq; rewrite Nat.add_1_r -sum_big_ord; apply/Nprp.
+    apply/is_lim_seq_Reals/Uncv_lim => eps eg0.
+    have [[ | N] Nprp]:= val eps eg0; last by exists N => m ineq; rewrite sum_big_ord; apply/Nprp.
+    by exists 1%nat; case => // m ineq; rewrite sum_big_ord; apply/Nprp.
+  Qed.
+
+  Lemma cnv_spec (a: nat -> R): convergent a <-> (fun n => \sum_(i < n) a i) \from dom metric_limit.
+  Proof. by split => [[r val] | [r val]]; exists r; apply/is_series_lim. Qed.
+
+  Lemma Series_spec (a: nat -> R):
+    convergent a -> Series a \from metric_limit (fun n => \sum_(i < n) a i).
+  Proof. by move => cnv; apply/is_series_lim/Series_correct. Qed.
+  
+  Lemma selt_Series m x: Series (single_element_seq m x) = x.
   Proof.
     rewrite /Series (Lim_seq_ext_loc _ (cnst x)); first by rewrite Lim_seq_const.
-    by exists m => n /leP ?; apply/single_element_sum.
+    by exists m => n /leP ?; rewrite sum_big_ord selt_sum.
   Qed.
 
-  Lemma positive_sum_grows a m: ex_series a -> (forall n, 0 <= a n) -> a m <= Series a.
+  Lemma positive_sum_grows a m: convergent a -> (forall n, 0 <= a n) -> a m <= Series a.
   Proof.
-    move => H0 H; rewrite -(single_element_sum_limit m (a m)); apply/Series_le =>// n.
+    move => H0 H; rewrite -(selt_Series m (a m)); apply/Series_le =>// n.
     by rewrite/single_element_seq; case: ifP => [/eqP -> | _]; split; try exact/H; lra.
   Qed.
 
-  Lemma M_exists a r: 0 < r -> Rbar_lt r (CV_radius a) -> exists M, forall n, Rabs(a n) <= M/(r ^ n).
+  Notation "a \is_series_with_radius r" := (Rbar_lt r (CV_radius a)) (at level 30).
+
+  Lemma exists_M a r: 0 < r -> a \is_series_with_radius r -> exists M, forall n, Rabs(a n) <= M/(r ^ n).
   Proof.
-    move => r_prop1 r_prop2.
-    have r_prop1' := (Rgt_ge r 0 (Rlt_gt 0 r r_prop1)).
-    have absreqr := (Rabs_right r r_prop1').
-    apply symmetry in absreqr.
-    rewrite absreqr in r_prop2.
-    have := (CV_disk_inside a r r_prop2).
-    case => M M_prop.
-    exists M.
-    move => n.
-    have coeffge0 : forall n, (0 <= (Rabs (a n) * (r ^ n))) %R.
-    - move => m.
-      have pos := (Rle_ge 0 (Rabs (a m)) (Rabs_pos (a m))).
-      have pow_pos := (pow_le r m (Rlt_le 0 r r_prop1)).
-      apply Rle_ge in pow_pos.
-      have Rm := (Rmult_ge_compat_r (r ^ m) (Rabs (a m)) 0 pow_pos pos).
-      rewrite Rmult_0_l in Rm.
-      by lra;apply Rm.
-    have coeff_eq : forall m, (Rabs ((a m) * (r ^ m))) = ((Rabs (a m))*(r ^ m))%R.
-    - move => m.
-      rewrite Rabs_mult.
-      rewrite (Rabs_pos_eq (r ^ m)); first by [].
-      have pow_pos := (pow_le r m (Rlt_le 0 r r_prop1)).
-      apply Rle_ge in pow_pos.
-      by apply (Rge_le (r ^ m) 0 pow_pos).
-    have series2 := (Series.is_series_ext (fun n => (Rabs (a n * r^n))) (fun n => ((Rabs (a n) * r^n)) % R) M coeff_eq M_prop).
-    have series_exists : (Series.ex_series (fun n => (Rabs (a n) * (r ^ n))%R)) by exists M.
-    have psum := (positive_sum_grows n series_exists coeffge0).
-    apply Series.is_series_unique in series2.   
-    rewrite series2 in psum.
-    have e0 : (0 <= (/ r) ^ n)%R.
-    - suff: (0 < (/ r) ^ n)%R by lra.
-      by apply pow_lt;apply Rinv_0_lt_compat.
-    have ra := (Rmult_le_compat_r ((/ r) ^n) (Rabs (a n)*(r ^ n)) M e0 psum).
-   have rin := Rinv_pow.
-   symmetry in rin.
-   rewrite rin in ra;last by apply Rgt_not_eq;apply r_prop1.
-   rewrite Rinv_r_simpl_l in ra; last by apply Rgt_not_eq;apply pow_lt.
-   rewrite /Rdiv Rinv_pow; try lra.
-   by rewrite rin;last by  apply Rgt_not_eq;apply r_prop1.
+    move => rg0 rc; exists (Series (fun n => \|a n * r^n|)) => n.
+    rewrite -[X in X <= _]Rmult_1_r -(Rinv_r (r^n)); last by have:= pow_lt r n; lra.
+    rewrite -Rmult_assoc; apply/Rmult_le_compat_r; first exact/Rlt_le/Rinv_0_lt_compat/pow_lt/rg0.
+    rewrite -(Rabs_pos_eq (r ^ n)) //; last by apply/pow_le; lra.
+    rewrite -Rabs_mult; apply/positive_sum_grows => [ | m]; last exact/Rabs_pos.
+    by apply/CV_disk_inside; case: (CV_radius) rc; rewrite /Rbar_lt; try split_Rabs; lra.
   Qed.
 
   Lemma nat_upper r: exists U, r < INR U.
@@ -115,386 +142,305 @@ Section powerseries_basic_facts.
     rewrite /Z.to_nat; case: up => [/= | p | p]; try rewrite INR_IPR /IZR; try lra.
     by rewrite/=/IZR -INR_IPR; have := INR_pos p; lra.
   Qed.
+  
+  Definition is_series_bound a A k := forall n, \|a n| <= IPR A/(1 + /(INR k + 1))^n.
 
-  Definition series1 a := Rbar_lt 1 (CV_radius a). 
+  Notation "a \is_bounded_by A \and k" := (is_series_bound a A k) (at level 30).
 
-  Definition series_bound a A k := (0 < k)%coq_nat /\ (0 < A)%coq_nat /\ forall n, ((Rabs (a n)) <= (INR A) * (/ (1+/(INR k))) ^ n)%R.
-  Lemma Ak_exists a : (series1 a) -> exists A k : nat, (series_bound a A k).
+  Lemma exists_Ak a: a \is_series_with_radius 1 -> exists A k, a \is_bounded_by A \and k.
   Proof.
     move => H.
-    have e : exists k : nat, (0 < k )%coq_nat /\ (Rbar_lt (1+(/ INR k))%R (CV_radius a)).
-    - have := (open_Rbar_lt' 1%R (CV_radius a) H).
-      move => [eps H2].
-      have [k [k_prop1 k_prop2]] := (archimed_cor1 eps (cond_pos eps)).
-      exists k.
-      split;first by apply k_prop2.
-      apply H2.
-      apply /norm_compat1.
-      have eq : (minus (1 + (/ (INR k))) 1)%R = (/ (INR k))%R by rewrite /minus;rewrite /opp;rewrite /plus //=;lra.
-      rewrite eq/norm //= /abs //=.
-      rewrite Rabs_right; first by apply k_prop1.
-      apply Rle_ge.
-      have lt := (lt_0_INR k k_prop2).
-      suff : (0 < (/ (INR k)))%R by lra. 
-      by apply Rinv_0_lt_compat.
-    case e => k [k_prop1 k_prop2].
-    have r_prop : (0 < (1+(/ (INR k))))%R.
-    - apply Rplus_lt_0_compat; by [lra | apply Rinv_0_lt_compat;apply lt_0_INR].
-    case (M_exists r_prop k_prop2) => M M_prop.
+    have [k [/leP kg0 ineq]]: exists k, (0 < k )%nat /\ Rbar_lt (1+/INR k)%R (CV_radius a).
+    - have [eps prp]:= open_Rbar_lt' 1 (CV_radius a) H.
+      have [k [k_prop1 kg0]] := archimed_cor1 eps (cond_pos eps).
+      exists k; split; first exact/leP; apply/prp.
+      suff: 0 <= /INR k by rewrite/ball/=/AbsRing_ball/abs/minus/plus/opp/=; split_Rabs; lra.
+      exact/Rlt_le/Rinv_0_lt_compat/lt_0_INR.
+    have ikg0: 0 < /INR k by apply/Rinv_0_lt_compat/lt_0_INR.
+    have [|| M M_prp]//:= exists_M (r := 1 + /INR k) (a:= a); try lra.
     case (nat_upper M) => A A_prop.
-    exists A.+1.
-    exists k.
-    split; first by apply k_prop1.
-    split; first by apply Nat.lt_0_succ.
-    move => n.
-    apply /Rle_trans.
-    apply M_prop.
-    apply Rmult_le_compat_r; first by apply pow_le, Rlt_le, Rinv_0_lt_compat.
-    by rewrite S_INR; lra.
+    exists (Pos.of_nat A.+1); exists k.-1 => n.
+    apply/Rle_trans; first exact/M_prp.
+    rewrite -!INR_IPR !Nat2Pos.id // -S_INR -(S_pred _ 0); try lia.    
+    apply/Rmult_le_compat_r; last by rewrite S_INR; lra.
+    by apply/Rlt_le/Rinv_0_lt_compat/pow_lt; lra.
   Qed.
-
-  Definition powerseries1 := {a : nat -> R | series1 a }.
+  
+  Definition powerseries1 := {a | a \is_series_with_radius 1}.
 End powerseries_basic_facts.
+Notation "a \is_series_with_radius r" := (Rbar_lt r (CV_radius a)) (at level 30).
+Notation "a \is_bounded_by A \and k" := (is_series_bound a A k) (at level 30).
 
 Section ps_representation.
-  Definition ps_rep : (questions (cs_nat \*_cs cs_nat \*_cs RQ\^w)) ->> powerseries1 := make_mf (fun phi (a : powerseries1) => (rprj phi) \describes (projT1 a) \wrt (RQ\^w) /\ (series_bound (projT1 a) (lprj (lprj phi) tt) (rprj (lprj phi) tt))).
-
-  Lemma ps_rep_sur: ps_rep \is_cototal.
+  Definition cs_pos:= discrete_space pos_count.
+  Definition names_PS:= B_(cs_pos \*_cs cs_nat \*_cs RQ\^w).
+  Definition rep_PS: names_PS ->> powerseries1 :=
+    make_mf (fun (phi: names_PS) an =>
+               let a := sval an in
+               let A := lprj (lprj phi) tt in
+               let k := rprj (lprj phi) tt in
+               rprj phi \is_name_of a
+               /\
+               a \is_bounded_by A \and k
+            ).
+  
+  Lemma rep_PS_sur: rep_PS \is_cototal.
   Proof.
-    move  => a.
-    have := (Ak_exists (projT2 a)).
-    case => A;case => k H.
-    have [phi phina]:= (get_description ((A,k,(projT1 a)) : (cs_nat \*_cs cs_nat \*_cs RQ\^w))).
-    exists phi.
-    split; first by apply phina.
-    have eqA : (lprj (lprj phi) tt) = A by apply phina.
-    have eqk : (rprj (lprj phi) tt) = k by apply phina.
-    rewrite eqA.
-    by rewrite eqk.
+    move  => [a rad].
+    have [A [k bnd]]:= exists_Ak rad.
+    have [phi phina]:= get_name (a: RQ\^w).
+    exists (pair (pair (cnst A: B_(cs_pos), cnst k: B_(cs_nat)), phi)).
+    by split; try exact/phina; apply/bnd.
   Qed.
 
-  Lemma ps_rep_sing: ps_rep \is_singlevalued.
-  Proof.
-    move => phi [a ap] [b bp] [//=phina _] [phinb _].
-    apply subset_eq_compat.
-    suff : forall i, (a i) = (b i) by apply functional_extensionality.
-    move => i.
-    by apply (rep_RQ_sing (phina i) (phinb i)).
-  Qed.
+  Lemma rep_PS_sing: rep_PS \is_singlevalued.
+  Proof. by move => ? ? ? [phina _] [phina' _]; apply/eq_sub/(rep_sing (X:=RQ\^w))/phina'. Qed.
 
-  Definition powerseries1_cs := (make_cs (someq (cs_nat \*_cs cs_nat \*_cs RQ\^w)) (somea (cs_nat \*_cs cs_nat \*_cs RQ\^w)) (queries_countable (cs_nat \*_cs cs_nat \*_cs RQ\^w)) (answers_countable (cs_nat \*_cs cs_nat \*_cs RQ\^w)) ps_rep_sur ps_rep_sing).
+  Definition powerseries1_representation:=
+    Build_representation_of (Build_represented_over rep_PS_sur rep_PS_sing).
+
+  Definition PS := Build_continuity_space powerseries1_representation.
 End ps_representation.
+
+Notation convergent a := (ex_series a).
+
+Definition absolutely_convergent (K: AbsRing) (V: NormedModule K) (a: nat -> V):=
+  convergent (fun n => norm (a n)).
+
+Lemma acnv_cnv (a: nat -> R): absolutely_convergent a -> convergent a.
+Proof. exact/ex_series_Rabs. Qed.
+
 Section ps_summation.
-  Lemma series_exists_helper k : (0 < k)%coq_nat -> ((Rabs (/ (1 + / INR k))) < 1)%R.
+  Definition powers a x n := a n * x ^ n.
+
+  Lemma PSeries_Series a x: PSeries a x = Series (powers a x).
+  Proof. done. Qed.
+  
+  Lemma pos_gt0 p: 0 < IPR p.
   Proof.
-    move => k_prop.
-    rewrite Rabs_right.
-    - have lt := (Rinv_1_lt_contravar 1 (1 + (/ INR k))).
-      rewrite Rinv_1 in lt.
-      apply lt; first by lra.
-      suff : (0 < (/ INR k))%R by lra.
-      by apply Rinv_0_lt_compat; apply lt_0_INR.
-    apply Rgt_ge.
-    apply Rinv_0_lt_compat.
-    suff : (0 < (/ INR k))%R by lra.
-    by apply Rinv_0_lt_compat; apply lt_0_INR.
+    by suff: IPR 1 <= IPR p; first rewrite {1}/IPR; try lra; rewrite -!INR_IPR; apply/le_INR; lia.
   Qed.
 
-  Lemma bseries_exists_Rabs a A k : (series_bound a A k) -> (Series.ex_series (fun n => (Rabs (a n)))).
+  Lemma Ipinv_ineq x: 0 <= x -> 0 < /(x + 1) <= 1.
   Proof.
-    move => [H1 [H2 H]].
-    have H' : forall n : nat, (0 <= (Rabs (a n)) <= (INR A)*(/ (1 + / INR k))^n)%R by split;[apply Rabs_pos|apply H].
-    have le := (Series.ex_series_le (fun n => (Rabs (a n))) (fun n => (INR A *(/ (1 + / INR k))^n))%R).
-    apply le; first by move => n;rewrite /norm//=/abs//=; rewrite Rabs_Rabsolu.
-    have scal := (Series.ex_series_scal (INR A) (fun n=> ((/ (1 + / INR k)) ^ n))%R).
-    rewrite /Hierarchy.scal//=/mult//= in scal.
-    apply scal.
-    by apply Series.ex_series_geom; apply series_exists_helper.
-  Qed.
-  Lemma pow_le_1_compat : forall x n, (0 <= x <= 1)%R -> ((x ^ n) <= 1)%R.
-  Proof.
-    move => x n [xB0 xB].
-    case n => [ | n']; first by apply Req_le;apply pow_O.
-    case xB => xB'.
-    - apply Rlt_le.
-      apply pow_lt_1_compat; first by split; by [apply Rabs_pos | ].
-      by apply Nat.lt_0_succ.
-    rewrite xB'.
-    by apply Req_le; apply pow1.
+    by intros; split; [apply/Rinv_0_lt_compat | rewrite -{2}Rinv_1; apply/Rinv_le_contravar]; lra.
   Qed.
 
-  Lemma pow_le_1_compat_abs : forall x n, ((Rabs x) <= 1)%R -> (((Rabs x) ^ n )<= 1)%R.
+  Lemma invp1_ineq k: 0 < /(1 + /(INR k + 1)) < 1.
   Proof.
-    move => x n xa.
-    apply pow_le_1_compat.
-    by split; [apply Rabs_pos | ].
+    have: 0 < /(INR k + 1) by apply/Rinv_0_lt_compat; have := pos_INR k; lra.
+    have ineq := Ipinv_ineq (pos_INR k); split; first by apply Rinv_0_lt_compat; lra.
+    by rewrite -{3}Rinv_1; apply/Rinv_lt_contravar; lra.
   Qed.
 
-  Lemma bseries_exists_Rabs2 a A k : forall x, (Rabs x <= 1)%R -> (series_bound a A k) -> (Series.ex_series (fun n => (Rabs ((a n) * (x ^ n))))).
+
+  Lemma invp1_Rabs k: \|/(1 + /(INR k + 1))| < 1.
+  Proof. by have := invp1_ineq k; split_Rabs; lra. Qed.
+
+  Lemma cnv_scale (a: nat -> R) (r: R): r <> 0 ->
+    convergent a <-> convergent (scale r a).
   Proof.
-    move => x xB sb.
-    apply (ex_series_le (fun n => (Rabs ((a n) * (x ^ n)))) (fun n => (Rabs (a n)))); last by apply (bseries_exists_Rabs sb).
-    move => n.
-    rewrite /norm //= /abs //=.
-    rewrite Rabs_Rabsolu Rabs_mult.
-    rewrite <- Rmult_1_r.
-    apply Rmult_le_compat_l; first by apply Rabs_pos.
-    rewrite <- RPow_abs.
-    by apply pow_le_1_compat_abs.
-  Qed.
-  Lemma invp1gt0 k : (0 < k)%coq_nat -> (0 < 1 + /INR k)%R.
-  Proof.
-    move => H.
-    suff: (0 < / INR k)%R by lra.
-    apply Rinv_0_lt_compat.
-    by apply lt_0_INR.
-  Qed.
-  Lemma invge0 k : (0 < k)%coq_nat -> (0 <= /(1 + /INR k))%R.
-  Proof.
-    move => H.
-    apply Rlt_le.
-    apply Rinv_0_lt_compat.
-    by apply invp1gt0.
+    split => [ | cnv]; first exact/ex_series_scal.
+    apply/(ex_series_ext (fun n => (scale (/r) (scale r a) n)))/ex_series_scal/cnv => n.
+    by rewrite/scale -Rmult_assoc Rinv_l; lra.
   Qed.
 
-  Lemma series_tail_approx a A k: (series_bound a A k) -> forall N,  ((Series.Series (fun k => (Rabs (a (N.+1+k)%coq_nat)))) <= (INR A) * (INR k.+1) * (/ (1 + (/ (INR k)))) ^ (N.+1))%R.
+  Lemma pow_le_1_compat x n: 0 <= x <= 1 -> 0 <= x ^ n <= 1.
+  Proof. intros; rewrite -(pow1 n); split; [apply/pow_le | apply/pow_incr]; try lra. Qed.
 
+  Lemma pow_0_lt_lt_1_compat x n: 0 < x < 1 -> 0 < x ^ n.+1 < 1.
   Proof.
-    move => H N.
-    have [k_prop _] := H.
-    have series_exists :  (Series.ex_series (fun n : nat => Rabs (a (succn N + n)%coq_nat))) by apply  (Series.ex_series_incr_n (fun n => (abs (a n))));apply (bseries_exists_Rabs H).
-    have H' : forall n, (0 <= (Rabs (a (succn N +n)%coq_nat)) <= INR A * (/ (1 + / INR k)) ^ (succn N + n))%R by split; [apply Rabs_pos|apply H].
-    have le := (Series.Series_le (fun n => (Rabs (a ((N.+1)+n)%coq_nat))) (fun n => (INR A *(/ (1 + / INR k))^(N.+1+n))%R) H').
-    apply /Rle_trans.
-    apply le.
-    - have incr := (Series.ex_series_incr_n (fun n => (INR A *(/ (1 + / INR k))^(n))%R) (N.+1)). 
-      apply incr.
-      have scal := (Series.ex_series_scal (INR A) (fun n=> ((/ (1 + / INR k)) ^ n))%R).
-      apply scal.
-      by apply Series.ex_series_geom; apply series_exists_helper.
-      have scal := (Series.Series_scal_l (INR A) (fun n=> ((/ (1 + / INR k)) ^ (succn N+n)))%R).
-      rewrite scal.
-      rewrite Rmult_assoc.
-      apply (Rmult_le_compat_l); first by apply pos_INR.
-      rewrite (Series.Series_ext (fun n : nat => (/ (1 + / INR k)) ^ (succn N + n))%R (fun n =>  (/ (1 + / INR k)) ^ (succn N) * (/ (1 + / INR k)) ^ n)%R); last by apply pow_add.
-      have scal' := (Series.Series_scal_l  ((/ (1 + / INR k)) ^ succn N) (fun n=> ((/ (1 + / INR k)) ^ n))%R).
-      rewrite scal'.
-      rewrite Series.Series_geom;last by apply series_exists_helper.
-      rewrite Rmult_comm.
-      have simple : (0 < 1 + /INR k)%R.
-       - suff: (0 < / INR k)%R by lra.
-          apply Rinv_0_lt_compat.
-          by apply lt_0_INR.
-      have simple2 : (0 <= /(1 + /INR k))%R.
-      - apply Rlt_le.
-        by apply Rinv_0_lt_compat.
-      apply Rmult_le_compat_r; first by apply pow_le; apply simple2.
-      apply Req_le.
-      have simple' : ((1+(/ INR k)) <> 0)%R by apply not_eq_sym; apply Rlt_not_eq.
-      have t : ((1- /(1 + /INR k)) = (/ INR k / (1 + /INR k)))%R.
-      - have min := (Rcomplements.Rdiv_minus 1 1 1 (1+ /INR k) R1_neq_R0 simple').
-        rewrite Rcomplements.Rdiv_1 in min.
-        rewrite Rmult_1_l in min.
-        rewrite Rmult_1_r in min.
-        have inv := (Rinv_Rdiv (1+ / INR k) 1 simple' R1_neq_R0).
-        symmetry in inv.
-        rewrite inv in min.
-        rewrite Rcomplements.Rdiv_1 in min.
-        suff : ((1 + / INR k - 1) = / INR k)%R by lra.
-        by lra.
-     rewrite t.
-     have inrneq0 : ((INR k) <> 0)%R by apply not_eq_sym;apply Rlt_not_eq;apply lt_0_INR.
-     rewrite Rinv_Rdiv; last by apply simple'. 
-     - rewrite /Rdiv.
-       rewrite Rinv_involutive;last by apply inrneq0.
-       rewrite Rmult_plus_distr_r.
-       rewrite Rmult_1_l.
-       rewrite Rinv_l;last by apply inrneq0.
-       symmetry.
-       by apply S_INR.
-     by apply Rinv_neq_0_compat.   
+    by move => ?; split; try apply/pow_lt; try apply pow_lt_1_compat; try lra; apply/leP.
+  Qed.
+    
+  Lemma pow_le_1_compat_abs x n: \|x| <= 1 -> \|x| ^ n <= 1.
+  Proof. by intros; split_Rabs; apply pow_le_1_compat; lra. Qed.
+
+  Lemma sbnd_acnv a A k: a \is_bounded_by A \and k -> absolutely_convergent a.
+  Proof.
+    rewrite/absolutely_convergent => bnd.
+    have /cnv_scale->: /IPR A <> 0 by have: 0 < /IPR A; first exact/Rinv_0_lt_compat/pos_gt0; lra.
+    apply/ex_series_le/ex_series_geom/invp1_Rabs/k => n.
+    rewrite/=-Rinv_pow; last by have:=Ipinv_ineq (pos_INR k); try lra.
+    rewrite/Rdiv/norm/=/abs/=/scale/= Rabs_mult [X in _ * X]Rabs_pos_eq; try exact/Rabs_pos.
+    apply/Rle_trans; first exact/Rmult_le_compat_l/bnd/Rabs_pos.
+    rewrite Rabs_pos_eq; try exact/Rlt_le/Rinv_0_lt_compat/pos_gt0.
+    apply/Req_le; field; split; try by have := pos_gt0 A; lra.
+    by apply/pow_nonzero; have := Ipinv_ineq (pos_INR k); lra.
   Qed.
 
-  Lemma tmpn_series_helper1 : forall x, (0 <= x <= (/ 2))%R -> ((exp ((ln 2)*x)) <= 1+x)%R.
+  Lemma sbnd_psrs a A k x:
+    \|x| <= 1 -> a \is_bounded_by A \and k -> absolutely_convergent (powers a x).
   Proof.
-    move => x [H1 H2].
-    pose f  := (fun x => (exp ((ln 2)*x))).
-    pose df  := (fun x => ((ln 2)*exp ((ln 2)*x)))%R.
-    have df_prop : forall x, (is_derive f x (df x)).
-    - move => x0.
-      rewrite /f/df.
-      auto_derive; by [ | lra].
-    have MVT := (MVT_gen f 0 x df). 
-    simpl in MVT.
-    case MVT => [t t_prop | t t_prop | t [[t_prop1 t_prop2] M]]; first by apply df_prop.
-    - apply derivable_continuous_pt.
-      rewrite /f.
-      by auto_derive.
-    move : M.
-    rewrite /f.
-    have simpl1 : ((x-0)=x)%R by lra.
-    have simpl2 : ((ln 2 * 0)=0)%R by lra.
-    rewrite simpl1 simpl2 exp_0.
-    rewrite /df.
-    move => M.
-    have M' : ((exp (ln 2 * x)) <= 1+(ln 2)*(exp (ln 2 * (/ 2)))*x)%R.
-    - suff: ((ln 2)*(exp (ln 2 * t))*x <= (ln 2)*(exp (ln 2 * (/ 2)))*x)%R by lra.
-      suff:  ((exp (ln 2 * t)) <= (exp (ln 2 * (/ 2))))%R.
-      move => H'.
-      do 2! rewrite Rmult_assoc.
-      apply (Rmult_le_compat_l (ln 2)); first by apply Rlt_le;apply (Rlt_trans 0 (/ 2)); by [lra | apply ln_lt_2].
-      by apply (Rmult_le_compat_r x); first by apply H1.
-     have exp_increasing' : forall x y : R, (x <= y)%R -> (exp x <= exp y)%R.
-     * move => x0 y0.
-       case => H'; by [apply Rlt_le; apply exp_increasing | rewrite H'; apply Req_le].
-      apply exp_increasing'.
-      suff : (t <= (/ 2))%R by apply (Rmult_le_compat_l (ln 2)); apply (Rle_trans 0 (/ 2)); [lra | apply Rlt_le; apply ln_lt_2].
-      apply /Rle_trans.
-      apply t_prop2.
-      by rewrite Rmax_right; by [apply H1 | ].
-    suff: ((ln 2)*(exp (ln 2 * (/ 2))) <= 1)%R.
-    - move => H'.
-      apply /Rle_trans.
-      apply M'.
-      apply Rplus_le_compat_l.
-      suff:  (ln 2 * exp (ln 2 * / 2) * x <= 1*x)%R by lra.
-      by apply Rmult_le_compat_r.
-    by interval.
+    move => /pow_le_1_compat_abs xl1 bnd.
+    apply/sbnd_acnv => n; rewrite Rabs_mult -RPow_abs; apply/Rle_trans/bnd.
+    by apply/Rle_trans; first exact/Rmult_le_compat_l/xl1/Rabs_pos; lra.
   Qed.
 
-  Lemma tmpn_series_helper2 : forall k,  (2 <= (1+(/ INR (k.+1))) ^ (k.+1))%R.
+  Local Notation shift n a := (fun k => a (n + k)%nat).
+
+  Lemma cnv_shft n (a: nat -> R): convergent a -> convergent (shift n a).
+  Proof. by move => ?; rewrite -ex_series_incr_n. Qed.
+
+  Lemma shft_cnv n (a: nat -> R): convergent (shift n a) -> convergent a.
+  Proof. by move => ?; apply/(ex_series_incr_n _ n). Qed.
+
+  Lemma sbnd_tail a A k N: a \is_bounded_by A \and k ->
+    Series (shift N (ptw Rabs a)) <= IPR A * (INR k + 2)/(1 + /(INR k + 1))^N.
   Proof.
-    case.
-    rewrite pow_1.
-    suff: (1 = (/ INR 1))%R by lra.
-    by rewrite Rinv_1.
-    move => k. 
-    have helper_cond : (0 <= (/ (INR k.+2)) <= (/ 2))%R.
+    move => bnd; have neq n : 1 + /(INR n + 1) <> 0.
+    - by apply/nesym/Rlt_not_eq; have := Ipinv_ineq (pos_INR n); lra.
+    apply/Rle_trans.
+    - apply/Series_le; first by split; [apply/Rabs_pos | apply/bnd].
+      have /ex_series_geom/(cnv_shft N)/cnv_scale prp:= invp1_Rabs k.
+      apply/ex_series_ext/(prp (IPR A)) => [n | ]; try by have := pos_gt0 A; lra.
+      by rewrite /scale -Rinv_pow.
+    rewrite Series_scal_l /Rdiv Rmult_assoc; apply/Rmult_le_compat_l; try exact/Rlt_le/pos_gt0.
+    apply/Rle_trans.
+    - apply/Req_le/Series_ext => n; rewrite pow_add.
+      by rewrite Rinv_mult_distr; try exact/pow_nonzero/neq.
+    rewrite Series_scal_l Rmult_comm; apply/Rmult_le_compat_r.
+    - apply/Rlt_le/Rinv_0_lt_compat/pow_lt; have := Ipinv_ineq (pos_INR k); lra.
+    rewrite (Series_ext _ [eta pow (/(1 + /(INR k + 1)))]) => [ | n]; last apply/Rinv_pow/neq.
+    by rewrite Series_geom; try exact/invp1_Rabs; apply/Req_le; field; have := pos_INR k; lra.
+  Qed.
+  Lemma expl1px x: 0 <= x <= / 2 -> exp (ln 2 * x) <= 1 + x.
+  Proof.
+    move => [H1 H2].
+    pose f x := exp (ln 2 * x); pose df x := ln 2 * exp (ln 2 * x).
+    have df_prop y: (is_derive f y (df y)) by rewrite/f/df; auto_derive; try lra.
+    case: (MVT_gen f 0 x df) => [? ? | ? ? | t [[mn /Rmax_Rle mx]]]; first by apply df_prop.
+    - by apply/derivable_continuous_pt; rewrite /f; auto_derive.
+    move: mn; rewrite /Rmin; case: Rle_dec; try lra; move => _ tg0.
+    rewrite/f/df Rminus_0_r Rmult_0_r exp_0 => eq.
+    suff: exp (ln 2 * x) - 1 <= x by lra.
+    rewrite eq -[X in _ <= X]Rmult_1_l; apply/Rmult_le_compat_r => //.    
+    have ineq: ln 2 * exp (ln 2/2) <= 1 by interval.
+    apply/Rle_trans/ineq/Rmult_le_compat_l/Raux.exp_le/Rmult_le_compat_l; try interval.    
+    by case: mx tg0; lra.
+  Qed.
+
+  Lemma exp_prod_lbnd k: 2 <= (1 + /(INR k + 1)) ^ k.+1.
+  Proof.    
+    rewrite -S_INR; case: k => [ | k]; first by rewrite pow_1 /= Rinv_1; lra.
+    have /expl1px: 0 <= /INR k.+2 <= / 2.
     - split; first by apply Rlt_le;apply Rinv_0_lt_compat;apply lt_0_INR;lia.
-      apply Rinv_le_contravar; first by lra.
-      do 2! rewrite S_INR.
-      suff: (0 <= INR k)%R by lra.
-      by apply pos_INR.
-    have helper := (tmpn_series_helper1 helper_cond).
-    have Rpwr : (exp (ln 2 * / INR (k.+2))) = (Rpower 2 (/ INR (k.+2))) by rewrite /Rpower Rmult_comm.
-    rewrite Rpwr in helper.
-    have Rpwr_pos' : (0 < (Rpower 2 (/ INR (k.+2))))%R.
-    - apply Rgt_lt.
-      apply bertrand.Rpower_pos; first by lra.
-      apply Rlt_le.
-      apply Rinv_0_lt_compat.
-      by apply lt_0_INR; lia.
-    have rt : 2 = (Rpower (Rpower 2 (/ INR (k.+2))) (INR (k.+2))).
+      by apply Rinv_le_contravar; last rewrite !S_INR; have := pos_INR k; lra.
+    have ->: exp (ln 2 / INR k.+2) = Rpower 2 (/INR k.+2) by rewrite /Rpower Rmult_comm.
+    move => helper.
+    have Rpwr_pos' : 0 < Rpower 2 (/INR k.+2).
+    - by apply/bertrand.Rpower_pos/Rlt_le/Rinv_0_lt_compat/lt_0_INR; try lra; lia.
+    have -> : 2 = Rpower (Rpower 2 (/INR k.+2)) (INR k.+2).
     - rewrite Rpower_mult.
       rewrite Rinv_l; last by apply not_0_INR.
       by rewrite Rpower_1; lra.
-    rewrite rt.
     rewrite Rpower_pow; last by apply Rpwr_pos'.
     apply pow_incr.
-    split; by [apply Rlt_le; apply Rpwr_pos' | apply helper].
+    by split; first exact/Rlt_le/Rpwr_pos'; apply helper.
   Qed.
 
-
-  Lemma tpmn_series_helper3 : forall k m : nat, (0 < k)%coq_nat -> ((/ (1 + (/ (INR k)))) ^ ((k*m).+1) <= (/ 2 ^ m))%R.
+  Lemma exp_prod_lbnd_pos k: 2 <= (1 + /IPR k) ^ Pos.to_nat k.
   Proof.
-    move => k m k_prop.
-    have h : ((/ (1 + / INR k)) <= 1)%R.
-    - rewrite <- Rinv_1 at 2.
-      apply Rinv_le_contravar; first by lra.
-      suff : (0 < (/ INR k))%R by lra. 
-      by apply Rinv_0_lt_compat; apply lt_0_INR.
-    have h' : (0 < (1 + / (INR k)))%R.
-    - suff: (0 < / (INR k))%R by lra.
-      apply Rinv_0_lt_compat.
-      by apply lt_0_INR.
-    have helper' : ((/ (1 + (/ (INR k)))) ^ k <= (/ 2))%R.
-    - rewrite <- Rinv_pow; last by apply nesym; apply Rlt_not_eq. 
-      have helper := (tmpn_series_helper2 k.-1).
-      rewrite <- S_pred_pos in helper; last by [].
-      by apply Rle_Rinv; by [lra | apply pow_lt].
-    have lt1 :   ((/ (1 + / INR k)) ^ (k * m).+1 <= (/ (1 + / INR k)) ^ (k * m))%R.
-    - have t:= tech_pow_Rmult.
-      symmetry in t.
-      have m1 := (Rmult_1_l ((/ (1 + / INR k)) ^ (k * m))%R).
-      symmetry in m1.
-      rewrite m1 t.
-      apply Rmult_le_compat_r; last by apply h.
-      apply pow_le.
-      apply Rlt_le.
-      apply Rinv_0_lt_compat.
-      suff : (0 < / INR k)%R by lra.
-      by apply Rinv_0_lt_compat; apply lt_0_INR. 
-    apply /Rle_trans.
-    apply lt1.
-    rewrite pow_mult.
-    rewrite Rinv_pow; last by lra.
-    apply pow_incr.
-    split; by [apply pow_le, Rlt_le, Rinv_0_lt_compat| ].
+    apply/Rle_trans; first exact/(exp_prod_lbnd (Pos.to_nat k).-1).
+    by rewrite -S_INR -INR_IPR -(S_pred _ 0); try lra; lia.
   Qed.
 
-  Definition coeff_num A k n := (k * (n+(Nat.log2 (A*(k.+1))).+1))%coq_nat.
-  Lemma tpmn_series a A k n: (series_bound a A k) ->  ((Series.Series (fun m => (Rabs (a ((coeff_num A k n).+1+m)%coq_nat)))) <= (/ 2 ^ n))%R.
+  Lemma pow_pow x n m: (x ^ n) ^ m = x ^ (n * m).
+  Proof. by elim: m => [ | m /= ->]; first rewrite muln0 //; rewrite mulnS pow_add. Qed.
+    
+  Lemma exp_prod_ubnd k m: /(1 + /(INR k + 1)) ^ (k.+1 * m) <= / 2 ^ m.
   Proof.
-    move => H.
-     have [H1 [HA H2]] := H.
-    apply /Rle_trans.
-    apply series_tail_approx; by apply H.
-    have helper := (tpmn_series_helper3 (n + (Nat.log2 (A * (k.+1))).+1)%nat H1).
-    have le_0 : (0 <= INR A * (INR k.+1))%R by apply Rmult_le_pos; by apply pos_INR.
-    have compat := (Rmult_le_compat_l _  _  _ le_0 helper).
-    apply /Rle_trans.
-    apply compat.
-    rewrite pow_add.
-    rewrite Rinv_mult_distr; try by apply pow_nonzero; lra.
-    rewrite <- Rmult_assoc.
-    apply (Rmult_le_reg_r ( 2 ^ (Nat.log2 (A * (k.+1))).+1)); first by apply pow_lt;lra.
-    rewrite Rmult_assoc.
-    rewrite Rinv_l; last by apply pow_nonzero; lra.
-    rewrite Rmult_1_r.
-    rewrite Rmult_comm.
-    apply Rmult_le_compat_l.
-    - by apply Rlt_le, Rinv_0_lt_compat, pow_lt;lra.
-    have Akgt0 : (0 < A*(k.+1))%coq_nat by apply Nat.mul_pos_pos; by [ | apply Nat.lt_0_succ].
-    have [_ sp] := (Nat.log2_spec _ Akgt0).
-    apply lt_INR in sp.
-    rewrite <- mult_INR.
-    apply Rlt_le.
-    rewrite pow_INR in sp.
-    by apply sp.
+    rewrite -pow_pow -S_INR.
+    apply/Rinv_le_contravar/pow_incr; first by apply/pow_lt; lra.
+    by rewrite S_INR; split; try lra; apply/exp_prod_lbnd.
+  Qed.
+
+  Fixpoint pow_pos (p: positive) n :=
+    match n with
+    | 0%nat => 1%positive
+    | S n' => (p * pow_pos p n')%positive
+    end.
+
+  Lemma pos_pow_pos p n: IPR p ^ n = IPR (pow_pos p n).
+  Proof. by elim: n => //= n ->; rewrite -!INR_IPR -mult_INR Pos2Nat.inj_mul. Qed.
+
+(*
+  Fixpoint log2 p :=
+    match p with
+    | xH => 0%nat
+    | xO p => (log2 p).+1
+    | xI p => (log2 p).+1
+    end.
+
+  Lemma poss_gt p: (0 < Pos_size p)%nat.
+  Proof. by case: p. Qed.
+
+  Lemma size_log2 p: log2 p = (Pos_size p).-1.
+  Proof. by elim: p => //= p ->; rewrite -(S_pred _ 0) //; apply/leP/poss_gt. Qed.
+
+  Lemma log2_pow_pos (n: nat): log2 (pow_pos 2 n) = n.
+  Proof. by elim: n => //= n ->. Qed.
+*)
+
+  Definition log2 p := Nat.log2 (Pos.to_nat p).
+
+  Lemma log2_spec_ineq (p: positive): (pow_pos 2 (log2 p) <= p < pow_pos 2 (log2 p).+1)%positive.
+  Proof.
+    have /Nat.log2_spec [ineq ineq']:= Pos2Nat.is_pos p.
+    split; first apply/Pos2Nat.inj_le/INR_le; last apply/Pos2Nat.inj_lt/INR_lt.
+    - by rewrite INR_IPR -pos_pow_pos; suff <- //: INR 2 = IPR 2; rewrite -pow_INR; apply/le_INR.
+    rewrite [X in _ < X]INR_IPR -pos_pow_pos.
+    by suff<-//: INR 2 = IPR 2; rewrite -pow_INR; apply/lt_INR.
+  Qed.
+
+  Lemma Rlt_log2 (p: positive): IPR p < 2 ^ (log2 p).+1.
+  Proof.
+    suff ->//: 2 = IPR 2; rewrite pos_pow_pos -!INR_IPR.
+    exact/lt_INR/Pos2Nat.inj_lt/(log2_spec_ineq _).2.
+  Qed.
+  
+  Definition coeff_num A k n := (k.+1 * ((log2 (A * Pos.of_nat (k.+2))).+1 + n))%nat.
+  
+  Lemma sbnd_cnum a A k n:
+    a \is_bounded_by A \and k -> Series (shift (coeff_num A k n) (ptw Rabs a)) <= /2 ^ n.
+  Proof.
+    have ? := Ipinv_ineq (pos_INR k).
+    move => /sbnd_tail ineq; apply/Rle_trans; first exact/ineq; rewrite -pow_pow pow_add/Rdiv.
+    rewrite Rinv_mult_distr; try by rewrite pow_pow; apply/pow_nonzero; lra.
+    rewrite -!Rmult_assoc; apply/Rle_trans/exp_prod_ubnd/k.
+    rewrite -[X in _ <= X]Rmult_1_l -pow_pow.
+    apply/Rmult_le_compat_r; first by apply/Rlt_le/Rinv_0_lt_compat/pow_lt/pow_lt; lra.
+    apply/(Rdiv_le_1 _ _ _).1; first by apply/pow_lt/pow_lt; lra.
+    have ->: INR k + 2 = INR k.+2 by rewrite !S_INR; lra.
+    apply/Rle_trans/pow_incr; try by split; last apply/exp_prod_lbnd; lra.
+    apply/Rle_trans/Rlt_le/Rlt_log2.
+    by rewrite -[X in _ <= X]INR_IPR Pos2Nat.inj_mul mult_INR INR_IPR Nat2Pos.id; try lra; lia.
   Qed. 
 
-  Lemma tpmn_PSeries a A k n : forall x, (Rabs x <= 1) % R -> (series_bound a A k) -> ((Rabs ((PSeries a x) - (sum_n (fun k => ((a k)*(x ^ k)))%R (coeff_num A k n)))) <= (/ 2 ^ n))%R.
+  Lemma pwrs_le a x n: \|x| <= 1 -> \|powers a x n| <= \|a n|.
+  Proof. by move => /(pow_le_1_compat_abs n); rewrite /powers RPow_abs; split_Rabs; nra. Qed.
+  
+  Lemma acnv_pwrs a x: \|x| <= 1 -> absolutely_convergent a -> absolutely_convergent (powers a x).
   Proof.
-    move => x xle1 H.
-    rewrite /PSeries.
-    set p0 := (fun k => ((a k)*(x ^ k)))%R.
-    rewrite (Series_incr_n p0 (coeff_num A k n).+1); try by [apply ex_series_Rabs; apply (bseries_exists_Rabs2 xle1 H) | apply Nat.lt_0_succ].
-    rewrite <- pred_Sn. 
-    rewrite <- sum_n_Reals.
-    rewrite Rplus_comm.
-    have rpm_assoc u v w: ((u+v)-w = (u+(v-w)))%R by lra.
-    rewrite rpm_assoc Rminus_eq_0 Rplus_0_r //=.
-    apply /Rle_trans.
-    apply Series.Series_Rabs.
-    - have e := (bseries_exists_Rabs2 xle1 H).
-      have [ex _] := (ex_series_incr_n (fun n : nat => Rabs (a n * x ^ n)) (coeff_num A k n).+1).
-      by apply ex.
-    simpl.
-    have lt :  ((Series (fun n0 : nat => Rabs (p0 (coeff_num A k n + n0)%coq_nat.+1))) <= (Series (fun n0 : nat => Rabs (a (coeff_num A k n + n0)%coq_nat.+1))))%R.
-     - apply Series_le; last by apply (ex_series_incr_n (fun n0 => (abs (a n0))) (coeff_num A k n).+1); apply (bseries_exists_Rabs H).
-       move => m.
-       split;first by apply Rabs_pos.
-       rewrite /p0.
-       rewrite Rabs_mult.
-       rewrite <- Rmult_1_r.
-       apply Rmult_le_compat_l; first by apply Rabs_pos.
-       rewrite <- RPow_abs.
-       by apply pow_le_1_compat_abs.
-    apply /Rle_trans.
-    apply lt.
-    by apply tpmn_series.
+    move => /pwrs_le ineq cnv; apply/ex_series_le/cnv => n.
+    by rewrite/norm/=/abs/= Rabs_pos_eq; try exact/Rabs_pos.
   Qed.
 
+  Lemma tpmn_psrs a A k n x: \|x| <= 1 -> a \is_bounded_by A \and k ->
+    \|Series (powers a x) - \sum_(i< coeff_num A k n) powers a x i| <= / 2 ^ n.
+  Proof.
+    case eq: (coeff_num A k n) => [ | c] => xle1 bnd.
+    - by rewrite big_ord0 Rminus_0_r; apply/Rle_trans/Rle_trans/sbnd_cnum/bnd/Req_le/Series_ext.
+    rewrite (Series_incr_n _ c.+1); try exact/leP; last first.
+    - exact/acnv_cnv/acnv_pwrs/sbnd_acnv/bnd.
+    rewrite -sum_n_Reals sum_big_ord; have -> u v: u + v - u = v by lra.
+    apply/Rle_trans.
+    - by apply/Series_Rabs; have /(acnv_pwrs xle1)/(cnv_shft c.+1):= sbnd_acnv bnd.
+    by rewrite -eq; apply/sbnd_cnum => i; apply/Rle_trans/bnd/pwrs_le.
+    Unshelve.
+    exact/a.
+  Qed.
+  
   Fixpoint finite_sum_rlzr_rec (phia : names_RQw) (phix : names_RQ) (N M : nat) : names_RQ :=
     match M with  
     | 0%nat => (fun q => (phia (N,q)))
@@ -507,6 +453,7 @@ Section ps_summation.
                                                   q'))
                       ) q))
     end.              
+
   Definition finite_sum_rlzrf (phi : ps_names) phix N := (finite_sum_rlzr_rec (rprj phi) phix N N).
   Lemma finite_sum_rlzr_rec_spec1 : forall a phia phix N, (phia \describes a \wrt powerseries1_cs) ->(finite_sum_rlzr_rec (rprj phia) phix N 0) \describes (projT1 a N) \wrt RQ. 
   Proof.

@@ -1137,7 +1137,7 @@ Definition interval_reals: computable_reals.
   - rewrite /= F2PF_spec.
     rewrite <- F2MF_comp_F2MF.
     apply cleanup_slvs.
-    suff -> : division_for_Q_reals.find_fraction =~= make_mf (fun xy z => xy.2 <> 0 /\ z = xy.1 / xy.2) by apply Rdiv_rlzr_spec.
+    suff -> : Q_reals.find_fraction =~= make_mf (fun xy z => xy.2 <> 0 /\ z = xy.1 / xy.2) by apply Rdiv_rlzr_spec.
     move => [x y] z /=.
     split => [[H1 H2] | [H1 H2]]; split => //.
     by field_simplify_eq;lra.

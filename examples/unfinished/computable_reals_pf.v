@@ -5,7 +5,7 @@ From rlzrs Require Import all_rlzrs.
 Require Import Reals.
 From metric Require Import all_metric reals standard Qmetric.
 Require Import axioms all_cs_base cs_mtrc metric_names hyper_spaces all_cs classical_mach Q_reals.
-Require Import continuous_machines monotone_machines Q_round division_for_Q_reals.
+Require Import continuous_machines monotone_machines.
 Structure computable_reals:=
   {
     representation: representation_of R;

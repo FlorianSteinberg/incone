@@ -63,23 +63,19 @@ examples/cantor_space.v
 examples/KleeneKreisel.v
 examples/reals/Rstruct.v
 examples/reals/Q_reals.v
-examples/reals/division_for_Q_reals.v
 
-examples/unfinished/Q_round.v
-
+#extras that are not currently part of the library but can be compiled on demand:
+#naming_spaces/naming_spaces_as_data_structure.v
 examples/unfinished/computable_reals_pf.v
 examples/unfinished/Ibounds.v
 examples/unfinished/IrealsZ.v
 examples/unfinished/Iextract.v
+examples/unfinished/softcomparison_pf.v
+examples/unfinished/magnitude_pf.v
+examples/unfinished/sqrt_pf.v
 
-#extras that are not currently part of the library but can be compiled on demand:
-#naming_spaces/naming_spaces_as_data_structure.v
 #examples/unfinished/Ireals.v
 #examples/unfinished/lp.v
 #examples/unfinished/under.v
 #examples/unfinished/sd_reals.v
 #examples/unfinished/sdvsc.v
-
-examples/unfinished/softcomparison_pf.v
-examples/unfinished/magnitude_pf.v
-examples/unfinished/sqrt_pf.v

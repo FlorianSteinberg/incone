@@ -47,7 +47,7 @@ Section choice.
 
   Definition cost N (tot: \Phi_N \is_total) q:= sval (cost_dep tot q).
   Lemma cost_spec N (tot: \Phi_N \is_total) q: N (cost tot q, q).
-  Proof. exact/(svalP (cost_dep tot q)). Qed.
+  Proof. exact/(svalP (cost_dep tot q)). Defined.
       
   Lemma tot_choice (N: Q ~> A): \Phi_N \is_total -> {phi | \Phi_N \extends (F2MF phi)}.
   Proof.
@@ -55,7 +55,7 @@ Section choice.
     suff f q: {a | N (cost tot q, q) = Some a}. 
     - by exists (fun q => sval (f q)) => q _ <-; exists (cost tot q); apply/(svalP (f q)).
     by have:= (cost_spec tot q); case eq: N => [a | ] //; exists a.
-  Qed.
+  Defined.
 
   Definition evaluate (N: Q ~> A): \Phi_N \is_total -> Q -> A.
     by move => tot; apply/(sval (tot_choice tot)).

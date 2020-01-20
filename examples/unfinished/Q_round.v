@@ -209,3 +209,14 @@ Proof.
   rewrite /id.
   by split_Rabs;lra.
 Qed.
+
+
+Require Import Coq.Lists.StreamMemo.
+Definition to_int (q : Q) :=  (Pos.to_nat (Qden q)).
+Definition from_int (p : nat) := (1 # (Pos.of_nat p)).
+Definition memoize_real (phi : nat -> Q) := let p := (memo_list Q phi) in
+                                                     fun n => memo_get Q n p.
+Definition round_name_RQ' (phi : names_RQ) : names_RQ := (memoize_real ( (round_name_RQ phi) \o_f from_int)) \o_f to_int. 
+Lemma round_RQ'_correct : F2MF round_name_RQ' \realizes (id : RQ -> RQ).
+Proof.
+Admitted.

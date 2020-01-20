@@ -1024,7 +1024,7 @@ Section partial_functions.
     H =~= F \o G -> {h : partial_function |  h \solves H}.
   Proof.
     by case => f ? [g ?] eq; exists (partial_composition f g); rewrite pcmp_spec eq; apply slvs_comp.
-  Qed.
+  Defined.
 
   Lemma cmp_pf_tight (X Y Z: cs) (F: Y ->> Z) (G : X ->> Y)  H:
     {f: partial_function |  f \solves F} -> {g: partial_function |  g \solves G} ->
@@ -1032,7 +1032,7 @@ Section partial_functions.
   Proof.
     case => f ? [g ?] tight; exists (partial_composition f g).
     by rewrite pcmp_spec; apply/slvs_tight/tight/slvs_comp.
-  Qed.
+  Defined.
 
   Definition pprd_rlzrf (X Y X' Y': cs) (f g: partial_function):=
     partial_composition
@@ -1055,7 +1055,7 @@ Section partial_functions.
   Lemma pf_fprd (X Y Z V: cs) (F: X ->> Y) (G: Z ->> V) H:
     {f: partial_function |  f \solves F} -> {g: partial_function |  g \solves G} ->
     H =~= F ** G -> {h: partial_function | h \solves H}.
-  Proof. by case => f ? [g ?] eq; exists (pprd_rlzrf f g); rewrite eq; apply pprd_rlzrf_spec. Qed.
+  Proof. by case => f ? [g ?] eq; exists (pprd_rlzrf f g); rewrite eq; apply pprd_rlzrf_spec. Defined.
 
   Definition fsum_rlzrpf (X Y X' Y' : cs) (f g: partial_function) :=
     partial_composition
@@ -1075,7 +1075,7 @@ Section partial_functions.
   Lemma sum_pf (X Y X' Y': cs) (F: X ->> Y) (G: X' ->> Y') H:
     {f: partial_function |  f \solves F} -> {g: partial_function |  g \solves G} ->
     H =~= F +s+ G -> {h: partial_function | h \solves H}.
-  Proof. by case => f ? [g ?] eq; exists (fsum_rlzrpf f g); rewrite eq; apply psum_rlzrf_spec. Qed.
+  Proof. by case => f ? [g ?] eq; exists (fsum_rlzrpf f g); rewrite eq; apply psum_rlzrf_spec. Defined.
 
   Definition speedup n s := (2 ^ (n+s))%nat.
 

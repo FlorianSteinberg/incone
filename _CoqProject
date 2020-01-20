@@ -80,6 +80,6 @@ examples/unfinished/Iextract.v
 #examples/unfinished/sd_reals.v
 #examples/unfinished/sdvsc.v
 
- examples/unfinished/softcomparison_pf.v
- examples/unfinished/magnitude_pf.v
- examples/unfinished/sqrt_pf.v
+examples/unfinished/softcomparison_pf.v
+examples/unfinished/magnitude_pf.v
+examples/unfinished/sqrt_pf.v

@@ -145,6 +145,7 @@ Defined.
 Lemma tpmn_rlzr : {f : partial_function | f \realizes ((fun (n : nat) => (/ 2 ^ n)) : (nat -> Rc))}.
 Proof.
   have fp : forall f, (f =~= f) by trivial.
+  apply /cleanup_after_pf.
   (* A realizer for the function n -> (1,-n)) *)
   set rlzrf := (fun (n : B_(cs_nat)) (u : (unit + unit)) => match u with
           | (inl tt) => (1, -(Z.of_nat (n tt)))%Z
@@ -202,9 +203,12 @@ Proof.
   exists (F2PF ((@rprj (B_(Rc)) (B_(Rc \*_cs Rc))) : (B_(Rc \*_cs (Rc \*_cs Rc)) -> B_(Rc \*_cs Rc)))).
   rewrite F2PF_spec.
   apply snd_rlzr_spec.
+  apply /cleanup_after_pf.
   apply /cmp_pf => //.
+  apply /cleanup_after_pf.
   apply (addition_rlzr Rc).
   apply /pf_fprd => //.
+  apply /cleanup_after_pf.
   apply cleanup_before_pf.
   exists (F2PF (ssrfun.id)).
   rewrite F2PF_spec.

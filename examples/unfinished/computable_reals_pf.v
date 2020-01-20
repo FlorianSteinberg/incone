@@ -42,7 +42,7 @@ Definition rational_reals: computable_reals.
       reflexivity.
     by trivial.
   - by exists (F2PF ltK_rlzrf); rewrite F2PF_spec; apply/ltK_rlzrf_spec.
-  - by exists (F2PF round_name_RQ'); rewrite F2PF_spec; apply/round_RQ'_correct.
+  - by exists (F2PF round_name_RQ); rewrite F2PF_spec; apply/round_RQ_correct.
   - by exists (F2PF lim_eff_rlzrf); rewrite F2PF_spec; apply/lim_eff_rlzr_spec.
   exists ((fun phi _ => inject_Z (lprj phi (tt: Q_(cs_Z))) * ((1 + 1)^(rprj phi (tt: Q_ cs_Z))))%Q).
   rewrite /uncurry /= /lprj /rprj.

@@ -13,30 +13,6 @@ Require Import QOrderedType.
 Local Open Scope R_scope.
 Notation "'\|' x '|'" := (Rabs x) (at level 30, format "'\|' x '|'").
 
-Definition ltK (xy : R*R) := let (x,y) := xy in
-                     match (total_order_T x y) with
-                     | (inleft (left _)) => true_K
-                     | (inright _) => false_K
-                     | _ => bot_K
-                     end.
-
-Lemma ltK_if x y: ltK (x,y) = if x != y then B2K (Rltb x y) else bot_K.
-Proof.
-  rewrite /ltK /B2K.
-  by case: (total_order_T _ _) => [[]|]; case: ifP => /eqP //; try lra; case: ifP => // /RltP; lra.
-Qed.
-  
-Lemma ltK_spec x y: ((ltK (x,y)) = true_K <-> (x < y)) /\ ((ltK (x,y)) = false_K <-> (y < x)) /\ ((ltK (x,y)) = bot_K <-> (x = y)). 
-Proof.
-  rewrite /ltK.
-  case: (total_order_T x y) => [[xlty | <-] | xgty].
-  split; split;[| | split | split]; try lra;try by auto.
-  split; split;[| | split | split]; try lra;try by auto.
-  split; split;[| | split | split]; try lra;try by auto.
-Qed.
-
-Definition Rdiv_mf := make_mf (fun xy z => (xy.2 <> 0 /\ z = (xy.1/xy.2))).
-
 Section reals_via_rational_approximations.
   Coercion Q2R: Q >-> R.
   (**
@@ -568,6 +544,12 @@ End metric_Qreals.
 
 Section comparison.
 
+  Definition ltK (xy : R*R) := let (x,y) := xy in
+                     match (total_order_T x y) with
+                     | (inleft (left _)) => true_K
+                     | (inright _) => false_K
+                     | _ => bot_K
+                     end.
   (* helper functions *)
   Definition Qeps_of_n n := ((/ (1+1))^Z.of_nat n)%Q.
   

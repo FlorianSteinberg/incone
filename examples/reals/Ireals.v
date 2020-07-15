@@ -4,7 +4,7 @@ From metric Require Import reals pointwise.
 From metric Require Import all_metric reals standard Qmetric.
 Require Import axioms all_cs cs_mtrc metric_names hyper_spaces.
 Require Import all_cs_base classical_mach naming_spaces.
-Require Import monotone_machines computable_reals_pf.
+Require Import monotone_machines computable_reals.
 Require Import Reals Psatz FunctionalExtensionality ClassicalChoice.
 Require Import Ibounds.
 Require Import Coq.Lists.StreamMemo.
@@ -546,8 +546,8 @@ Section limit.
 
   Definition lim_eff_rlzrM_fast phin mn := limit_eff_rlzrM phin (speedup mn.1 10, mn.2).
 
-  Lemma F_lim_eff_rlzrM_fast_spec : \F_lim_eff_rlzrM_fast  \solves lim_eff.
-  Admitted.
+  (* Lemma F_lim_eff_rlzrM_fast_spec : \F_lim_eff_rlzrM_fast  \solves lim_eff. *)
+  (* Admitted. *)
 
   Definition lim_eff_rlzr_mu (phin : B_(IR\^w))  (nm : nat * nat) := [:: (nm.2.+1,nm.1)].
 
@@ -1077,13 +1077,13 @@ Proof.
 Qed.
 
 Definition IR_RQ_rlzrM' := (fun phi neps => IR_RQ_rlzrM (speedup neps.1 7) phi neps.2).
-Canonical eqQ : eqType.
-  apply (@Equality.Pack Q).
-  apply eqdec_eqClass => q q'.
-  case q => m n; case q' => m' n'.
-  case (Z.eq_dec m m') => e1; case (Pos.eq_dec n n') => e2; try by right;case.
-  by rewrite e1 e2;auto.
-Defined.
+(* Canonical eqQ : eqType. *)
+(*   apply (@Equality.Pack Q). *)
+(*   apply eqdec_eqClass => q q'. *)
+(*   case q => m n; case q' => m' n'. *)
+(*   case (Z.eq_dec m m') => e1; case (Pos.eq_dec n n') => e2; try by right;case. *)
+(*   by rewrite e1 e2;auto. *)
+(* Defined. *)
 
 Lemma speedup_correct : forall (x : IR) (phi : B_(IR)) s, (phi \is_name_of x) -> (fun (p : Q_(IR)) => (phi (speedup p s)))  \is_name_of x.
 Proof.
@@ -1149,9 +1149,9 @@ Definition interval_reals: computable_reals.
   exists (F2PF cleanup).
   rewrite /= F2PF_spec.
   by apply cleanup_spec.
-  exists (get_partial_function lim_eff_rlzrM_fast) => /=.
+  exists (get_partial_function limit_eff_rlzrM) => /=.
   rewrite gtpf_spec.
-  by apply /tight_slvs/sfrst_spec/F_lim_eff_rlzrM_fast_spec.
+  by apply /tight_slvs/sfrst_spec/F_lim_eff_rlzrM_spec.
   set f2m := (fun (phi : B_(cs_Z \*_cs cs_Z)) => (FloattoIR (lprj phi tt) (rprj phi tt))).
   exists f2m.
   rewrite /f2m.

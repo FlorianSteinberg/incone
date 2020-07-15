@@ -8,7 +8,6 @@ Require Import axioms all_cs cs_mtrc metric_names hyper_spaces.
 From metric Require Import all_metric reals standard Qmetric.
 Require Import Ibounds.
 Require Import search.
-Require Import Iextract.
 Require Import monotone_machines.
 Require Import continuous_machines.
 From mathcomp Require Import choice.
@@ -20,7 +19,7 @@ Import BigN BigZ.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
-Require Import computable_reals_pf softcomparison_pf magnitude_pf.
+Require Import computable_reals softcomparison magnitude.
 Local Open Scope Z_scope.
 Import QArith.
 Local Open Scope R_scope.

@@ -10,9 +10,9 @@ Require Import continuous_machines.
 Require Import monotone_machines.
 From metric Require Import all_metric reals standard Qmetric.
 Require Import search.
-Require Import computable_reals_pf.
+Require Import computable_reals.
 Require Import Ibounds.
-Require Import softcomparison_pf.
+Require Import softcomparison.
 (* Some helper functions we need that should be moved to another file later *)
 Definition nat2csN (n : nat) := (fun (_ : unit) => n). 
 Definition Z2csZ (z : Z) := (fun (_ : unit) => z). 
